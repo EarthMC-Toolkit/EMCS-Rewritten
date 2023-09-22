@@ -4,17 +4,19 @@ import (
 	"emcs-rewritten/bot"
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
 	// Grab env vars
-	botToken, ok := os.LookupEnv("BOT_TOKEN")
+	err := godotenv.Load(".env")
 
-	if !ok {
-		log.Fatal("Could not find Discord token! Must be set using: BOT_TOKEN")
+	if err != nil {
+		log.Fatal("Could use Discord token! Make sure it's set with 'BOT_TOKEN'")
 	}
 
 	// Start up the bot
-	bot.BotToken = botToken
+	bot.BotToken = os.Getenv("BOT_TOKEN")
 	bot.Run()
 }
