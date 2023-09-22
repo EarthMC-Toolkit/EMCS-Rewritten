@@ -58,7 +58,7 @@ func CreateTownEmbed(
 		bal := fmt.Sprint(town.Stats.Balance)
 		residents := strings.Join(town.Residents, ", ")
 
-		foundedTs := strconv.FormatFloat(town.Timestamps.Registered, 'f', -1, 64)
+		foundedTs := strconv.FormatFloat(town.Timestamps.Registered / 1000, 'f', 0, 64)
 		dateFounded := fmt.Sprintf("<t:%s:R>", foundedTs)
 
 		embed := &discordgo.MessageSend{
