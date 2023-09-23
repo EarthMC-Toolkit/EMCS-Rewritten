@@ -3,11 +3,13 @@ package bot
 import (
 	"emcs-rewritten/api/residents"
 	"emcs-rewritten/api/towns"
+	"emcs-rewritten/structs"
 	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/bwmarrin/discordgo"
 	log "github.com/sirupsen/logrus"
@@ -118,23 +120,31 @@ func CreateStaffEmbed(
 	message *discordgo.MessageCreate, 
 	args []string,
 ) (*discordgo.MessageSend, error) {
-	onlineStaff := []string {}
+	var (
+        onlineStaff []string
+		res 		structs.ResidentInfo
+		err         error
+    )
 
-	for _, elem := range staffList {
-		res, err := residents.Get(elem)
+    var wg sync.WaitGroup
+
+	worker := func(uuid string) {
+		res, err = residents.Get(uuid)
 
 		if err != nil {
-			discord.ChannelMessageSend(
-				message.ChannelID,
-				"Could not fetch staff list!\nAn error occurred during the request!",
-			)
-			
-			return nil, err
+			return
 		}
 
 		if res.Status.Online {
 			onlineStaff = append(onlineStaff, res.Name)
 		}
+
+		defer wg.Done()
+	}
+	
+	for _, uuid := range staffList {
+		wg.Add(1)
+		go worker(uuid)
 	}
 
 	staffEmbed := &discordgo.MessageSend{
