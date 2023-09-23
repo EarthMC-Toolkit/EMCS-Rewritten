@@ -1,8 +1,8 @@
 package bot
 
 import (
-	"emcs-rewritten/api"
 	"emcs-rewritten/api/towns"
+	"emcs-rewritten/utils"
 	"fmt"
 	"log"
 	"os"
@@ -135,7 +135,7 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 			}
 
 			for _, elem := range staffList {
-				resident, err := api.JsonRequest[ResInfo](fmt.Sprintf("/residents/%s", elem))
+				resident, err := utils.JsonRequest[ResInfo](fmt.Sprintf("/residents/%s", elem))
 
 				if err != nil {
 					discord.ChannelMessageSend(
