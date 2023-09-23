@@ -1,7 +1,7 @@
 package bot
 
 import (
-	"emcs-rewritten/classes/towns"
+	"emcs-rewritten/api/towns"
 	"fmt"
 	"log"
 	"os"
