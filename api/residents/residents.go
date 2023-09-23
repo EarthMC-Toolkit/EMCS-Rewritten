@@ -6,8 +6,9 @@ import (
 	"fmt"
 )
 
-func Get(name string) (structs.ResidentInfo, error) {
-	resident, err := utils.JsonRequest[structs.ResidentInfo](fmt.Sprintf("/residents/%s?", name), true)
+func Get(identifier string) (structs.ResidentInfo, error) {
+	endpoint := fmt.Sprintf("/residents/%s?", identifier)
+	resident, err := utils.JsonRequest[structs.ResidentInfo](endpoint, true)
 
 	if err != nil { 
 		return structs.ResidentInfo{}, err
