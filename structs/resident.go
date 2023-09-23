@@ -6,7 +6,7 @@ type ResidentStatus struct {
 }
 
 type ResidentStats struct {
-	Balance		float32 	`json:"balance"`
+	Balance		float32 `json:"balance"`
 }
 
 type ResidentRanks struct {

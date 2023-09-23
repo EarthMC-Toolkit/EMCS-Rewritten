@@ -106,7 +106,7 @@ func CreateResidentEmbed(
 				Title: fmt.Sprintf("Resident | `%s %s %s`", resident.Title, resident.Name, resident.Surname),
 				Fields: []*discordgo.MessageEmbedField{
 					EmbedField("Affiliation", fmt.Sprintf("%s (%s)", town, nation), true),
-					EmbedField("Balance", fmt.Sprint(resident.Stats.Balance), true),
+					EmbedField("Balance", fmt.Sprintf("%.0fG", resident.Stats.Balance), true),
 					EmbedField("Status", status, true),
 					EmbedField("Registered", dateRegistered, true),
 					EmbedField("Last Online", dateLastOnline, true),
@@ -137,13 +137,7 @@ func CreateTownEmbed(
 ) (*discordgo.MessageSend, error) {
 	town, err := towns.Get(args[2])
 	if err == nil {
-		area := fmt.Sprintf(
-			"Chunks claimed: `%s` / `%s`", 
-			fmt.Sprint(town.Stats.NumTownBlocks),
-			fmt.Sprint(town.Stats.MaxTownBlocks),
-		)
 
-		bal := fmt.Sprint(town.Stats.Balance)
 		residents := strings.Join(town.Residents, ", ")
 
 		nation := town.Nation
@@ -162,8 +156,8 @@ func CreateTownEmbed(
 					EmbedField("Mayor", town.Mayor, true),
 					EmbedField("Founder", town.Founder, true),
 					EmbedField("Date Founded", dateFounded, true),
-					EmbedField("Area", area, true),
-					EmbedField("Balance", bal, true),
+					EmbedField("Area", fmt.Sprintf("`%d` / `%d` chunks", town.Stats.NumTownBlocks, town.Stats.MaxTownBlocks), true),
+					EmbedField("Balance", fmt.Sprintf("%.0fG", town.Stats.Balance), true),
 					EmbedField("Residents", fmt.Sprintf("```%s```", residents), false),
 					//EmbedField("", "", false),
 				},
@@ -190,9 +184,6 @@ func CreateNationEmbed(
 	nation, err := nations.Get(args[2])
 	if err == nil {
 
-		area := fmt.Sprintf("Chunks claimed: `%s`", fmt.Sprint(nation.Stats.NumTownBlocks))
-		bal := fmt.Sprint(nation.Stats.Balance)
-
 		foundedTs := strconv.FormatFloat(nation.Timestamps.Registered / 1000, 'f', 0, 64)
 		dateFounded := fmt.Sprintf("<t:%s:R>", foundedTs)
 
@@ -203,10 +194,10 @@ func CreateNationEmbed(
 				Fields: []*discordgo.MessageEmbedField{
 					EmbedField("King", nation.King, true),
 					EmbedField("Capital", nation.Capital, true),
-					EmbedField("Location", fmt.Sprintf("[%.2f, %.2f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", nation.Spawn.X, nation.Spawn.Z, nation.Spawn.X, nation.Spawn.Y, nation.Spawn.Z), true),
+					EmbedField("Location", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", nation.Spawn.X, nation.Spawn.Z, nation.Spawn.X, nation.Spawn.Y, nation.Spawn.Z), true),
 					EmbedField("Date Founded", dateFounded, true),
-					EmbedField("Area", area, true),
-					EmbedField("Balance", bal, true),
+					EmbedField("Area", fmt.Sprintf("%d chunks", nation.Stats.NumTownBlocks), true),
+					EmbedField("Balance", fmt.Sprintf("%.0fG", nation.Stats.Balance), true),
 					EmbedField("Residents", fmt.Sprintf("```%d```", len(nation.Residents)), false),
 				},
 				Color: 5763719,

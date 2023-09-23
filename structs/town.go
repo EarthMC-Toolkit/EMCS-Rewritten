@@ -13,7 +13,7 @@ type TownStats struct {
 	NumTownBlocks	int16 	`json:"numTownBlocks"`
 	MaxTownBlocks	int16 	`json:"maxTownBlocks"`
 	NumResidents	int16 	`json:"numResidents"`
-	Balance			int32 	`json:"balance"`
+	Balance			float32 `json:"balance"`
 }
 
 type TownPerms struct {
