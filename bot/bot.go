@@ -1,22 +1,21 @@
 package bot
 
 import (
+	"emcs-rewritten/api/residents"
 	"emcs-rewritten/api/towns"
-	"emcs-rewritten/structs"
-	"emcs-rewritten/utils"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	log "github.com/sirupsen/logrus"
 )
 
 var BotToken string
 
-// Last updated: 23.09.2023
+// Last updated - 23/09/2023
 var staffList = []string {
 	"b4d2215c-e47b-4f39-a3e3-e6726e0bc596", "f17d77ab-aed4-44e7-96ef-ec9cd473eda3",
 	"ea798ca9-1192-4334-8ef5-f098bdc9cb39", "fed0ec4a-f1ad-4b97-9443-876391668b34",
@@ -114,6 +113,58 @@ func CreateTownEmbed(
 	return nil, err
 }
 
+func CreateStaffEmbed(
+	discord *discordgo.Session, 
+	message *discordgo.MessageCreate, 
+	args []string,
+) (*discordgo.MessageSend, error) {
+	onlineStaff := []string {}
+
+	for _, elem := range staffList {
+		res, err := residents.Get(elem)
+
+		if err != nil {
+			discord.ChannelMessageSend(
+				message.ChannelID,
+				"Could not fetch staff list!\nAn error occurred during the request!",
+			)
+			
+			return nil, err
+		}
+
+		if res.Status.Online {
+			onlineStaff = append(onlineStaff, res.Name)
+		}
+	}
+
+	staffEmbed := &discordgo.MessageSend{
+		Embeds: []*discordgo.MessageEmbed{{
+			Type:        discordgo.EmbedTypeRich,
+			Title:       "Online staff",
+			Description: fmt.Sprintf("```%s```", strings.Join(onlineStaff, ", ")),
+			Color:       5763719,
+			Author: &discordgo.MessageEmbedAuthor{
+				Name:    message.Author.Username,
+				IconURL: message.Author.AvatarURL(""),
+			},
+		}},
+	}
+
+	return staffEmbed, nil
+}
+
+func sendEmbed(
+	discord *discordgo.Session, 
+	message *discordgo.MessageCreate, 
+	embed *discordgo.MessageSend,
+) {
+	_, err := discord.ChannelMessageSendComplex(message.ChannelID, embed)
+
+	if err != nil {
+		log.Error(err)
+	}
+}
+
 func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	if message.Author.ID == discord.State.User.ID { return }
 
@@ -124,53 +175,32 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 
 	switch {
 		case cmd == "staff": {
-			onlineStaff := []string {}
+			embed, err := CreateStaffEmbed(discord, message, args)
 
-			for _, elem := range staffList {
-				resident, err := utils.JsonRequest[structs.ResidentInfo](fmt.Sprintf("/residents/%s", elem))
-
-				if err != nil {
-					discord.ChannelMessageSend(
-						message.ChannelID,
-						"Could not fetch staff list!\nAn error occurred during the request!",
-					)
-					
-					return
-				}
-
-				if resident.Status.Online {
-					onlineStaff = append(onlineStaff, resident.Name)
-				}
+			if (err != nil) {
+				discord.ChannelMessageSend(
+					message.ChannelID,
+					"Could not fetch staff list!\nAn error occurred during the request!",
+				)
+				
+				return
 			}
-
-			embed := &discordgo.MessageSend{
-				Embeds: []*discordgo.MessageEmbed{{
-					Type:        discordgo.EmbedTypeRich,
-					Title:       "Online staff",
-					Description: fmt.Sprintf("```%s```", strings.Join(onlineStaff, ", ")),
-					Color:       5763719,
-					Author: &discordgo.MessageEmbedAuthor{
-						Name:    message.Author.Username,
-						IconURL: message.Author.AvatarURL(""),
-					},
-				}},
-			}
-
-			discord.ChannelMessageSendComplex(message.ChannelID, embed)
+			
+			sendEmbed(discord, message, embed)
 		}
 		case cmd == "town": {
-			townEmbed, err := CreateTownEmbed(discord, message, args)
+			embed, err := CreateTownEmbed(discord, message, args)
 			
 			if (err != nil) {
 				discord.ChannelMessageSend(
-					message.ChannelID, 
-					fmt.Sprintf("Could not fetch town!\nAn error occurred during the request!"),
+					message.ChannelID,
+					"Could not fetch town!\nAn error occurred during the request!",
 				)
 
 				return
 			}
 			
-			discord.ChannelMessageSendComplex(message.ChannelID, townEmbed)
+			sendEmbed(discord, message, embed)
 		}
 	}
 }

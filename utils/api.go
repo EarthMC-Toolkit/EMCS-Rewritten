@@ -10,11 +10,16 @@ import (
 
 const domain string = "https://api.earthmc.net/v2/aurora"
 
-func SendRequest(endpoint string) ([]byte, error) {
+func SendRequest(endpoint string, skipCache bool) ([]byte, error) {
+	if skipCache == true {
+		randStr := RandomString(12)
+		endpoint += randStr
+	}
+
 	url := fmt.Sprintf("%s%s", domain, endpoint)
 	client := http.Client{ Timeout: 6 * time.Second }
 
-	fmt.Println("Sending request to: " + url)
+	fmt.Println("Request sent to: " + endpoint)
 
 	response, err := client.Get(url)
 	if err != nil {
@@ -27,9 +32,9 @@ func SendRequest(endpoint string) ([]byte, error) {
 	return body, nil
 }
 
-func JsonRequest[T any](endpoint string) (T, error) {
+func JsonRequest[T any](endpoint string, skipCache bool) (T, error) {
 	var data T
-	res, err := SendRequest(endpoint)
+	res, err := SendRequest(endpoint, skipCache)
 
 	if err != nil { 
 		return data, err
