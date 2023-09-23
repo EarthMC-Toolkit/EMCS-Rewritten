@@ -1,7 +1,7 @@
 package structs
 
 type TownStatus struct {
-	Public			bool 	`json:"public"`
+	Public			bool 	`json:"isPublic"`
 	Open			bool 	`json:"isOpen"`
 	Neutral			bool 	`json:"isNeutral"`
 	Capital			bool	`json:"isCapital"`
