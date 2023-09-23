@@ -10,10 +10,10 @@ type TownStatus struct {
 }
 
 type TownStats struct {
-	NumTownBlocks	int 	`json:"numTownBlocks"`
-	MaxTownBlocks	int 	`json:"maxTownBlocks"`
-	NumResidents	int 	`json:"numResidents"`
-	Balance			float32 `json:"balance"`
+	NumTownBlocks	int16 	`json:"numTownBlocks"`
+	MaxTownBlocks	int16 	`json:"maxTownBlocks"`
+	NumResidents	int16 	`json:"numResidents"`
+	Balance			int32 	`json:"balance"`
 }
 
 type TownPerms struct {
@@ -21,7 +21,7 @@ type TownPerms struct {
 }
 
 type TownCoords struct {
-	Home 			[]string	`json:"home"`
+	Home 			[]int	`json:"home"`
 	Spawn struct {
 		World		string		`json:"world"`
 		X			float32		`json:"x"`
