@@ -1,19 +1,18 @@
 package structs
 
 type ResidentStatus struct {
-	Online 		bool 	`json:"isOnline"`
-	NPC 		bool 	`json:"isNPC"`
+	Online 		bool 			`json:"isOnline"`
+	NPC 		bool 			`json:"isNPC"`
 }
 
 type ResidentStats struct {
-	Balance		float32 `json:"balance"`
+	Balance		float32 		`json:"balance"`
 }
 
 type ResidentRanks struct {
-	Nation	NationRanks	`json:"nationRanks,omitempty"`
-	Town	TownRanks	`json:"TownRanks,omitempty"`
+	Nation		NationRanks		`json:"nationRanks,omitempty"`
+	Town		TownRanks		`json:"TownRanks,omitempty"`
 }
-
 
 // TODO: Fully implement this
 type ResidentInfo struct {

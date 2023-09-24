@@ -131,7 +131,6 @@ func CreateResidentEmbed(discord *discordgo.Session, message *discordgo.MessageC
 				Thumbnail: &discordgo.MessageEmbedThumbnail{
 					URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", resident.UUID),
 				},
-				
 			}},
 		}
 
@@ -147,7 +146,7 @@ func CreateTownEmbed(discord *discordgo.Session, message *discordgo.MessageCreat
 	if err == nil {
 		residents := strings.Join(town.Residents, ", ")
 
-		foundedTs := strconv.FormatFloat(town.Timestamps.Registered / 1000, 'f', 0, 64)
+		foundedTs := utils.FormatTimestamp(town.Timestamps.Registered)
 		dateFounded := fmt.Sprintf("<t:%s:R>", foundedTs)
 
 		townTitle := fmt.Sprintf("Town | %s", town.Name)
