@@ -7,7 +7,7 @@ import (
 )
 
 func Get(name string) (structs.TownInfo, error) {
-	town, err := utils.JsonRequest[structs.TownInfo](fmt.Sprintf("/towns/%s?", name), false)
+	town, err := utils.JsonRequest[structs.TownInfo](fmt.Sprintf("/towns/%s", name), false)
 
 	if err != nil { 
 		return structs.TownInfo{}, err

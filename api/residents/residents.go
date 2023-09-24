@@ -1,13 +1,14 @@
 package residents
 
 import (
-	"emcs-rewritten/utils"
 	"emcs-rewritten/structs"
+	"emcs-rewritten/utils"
 	"fmt"
 )
 
 func Get(identifier string) (structs.ResidentInfo, error) {
-	resident, err := utils.JsonRequest[structs.ResidentInfo](fmt.Sprintf("/residents/%s?", identifier), true)
+	endpoint := fmt.Sprintf("/residents/%s?", identifier)
+	resident, err := utils.JsonRequest[structs.ResidentInfo](endpoint, true)
 
 	if err != nil { 
 		return structs.ResidentInfo{}, err
