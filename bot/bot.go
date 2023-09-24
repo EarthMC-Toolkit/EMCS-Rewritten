@@ -3,6 +3,7 @@ package bot
 import (
 	"emcs-rewritten/api/residents"
 	"emcs-rewritten/api/towns"
+	"emcs-rewritten/api/nations"
 	"fmt"
 	"os"
 	"os/signal"
@@ -39,6 +40,7 @@ var staffList = []string {
 	"2cbaad0b-ed5b-453e-a6b0-ec4b88ca43cd", "4452780b-034d-4d46-b427-717ce3f5acda",
 }
 
+
 func Run() {
 	// Create new Discord Session
 	discord, err := discordgo.New("Bot " + BotToken)
@@ -59,6 +61,7 @@ func Run() {
 	<-c
 }
 
+
 func EmbedField(name string, value string, inline bool) *discordgo.MessageEmbedField {
 	return &discordgo.MessageEmbedField {
 		Name: name,
@@ -67,6 +70,66 @@ func EmbedField(name string, value string, inline bool) *discordgo.MessageEmbedF
 	}
 }
 
+
+func CreateResidentEmbed(
+	discord *discordgo.Session, 
+	message *discordgo.MessageCreate, 
+	args []string,
+) (*discordgo.MessageSend, error) {
+	resident, err := residents.Get(args[2])
+	if err == nil {
+
+		registeredTs := strconv.FormatFloat(resident.Timestamps.Registered / 1000, 'f', 0, 64)
+		dateRegistered := fmt.Sprintf("<t:%s:F>", registeredTs)
+
+		lastOnlineTs := strconv.FormatFloat(resident.Timestamps.LastOnline / 1000, 'f', 0, 64)
+		dateLastOnline := fmt.Sprintf("<t:%s:R>", lastOnlineTs)
+
+		status := "Offline"
+		if resident.Status.Online {
+			status = "Online"
+		}
+
+		town := resident.Town
+		if town == "" {
+			town = "No Town"
+		}
+
+		nation := resident.Nation
+		if nation == "" {
+			nation = "No Nation"
+		}
+
+		embed := &discordgo.MessageSend{
+			Embeds: [] *discordgo.MessageEmbed{{
+				Type: discordgo.EmbedTypeRich,
+				Title: fmt.Sprintf("Resident | `%s %s %s`", resident.Title, resident.Name, resident.Surname),
+				Fields: []*discordgo.MessageEmbedField{
+					EmbedField("Affiliation", fmt.Sprintf("%s (%s)", town, nation), true),
+					EmbedField("Balance", fmt.Sprintf("%.0fG", resident.Stats.Balance), true),
+					EmbedField("Status", status, true),
+					EmbedField("Registered", dateRegistered, true),
+					EmbedField("Last Online", dateLastOnline, true),
+				},
+				Color: 5763719,
+				Author: &discordgo.MessageEmbedAuthor{
+					Name: message.Author.Username,
+					IconURL: message.Author.AvatarURL(""),
+				},
+				Thumbnail: &discordgo.MessageEmbedThumbnail{
+					URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", resident.UUID),
+				},
+				
+			}},
+		}
+
+		return embed, nil
+	}
+
+	return nil, err
+}
+
+
 func CreateTownEmbed(
 	discord *discordgo.Session, 
 	message *discordgo.MessageCreate, 
@@ -74,14 +137,13 @@ func CreateTownEmbed(
 ) (*discordgo.MessageSend, error) {
 	town, err := towns.Get(args[2])
 	if err == nil {
-		area := fmt.Sprintf(
-			"Chunks claimed: `%s` / `%s`", 
-			fmt.Sprint(town.Stats.NumTownBlocks),
-			fmt.Sprint(town.Stats.MaxTownBlocks),
-		)
 
-		bal := fmt.Sprint(town.Stats.Balance)
 		residents := strings.Join(town.Residents, ", ")
+
+		nation := town.Nation
+		if nation == "" {
+			nation = "No Nation"
+		}
 
 		foundedTs := strconv.FormatFloat(town.Timestamps.Registered / 1000, 'f', 0, 64)
 		dateFounded := fmt.Sprintf("<t:%s:R>", foundedTs)
@@ -89,13 +151,13 @@ func CreateTownEmbed(
 		embed := &discordgo.MessageSend{
 			Embeds: [] *discordgo.MessageEmbed{{
 				Type: discordgo.EmbedTypeRich,
-				Title: fmt.Sprintf("Town | %s", town.Name),
+				Title: fmt.Sprintf("Town | %s (%s)", town.Name, nation),
 				Fields: []*discordgo.MessageEmbedField{
 					EmbedField("Mayor", town.Mayor, true),
 					EmbedField("Founder", town.Founder, true),
 					EmbedField("Date Founded", dateFounded, true),
-					EmbedField("Area", area, true),
-					EmbedField("Balance", bal, true),
+					EmbedField("Area", fmt.Sprintf("`%d` / `%d` chunks", town.Stats.NumTownBlocks, town.Stats.MaxTownBlocks), true),
+					EmbedField("Balance", fmt.Sprintf("%.0fG", town.Stats.Balance), true),
 					EmbedField("Residents", fmt.Sprintf("```%s```", residents), false),
 					//EmbedField("", "", false),
 				},
@@ -112,6 +174,46 @@ func CreateTownEmbed(
 
 	return nil, err
 }
+
+
+func CreateNationEmbed(
+	discord *discordgo.Session, 
+	message *discordgo.MessageCreate, 
+	args []string,
+) (*discordgo.MessageSend, error) {
+	nation, err := nations.Get(args[2])
+	if err == nil {
+
+		foundedTs := strconv.FormatFloat(nation.Timestamps.Registered / 1000, 'f', 0, 64)
+		dateFounded := fmt.Sprintf("<t:%s:R>", foundedTs)
+
+		embed := &discordgo.MessageSend{
+			Embeds: [] *discordgo.MessageEmbed{{
+				Type: discordgo.EmbedTypeRich,
+				Title: fmt.Sprintf("Nation | %s", nation.Name),
+				Fields: []*discordgo.MessageEmbedField{
+					EmbedField("King", nation.King, true),
+					EmbedField("Capital", nation.Capital, true),
+					EmbedField("Location", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", nation.Spawn.X, nation.Spawn.Z, nation.Spawn.X, nation.Spawn.Y, nation.Spawn.Z), true),
+					EmbedField("Date Founded", dateFounded, true),
+					EmbedField("Area", fmt.Sprintf("%d chunks", nation.Stats.NumTownBlocks), true),
+					EmbedField("Balance", fmt.Sprintf("%.0fG", nation.Stats.Balance), true),
+					EmbedField("Residents", fmt.Sprintf("```%d```", len(nation.Residents)), false),
+				},
+				Color: 5763719,
+				Author: &discordgo.MessageEmbedAuthor{
+					Name: message.Author.Username,
+					IconURL: message.Author.AvatarURL(""),
+				},
+			}},
+		}
+
+		return embed, nil
+	}
+
+	return nil, err
+}
+
 
 func CreateStaffEmbed(
 	discord *discordgo.Session, 
@@ -165,6 +267,9 @@ func sendEmbed(
 	}
 }
 
+
+
+
 func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	if message.Author.ID == discord.State.User.ID { return }
 
@@ -174,6 +279,8 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 	cmd := strings.ToLower(args[1])
 
 	switch {
+
+
 		case cmd == "staff": {
 			embed, err := CreateStaffEmbed(discord, message, args)
 
@@ -188,7 +295,25 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 			
 			sendEmbed(discord, message, embed)
 		}
-		case cmd == "town": {
+
+
+		case cmd == "resident", cmd == "res", cmd == "r": {
+			embed, err := CreateResidentEmbed(discord, message, args)
+			
+			if (err != nil) {
+				discord.ChannelMessageSend(
+					message.ChannelID,
+					"Could not fetch resident!\nAn error occurred during the request!",
+				)
+
+				return
+			}
+			
+			sendEmbed(discord, message, embed)
+		}
+
+
+		case cmd == "town", cmd == "t": {
 			embed, err := CreateTownEmbed(discord, message, args)
 			
 			if (err != nil) {
@@ -202,5 +327,22 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 			
 			sendEmbed(discord, message, embed)
 		}
+
+
+		case cmd == "nation", cmd == "n": {
+			embed, err := CreateNationEmbed(discord, message, args)
+			
+			if (err != nil) {
+				discord.ChannelMessageSend(
+					message.ChannelID,
+					"Could not fetch nation!\nAn error occurred during the request!",
+				)
+
+				return
+			}
+			
+			sendEmbed(discord, message, embed)
+		}
+
 	}
 }

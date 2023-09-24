@@ -13,7 +13,7 @@ type TownStats struct {
 	NumTownBlocks	int16 	`json:"numTownBlocks"`
 	MaxTownBlocks	int16 	`json:"maxTownBlocks"`
 	NumResidents	int16 	`json:"numResidents"`
-	Balance			int32 	`json:"balance"`
+	Balance			float32 `json:"balance"`
 }
 
 type TownPerms struct {
@@ -21,15 +21,17 @@ type TownPerms struct {
 }
 
 type TownCoords struct {
-	Home 			[]int	`json:"home"`
-	Spawn struct {
-		World		string		`json:"world"`
-		X			float32		`json:"x"`
-		Y			float32		`json:"y"`
-		Z			float32		`json:"z"`
-		Pitch		float32		`json:"pitch"`
-		Yaw			float32		`json:"yaw"`
-	} `json:"spawn"`
+	Home 		[]string	`json:"home"`
+	Spawn 		Spawn 		`json:"spawn"`
+}
+
+type TownRanks struct {
+	Councillor		[]string 	`json:"Councillor,omitempty"`
+	Builder			[]string 	`json:"Builder,omitempty"`
+	Recruiter		[]string 	`json:"Recruiter,omitempty"`
+	Police			[]string 	`json:"Police,omitempty"`
+	TaxExempt		[]string 	`json:"Tax-exempt,omitempty"`
+	Treasurer		[]string 	`json:"Treasurer,omitempty"`
 }
 
 type TownInfo struct {
@@ -39,11 +41,13 @@ type TownInfo struct {
 	Board 			string			`json:"board"`
 	Founder 		string			`json:"founder"`
 	HexColor 		string			`json:"mapColorHexCode"`
-	Nation 			string			`json:"nation"`
+	Nation 			string			`json:"nation,omitempty"`
 	Residents		[]string 		`json:"residents"`
 	Timestamps		Timestamps 		`json:"timestamps"`
 	Status			TownStatus		`json:"status"`
 	Stats			TownStats		`json:"stats"`
 	Coordinates		TownCoords		`json:"coordinates"`
+	Ranks			TownRanks		`json:"ranks"`
+	Trusted			[]string		`json:"trusted"`
 	//Perms			TownPerms		`json:"perms"`
 }
