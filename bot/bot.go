@@ -4,13 +4,15 @@ import (
 	"emcs-rewritten/api/nations"
 	"emcs-rewritten/api/residents"
 	"emcs-rewritten/api/towns"
+	"emcs-rewritten/structs"
 	"emcs-rewritten/utils"
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
 	"strconv"
 	"strings"
-	"regexp"
+	"sync"
 
 	"github.com/bwmarrin/discordgo"
 	log "github.com/sirupsen/logrus"
@@ -86,19 +88,23 @@ func CreateResidentEmbed(discord *discordgo.Session, message *discordgo.MessageC
 		registeredTs := utils.FormatTimestamp(resident.Timestamps.Registered)
 		lastOnlineTs := utils.FormatTimestamp(resident.Timestamps.LastOnline)
 
-		status :="Offline"
+		status := "Offline"
 		if resident.Status.Online { status = "Online" }
 		
 		town := resident.Town
 		if town == "" { town = "No Town" }
 
-		nation := resident.Nation;
+		nation := resident.Nation
 		if nation == "" { nation = "No Nation" }
 		
 		re := regexp.MustCompile("<.*?>")
-		resName := *resident.Name
-		if resTitle := re.ReplaceAllString(resident.Title, ""); resTitle != "" { resName = resTitle + " " + resName }
-		if resSurname := re.ReplaceAllString(resident.Surname, ""); resSurname != "" { resName = resName + " " + resSurname }
+		resName := resident.Name
+
+		if resTitle := re.ReplaceAllString(resident.Title, "")
+			resTitle != "" { resName = resTitle + " " + resName }
+
+		if resSurname := re.ReplaceAllString(resident.Surname, "")
+			resSurname != "" { resName = resName + " " + resSurname }
 
 		embed := &discordgo.MessageSend{
 			Embeds: [] *discordgo.MessageEmbed{{
@@ -203,29 +209,44 @@ func CreateNationEmbed(discord *discordgo.Session, message *discordgo.MessageCre
 }
 
 func CreateStaffEmbed(discord *discordgo.Session, message *discordgo.MessageCreate, args []string) (*discordgo.MessageSend, error) {
-	var onlineStaff []string
+	var (
+        onlineStaff []string
+		res 		structs.ResidentInfo
+		err         error
+    )
 
-	for _, elem := range staffIds {
-		res, err := residents.Get(elem)
+    wg := sync.WaitGroup{}
+
+	worker := func(uuid string) {
+		res, err = residents.Get(uuid)
 
 		if err != nil {
-			fmt.Println(elem, err)
-			continue
+			return
 		}
 
 		if res.Status.Online {
-			onlineStaff = append(onlineStaff, *res.Name)
+			onlineStaff = append(onlineStaff, res.Name)
 		}
 	}
 
+	for _, uuid := range staffIds {
+		wg.Add(1)
+		go worker(uuid)
+		defer wg.Done()
+	}
+
+	wg.Wait()
+
 	content := "None"
-	if len(onlineStaff) > 0 { content = strings.Join(onlineStaff, ", ") }
+	if len(onlineStaff) > 0 { 
+		content = strings.Join(onlineStaff, ", ") 
+	}
 
 	staffEmbed := &discordgo.MessageSend{
 		Embeds: []*discordgo.MessageEmbed{{
 			Type:        discordgo.EmbedTypeRich,
 			Title:       "Online Staff List",
-			Description: fmt.Sprintf("```%s```", content ),
+			Description: fmt.Sprintf("```%s```", content),
 			Color:       15844367,
 			Author: &discordgo.MessageEmbedAuthor{
 				Name:    message.Author.Username,

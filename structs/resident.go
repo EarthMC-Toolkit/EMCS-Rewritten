@@ -16,7 +16,7 @@ type ResidentRanks struct {
 
 // TODO: Fully implement this
 type ResidentInfo struct {
-	Name   		*string   	 	`json:"name"`
+	Name   		string   	 	`json:"name"`
 	UUID   		string   	 	`json:"uuid"`
 	Title   	string   	 	`json:"title,omitempty"`
 	Surname   	string   	 	`json:"surname,omitempty"`
