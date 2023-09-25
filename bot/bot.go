@@ -22,8 +22,8 @@ var BotToken string
 
 // Last updated - 23/09/2023
 var staffIds = []string {
+	"fed0ec4a-f1ad-4b97-9443-876391668b34",
 	"b4d2215c-e47b-4f39-a3e3-e6726e0bc596", "f17d77ab-aed4-44e7-96ef-ec9cd473eda3",
-	"ea798ca9-1192-4334-8ef5-f098bdc9cb39", "fed0ec4a-f1ad-4b97-9443-876391668b34",
 	"e25ad129-fe8a-4306-b1af-1dee1ff59841", "8f90a970-90de-407d-b4e7-0d9fde10f51a",
 	"7b589f55-c5e2-41b7-89fc-13eb8781058e", "96d55845-c99f-447d-923d-1e652ab50bb1",
 	"7f551e7c-082c-4533-b484-7435d9941d0d", "bae75988-00f4-41ce-b902-abc21fcb8978",
@@ -224,6 +224,7 @@ func CreateStaffEmbed(discord *discordgo.Session, message *discordgo.MessageCrea
 			res, err = residents.Get(uuid)
 	
 			if err != nil {
+				fmt.Println(err)
 				return
 			}
 	
@@ -245,7 +246,7 @@ func CreateStaffEmbed(discord *discordgo.Session, message *discordgo.MessageCrea
 	staffEmbed := &discordgo.MessageSend{
 		Embeds: []*discordgo.MessageEmbed{{
 			Type:        discordgo.EmbedTypeRich,
-			Title:       "Online Staff List",
+			Title:       "Staff List | Online",
 			Description: fmt.Sprintf("```%s```", content),
 			Color:       15844367,
 			Author: &discordgo.MessageEmbedAuthor{
