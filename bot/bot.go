@@ -217,22 +217,22 @@ func CreateStaffEmbed(discord *discordgo.Session, message *discordgo.MessageCrea
 
     wg := sync.WaitGroup{}
 
-	worker := func(uuid string) {
-		res, err = residents.Get(uuid)
-
-		if err != nil {
-			return
-		}
-
-		if res.Status.Online {
-			onlineStaff = append(onlineStaff, res.Name)
-		}
-	}
-
 	for _, uuid := range staffIds {
 		wg.Add(1)
-		go worker(uuid)
-		defer wg.Done()
+
+		go func(uuid string) {
+			res, err = residents.Get(uuid)
+	
+			if err != nil {
+				return
+			}
+	
+			if res.Status.Online {
+				onlineStaff = append(onlineStaff, res.Name)
+			}
+	
+			defer wg.Done()
+		} (uuid)
 	}
 
 	wg.Wait()
