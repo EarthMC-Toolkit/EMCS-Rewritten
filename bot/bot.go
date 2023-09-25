@@ -105,8 +105,8 @@ func CreateResidentEmbed(discord *discordgo.Session, message *discordgo.MessageC
 				Type: discordgo.EmbedTypeRich,
 				Title: fmt.Sprintf("Resident | `%s`", resName),
 				Fields: []*discordgo.MessageEmbedField{
-					EmbedField("Affiliation", fmt.Sprintf("%s (%s)", town, nation), true),
-					EmbedField("Balance", fmt.Sprintf("%.0fG", resident.Stats.Balance), true),
+					EmbedField("Affiliation", fmt.Sprintf("%s (%s)", town, nation), false),
+					EmbedField("Balance", fmt.Sprintf("%.0fG", resident.Stats.Balance), false),
 					EmbedField("Status", status, true),
 					EmbedField("Last Online", fmt.Sprintf("<t:%s:R>", lastOnlineTs), true),
 					EmbedField("Registered", fmt.Sprintf("<t:%s:F>", registeredTs), true),
