@@ -108,8 +108,8 @@ func CreateResidentEmbed(discord *discordgo.Session, message *discordgo.MessageC
 					EmbedField("Affiliation", fmt.Sprintf("%s (%s)", town, nation), true),
 					EmbedField("Balance", fmt.Sprintf("%.0fG", resident.Stats.Balance), true),
 					EmbedField("Status", status, true),
-					EmbedField("Registered", fmt.Sprintf("<t:%s:F>", registeredTs), true),
 					EmbedField("Last Online", fmt.Sprintf("<t:%s:R>", lastOnlineTs), true),
+					EmbedField("Registered", fmt.Sprintf("<t:%s:F>", registeredTs), true),
 				},
 				Color: 7419530,
 				Author: &discordgo.MessageEmbedAuthor{
