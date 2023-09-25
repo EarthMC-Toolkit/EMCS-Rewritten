@@ -36,7 +36,7 @@ type TownPerms struct {
 }
 
 type TownInfo struct {
-	Name 			string		`json:"name"`
+	Name 			*string		`json:"name"`
 	UUID 			string		`json:"uuid"`
 	Mayor 			string		`json:"mayor"`
 	Board 			string		`json:"board"`

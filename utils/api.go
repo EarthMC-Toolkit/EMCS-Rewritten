@@ -26,6 +26,10 @@ func SendRequest(endpoint string, skipCache bool) ([]byte, error) {
 		return nil, err
 	}
 
+	if response.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("404 not found: %s", url)
+	}
+
 	body, _ := io.ReadAll(response.Body)
 	defer response.Body.Close()
 

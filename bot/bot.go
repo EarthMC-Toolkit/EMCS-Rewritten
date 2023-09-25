@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"regexp"
 
 	"github.com/bwmarrin/discordgo"
 	log "github.com/sirupsen/logrus"
@@ -85,32 +86,19 @@ func CreateResidentEmbed(discord *discordgo.Session, message *discordgo.MessageC
 		registeredTs := utils.FormatTimestamp(resident.Timestamps.Registered)
 		lastOnlineTs := utils.FormatTimestamp(resident.Timestamps.LastOnline)
 
-		status := "Offline"
-		if resident.Status.Online {
-			status = "Online"
-		}
-
+		status :="Offline"
+		if resident.Status.Online { status = "Online" }
+		
 		town := resident.Town
-		if town == "" {
-			town = "No Town"
-		}
+		if town == "" { town = "No Town" }
 
-		nation := resident.Nation
-		if nation == "" {
-			nation = "No Nation"
-		}
-
-		resName := resident.Name
-
-		// resTitle := resident.Title
-		// if resTitle != "" {
-		// 	resName = resTitle + " " + resName
-		// }
-
-		resSurname := resident.Surname
-		if resSurname != "" {
-			resName += (" " + resSurname)
-		}
+		nation := resident.Nation;
+		if nation == "" { nation = "No Nation" }
+		
+		re := regexp.MustCompile("<.*?>")
+		resName := *resident.Name
+		if resTitle := re.ReplaceAllString(resident.Title, ""); resTitle != "" { resName = resTitle + " " + resName }
+		if resSurname := re.ReplaceAllString(resident.Surname, ""); resSurname != "" { resName = resName + " " + resSurname }
 
 		embed := &discordgo.MessageSend{
 			Embeds: [] *discordgo.MessageEmbed{{
@@ -149,7 +137,7 @@ func CreateTownEmbed(discord *discordgo.Session, message *discordgo.MessageCreat
 		foundedTs := utils.FormatTimestamp(town.Timestamps.Registered)
 		dateFounded := fmt.Sprintf("<t:%s:R>", foundedTs)
 
-		townTitle := fmt.Sprintf("Town | %s", town.Name)
+		townTitle := fmt.Sprintf("Town | %s", *town.Name)
 		if town.Nation != "" {
 			townTitle += fmt.Sprintf(" (%s)", town.Nation)
 		}
@@ -190,7 +178,7 @@ func CreateNationEmbed(discord *discordgo.Session, message *discordgo.MessageCre
 		embed := &discordgo.MessageSend{
 			Embeds: [] *discordgo.MessageEmbed{{
 				Type: discordgo.EmbedTypeRich,
-				Title: fmt.Sprintf("Nation | %s", nation.Name),
+				Title: fmt.Sprintf("Nation | %s", *nation.Name),
 				Fields: []*discordgo.MessageEmbedField{
 					EmbedField("King", nation.King, true),
 					EmbedField("Capital", nation.Capital, true),
@@ -215,30 +203,29 @@ func CreateNationEmbed(discord *discordgo.Session, message *discordgo.MessageCre
 }
 
 func CreateStaffEmbed(discord *discordgo.Session, message *discordgo.MessageCreate, args []string) (*discordgo.MessageSend, error) {
-	onlineStaff := []string {}
+	var onlineStaff []string
 
 	for _, elem := range staffIds {
 		res, err := residents.Get(elem)
 
 		if err != nil {
-			discord.ChannelMessageSend(
-				message.ChannelID,
-				"Could not fetch staff list!\nAn error occurred during the request!",
-			)
-			
-			return nil, err
+			fmt.Println(elem, err)
+			continue
 		}
 
 		if res.Status.Online {
-			onlineStaff = append(onlineStaff, res.Name)
+			onlineStaff = append(onlineStaff, *res.Name)
 		}
 	}
+
+	content := "None"
+	if len(onlineStaff) > 0 { content = strings.Join(onlineStaff, ", ") }
 
 	staffEmbed := &discordgo.MessageSend{
 		Embeds: []*discordgo.MessageEmbed{{
 			Type:        discordgo.EmbedTypeRich,
-			Title:       "Staff List | Online",
-			Description: fmt.Sprintf("```%s```", strings.Join(onlineStaff, ", ")),
+			Title:       "Online Staff List",
+			Description: fmt.Sprintf("```%s```", content ),
 			Color:       15844367,
 			Author: &discordgo.MessageEmbedAuthor{
 				Name:    message.Author.Username,
@@ -271,7 +258,7 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 	cmd := strings.ToLower(args[1])
 
 	switch {
-		case cmd == "stafflist": {
+		case cmd == "stafflist", cmd == "staff": {
 			embed := &discordgo.MessageSend{
 				Embeds: []*discordgo.MessageEmbed{{
 					Type:        discordgo.EmbedTypeRich,
@@ -288,7 +275,7 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 			sendEmbed(discord, message, embed)
 		}
 
-		case cmd == "onlinestaff": {
+		case cmd == "onlinestaff", cmd == "ostaff": {
 			embed, err := CreateStaffEmbed(discord, message, args)
 
 			if (err != nil) {
