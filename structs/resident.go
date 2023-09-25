@@ -10,13 +10,13 @@ type ResidentStats struct {
 }
 
 type ResidentRanks struct {
-	Nation		NationRanks		`json:"nationRanks,omitempty"`
-	Town		TownRanks		`json:"TownRanks,omitempty"`
+	Nation		[]string		`json:"nationRanks,omitempty"`
+	Town		[]string		`json:"TownRanks,omitempty"`
 }
 
 // TODO: Fully implement this
 type ResidentInfo struct {
-	Name   		string   	 	`json:"name"`
+	Name   		*string   	 	`json:"name"`
 	UUID   		string   	 	`json:"uuid"`
 	Title   	string   	 	`json:"title,omitempty"`
 	Surname   	string   	 	`json:"surname,omitempty"`

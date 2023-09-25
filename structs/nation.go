@@ -20,7 +20,7 @@ type NationRanks struct {
 }
 
 type NationInfo struct {
-	Name 			string			`json:"name"`
+	Name 			*string			`json:"name"`
 	UUID 			string			`json:"uuid"`
 	King 			string			`json:"king"`
 	Board 			string			`json:"board"`
