@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"regexp"
 
 	"github.com/bwmarrin/discordgo"
 	log "github.com/sirupsen/logrus"
@@ -94,9 +95,10 @@ func CreateResidentEmbed(discord *discordgo.Session, message *discordgo.MessageC
 		nation := resident.Nation;
 		if nation == "" { nation = "No Nation" }
 		
+		re := regexp.MustCompile("<.*?>")
 		resName := *resident.Name
-		if resTitle := resident.Title; resTitle != "" { resName = resTitle + " " + resName }
-		if resSurname := resident.Surname; resSurname != "" { resName = resName + " " + resSurname }
+		if resTitle := re.ReplaceAllString(resident.Title, ""); resTitle != "" { resName = resTitle + " " + resName }
+		if resSurname := re.ReplaceAllString(resident.Surname, ""); resSurname != "" { resName = resName + " " + resSurname }
 
 		embed := &discordgo.MessageSend{
 			Embeds: [] *discordgo.MessageEmbed{{
@@ -203,7 +205,7 @@ func CreateNationEmbed(discord *discordgo.Session, message *discordgo.MessageCre
 func CreateStaffEmbed(discord *discordgo.Session, message *discordgo.MessageCreate, args []string) (*discordgo.MessageSend, error) {
 	var onlineStaff []string
 
-	for _, elem := range staffNames {
+	for _, elem := range staffIds {
 		res, err := residents.Get(elem)
 
 		if err != nil {
