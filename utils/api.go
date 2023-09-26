@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const domain string = "https://api.earthmc.net/v2/aurora"
+var Domain = "https://api.earthmc.net/aurora/v2"
 
 func SendRequest(endpoint string, skipCache bool) ([]byte, error) {
 	if skipCache == true {
@@ -16,7 +16,7 @@ func SendRequest(endpoint string, skipCache bool) ([]byte, error) {
 		endpoint += randStr
 	}
 
-	url := fmt.Sprintf("%s%s", domain, endpoint)
+	url := fmt.Sprintf("%s%s", Domain, endpoint)
 	client := http.Client{ Timeout: 6 * time.Second }
 
 	fmt.Println("Request sent to: " + endpoint)

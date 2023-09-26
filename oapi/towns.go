@@ -1,12 +1,12 @@
-package towns
+package oapi
 
 import (
-	"emcs-rewritten/utils"
-	"emcs-rewritten/structs"
+	"emcsrw/utils"
+	"emcsrw/oapi/structs"
 	"fmt"
 )
 
-func Get(name string) (structs.TownInfo, error) {
+func Town(name string) (structs.TownInfo, error) {
 	town, err := utils.JsonRequest[structs.TownInfo](fmt.Sprintf("/towns/%s", name), false)
 
 	if err != nil { 

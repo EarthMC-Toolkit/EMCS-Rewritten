@@ -1,0 +1,5 @@
+package oapi
+
+func Stats () {
+	
+}

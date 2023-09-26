@@ -1,4 +1,4 @@
-module emcs-rewritten
+module emcsrw
 
 go 1.21.1
 
@@ -6,6 +6,8 @@ require (
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/joho/godotenv v1.5.1
 )
+
+require github.com/samber/lo v1.38.1
 
 require (
 	github.com/gorilla/websocket v1.5.0 // indirect
