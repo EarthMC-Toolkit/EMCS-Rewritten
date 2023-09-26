@@ -23,7 +23,7 @@ func RandomString(length int) string {
 	return sb.String()
 }
 
-func PrettyPrint(i interface{}) string {
+func Prettify(i interface{}) string {
 	s, _ := json.MarshalIndent(i, "", "\t")
 	return string(s)
 }

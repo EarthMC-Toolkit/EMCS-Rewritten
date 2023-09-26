@@ -23,6 +23,9 @@ func getToken() string {
 }
 
 func main() {
+	// bot.Test()
+	// return
+
 	// Start the bot with the token.
 	loadEnv()
 	bot.Run(getToken())
