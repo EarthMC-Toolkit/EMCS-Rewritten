@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -44,7 +44,34 @@ func JsonRequest[T any](endpoint string, skipCache bool) (T, error) {
 		return data, err
 	}
 
-	json.Unmarshal([]byte(res), &data)
+	return ParseJSON[T](res, data)
+}
 
-	return data, nil
+func ConcurrentJsonRequests[T any](endpoints []string, skipCache bool) ([]T, []error) {
+	var (
+        results	[]T
+		errors	[]error
+		wg		sync.WaitGroup
+    )
+
+	for _, ep := range endpoints {
+		wg.Add(1)
+
+		go func(ep string) {
+			res, err := JsonRequest[T](ep, skipCache)
+	
+			// Use `JsonRequest` here
+			if err != nil {
+				errors = append(errors, err)
+			} else {
+				results = append(results, res)
+			}
+			
+			defer wg.Done()
+		}(ep)
+	}
+
+	wg.Wait()
+
+	return results, errors
 }
