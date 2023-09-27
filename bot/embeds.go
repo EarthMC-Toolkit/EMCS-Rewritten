@@ -166,6 +166,7 @@ func CreateStaffEmbed(discord *discordgo.Session, message *discordgo.MessageCrea
 		errors      []error
 	)
 
+	// Iterates over the collection, calling func in parallel.
 	lop.ForEach(StaffIds, func(uuid string, _ int) {
 		res, err := oapi.Resident(uuid)
 
