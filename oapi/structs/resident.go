@@ -11,7 +11,7 @@ type ResidentStats struct {
 
 type ResidentRanks struct {
 	Nation		[]string		`json:"nationRanks,omitempty"`
-	Town		[]string		`json:"TownRanks,omitempty"`
+	Town		[]string		`json:"townRanks,omitempty"`
 }
 
 // TODO: Fully implement this

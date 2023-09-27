@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sanity-io/litter"
 )
 
 var Alphabet []rune = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
@@ -24,8 +26,8 @@ func RandomString(length int) string {
 }
 
 func Prettify(i interface{}) string {
-	s, _ := json.MarshalIndent(i, "", "\t")
-	return string(s)
+	litter.Config.StripPackageNames = true
+	return litter.Sdump(i)
 }
 
 func HexToInt(hex string) int {
