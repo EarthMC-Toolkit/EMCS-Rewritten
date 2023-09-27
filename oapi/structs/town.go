@@ -17,7 +17,7 @@ type TownStats struct {
 }
 
 type TownCoords struct {
-	Home 			[]string	`json:"home"`
+	Home 			[]int		`json:"home"`
 	Spawn 			Spawn 		`json:"spawn"`
 }
 
