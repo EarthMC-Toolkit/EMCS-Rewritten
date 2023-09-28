@@ -21,7 +21,7 @@ func TestTown(t *testing.T) {
 }
 
 func TestNation(t *testing.T) {
-	t.SkipNow()
+	//t.SkipNow()
 
 	nation, err := oapi.Nation("Venice")
 	logVal(t, nation, err)
@@ -53,6 +53,15 @@ func TestAlphanumeric(t *testing.T) {
 	if actual != false {
 		t.Errorf("Expected '%v' but got '%v'", false, actual)
 	}
+}
+
+func TestWorldBalances(t *testing.T) {
+	worldBals := oapi.WorldBalanceTotals(&oapi.BalanceOpts{
+		Towns: false,
+		Nations: true,
+	})
+
+	logVal(t, worldBals, nil)
 }
 
 func logVal(t *testing.T, v any, e error) {

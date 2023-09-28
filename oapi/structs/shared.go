@@ -1,9 +1,9 @@
 package structs
 
 type Timestamps struct {
-	Registered		float64 `json:"registered"`
-	JoinedNationAt	float64	`json:"joinedNationAt,omitempty"`
-	LastOnline		float64	`json:"lastOnline,omitempty"`
+	Registered		float64 	`json:"registered"`
+	JoinedNationAt	*float64	`json:"joinedNationAt,omitempty"`
+	LastOnline		*float64	`json:"lastOnline,omitempty"`
 }
 
 type Spawn struct {

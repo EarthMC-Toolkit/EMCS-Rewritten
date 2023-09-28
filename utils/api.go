@@ -19,7 +19,7 @@ func SendRequest(endpoint string, skipCache bool) ([]byte, error) {
 	}
 
 	url := fmt.Sprintf("%s%s", Domain, endpoint)
-	client := http.Client{ Timeout: 6 * time.Second }
+	client := http.Client{ Timeout: 10 * time.Second }
 
 	response, err := client.Get(url)
 	if err != nil {
@@ -27,7 +27,16 @@ func SendRequest(endpoint string, skipCache bool) ([]byte, error) {
 	}
 
 	if response.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("404 not found: %s", url)
+		errStr := fmt.Errorf("404 Not Found: %s", url)
+		fmt.Println(errStr)
+		return nil, errStr
+	}
+
+	if response.StatusCode == http.StatusGatewayTimeout {
+		errStr := fmt.Errorf("504 Gateway Timeout: %s", url)
+
+		fmt.Println(errStr)
+		return nil, errStr
 	}
 
 	body, _ := io.ReadAll(response.Body)

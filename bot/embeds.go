@@ -30,7 +30,7 @@ func CreateResidentEmbed(discord *discordgo.Session, message *discordgo.MessageC
 
 	if err == nil {
 		registeredTs := utils.FormatTimestamp(resident.Timestamps.Registered)
-		lastOnlineTs := utils.FormatTimestamp(resident.Timestamps.LastOnline)
+		lastOnlineTs := utils.FormatTimestamp(*resident.Timestamps.LastOnline)
 
 		status := "Offline"
 		if resident.Status.Online {
