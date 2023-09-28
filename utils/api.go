@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
+	//"sync"
 	"time"
+
+	lop "github.com/samber/lo/parallel"
 )
 
 var Domain = "https://api.earthmc.net/v2/aurora"
@@ -49,27 +51,18 @@ func ConcurrentJsonRequests[T any](endpoints []string, skipCache bool) ([]T, []e
 	var (
         results	[]T
 		errors	[]error
-		wg		sync.WaitGroup
     )
 
-	for _, ep := range endpoints {
-		wg.Add(1)
-
-		go func(ep string) {
-			res, err := JsonRequest[T](ep, skipCache)
+	lop.ForEach(endpoints, func(ep string, _ int) {
+		res, err := JsonRequest[T](ep, skipCache)
 	
-			// Use `JsonRequest` here
-			if err != nil {
-				errors = append(errors, err)
-			} else {
-				results = append(results, res)
-			}
-			
-			defer wg.Done()
-		}(ep)
-	}
-
-	wg.Wait()
+		// Use `JsonRequest` here
+		if err != nil {
+			errors = append(errors, err)
+		} else {
+			results = append(results, res)
+		}
+	})
 
 	return results, errors
 }

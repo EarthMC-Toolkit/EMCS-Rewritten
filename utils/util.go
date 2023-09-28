@@ -3,12 +3,21 @@ package utils
 import (
 	"encoding/json"
 	"math/rand"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/sanity-io/litter"
 )
+
+func ContainsNonAlphanumeric(input string) bool {
+    // Define a regular expression pattern to match non-alphanumeric characters
+    pattern := regexp.MustCompile(`[^a-zA-Z0-9]`)
+
+    // If there are matches, it means non-alphanumeric characters were found
+    return pattern.MatchString(input)
+}
 
 var Alphabet []rune = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 var alphabetLen = len(Alphabet)
