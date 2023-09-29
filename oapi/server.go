@@ -62,7 +62,7 @@ func WorldBalanceTotals(opts *BalanceOpts) *BalanceTotals {
 
 	var worldTownBal *int
 	if includeTowns == true {
-		val, _ := WorldBalance[structs.TownInfo]("/towns")
+		val, _ := WorldBalance[structs.TownInfo]("/towns/")
 		if val != 0 {
 			worldTownBal = &val
 		}

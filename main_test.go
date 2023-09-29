@@ -57,7 +57,7 @@ func TestAlphanumeric(t *testing.T) {
 
 func TestWorldBalances(t *testing.T) {
 	worldBals := oapi.WorldBalanceTotals(&oapi.BalanceOpts{
-		Towns: false,
+		Towns: true,
 		Nations: true,
 	})
 

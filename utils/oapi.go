@@ -1,11 +1,10 @@
 package utils
 
 import (
+	"net/http"
+	"time"
 	"fmt"
 	"io"
-	"net/http"
-	//"sync"
-	"time"
 
 	lop "github.com/samber/lo/parallel"
 )
