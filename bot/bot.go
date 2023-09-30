@@ -38,6 +38,7 @@ func EmbedField(name string, value string, inline bool) *discordgo.MessageEmbedF
 	}
 }
 
+const RED, YELLOW int = 8858420, 15844367
 func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	if message.Author.ID == discord.State.User.ID { 
 		return 
@@ -53,16 +54,18 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 
 	switch {
 		case cmd == "stafflist", cmd == "staff": {
+			author := &discordgo.MessageEmbedAuthor{
+				Name:    	message.Author.Username,
+				IconURL: 	message.Author.AvatarURL(""),
+			}
+
 			embed := &discordgo.MessageSend{
 				Embeds: []*discordgo.MessageEmbed{{
-					Type:        discordgo.EmbedTypeRich,
-					Title:       "Staff List",
+					Type: discordgo.EmbedTypeRich,
+					Title: "Staff List",
 					Description: fmt.Sprintf("```%s```", strings.Join(StaffNames, ", ")),
-					Color:       15844367,
-					Author: &discordgo.MessageEmbedAuthor{
-						Name:    message.Author.Username,
-						IconURL: message.Author.AvatarURL(""),
-					},
+					Color: YELLOW,
+					Author:	author,
 				}},
 			}
 
@@ -71,12 +74,19 @@ func messageCreate(discord *discordgo.Session, message *discordgo.MessageCreate)
 
 		case cmd == "onlinestaff", cmd == "ostaff": {
 			embed, err := CreateStaffEmbed(discord, message, args)
-
+			
 			if (err != nil) {
-				errMsg := "Could not fetch staff list!\nAn error occurred during the request."
-				discord.ChannelMessageSend(message.ChannelID, errMsg)
-				
-				return
+				errMsg := "The following error occurred during your request:"
+				desc := fmt.Sprintf("%s\n\n```%s```", errMsg, err.Error())
+
+				embed = &discordgo.MessageSend{
+					Embeds: []*discordgo.MessageEmbed{{
+						Type: discordgo.EmbedTypeRich,
+						Title: "Could not fetch online staff!",
+						Description: desc,
+						Color: RED,
+					}},
+				}
 			}
 			
 			SendComplex(discord, message, embed)

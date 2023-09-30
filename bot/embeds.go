@@ -4,28 +4,28 @@ import (
 	"emcsrw/oapi"
 	"emcsrw/utils"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/bwmarrin/discordgo"
-	log "github.com/sirupsen/logrus"
+	lo "github.com/samber/lo"
 	lop "github.com/samber/lo/parallel"
+	log "github.com/sirupsen/logrus"
+
+	dgo "github.com/bwmarrin/discordgo"
 )
 
-func SendComplex(
-	discord *discordgo.Session,
-	message *discordgo.MessageCreate,
-	embed *discordgo.MessageSend,
-) {
+func SendComplex(discord *dgo.Session, message *dgo.MessageCreate, embed *dgo.MessageSend) {
 	_, err := discord.ChannelMessageSendComplex(message.ChannelID, embed)
-
 	if err != nil {
 		log.Error(err)
 	}
 }
 
-func CreateResidentEmbed(discord *discordgo.Session, message *discordgo.MessageCreate, args []string) (*discordgo.MessageSend, error) {
+func CheckAlphanumeric(str string) string {
+	return lo.Ternary(utils.ContainsNonAlphanumeric(str), "", str)
+}
+
+func CreateResidentEmbed(discord *dgo.Session, message *dgo.MessageCreate, args []string) (*dgo.MessageSend, error) {
 	resident, err := oapi.Resident(args[2])
 
 	if err == nil {
@@ -47,22 +47,23 @@ func CreateResidentEmbed(discord *discordgo.Session, message *discordgo.MessageC
 			nation = "No Nation"
 		}
 
-		re := regexp.MustCompile("<.*?>")
+		resTitle := CheckAlphanumeric(resident.Title)
+		resSurname := CheckAlphanumeric(resident.Surname)
 		resName := resident.Name
 
-		if resTitle := re.ReplaceAllString(resident.Title, ""); resTitle != "" {
+		if resTitle != "" {
 			resName = resTitle + " " + resName
 		}
 
-		if resSurname := re.ReplaceAllString(resident.Surname, ""); resSurname != "" {
-			resName = resName + " " + resSurname
+		if resSurname != "" {
+			resName += (" " + resSurname)
 		}
 
-		embed := &discordgo.MessageSend{
-			Embeds: []*discordgo.MessageEmbed{{
-				Type:  discordgo.EmbedTypeRich,
+		embed := &dgo.MessageSend{
+			Embeds: []*dgo.MessageEmbed{{
+				Type:  dgo.EmbedTypeRich,
 				Title: fmt.Sprintf("Resident | `%s`", resName),
-				Fields: []*discordgo.MessageEmbedField{
+				Fields: []*dgo.MessageEmbedField{
 					EmbedField("Affiliation", fmt.Sprintf("%s (%s)", town, nation), false),
 					EmbedField("Balance", fmt.Sprintf("%.0fG", resident.Stats.Balance), false),
 					EmbedField("Status", status, true),
@@ -70,11 +71,11 @@ func CreateResidentEmbed(discord *discordgo.Session, message *discordgo.MessageC
 					EmbedField("Registered", fmt.Sprintf("<t:%s:F>", registeredTs), true),
 				},
 				Color: 7419530,
-				Author: &discordgo.MessageEmbedAuthor{
+				Author: &dgo.MessageEmbedAuthor{
 					Name:    message.Author.Username,
 					IconURL: message.Author.AvatarURL(""),
 				},
-				Thumbnail: &discordgo.MessageEmbedThumbnail{
+				Thumbnail: &dgo.MessageEmbedThumbnail{
 					URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", resident.UUID),
 				},
 			}},
@@ -86,7 +87,7 @@ func CreateResidentEmbed(discord *discordgo.Session, message *discordgo.MessageC
 	return nil, err
 }
 
-func CreateTownEmbed(discord *discordgo.Session, message *discordgo.MessageCreate, args []string) (*discordgo.MessageSend, error) {
+func CreateTownEmbed(discord *dgo.Session, message *dgo.MessageCreate, args []string) (*dgo.MessageSend, error) {
 	town, err := oapi.Town(args[2])
 
 	if err == nil {
@@ -100,11 +101,11 @@ func CreateTownEmbed(discord *discordgo.Session, message *discordgo.MessageCreat
 			townTitle += fmt.Sprintf(" (%s)", town.Nation)
 		}
 
-		embed := &discordgo.MessageSend{
-			Embeds: []*discordgo.MessageEmbed{{
-				Type:  discordgo.EmbedTypeRich,
+		embed := &dgo.MessageSend{
+			Embeds: []*dgo.MessageEmbed{{
+				Type:  dgo.EmbedTypeRich,
 				Title: townTitle,
-				Fields: []*discordgo.MessageEmbedField{
+				Fields: []*dgo.MessageEmbedField{
 					EmbedField("Founder", town.Founder, true),
 					EmbedField("Date Founded", dateFounded, true),
 					EmbedField("Mayor", town.Mayor, false),
@@ -113,7 +114,7 @@ func CreateTownEmbed(discord *discordgo.Session, message *discordgo.MessageCreat
 					EmbedField("Residents", fmt.Sprintf("```%s```", residents), false),
 				},
 				Color: utils.HexToInt(town.HexColor),
-				Author: &discordgo.MessageEmbedAuthor{
+				Author: &dgo.MessageEmbedAuthor{
 					Name:    message.Author.Username,
 					IconURL: message.Author.AvatarURL(""),
 				},
@@ -126,18 +127,18 @@ func CreateTownEmbed(discord *discordgo.Session, message *discordgo.MessageCreat
 	return nil, err
 }
 
-func CreateNationEmbed(discord *discordgo.Session, message *discordgo.MessageCreate, args []string) (*discordgo.MessageSend, error) {
+func CreateNationEmbed(discord *dgo.Session, message *dgo.MessageCreate, args []string) (*dgo.MessageSend, error) {
 	nation, err := oapi.Nation(args[2])
 
 	if err == nil {
 		foundedTs := strconv.FormatFloat(nation.Timestamps.Registered/1000, 'f', 0, 64)
 		dateFounded := fmt.Sprintf("<t:%s:R>", foundedTs)
 
-		embed := &discordgo.MessageSend{
-			Embeds: []*discordgo.MessageEmbed{{
-				Type:  discordgo.EmbedTypeRich,
+		embed := &dgo.MessageSend{
+			Embeds: []*dgo.MessageEmbed{{
+				Type:  dgo.EmbedTypeRich,
 				Title: fmt.Sprintf("Nation | %s", *nation.Name),
-				Fields: []*discordgo.MessageEmbedField{
+				Fields: []*dgo.MessageEmbedField{
 					EmbedField("King", nation.King, true),
 					EmbedField("Capital", nation.Capital, true),
 					EmbedField("Location", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", nation.Spawn.X, nation.Spawn.Z, nation.Spawn.X, nation.Spawn.Y, nation.Spawn.Z), true),
@@ -147,7 +148,7 @@ func CreateNationEmbed(discord *discordgo.Session, message *discordgo.MessageCre
 					EmbedField("Residents", fmt.Sprintf("```%d```", len(nation.Residents)), false),
 				},
 				Color: utils.HexToInt(nation.HexColor),
-				Author: &discordgo.MessageEmbedAuthor{
+				Author: &dgo.MessageEmbedAuthor{
 					Name:    message.Author.Username,
 					IconURL: message.Author.AvatarURL(""),
 				},
@@ -160,7 +161,7 @@ func CreateNationEmbed(discord *discordgo.Session, message *discordgo.MessageCre
 	return nil, err
 }
 
-func CreateStaffEmbed(discord *discordgo.Session, message *discordgo.MessageCreate, args []string) (*discordgo.MessageSend, error) {
+func CreateStaffEmbed(discord *dgo.Session, message *dgo.MessageCreate, args []string) (*dgo.MessageSend, error) {
 	var (
 		onlineStaff []string
 		errors      []error
@@ -181,19 +182,23 @@ func CreateStaffEmbed(discord *discordgo.Session, message *discordgo.MessageCrea
 			onlineStaff = append(onlineStaff, res.Name)
 		}
 	})
+	
+	if (len(errors) > 0) {
+		return nil, errors[0]
+	}
 
 	content := "None"
 	if len(onlineStaff) > 0 {
 		content = strings.Join(onlineStaff, ", ")
 	}
 
-	staffEmbed := &discordgo.MessageSend{
-		Embeds: []*discordgo.MessageEmbed{{
-			Type:        discordgo.EmbedTypeRich,
+	staffEmbed := &dgo.MessageSend{
+		Embeds: []*dgo.MessageEmbed{{
+			Type:        dgo.EmbedTypeRich,
 			Title:       "Staff List | Online",
 			Description: fmt.Sprintf("```%s```", content),
 			Color:       15844367,
-			Author: &discordgo.MessageEmbedAuthor{
+			Author: &dgo.MessageEmbedAuthor{
 				Name:    message.Author.Username,
 				IconURL: message.Author.AvatarURL(""),
 			},

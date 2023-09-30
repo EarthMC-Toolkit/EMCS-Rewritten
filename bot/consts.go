@@ -13,7 +13,6 @@ var StaffIds = []string {
 	"2bf8f573-f2e8-4d2c-b1e9-072bf052722a", "2de5dbaa-27aa-4c1a-82f6-65f4ed966592",
 	"376d4c35-7ffb-480b-9bd3-bc1ef1bd09f7", "379f1b2b-0b53-4ea4-b0b2-14b6e4777983",
 	"ea0c4d98-106d-416c-9647-06203f861e1b", "25e7015d-8ad0-4c27-bb4e-a31b4c17e979",
-	"479d37aa-229f-41a4-a49f-784c29e1fe65", "a87996b7-243a-40ec-af03-f7604a5ae97b",
 	"25c9762f-df85-45d2-8edd-be83c09eec34", "7a9da17c-834d-4f45-b4ce-07ea04274a12",
 	"9449b781-a702-484a-934d-9ed351bcebd4", "0c16f3f8-59c2-413e-9327-8f4b1f7f44cf",
 	"7f235a6f-2988-4967-ba5d-adbe2781728f", "a82437de-882d-43c2-9e12-3355e8783c9d",
@@ -21,7 +20,7 @@ var StaffIds = []string {
 	"0ef76084-7c86-4115-b1a5-a9c4e9bc89a6", "c99d4771-f844-4eff-b2ac-aee086d15bbe",
 	"19c5aede-d9af-4234-9a21-b956ae99b0ba", "c200e96f-834e-40b7-81d5-e27fd3107ecd",
 	"2cbaad0b-ed5b-453e-a6b0-ec4b88ca43cd", "4452780b-034d-4d46-b427-717ce3f5acda",
-	"fed0ec4a-f1ad-4b97-9443-876391668b34",
+	"fed0ec4a-f1ad-4b97-9443-876391668b34", "a87996b7-243a-40ec-af03-f7604a5ae97b",
 }
 
 var StaffNames = []string {
