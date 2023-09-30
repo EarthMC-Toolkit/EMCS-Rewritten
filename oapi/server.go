@@ -9,7 +9,7 @@ import (
 )
 
 func ServerInfo() (structs.ServerInfo, error) {
-	info, err := utils.JsonRequest[structs.ServerInfo]("", false)
+	info, err := utils.OAPIRequest[structs.ServerInfo]("", false)
 
 	if err != nil {
 		return structs.ServerInfo{}, err
@@ -21,13 +21,13 @@ func ServerInfo() (structs.ServerInfo, error) {
 type BalanceOpts struct {
 	Towns		interface{}
 	Nations		interface{}
-	//Residents	interface{}
+	Residents	interface{}
 }
 
 type BalanceTotals struct {
 	Towns		*int
 	Nations		*int
-	//Residents	interface{}
+	Residents	*int
 }
 
 func ValidateOptType(value interface{}) (bool, error) {
@@ -37,57 +37,62 @@ func ValidateOptType(value interface{}) (bool, error) {
     }
 }
 
-func WorldBalanceTotals(opts *BalanceOpts) *BalanceTotals {
-	var err error
-	var (
-		includeTowns bool
-		includeNations bool
-		//includeResidents bool
-	)
-
-    includeTowns, err = ValidateOptType(opts.Towns)
-	if err != nil {
-		return nil
-	}
-
-	includeNations, err = ValidateOptType(opts.Nations)
-	if err != nil {
-		return nil
-	}
-
-	// includeResidents, err = ValidateOptType(opts.Residents)
-	// if err != nil {
-	// 	return err
-	// }
-
-	var worldTownBal *int
-	if includeTowns == true {
-		val, _ := WorldBalance[structs.TownInfo]("/towns/")
-		if val != 0 {
-			worldTownBal = &val
-		}
-	}
-
-	var worldNationBal *int
-	if includeNations == true {
-		val, _ := WorldBalance[structs.NationInfo]("/nations")
-		if val != 0 {
-			worldNationBal = &val
-		}
-	}
-
-	return &BalanceTotals{
-		Towns: worldTownBal,
-		Nations: worldNationBal,
-	}
+type Entity struct {
+	Name	string
 }
+
+func AllNames(ep string) ([]string, error) {
+	res, err := utils.TKAPIRequest[[]Entity]("/residents")
+	if err != nil {
+		return nil, err
+	}
+
+	return lo.Map(res, func(e Entity, index int) string {
+		return e.Name
+	}), nil
+}
+
+// func WorldBalanceTotals(opts *BalanceOpts) (*BalanceTotals, error) {
+// 	var err error
+// 	var (
+// 		includeTowns bool
+// 		includeNations bool
+// 		includeResidents bool
+// 	)
+
+// 	var (
+// 		worldTownBal *int
+// 		worldNationBal *int
+// 		worldResidentBal *int
+// 	)
+
+//     includeTowns, err = ValidateOptType(opts.Towns)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	includeNations, err = ValidateOptType(opts.Nations)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	includeResidents, err = ValidateOptType(opts.Nations)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return &BalanceTotals{
+// 		Towns: worldTownBal,
+// 		Nations: worldNationBal,
+// 	}, nil
+// }
 
 type Stats interface {
 	Bal() float32
 }
 
 func WorldBalance[T Stats](endpoint string) (int, error) {
-	arr, err := utils.JsonRequest[[]T](endpoint, false)
+	arr, err := utils.OAPIRequest[[]T](endpoint, false)
 	balances := lo.Map(arr, func(t T, _ int) int {
 		return int(t.Bal())
 	})

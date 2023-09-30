@@ -9,18 +9,25 @@ import (
 	lop "github.com/samber/lo/parallel"
 )
 
-var Domain = "https://api.earthmc.net/v2/aurora"
+const OfficialApiDomain = "https://api.earthmc.net/v2/aurora"
+const ToolkitApiDomain = "https://emctoolkit.vercel.app/api/aurora"
 
-func SendRequest(endpoint string, skipCache bool) ([]byte, error) {
+func TKAPIRequest[T interface{}](endpoint string) (T, error) {
+	return JsonRequest[T](ToolkitApiDomain + endpoint)
+}
+
+func OAPIRequest[T interface{}](endpoint string, skipCache bool) (T, error) {
 	if skipCache == true {
-		randStr := RandomString(12)
-		endpoint += randStr
+		endpoint += RandomString(12)
 	}
 
-	url := fmt.Sprintf("%s%s", Domain, endpoint)
-	client := http.Client{ Timeout: 10 * time.Second }
+	return JsonRequest[T](OfficialApiDomain + endpoint)
+}
 
+func Request(url string) ([]byte, error) {
+	client := http.Client{ Timeout: 10 * time.Second }
 	response, err := client.Get(url)
+
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +51,9 @@ func SendRequest(endpoint string, skipCache bool) ([]byte, error) {
 	return body, nil
 }
 
-func JsonRequest[T any](endpoint string, skipCache bool) (T, error) {
+func JsonRequest[T interface{}](endpoint string) (T, error) {
 	var data T
-	res, err := SendRequest(endpoint, skipCache)
+	res, err := Request(endpoint)
 
 	if err != nil { 
 		return data, err
@@ -55,14 +62,14 @@ func JsonRequest[T any](endpoint string, skipCache bool) (T, error) {
 	return ParseJSON[T](res, data)
 }
 
-func ConcurrentJsonRequests[T any](endpoints []string, skipCache bool) ([]T, []error) {
+func OAPIConcurrentRequest[T any](endpoints []string, skipCache bool) ([]T, []error) {
 	var (
         results	[]T
 		errors	[]error
     )
 
 	lop.ForEach(endpoints, func(ep string, _ int) {
-		res, err := JsonRequest[T](ep, skipCache)
+		res, err := OAPIRequest[T](ep, skipCache)
 	
 		// Use `JsonRequest` here
 		if err != nil {

@@ -8,7 +8,7 @@ import (
 
 func Resident(identifier string) (structs.ResidentInfo, error) {
 	endpoint := fmt.Sprintf("/residents/%s?", identifier)
-	resident, err := utils.JsonRequest[structs.ResidentInfo](endpoint, true)
+	resident, err := utils.OAPIRequest[structs.ResidentInfo](endpoint, true)
 
 	if err != nil { 
 		return structs.ResidentInfo{}, err
@@ -23,5 +23,5 @@ func ConcurrentResidents(identifiers []string) ([]structs.ResidentInfo, []error)
 		endpoints = append(endpoints, fmt.Sprintf("/residents/%s?", identifier))
 	}
 
-	return utils.ConcurrentJsonRequests[structs.ResidentInfo](endpoints, true)
+	return utils.OAPIConcurrentRequest[structs.ResidentInfo](endpoints, true)
 }

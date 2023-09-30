@@ -7,7 +7,8 @@ import (
 )
 
 func Town(name string) (structs.TownInfo, error) {
-	town, err := utils.JsonRequest[structs.TownInfo](fmt.Sprintf("/towns/%s", name), false)
+	ep := fmt.Sprintf("/towns/%s", name)
+	town, err := utils.OAPIRequest[structs.TownInfo](ep, false)
 
 	if err != nil { 
 		return structs.TownInfo{}, err
