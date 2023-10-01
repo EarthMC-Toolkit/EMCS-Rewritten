@@ -1,8 +1,8 @@
 package oapi
 
 import (
-	"emcsrw/utils"
 	"emcsrw/oapi/structs"
+	"emcsrw/utils"
 	"fmt"
 )
 
@@ -23,6 +23,5 @@ func ConcurrentNations(identifiers []string) ([]structs.NationInfo, []error) {
 		endpoints = append(endpoints, fmt.Sprintf("/nations/%s?", identifier))
 	}
 
-	fmt.Println(endpoints)
 	return utils.OAPIConcurrentRequest[structs.NationInfo](endpoints, true)
 }

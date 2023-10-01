@@ -18,15 +18,18 @@ func TKAPIRequest[T interface{}](endpoint string) (T, error) {
 
 func OAPIRequest[T interface{}](endpoint string, skipCache bool) (T, error) {
 	if skipCache == true {
-		endpoint += RandomString(12)
+		endpoint += RandomString(10)
 	}
 
-	return JsonRequest[T](OfficialApiDomain + endpoint)
+	url := OfficialApiDomain + endpoint
+	res, err := JsonRequest[T](url)
+
+	return res, err
 }
 
-var Client = http.Client{ Timeout: 10 * time.Second }
+var client = http.Client{ Timeout: 8 * time.Second }
 func Request(url string) ([]byte, error) {
-	response, err := Client.Get(url)
+	response, err := client.Get(url)
 
 	if err != nil {
 		return nil, err
@@ -59,7 +62,13 @@ func JsonRequest[T interface{}](endpoint string) (T, error) {
 		return data, err
 	}
 
-	return ParseJSON[T](res, data)
+	parsed, err := ParseJSON[T](res, data)
+
+	if err != nil {
+		fmt.Println(string(res))
+	}
+
+	return parsed, err
 }
 
 func OAPIConcurrentRequest[T any](endpoints []string, skipCache bool) ([]T, []error) {
