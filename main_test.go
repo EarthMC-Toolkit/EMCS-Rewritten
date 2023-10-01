@@ -55,6 +55,11 @@ func TestAlphanumeric(t *testing.T) {
 	}
 }
 
+func TestWorldNationBal(t *testing.T) {
+	bal := oapi.WorldNationBalance()
+	logVal(t, bal, nil)
+}
+
 // func TestWorldBalances(t *testing.T) {
 // 	worldBals, _ := oapi.WorldBalanceTotals(&oapi.BalanceOpts{
 // 		Towns: true,
@@ -64,11 +69,11 @@ func TestAlphanumeric(t *testing.T) {
 // 	logVal(t, worldBals, nil)
 // }
 
-func TestResidentNames(t *testing.T) {
-	names, err := oapi.AllNames("/residents")
-	//residents, _ := oapi.ConcurrentResidents(names)
-	logVal(t, names, err)
-}
+// func TestResidentNames(t *testing.T) {
+// 	names, err := oapi.AllNames("/residents")
+// 	//residents, _ := oapi.ConcurrentResidents(names)
+// 	logVal(t, names, err)
+// }
 
 func logVal(t *testing.T, v any, e error) {
 	if e != nil {

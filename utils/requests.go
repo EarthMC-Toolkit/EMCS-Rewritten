@@ -24,9 +24,9 @@ func OAPIRequest[T interface{}](endpoint string, skipCache bool) (T, error) {
 	return JsonRequest[T](OfficialApiDomain + endpoint)
 }
 
+var Client = http.Client{ Timeout: 10 * time.Second }
 func Request(url string) ([]byte, error) {
-	client := http.Client{ Timeout: 10 * time.Second }
-	response, err := client.Get(url)
+	response, err := Client.Get(url)
 
 	if err != nil {
 		return nil, err

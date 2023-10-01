@@ -25,9 +25,9 @@ type BalanceOpts struct {
 }
 
 type BalanceTotals struct {
-	Towns		*int
+	//Towns		*int
 	Nations		*int
-	Residents	*int
+	//Residents	*int
 }
 
 func ValidateOptType(value interface{}) (bool, error) {
@@ -41,8 +41,8 @@ type Entity struct {
 	Name	string
 }
 
-func AllNames(ep string) ([]string, error) {
-	res, err := utils.TKAPIRequest[[]Entity]("/residents")
+func AllNames(toolkitEndpoint string) ([]string, error) {
+	res, err := utils.TKAPIRequest[[]Entity](toolkitEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +52,13 @@ func AllNames(ep string) ([]string, error) {
 	}), nil
 }
 
+func WorldNationBalance() int {
+	names, _ := AllNames("/nations")
+	arr, _ := ConcurrentNations(names)
+
+	return WorldBalance[structs.NationInfo](arr, "/nations")
+}
+
 // func WorldBalanceTotals(opts *BalanceOpts) (*BalanceTotals, error) {
 // 	var err error
 // 	var (
@@ -59,28 +66,28 @@ func AllNames(ep string) ([]string, error) {
 // 		includeNations bool
 // 		includeResidents bool
 // 	)
-
+//
 // 	var (
 // 		worldTownBal *int
 // 		worldNationBal *int
 // 		worldResidentBal *int
 // 	)
-
+//
 //     includeTowns, err = ValidateOptType(opts.Towns)
 // 	if err != nil {
 // 		return nil, err
 // 	}
-
+//
 // 	includeNations, err = ValidateOptType(opts.Nations)
 // 	if err != nil {
 // 		return nil, err
 // 	}
-
+//
 // 	includeResidents, err = ValidateOptType(opts.Nations)
 // 	if err != nil {
 // 		return nil, err
 // 	}
-
+//
 // 	return &BalanceTotals{
 // 		Towns: worldTownBal,
 // 		Nations: worldNationBal,
@@ -91,14 +98,12 @@ type Stats interface {
 	Bal() float32
 }
 
-func WorldBalance[T Stats](endpoint string) (int, error) {
-	arr, err := utils.OAPIRequest[[]T](endpoint, false)
+func WorldBalance[T Stats](arr []T, endpoint string) int {
 	balances := lo.Map(arr, func(t T, _ int) int {
 		return int(t.Bal())
 	})
 
-	if err != nil { return 0, err }
-	return CalcTotal(balances), nil
+	return CalcTotal(balances)
 }
 
 func CalcTotal(balances []int) int {
