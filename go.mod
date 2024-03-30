@@ -16,6 +16,6 @@ require github.com/sanity-io/litter v1.5.5
 require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/crypto v0.13.0 // indirect
-	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 )
