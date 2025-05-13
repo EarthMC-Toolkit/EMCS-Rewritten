@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -51,12 +52,12 @@ func JsonRequest[T any](endpoint string) (T, error) {
 		return data, err
 	}
 
-	parsed, err := ParseJSON(res, data)
+	err = json.Unmarshal(res, &data)
 	if err != nil {
 		fmt.Println(string(res))
 	}
 
-	return parsed, err
+	return data, err
 }
 
 func Request(url string) ([]byte, error) {

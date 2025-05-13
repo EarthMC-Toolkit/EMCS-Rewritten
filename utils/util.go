@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"encoding/json"
 	"regexp"
 	"strconv"
 	"strings"
@@ -31,9 +30,4 @@ func HexToInt(hex string) int {
 
 func FormatTimestamp(unixTs float64) string {
 	return strconv.FormatFloat(unixTs/1000, 'f', 0, 64)
-}
-
-func ParseJSON[T any](data []byte, result T) (T, error) {
-	err := json.Unmarshal(data, &result)
-	return result, err
 }
