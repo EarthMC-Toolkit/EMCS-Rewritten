@@ -34,25 +34,24 @@ type TownRanks struct {
 
 // TODO: Implement this
 type TownPerms struct {
-	
 }
 
 type TownInfo struct {
-	Name		*string    	`json:"name"`
-	UUID        string     	`json:"uuid"`
-	Mayor       string     	`json:"mayor"`
-	Board       string     	`json:"board"`
-	Founder     string     	`json:"founder"`
-	HexColor    string     	`json:"mapColorHexCode"`
-	Nation      string     	`json:"nation,omitempty"`
-	Residents   []string   	`json:"residents"`
-	Timestamps  Timestamps 	`json:"timestamps"`
-	Status      TownStatus 	`json:"status"`
-	Stats       TownStats  	`json:"stats"`
-	Coordinates TownCoords 	`json:"coordinates"`
-	Ranks       TownRanks  	`json:"ranks"`
-	Trusted     []string   	`json:"trusted"`
-	Perms       any        	`json:"perms"`
+	Name        *string    `json:"name"`
+	UUID        string     `json:"uuid"`
+	Mayor       string     `json:"mayor"`
+	Board       string     `json:"board"`
+	Founder     string     `json:"founder"`
+	HexColor    string     `json:"mapColorHexCode"`
+	Nation      string     `json:"nation,omitempty"`
+	Residents   []string   `json:"residents"`
+	Timestamps  Timestamps `json:"timestamps"`
+	Status      TownStatus `json:"status"`
+	Stats       TownStats  `json:"stats"`
+	Coordinates TownCoords `json:"coordinates"`
+	Ranks       TownRanks  `json:"ranks"`
+	Trusted     []string   `json:"trusted"`
+	Perms       any        `json:"perms"`
 }
 
 func (t TownInfo) Bal() float32 {

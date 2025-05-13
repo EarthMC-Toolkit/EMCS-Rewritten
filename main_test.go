@@ -35,7 +35,7 @@ func TestResident(t *testing.T) {
 }
 
 func TestConcurrentResidents(t *testing.T) {
-	t.SkipNow()
+	//t.SkipNow()
 
 	residents, _ := oapi.ConcurrentResidents([]string{"Owen3H", "Fruitloopins"})
 	logVal(t, residents, nil)

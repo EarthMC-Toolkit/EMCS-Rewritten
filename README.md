@@ -4,10 +4,10 @@
 ## Disclaimer
 This project has the [Attribution-NonCommercial-ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) license.
 
- <img width="200" src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png">
+<img width="160" src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png">
 
 ### You are free to:
-**Share** - Copy and redistribute the material in any medium or format<p><p>
+**Share** - Copy and redistribute the material in any medium or format\
 **Adapt** - Remix, transform, and build upon the material
 
 ### Under the following terms:

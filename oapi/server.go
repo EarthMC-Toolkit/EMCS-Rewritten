@@ -9,7 +9,7 @@ import (
 )
 
 func ServerInfo() (structs.ServerInfo, error) {
-	info, err := utils.OAPIRequest[structs.ServerInfo]("", false)
+	info, err := utils.OAPIRequest[structs.ServerInfo]("")
 
 	if err != nil {
 		return structs.ServerInfo{}, err
@@ -19,26 +19,28 @@ func ServerInfo() (structs.ServerInfo, error) {
 }
 
 type BalanceOpts struct {
-	Towns		interface{}
-	Nations		interface{}
-	Residents	interface{}
+	Towns     interface{}
+	Nations   interface{}
+	Residents interface{}
 }
 
 type BalanceTotals struct {
 	//Towns		*int
-	Nations		*int
+	Nations *int
 	//Residents	*int
 }
 
-func ValidateOptType(value interface{}) (bool, error) {
-    switch v := value.(type) {
-    	case bool: return v, nil
-    	default: return false, errors.New("Input value must be of type bool")
-    }
+func ValidateOptType(value any) (bool, error) {
+	switch v := value.(type) {
+	case bool:
+		return v, nil
+	default:
+		return false, errors.New("input value must be of type bool")
+	}
 }
 
 type Entity struct {
-	Name	string
+	Name string
 }
 
 func AllNames(toolkitEndpoint string) ([]string, error) {
@@ -56,7 +58,7 @@ func WorldNationBalance() int {
 	names, _ := AllNames("/nations")
 	arr, _ := ConcurrentNations(names)
 
-	return WorldBalance[structs.NationInfo](arr, "/nations")
+	return WorldBalance(arr, "/nations")
 }
 
 // func WorldBalanceTotals(opts *BalanceOpts) (*BalanceTotals, error) {
