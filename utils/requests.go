@@ -16,12 +16,12 @@ const TOOLKIT_API_URL = "https://emctoolkit.vercel.app/api/aurora"
 var client = http.Client{Timeout: 8 * time.Second}
 
 func TKAPIRequest[T any](endpoint string) (T, error) {
-	return JsonRequest[T](TOOLKIT_API_URL + endpoint)
+	return JsonGetRequest[T](TOOLKIT_API_URL + endpoint)
 }
 
 func OAPIRequest[T any](endpoint string) (T, error) {
 	url := OFFICIAL_API_URL + endpoint
-	res, err := JsonRequest[T](url)
+	res, err := JsonGetRequest[T](url)
 
 	return res, err
 }
@@ -44,10 +44,10 @@ func OAPIConcurrentRequest[T any](endpoints []string, skipCache bool) ([]T, []er
 	return results, errors
 }
 
-func JsonRequest[T any](endpoint string) (T, error) {
+func JsonGetRequest[T any](endpoint string) (T, error) {
 	var data T
 
-	res, err := Request(endpoint)
+	res, err := GetRequest(endpoint)
 	if err != nil {
 		return data, err
 	}
@@ -60,9 +60,13 @@ func JsonRequest[T any](endpoint string) (T, error) {
 	return data, err
 }
 
-func Request(url string) ([]byte, error) {
-	response, err := client.Get(url)
+// TODO: Implement me
+func PostRequest() ([]byte, error) {
+	return nil, nil
+}
 
+func GetRequest(url string) ([]byte, error) {
+	response, err := client.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -70,18 +74,19 @@ func Request(url string) ([]byte, error) {
 	if response.StatusCode == http.StatusNotFound {
 		errStr := fmt.Errorf("404 Not Found: %s", url)
 		fmt.Println(errStr)
+
 		return nil, errStr
 	}
 
 	if response.StatusCode == http.StatusGatewayTimeout {
 		errStr := fmt.Errorf("504 Gateway Timeout: %s", url)
-
 		fmt.Println(errStr)
+
 		return nil, errStr
 	}
 
 	body, _ := io.ReadAll(response.Body)
-	defer response.Body.Close()
+	defer response.Body.Close() // TODO: Already at end of function, why defer??
 
 	return body, nil
 }
