@@ -5,8 +5,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/samber/lo"
 	"github.com/sanity-io/litter"
 )
+
+func CheckAlphanumeric(str string) string {
+	return lo.Ternary(ContainsNonAlphanumeric(str), "", str)
+}
 
 func ContainsNonAlphanumeric(input string) bool {
 	// Define a regular expression pattern to match non-alphanumeric characters

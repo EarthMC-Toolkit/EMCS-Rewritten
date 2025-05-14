@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/bwmarrin/discordgo"
+	dgo "github.com/bwmarrin/discordgo"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,7 +13,7 @@ const RED, YELLOW int = 8858420, 15844367
 
 func Run(botToken string) {
 	// Create new Discord Session
-	discord, err := discordgo.New("Bot " + botToken)
+	discord, err := dgo.New("Bot " + botToken)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -31,11 +31,10 @@ func Run(botToken string) {
 	<-c
 }
 
-func EmbedField(name string, value string, inline bool) *discordgo.MessageEmbedField {
-	return &discordgo.MessageEmbedField{
-		Name:   name,
-		Value:  value,
-		Inline: inline,
+func SendComplex(discord *dgo.Session, message *dgo.MessageCreate, embed *dgo.MessageSend) {
+	_, err := discord.ChannelMessageSendComplex(message.ChannelID, embed)
+	if err != nil {
+		log.Error(err)
 	}
 }
 

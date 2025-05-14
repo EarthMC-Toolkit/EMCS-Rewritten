@@ -7,22 +7,17 @@ import (
 	"strconv"
 	"strings"
 
-	lo "github.com/samber/lo"
 	lop "github.com/samber/lo/parallel"
-	log "github.com/sirupsen/logrus"
 
 	dgo "github.com/bwmarrin/discordgo"
 )
 
-func SendComplex(discord *dgo.Session, message *dgo.MessageCreate, embed *dgo.MessageSend) {
-	_, err := discord.ChannelMessageSendComplex(message.ChannelID, embed)
-	if err != nil {
-		log.Error(err)
+func EmbedField(name string, value string, inline bool) *dgo.MessageEmbedField {
+	return &dgo.MessageEmbedField{
+		Name:   name,
+		Value:  value,
+		Inline: inline,
 	}
-}
-
-func CheckAlphanumeric(str string) string {
-	return lo.Ternary(utils.ContainsNonAlphanumeric(str), "", str)
 }
 
 func CreateResidentEmbed(discord *dgo.Session, message *dgo.MessageCreate, args []string) (*dgo.MessageEmbed, error) {
@@ -46,8 +41,8 @@ func CreateResidentEmbed(discord *dgo.Session, message *dgo.MessageCreate, args 
 			nation = "No Nation"
 		}
 
-		resTitle := CheckAlphanumeric(resident.Title)
-		resSurname := CheckAlphanumeric(resident.Surname)
+		resTitle := utils.CheckAlphanumeric(resident.Title)
+		resSurname := utils.CheckAlphanumeric(resident.Surname)
 		resName := resident.Name
 
 		if resTitle != "" {
