@@ -7,6 +7,10 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+func init() {
+	Register(ServerInfo{})
+}
+
 type ServerInfo struct{}
 
 func (ServerInfo) Name() string                           { return "serverinfo" }
@@ -58,8 +62,4 @@ func (ServerInfo) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) 
 			Embeds: []*discordgo.MessageEmbed{embed},
 		},
 	})
-}
-
-func init() {
-	Register(ServerInfo{})
 }
