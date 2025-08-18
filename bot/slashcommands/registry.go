@@ -12,10 +12,15 @@ type SlashCommand interface {
 
 var commands = map[string]SlashCommand{}
 
+func All() map[string]SlashCommand {
+	return commands
+}
+
 func Register(cmd SlashCommand) {
 	commands[cmd.Name()] = cmd
 }
 
-func All() map[string]SlashCommand {
-	return commands
+// Called before the bot runs, before the main() func.
+func init() {
+	Register(ServerInfo{})
 }

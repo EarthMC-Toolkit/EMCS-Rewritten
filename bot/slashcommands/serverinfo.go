@@ -7,10 +7,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func init() {
-	Register(ServerInfo{})
-}
-
 type ServerInfo struct{}
 
 func (ServerInfo) Name() string                           { return "serverinfo" }
@@ -46,7 +42,7 @@ func (ServerInfo) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) 
 	vpRemaining := serverInfo.VoteParty.NumRemaining
 	vpField := &discordgo.MessageEmbedField{
 		Name:   "Vote Party",
-		Value:  fmt.Sprintf("Target: %d\nRemaining: %d\nRequired: %d", vpTarget, vpRemaining, vpTarget-vpRemaining),
+		Value:  fmt.Sprintf("Current/Target: %d/%d\nRemaining: %d", vpTarget-vpRemaining, vpTarget, vpRemaining),
 		Inline: true,
 	}
 

@@ -16,6 +16,10 @@ const RED, YELLOW int = 8858420, 15844367
 var integrationTypes = []dgo.ApplicationIntegrationType{dgo.ApplicationIntegrationUserInstall} // 0 for Guild, 1 for User
 var contexts = []dgo.InteractionContextType{dgo.InteractionContextGuild}                       // 0 for Guilds, 2 for DMs, 3 for Private Channels
 
+var guildIntents = dgo.IntentGuilds | dgo.IntentGuildMessages | dgo.IntentGuildMessageReactions
+
+//var dmIntents = dgo.IntentDirectMessages | dgo.IntentDirectMessageReactions
+
 func Run(botToken string) {
 	// Create new Discord Session
 	discord, err := dgo.New("Bot " + botToken)
@@ -24,7 +28,7 @@ func Run(botToken string) {
 	}
 
 	discord.AddHandler(interactionCreate)
-	discord.Identify.Intents = dgo.IntentsGuilds
+	discord.Identify.Intents = dgo.IntentMessageContent | guildIntents
 
 	// Open WS connection to Discord
 	discord.Open()
