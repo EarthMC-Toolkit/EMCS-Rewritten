@@ -8,7 +8,8 @@ import (
 )
 
 func interactionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	if i.Type != discordgo.InteractionApplicationCommand {
+	// Regular slash command interaction
+	if i.Type == discordgo.InteractionApplicationCommand {
 		cmdName := i.ApplicationCommandData().Name
 		cmd := slashcommands.All()[cmdName]
 
@@ -17,6 +18,16 @@ func interactionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			fmt.Printf("Failed to execute command '%s':\n%v", cmdName, err)
 		}
 
+		return
+	}
+
+	// Autocomplete interaction
+	if i.Type == discordgo.InteractionApplicationCommandAutocomplete {
+		return
+	}
+
+	// Modal interaction
+	if i.Type == discordgo.InteractionModalSubmit {
 		return
 	}
 }
