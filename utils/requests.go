@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -33,7 +34,7 @@ func OAPIConcurrentRequest[T any](endpoints []string, skipCache bool) ([]T, []er
 	lop.ForEach(endpoints, func(ep string, _ int) {
 		res, err := OAPIRequest[T](ep)
 
-		// Use `JsonRequest` here
+		// Use JsonRequest here
 		if err != nil {
 			errors = append(errors, err)
 		} else {
@@ -42,6 +43,27 @@ func OAPIConcurrentRequest[T any](endpoints []string, skipCache bool) ([]T, []er
 	})
 
 	return results, errors
+}
+
+func JsonPostRequest[T any](endpoint string, body any) (T, error) {
+	var data T
+
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		fmt.Printf("Failed to Serialize to JSON from native Go struct type: %v", err)
+	}
+
+	res, err := PostRequest(endpoint, "application/json", bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return data, err
+	}
+
+	err = json.Unmarshal(res, &data)
+	if err != nil {
+		fmt.Println(string(res))
+	}
+
+	return data, err
 }
 
 func JsonGetRequest[T any](endpoint string) (T, error) {
@@ -61,8 +83,13 @@ func JsonGetRequest[T any](endpoint string) (T, error) {
 }
 
 // TODO: Implement me
-func PostRequest() ([]byte, error) {
-	return nil, nil
+func PostRequest(url string, contentType string, body io.Reader) ([]byte, error) {
+	response, err := client.Post(url, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return ReadResponseBody(response, url)
 }
 
 func GetRequest(url string) ([]byte, error) {
@@ -71,6 +98,10 @@ func GetRequest(url string) ([]byte, error) {
 		return nil, err
 	}
 
+	return ReadResponseBody(response, url)
+}
+
+func ReadResponseBody(response *http.Response, url string) ([]byte, error) {
 	if response.StatusCode == http.StatusNotFound {
 		errStr := fmt.Errorf("404 Not Found: %s", url)
 		fmt.Println(errStr)
@@ -85,8 +116,6 @@ func GetRequest(url string) ([]byte, error) {
 		return nil, errStr
 	}
 
-	body, _ := io.ReadAll(response.Body)
-	defer response.Body.Close() // TODO: Already at end of function, why defer??
-
-	return body, nil
+	defer response.Body.Close()
+	return io.ReadAll(response.Body)
 }
