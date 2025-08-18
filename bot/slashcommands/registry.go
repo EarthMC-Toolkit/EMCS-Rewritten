@@ -7,7 +7,7 @@ type SlashCommand interface {
 	Description() string
 	Type() discordgo.ApplicationCommandType
 	Options() []*discordgo.ApplicationCommandOption
-	Execute(s *discordgo.Session, i *discordgo.InteractionCreate)
+	Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error
 }
 
 var commands = map[string]SlashCommand{}
