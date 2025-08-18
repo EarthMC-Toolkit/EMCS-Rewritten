@@ -54,7 +54,7 @@ func Run(botToken string) {
 	}
 
 	// Run until code is terminated
-	fmt.Println("Bot running...")
+	fmt.Printf("Bot running...\n")
 
 	// Wait for Ctrl+C (exit)
 	c := make(chan os.Signal, 1)
