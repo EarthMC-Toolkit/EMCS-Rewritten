@@ -10,7 +10,9 @@ import (
 
 func loadEnv() {
 	err := godotenv.Load(".env")
-	if err != nil { log.Fatal(err) }
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func getToken() string {
@@ -21,6 +23,15 @@ func getToken() string {
 
 	return token
 }
+
+// func getAppID() string {
+// 	id, _ := os.LookupEnv("BOT_APP_ID")
+// 	if id == "" {
+// 		log.Fatal("Could not use Application ID! Make sure it's set with 'APP_ID'")
+// 	}
+
+// 	return id
+// }
 
 func main() {
 	// Start the bot with the token.
