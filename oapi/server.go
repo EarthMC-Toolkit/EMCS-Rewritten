@@ -8,20 +8,19 @@ import (
 	"github.com/samber/lo"
 )
 
-func ServerInfo() (structs.ServerInfo, error) {
-	info, err := utils.OAPIRequest[structs.ServerInfo]("")
-
+func ServerInfo() (*structs.RawServerInfoV3, error) {
+	info, err := utils.OAPIRequest[structs.RawServerInfoV3]("")
 	if err != nil {
-		return structs.ServerInfo{}, err
+		return nil, err
 	}
 
-	return info, nil
+	return &info, nil
 }
 
 type BalanceOpts struct {
-	Towns     interface{}
-	Nations   interface{}
-	Residents interface{}
+	Towns     any
+	Nations   any
+	Residents any
 }
 
 type BalanceTotals struct {
@@ -43,7 +42,7 @@ type Entity struct {
 	Name string
 }
 
-func AllNames(toolkitEndpoint string) ([]string, error) {
+func GetNamesFromEndpoint(toolkitEndpoint string) ([]string, error) {
 	res, err := utils.TKAPIRequest[[]Entity](toolkitEndpoint)
 	if err != nil {
 		return nil, err
@@ -55,7 +54,7 @@ func AllNames(toolkitEndpoint string) ([]string, error) {
 }
 
 func WorldNationBalance() int {
-	names, _ := AllNames("/nations")
+	names, _ := GetNamesFromEndpoint("/nations")
 	arr, _ := ConcurrentNations(names)
 
 	return WorldBalance(arr, "/nations")
