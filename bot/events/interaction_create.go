@@ -8,7 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func InteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func OnInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Regular slash command interaction
 	if i.Type == discordgo.InteractionApplicationCommand {
 		author := utils.UsernameFromInteraction(i)

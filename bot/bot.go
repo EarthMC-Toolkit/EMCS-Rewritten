@@ -32,9 +32,9 @@ func Run(botToken string) {
 	}
 
 	// Register handler funcs for gateway events.
-	// Name must match Discord event name -> https://discord.com/developers/docs/events/gateway-events#receive-events
-	discord.AddHandler(events.InteractionCreate)
-	discord.AddHandler(events.Ready)
+	// https://discord.com/developers/docs/events/gateway-events#receive-events
+	discord.AddHandler(events.OnInteractionCreate)
+	discord.AddHandler(events.OnReady)
 
 	discord.Identify.Intents = dgo.IntentMessageContent | guildIntents
 
