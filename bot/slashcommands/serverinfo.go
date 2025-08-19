@@ -7,16 +7,18 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type ServerInfo struct{}
+type ServerInfoCommand struct{}
 
-func (ServerInfo) Name() string                           { return "serverinfo" }
-func (ServerInfo) Description() string                    { return "Replies with information about the server" }
-func (ServerInfo) Type() discordgo.ApplicationCommandType { return discordgo.ChatApplicationCommand }
-func (ServerInfo) Options() []*discordgo.ApplicationCommandOption {
+func (ServerInfoCommand) Name() string        { return "serverinfo" }
+func (ServerInfoCommand) Description() string { return "Replies with information about the server" }
+func (ServerInfoCommand) Type() discordgo.ApplicationCommandType {
+	return discordgo.ChatApplicationCommand
+}
+func (ServerInfoCommand) Options() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{}
 }
 
-func (ServerInfo) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	serverInfo, err := oapi.ServerInfo()
 	if err != nil {
 		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{

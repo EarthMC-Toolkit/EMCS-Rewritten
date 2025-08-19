@@ -1,24 +1,17 @@
-package bot
+package events
 
 import (
 	"emcsrw/bot/slashcommands"
+	"emcsrw/utils"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-func GetInteractionUsername(i *discordgo.InteractionCreate) string {
-	if i.User == nil {
-		return i.Member.User.Username
-	}
-
-	return i.User.Username
-}
-
-func interactionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func InteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Regular slash command interaction
 	if i.Type == discordgo.InteractionApplicationCommand {
-		author := GetInteractionUsername(i)
+		author := utils.UsernameFromInteraction(i)
 
 		cmdName := i.ApplicationCommandData().Name
 		cmd := slashcommands.All()[cmdName]

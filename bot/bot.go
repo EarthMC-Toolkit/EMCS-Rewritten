@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"emcsrw/bot/events"
 	"emcsrw/bot/slashcommands"
 	"fmt"
 	"os"
@@ -11,7 +12,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const RED, YELLOW int = 8858420, 15844367
+// Leave empty to register commands globally
+const testGuildID = ""
+
+//const RED, YELLOW int = 8858420, 15844367
 
 var integrationTypes = []dgo.ApplicationIntegrationType{dgo.ApplicationIntegrationUserInstall} // 0 for Guild, 1 for User
 var contexts = []dgo.InteractionContextType{dgo.InteractionContextGuild}                       // 0 for Guilds, 2 for DMs, 3 for Private Channels
@@ -21,13 +25,17 @@ var guildIntents = dgo.IntentGuilds | dgo.IntentGuildMessages | dgo.IntentGuildM
 //var dmIntents = dgo.IntentDirectMessages | dgo.IntentDirectMessageReactions
 
 func Run(botToken string) {
-	// Create new Discord Session
+	// Initialize a Discord Session
 	discord, err := dgo.New("Bot " + botToken)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	discord.AddHandler(interactionCreate)
+	// Register handler funcs for gateway events.
+	// Name must match Discord event name -> https://discord.com/developers/docs/events/gateway-events#receive-events
+	discord.AddHandler(events.InteractionCreate)
+	discord.AddHandler(events.Ready)
+
 	discord.Identify.Intents = dgo.IntentMessageContent | guildIntents
 
 	// Open WS connection to Discord
@@ -38,9 +46,9 @@ func Run(botToken string) {
 	cmds := slashcommands.All()
 	cmdsAmt := len(cmds)
 
-	fmt.Println("Registering " + strconv.Itoa(cmdsAmt) + " slash commands...")
+	fmt.Println("Registered " + strconv.Itoa(cmdsAmt) + " slash commands...")
 	for _, cmd := range slashcommands.All() {
-		_, err := discord.ApplicationCommandCreate(discord.State.User.ID, "", &dgo.ApplicationCommand{
+		_, err := discord.ApplicationCommandCreate(discord.State.User.ID, testGuildID, &dgo.ApplicationCommand{
 			Name:             cmd.Name(),
 			Description:      cmd.Description(),
 			Options:          cmd.Options(),
@@ -59,9 +67,9 @@ func Run(botToken string) {
 	// Wait for Ctrl+C (exit)
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-	<-c
+	sig := <-c
 
-	fmt.Println("Shutting down gracefully...")
+	fmt.Printf("Shutting down bot with signal: %s", sig.String())
 }
 
 func SendComplex(discord *dgo.Session, message *dgo.MessageCreate, embed *dgo.MessageSend) {

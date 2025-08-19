@@ -22,5 +22,6 @@ func Register(cmd SlashCommand) {
 
 // Called before the bot runs, before the main() func.
 func init() {
-	Register(ServerInfo{})
+	Register(ServerInfoCommand{})
+	Register(TownCommand{})
 }

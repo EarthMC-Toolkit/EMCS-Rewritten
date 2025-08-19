@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
 	"github.com/sanity-io/litter"
 )
@@ -35,4 +36,15 @@ func HexToInt(hex string) int {
 
 func FormatTimestamp(unixTs float64) string {
 	return strconv.FormatFloat(unixTs/1000, 'f', 0, 64)
+}
+
+// Attempts to get the username from an interaction.
+//
+// Regular `User` is only filled for a DM, so this func uses guild-specific `Member.User` otherwise.
+func UsernameFromInteraction(i *discordgo.InteractionCreate) string {
+	if i.User != nil {
+		return i.User.Username
+	}
+
+	return i.Member.User.Username
 }
