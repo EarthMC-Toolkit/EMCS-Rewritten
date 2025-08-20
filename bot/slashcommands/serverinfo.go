@@ -32,8 +32,8 @@ func (ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		})
 	}
 
-	townlessStr := utils.HumanizedSprintf("Townless (Online/Total): `%d`/`%d`\n", serverInfo.Stats.NumOnlineNomads, serverInfo.Stats.NumNomads)
 	onlineStr := utils.HumanizedSprintf("Online: `%d`\n", serverInfo.Stats.NumOnlinePlayers)
+	townlessStr := utils.HumanizedSprintf("Townless (Online/Total): `%d`/`%d`\n", serverInfo.Stats.NumOnlineNomads, serverInfo.Stats.NumNomads)
 	residentsStr := utils.HumanizedSprintf("Residents: `%d`\n", serverInfo.Stats.NumResidents)
 	townsStr := utils.HumanizedSprintf("Towns: `%d`\n", serverInfo.Stats.NumTowns)
 	nationsStr := utils.HumanizedSprintf("Nations: `%d`", serverInfo.Stats.NumNations)

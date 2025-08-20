@@ -62,5 +62,5 @@ var printer = message.NewPrinter(language.BritishEnglish)
 //
 //	"Number is: 10,000"
 func HumanizedSprintf(key message.Reference, a ...any) string {
-	return printer.Sprintf(key, a)
+	return printer.Sprintf(key, a...)
 }
