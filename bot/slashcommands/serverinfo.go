@@ -2,6 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/oapi"
+	"emcsrw/utils"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -31,11 +32,11 @@ func (ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		})
 	}
 
-	townlessStr := fmt.Sprintf("Townless (Online/Total): %d/%d\n", serverInfo.Stats.NumOnlineNomads, serverInfo.Stats.NumNomads)
-	onlineStr := fmt.Sprintf("Online: %d\n", serverInfo.Stats.NumOnlinePlayers)
-	residentsStr := fmt.Sprintf("Residents: %d\n", serverInfo.Stats.NumResidents)
-	townsStr := fmt.Sprintf("Towns: %d\n", serverInfo.Stats.NumTowns)
-	nationsStr := fmt.Sprintf("Nations: %d", serverInfo.Stats.NumNations)
+	townlessStr := utils.HumanizedSprintf("Townless (Online/Total): `%d`/`%d`\n", serverInfo.Stats.NumOnlineNomads, serverInfo.Stats.NumNomads)
+	onlineStr := utils.HumanizedSprintf("Online: `%d`\n", serverInfo.Stats.NumOnlinePlayers)
+	residentsStr := utils.HumanizedSprintf("Residents: `%d`\n", serverInfo.Stats.NumResidents)
+	townsStr := utils.HumanizedSprintf("Towns: `%d`\n", serverInfo.Stats.NumTowns)
+	nationsStr := utils.HumanizedSprintf("Nations: `%d`", serverInfo.Stats.NumNations)
 	statsField := &discordgo.MessageEmbedField{
 		Name:   "Statistics",
 		Value:  onlineStr + townlessStr + residentsStr + townsStr + nationsStr,
@@ -46,7 +47,7 @@ func (ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	vpRemaining := serverInfo.VoteParty.NumRemaining
 	vpField := &discordgo.MessageEmbedField{
 		Name:   "Vote Party",
-		Value:  fmt.Sprintf("Current/Target: %d/%d\nRemaining: %d", vpTarget-vpRemaining, vpTarget, vpRemaining),
+		Value:  utils.HumanizedSprintf("Current/Target: `%d`/`%d`\nRemaining: `%d`", vpTarget-vpRemaining, vpTarget, vpRemaining),
 		Inline: true,
 	}
 
@@ -56,6 +57,7 @@ func (ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		Color:  0x5C4DFF,
 	}
 
+	// Should generally respond in 3 seconds. May need to defer in future?
 	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{

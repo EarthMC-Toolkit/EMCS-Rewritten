@@ -8,6 +8,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
 	"github.com/sanity-io/litter"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 func CheckAlphanumeric(str string) string {
@@ -47,4 +49,18 @@ func UserFromInteraction(i *discordgo.Interaction) *discordgo.User {
 	}
 
 	return i.Member.User
+}
+
+// dis printer is bri ish
+var printer = message.NewPrinter(language.BritishEnglish)
+
+// Calls Sprintf like usual, but in a humanized way. For example:
+//
+//	utils.HumanizedSprintf("Number is: %d\n", 10000)
+//
+// Outputs:
+//
+//	"Number is: 10,000"
+func HumanizedSprintf(key message.Reference, a ...any) string {
+	return printer.Sprintf(key, a)
 }
