@@ -79,7 +79,7 @@ func CreateResidentEmbed(i *dgo.Interaction, args []string) (*dgo.MessageEmbed, 
 	return nil, err
 }
 
-func CreateTownEmbed(i *dgo.Interaction, town objs.TownInfo) *dgo.MessageEmbed {
+func CreateTownEmbed(town objs.TownInfo) *dgo.MessageEmbed {
 	townTitle := fmt.Sprintf("Town Information | %s", town.Name)
 	if town.Nation.Name != "" {
 		townTitle += fmt.Sprintf(" (%s)", town.Nation.Name)
@@ -98,11 +98,11 @@ func CreateTownEmbed(i *dgo.Interaction, town objs.TownInfo) *dgo.MessageEmbed {
 		desc = fmt.Sprintf("*%s*", town.Board)
 	}
 
-	author := utils.UserFromInteraction(i)
 	return &dgo.MessageEmbed{
 		Type:        dgo.EmbedTypeRich,
 		Title:       townTitle,
 		Description: desc,
+		Color:       utils.HexToInt("2ecc71"), // GREEN
 		Fields: []*dgo.MessageEmbedField{
 			EmbedField("Founder", town.Founder, true),
 			EmbedField("Date Founded", foundedDate, true),
@@ -113,24 +113,19 @@ func CreateTownEmbed(i *dgo.Interaction, town objs.TownInfo) *dgo.MessageEmbed {
 			EmbedField("Overclaimed", town.OverclaimedString(), false),
 			EmbedField("Overclaimed Shield", overclaimShield, false),
 		},
-		Color: utils.HexToInt("2ecc71"), // GREEN
-		Author: &dgo.MessageEmbedAuthor{
-			Name:    author.Username,
-			IconURL: author.AvatarURL(""),
-		},
 	}
 }
 
-func CreateNationEmbed(i *dgo.Interaction, nation objs.NationInfo) *dgo.MessageEmbed {
+func CreateNationEmbed(nation objs.NationInfo) *dgo.MessageEmbed {
 	foundedTs := strconv.FormatFloat(nation.Timestamps.Registered/1000, 'f', 0, 64)
 	dateFounded := fmt.Sprintf("<t:%s:R>", foundedTs)
 
 	spawn := nation.Spawn
 
-	author := utils.UserFromInteraction(i)
 	return &dgo.MessageEmbed{
 		Type:  dgo.EmbedTypeRich,
 		Title: fmt.Sprintf("Nation | %s", nation.Name),
+		Color: nation.FillColourInt(),
 		Fields: []*dgo.MessageEmbedField{
 			EmbedField("King", nation.King.Name, true),
 			EmbedField("Capital", nation.Capital.Name, true),
@@ -140,15 +135,10 @@ func CreateNationEmbed(i *dgo.Interaction, nation objs.NationInfo) *dgo.MessageE
 			EmbedField("Balance", fmt.Sprintf("%.0fG", nation.Stats.Balance), true),
 			EmbedField("Residents", fmt.Sprintf("`%d`", nation.Stats.NumResidents), false),
 		},
-		Color: nation.FillColourInt(),
-		Author: &dgo.MessageEmbedAuthor{
-			Name:    author.Username,
-			IconURL: author.AvatarURL(""),
-		},
 	}
 }
 
-func CreateStaffEmbed(i *dgo.Interaction, args []string) (*dgo.MessageEmbed, error) {
+func CreateStaffEmbed() (*dgo.MessageEmbed, error) {
 	var onlineStaff []string
 	var errors []error
 
@@ -177,15 +167,10 @@ func CreateStaffEmbed(i *dgo.Interaction, args []string) (*dgo.MessageEmbed, err
 		content = strings.Join(onlineStaff, ", ")
 	}
 
-	author := utils.UserFromInteraction(i)
 	return &dgo.MessageEmbed{
 		Type:        dgo.EmbedTypeRich,
 		Title:       "Staff List | Online",
 		Description: fmt.Sprintf("```%s```", content),
 		Color:       15844367,
-		Author: &dgo.MessageEmbedAuthor{
-			Name:    author.Username,
-			IconURL: author.AvatarURL(""),
-		},
 	}, nil
 }

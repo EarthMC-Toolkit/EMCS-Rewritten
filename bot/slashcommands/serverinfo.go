@@ -11,9 +11,11 @@ type ServerInfoCommand struct{}
 
 func (ServerInfoCommand) Name() string        { return "serverinfo" }
 func (ServerInfoCommand) Description() string { return "Replies with information about the server" }
+
 func (ServerInfoCommand) Type() discordgo.ApplicationCommandType {
 	return discordgo.ChatApplicationCommand
 }
+
 func (ServerInfoCommand) Options() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{}
 }

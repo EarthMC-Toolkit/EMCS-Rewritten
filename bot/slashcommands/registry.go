@@ -20,7 +20,7 @@ func Register(cmd SlashCommand) {
 	commands[cmd.Name()] = cmd
 }
 
-// Called before the bot runs, before the main() func.
+// Called before the bot runs (just before main).
 func init() {
 	Register(ServerInfoCommand{})
 	Register(TownCommand{})

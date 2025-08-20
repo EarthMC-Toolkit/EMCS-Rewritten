@@ -63,34 +63,34 @@ func GetNamesFromEndpoint(toolkitEndpoint string) ([]string, error) {
 // func WorldBalanceTotals(opts *BalanceOpts) (*BalanceTotals, error) {
 // 	var err error
 // 	var (
-// 		includeTowns bool
-// 		includeNations bool
+// 		includeTowns     bool
+// 		includeNations   bool
 // 		includeResidents bool
 // 	)
-//
+
 // 	var (
-// 		worldTownBal *int
-// 		worldNationBal *int
+// 		worldTownBal     *int
+// 		worldNationBal   *int
 // 		worldResidentBal *int
 // 	)
-//
-//     includeTowns, err = ValidateOptType(opts.Towns)
+
+// 	includeTowns, err = ValidateOptType(opts.Towns)
 // 	if err != nil {
 // 		return nil, err
 // 	}
-//
+
 // 	includeNations, err = ValidateOptType(opts.Nations)
 // 	if err != nil {
 // 		return nil, err
 // 	}
-//
+
 // 	includeResidents, err = ValidateOptType(opts.Nations)
 // 	if err != nil {
 // 		return nil, err
 // 	}
-//
+
 // 	return &BalanceTotals{
-// 		Towns: worldTownBal,
+// 		Towns:   worldTownBal,
 // 		Nations: worldNationBal,
 // 	}, nil
 // }
