@@ -7,30 +7,30 @@ import (
 )
 
 func TestServerInfo(t *testing.T) {
-	t.SkipNow()
+	//t.SkipNow()
 
 	info, err := oapi.ServerInfo()
 	logVal(t, info, err)
 }
 
 func TestTown(t *testing.T) {
-	t.SkipNow()
+	//t.SkipNow()
 
 	town, err := oapi.QueryTowns("Venice")
 	logVal(t, town, err)
 }
 
 func TestNation(t *testing.T) {
-	t.SkipNow()
+	//t.SkipNow()
 
 	nation, err := oapi.QueryNations("Venice")
 	logVal(t, nation, err)
 }
 
 func TestResident(t *testing.T) {
-	t.SkipNow()
+	//t.SkipNow()
 
-	res, err := oapi.Resident("Fruitloopins")
+	res, err := oapi.QueryPlayers("Fruitloopins")
 	logVal(t, res, err)
 }
 

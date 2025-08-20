@@ -1,9 +1,9 @@
 package objs
 
 type Timestamps struct {
-	Registered     float64  `json:"registered"`
-	JoinedNationAt *float64 `json:"joinedNationAt,omitempty"`
-	LastOnline     *float64 `json:"lastOnline,omitempty"`
+	Registered     uint64  `json:"registered"`
+	JoinedNationAt *uint64 `json:"joinedNationAt,omitempty"`
+	LastOnline     *uint64 `json:"lastOnline,omitempty"`
 }
 
 type Spawn struct {
@@ -13,6 +13,24 @@ type Spawn struct {
 	Z     float32 `json:"z"`
 	Pitch float32 `json:"pitch"`
 	Yaw   float32 `json:"yaw"`
+}
+
+type Perms struct {
+	Build   [4]bool `json:"build"`
+	Destroy [4]bool `json:"destroy"`
+	Switch  [4]bool `json:"switch"`
+	ItemUse [4]bool `json:"itemUse"`
+	Flags   struct {
+		PVP        bool `json:"pvp"`
+		Explosions bool `json:"explosions"`
+		Fire       bool `json:"fire"`
+		Mobs       bool `json:"mobs"`
+	} `json:"flags"`
+}
+
+type EntityNullableValues struct {
+	Name *string `json:"name"`
+	UUID *string `json:"uuid"`
 }
 
 type Entity struct {

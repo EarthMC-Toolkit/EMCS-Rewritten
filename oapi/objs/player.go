@@ -1,31 +1,41 @@
 package objs
 
+type PlayerTimestamps struct {
+	Registered uint64  `json:"registered"`
+	JoinTownAt *uint64 `json:"joinedTownAt"`
+	LastOnline *uint64 `json:"lastOnline"`
+}
+
 type PlayerStatus struct {
-	Online bool `json:"isOnline"`
-	NPC    bool `json:"isNPC"`
+	IsOnline  bool `json:"isOnline"`
+	IsNPC     bool `json:"isNPC"`
+	IsMayor   bool `json:"isMayor"`
+	IsKing    bool `json:"isKing"`
+	HasTown   bool `json:"hasTown"`
+	HasNation bool `json:"hasNation"`
 }
 
 type PlayerStats struct {
-	Balance float32 `json:"balance"`
+	Balance    float32 `json:"balance"`
+	NumFriends uint16  `json:"numFriends"`
 }
 
 type ResidentRanks struct {
-	Nation []string `json:"nationRanks,omitempty"`
-	Town   []string `json:"townRanks,omitempty"`
+	Town   []string `json:"townRanks"`
+	Nation []string `json:"nationRanks"`
 }
 
-// TODO: Fully implement this
 type PlayerInfo struct {
-	Name       string        `json:"name"`
-	UUID       string        `json:"uuid"`
-	Title      string        `json:"title,omitempty"`
-	Surname    string        `json:"surname,omitempty"`
-	Town       string        `json:"town,omitempty"`
-	Nation     string        `json:"nation,omitempty"`
-	Timestamps Timestamps    `json:"timestamps"`
-	Status     PlayerStatus  `json:"status"`
-	Stats      PlayerStats   `json:"stats"`
-	Ranks      ResidentRanks `json:"ranks,omitempty"`
-	Friends    []string      `json:"friends,omitempty"`
-	//Perms		ResidentPerms	`json:"perms"`
+	Name       string               `json:"name"`
+	UUID       string               `json:"uuid"`
+	Title      string               `json:"title,omitempty"`
+	Surname    string               `json:"surname,omitempty"`
+	Town       EntityNullableValues `json:"town"`
+	Nation     EntityNullableValues `json:"nation"`
+	Timestamps PlayerTimestamps     `json:"timestamps"`
+	Status     PlayerStatus         `json:"status"`
+	Stats      PlayerStats          `json:"stats"`
+	Ranks      ResidentRanks        `json:"ranks"`
+	Friends    []Entity             `json:"friends,omitempty"`
+	Perms      Perms                `json:"perms"`
 }

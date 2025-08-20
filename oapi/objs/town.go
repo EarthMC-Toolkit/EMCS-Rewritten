@@ -46,36 +46,22 @@ type TownRanks struct {
 	Treasurer  []Entity `json:"Treasurer,omitempty"`
 }
 
-// TODO: Implement this
-type TownPerms struct {
-	Build   [4]bool `json:"build"`
-	Destroy [4]bool `json:"destroy"`
-	Switch  [4]bool `json:"switch"`
-	ItemUse [4]bool `json:"itemUse"`
-	Flags   struct {
-		PVP        bool `json:"pvp"`
-		Explosions bool `json:"explosions"`
-		Fire       bool `json:"fire"`
-		Mobs       bool `json:"mobs"`
-	} `json:"flags"`
-}
-
 type TownInfo struct {
 	Entity
-	Board       string     `json:"board"`
-	Founder     string     `json:"founder"`
-	Wiki        string     `json:"wiki"`
-	Mayor       Entity     `json:"mayor"`
-	Nation      *Entity    `json:"nation"`
-	Residents   []Entity   `json:"residents"`
-	Timestamps  Timestamps `json:"timestamps"`
-	Status      TownStatus `json:"status"`
-	Stats       TownStats  `json:"stats"`
-	Coordinates TownCoords `json:"coordinates"`
-	Ranks       TownRanks  `json:"ranks"`
-	Trusted     []Entity   `json:"trusted"`
-	Outlaws     []Entity   `json:"outlaws"`
-	Perms       TownPerms  `json:"perms"`
+	Board       string                `json:"board"`
+	Founder     string                `json:"founder"`
+	Wiki        string                `json:"wiki"`
+	Mayor       Entity                `json:"mayor"`
+	Nation      *EntityNullableValues `json:"nation"`
+	Residents   []Entity              `json:"residents"`
+	Timestamps  Timestamps            `json:"timestamps"`
+	Status      TownStatus            `json:"status"`
+	Stats       TownStats             `json:"stats"`
+	Coordinates TownCoords            `json:"coordinates"`
+	Ranks       TownRanks             `json:"ranks"`
+	Trusted     []Entity              `json:"trusted"`
+	Outlaws     []Entity              `json:"outlaws"`
+	Perms       Perms                 `json:"perms"`
 }
 
 func (t TownInfo) Bal() float32 {

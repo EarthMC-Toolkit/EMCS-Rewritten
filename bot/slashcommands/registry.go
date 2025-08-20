@@ -24,4 +24,5 @@ func Register(cmd SlashCommand) {
 func init() {
 	Register(ServerInfoCommand{})
 	Register(TownCommand{})
+	Register(NationCommand{})
 }
