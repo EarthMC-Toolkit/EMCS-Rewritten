@@ -1,4 +1,4 @@
-package bot
+package common
 
 // TODO: Replace with one from Fruitloopins repo?
 var STAFF_OWNER_IDS = [...]string{

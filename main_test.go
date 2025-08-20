@@ -16,14 +16,14 @@ func TestServerInfo(t *testing.T) {
 func TestTown(t *testing.T) {
 	t.SkipNow()
 
-	town, err := oapi.Town("Venice")
+	town, err := oapi.QueryTowns("Venice")
 	logVal(t, town, err)
 }
 
 func TestNation(t *testing.T) {
 	t.SkipNow()
 
-	nation, err := oapi.Nation("Venice")
+	nation, err := oapi.QueryNations("Venice")
 	logVal(t, nation, err)
 }
 
@@ -34,12 +34,12 @@ func TestResident(t *testing.T) {
 	logVal(t, res, err)
 }
 
-func TestConcurrentResidents(t *testing.T) {
-	//t.SkipNow()
+// func TestConcurrentResidents(t *testing.T) {
+// 	//t.SkipNow()
 
-	residents, _ := oapi.ConcurrentResidents([]string{"Owen3H", "Fruitloopins"})
-	logVal(t, residents, nil)
-}
+// 	residents, _ := oapi.ConcurrentResidents([]string{"Owen3H", "Fruitloopins"})
+// 	logVal(t, residents, nil)
+// }
 
 func TestAlphanumeric(t *testing.T) {
 	var actual bool
@@ -55,10 +55,10 @@ func TestAlphanumeric(t *testing.T) {
 	}
 }
 
-func TestWorldNationBal(t *testing.T) {
-	bal := oapi.WorldNationBalance()
-	logVal(t, bal, nil)
-}
+// func TestWorldNationBal(t *testing.T) {
+// 	bal := oapi.WorldNationBalance()
+// 	logVal(t, bal, nil)
+// }
 
 // func TestWorldBalances(t *testing.T) {
 // 	worldBals, _ := oapi.WorldBalanceTotals(&oapi.BalanceOpts{
@@ -75,9 +75,9 @@ func TestWorldNationBal(t *testing.T) {
 // 	logVal(t, names, err)
 // }
 
-func logVal(t *testing.T, v any, e error) {
-	if e != nil {
-		t.Log(e)
+func logVal(t *testing.T, v any, err error) {
+	if err != nil {
+		t.Log(err)
 	} else {
 		t.Log(utils.Prettify(v))
 	}

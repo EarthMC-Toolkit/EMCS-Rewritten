@@ -1,27 +1,27 @@
 package oapi
 
 import (
-	"emcsrw/oapi/structs"
+	"emcsrw/oapi/objs"
 	"emcsrw/utils"
 	"fmt"
 )
 
-func Resident(identifier string) (structs.PlayerInfo, error) {
+func Resident(identifier string) (objs.PlayerInfo, error) {
 	endpoint := fmt.Sprintf("/players/%s", identifier)
-	resident, err := utils.OAPIRequest[structs.PlayerInfo](endpoint)
+	resident, err := utils.OAPIGetRequest[objs.PlayerInfo](endpoint)
 
 	if err != nil {
-		return structs.PlayerInfo{}, err
+		return objs.PlayerInfo{}, err
 	}
 
 	return resident, nil
 }
 
-func ConcurrentResidents(identifiers []string) ([]structs.PlayerInfo, []error) {
-	endpoints := make([]string, len(identifiers))
-	for _, identifier := range identifiers {
-		endpoints = append(endpoints, fmt.Sprintf("/players/%s", identifier))
-	}
+// func ConcurrentResidents(identifiers []string) ([]objs.PlayerInfo, []error) {
+// 	endpoints := make([]string, len(identifiers))
+// 	for _, identifier := range identifiers {
+// 		endpoints = append(endpoints, fmt.Sprintf("/players/%s", identifier))
+// 	}
 
-	return utils.OAPIConcurrentRequest[structs.PlayerInfo](endpoints, true)
-}
+// 	return utils.OAPIConcurrentRequest[objs.PlayerInfo](endpoints, true)
+// }

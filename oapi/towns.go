@@ -1,18 +1,10 @@
 package oapi
 
 import (
-	"emcsrw/oapi/structs"
+	"emcsrw/oapi/objs"
 	"emcsrw/utils"
-	"fmt"
 )
 
-func Town(name string) (structs.TownInfo, error) {
-	ep := fmt.Sprintf("/towns/%s", name)
-	town, err := utils.OAPIRequest[structs.TownInfo](ep)
-
-	if err != nil {
-		return structs.TownInfo{}, err
-	}
-
-	return town, nil
+func QueryTowns(identifiers ...string) ([]objs.TownInfo, error) {
+	return utils.OAPIPostRequest[[]objs.TownInfo]("/towns", NewNamesQuery(identifiers...))
 }

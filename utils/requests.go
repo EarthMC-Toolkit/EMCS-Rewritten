@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 	"time"
-
-	lop "github.com/samber/lo/parallel"
 )
 
 const OFFICIAL_API_URL = "https://api.earthmc.net/v3/aurora"
@@ -20,33 +18,40 @@ func TKAPIRequest[T any](endpoint string) (T, error) {
 	return JsonGetRequest[T](TOOLKIT_API_URL + endpoint)
 }
 
-func OAPIRequest[T any](endpoint string) (T, error) {
+func OAPIGetRequest[T any](endpoint string) (T, error) {
 	url := OFFICIAL_API_URL + endpoint
 	res, err := JsonGetRequest[T](url)
 
 	return res, err
 }
 
-func OAPIConcurrentRequest[T any](endpoints []string, skipCache bool) ([]T, []error) {
-	var results []T
-	var errors []error
+func OAPIPostRequest[T any](endpoint string, body any) (T, error) {
+	url := OFFICIAL_API_URL + endpoint
+	res, err := JsonPostRequest[T](url, body)
 
-	lop.ForEach(endpoints, func(ep string, _ int) {
-		res, err := OAPIRequest[T](ep)
-
-		// Use JsonRequest here
-		if err != nil {
-			errors = append(errors, err)
-		} else {
-			results = append(results, res)
-		}
-	})
-
-	return results, errors
+	return res, err
 }
 
+// func OAPIConcurrentRequest[T any](endpoints []string, skipCache bool) ([]T, []error) {
+// 	var results []T
+// 	var errors []error
+
+// 	lop.ForEach(endpoints, func(ep string, _ int) {
+// 		res, err := OAPIGetRequest[T](ep)
+
+// 		// Use JsonRequest here
+// 		if err != nil {
+// 			errors = append(errors, err)
+// 		} else {
+// 			results = append(results, res)
+// 		}
+// 	})
+
+// 	return results, errors
+// }
+
 // Sends a POST request with a JSON body and since JSON is expected to be returned, the response is unmarshalled into the provided type.
-func JsonPostRequest[T any](endpoint string, body any) (T, error) {
+func JsonPostRequest[T any](url string, body any) (T, error) {
 	var data T
 
 	bodyBytes, err := json.Marshal(body)
@@ -54,7 +59,7 @@ func JsonPostRequest[T any](endpoint string, body any) (T, error) {
 		fmt.Printf("Failed to Serialize to JSON from native Go struct type: %v", err)
 	}
 
-	res, err := PostRequest(endpoint, "application/json", bytes.NewBuffer(bodyBytes))
+	res, err := PostRequest(url, "application/json", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return data, err
 	}
@@ -67,10 +72,10 @@ func JsonPostRequest[T any](endpoint string, body any) (T, error) {
 	return data, err
 }
 
-func JsonGetRequest[T any](endpoint string) (T, error) {
+func JsonGetRequest[T any](url string) (T, error) {
 	var data T
 
-	res, err := GetRequest(endpoint)
+	res, err := GetRequest(url)
 	if err != nil {
 		return data, err
 	}

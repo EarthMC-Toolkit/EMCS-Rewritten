@@ -1,27 +1,19 @@
 package oapi
 
 import (
-	"emcsrw/oapi/structs"
+	"emcsrw/oapi/objs"
 	"emcsrw/utils"
-	"fmt"
 )
 
-func Nation(identifier string) (structs.NationInfo, error) {
-	ep := fmt.Sprintf("/nations/%s", identifier)
-	nation, err := utils.OAPIRequest[structs.NationInfo](ep)
-
-	if err != nil {
-		return structs.NationInfo{}, err
-	}
-
-	return nation, nil
+func QueryNations(identifiers ...string) ([]objs.NationInfo, error) {
+	return utils.OAPIPostRequest[[]objs.NationInfo]("/nations", NewNamesQuery(identifiers...))
 }
 
-func ConcurrentNations(identifiers []string) ([]structs.NationInfo, []error) {
-	var endpoints []string
-	for _, identifier := range identifiers {
-		endpoints = append(endpoints, fmt.Sprintf("/nations/%s", identifier))
-	}
+// func ConcurrentNations(identifiers []string) ([]objs.NationInfo, []error) {
+// 	var endpoints []string
+// 	for _, identifier := range identifiers {
+// 		endpoints = append(endpoints, fmt.Sprintf("/nations", identifier))
+// 	}
 
-	return utils.OAPIConcurrentRequest[structs.NationInfo](endpoints, true)
-}
+// 	return utils.OAPIConcurrentRequest[objs.NationInfo](endpoints, true)
+// }

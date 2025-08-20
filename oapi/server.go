@@ -1,15 +1,15 @@
 package oapi
 
 import (
-	"emcsrw/oapi/structs"
+	"emcsrw/oapi/objs"
 	"emcsrw/utils"
 	"errors"
 
 	"github.com/samber/lo"
 )
 
-func ServerInfo() (*structs.RawServerInfoV3, error) {
-	info, err := utils.OAPIRequest[structs.RawServerInfoV3]("")
+func ServerInfo() (*objs.RawServerInfoV3, error) {
+	info, err := utils.OAPIGetRequest[objs.RawServerInfoV3]("")
 	if err != nil {
 		return nil, err
 	}
@@ -53,12 +53,12 @@ func GetNamesFromEndpoint(toolkitEndpoint string) ([]string, error) {
 	}), nil
 }
 
-func WorldNationBalance() int {
-	names, _ := GetNamesFromEndpoint("/nations")
-	arr, _ := ConcurrentNations(names)
+// func WorldNationBalance() int {
+// 	names, _ := GetNamesFromEndpoint("/nations")
+// 	arr, _ := ConcurrentNations(names)
 
-	return WorldBalance(arr, "/nations")
-}
+// 	return WorldBalance(arr, "/nations")
+// }
 
 // func WorldBalanceTotals(opts *BalanceOpts) (*BalanceTotals, error) {
 // 	var err error

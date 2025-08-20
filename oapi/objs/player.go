@@ -1,4 +1,4 @@
-package structs
+package objs
 
 type PlayerStatus struct {
 	Online bool `json:"isOnline"`

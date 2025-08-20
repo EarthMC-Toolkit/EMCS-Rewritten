@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 
 	dgo "github.com/bwmarrin/discordgo"
 	log "github.com/sirupsen/logrus"
@@ -39,8 +40,10 @@ func Run(botToken string) {
 	discord.Identify.Intents = dgo.IntentMessageContent | guildIntents
 
 	// Open WS connection to Discord
-	discord.Open()
-	defer discord.Close()
+	err = discord.Open()
+	if err != nil {
+		log.Fatal("Cannot open Discord session: ", err)
+	}
 
 	// Register commands
 	cmds := slashcommands.All()
@@ -52,7 +55,7 @@ func Run(botToken string) {
 			Name:             cmd.Name(),
 			Description:      cmd.Description(),
 			Options:          cmd.Options(),
-			IntegrationTypes: &integrationTypes,
+			IntegrationTypes: &integrationTypes, // TODO: Integrate these into `cmd` itself and stop constructing new ApplicationCommand.
 			Contexts:         &contexts,
 		})
 
@@ -60,6 +63,8 @@ func Run(botToken string) {
 			fmt.Printf("Cannot create '%v' command: %v\n", cmd.Name(), err)
 		}
 	}
+
+	defer discord.Close()
 
 	// Run until code is terminated
 	fmt.Printf("Bot running...\n")
@@ -69,14 +74,12 @@ func Run(botToken string) {
 	signal.Notify(c, os.Interrupt)
 	sig := <-c
 
-	fmt.Printf("Shutting down bot with signal: %s", sig.String())
+	fmt.Printf("\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
 }
 
-func SendComplex(discord *dgo.Session, message *dgo.MessageCreate, embed *dgo.MessageSend) {
-	_, err := discord.ChannelMessageSendComplex(message.ChannelID, embed)
-	if err != nil {
-		log.Error(err)
-	}
-}
-
-// TODO: Implement slash cmds
+// func SendComplex(discord *dgo.Session, message *dgo.MessageCreate, embed *dgo.MessageSend) {
+// 	_, err := discord.ChannelMessageSendComplex(message.ChannelID, embed)
+// 	if err != nil {
+// 		log.Error(err)
+// 	}
+// }

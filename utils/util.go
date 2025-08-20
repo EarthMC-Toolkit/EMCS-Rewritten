@@ -28,7 +28,7 @@ func Prettify(i any) string {
 }
 
 func HexToInt(hex string) int {
-	str := strings.Replace(hex, "0x", "", -1)
+	str := strings.ReplaceAll(hex, "0x", "")
 	output, _ := strconv.ParseUint(str, 16, 32)
 
 	return int(output)
@@ -41,10 +41,10 @@ func FormatTimestamp(unixTs float64) string {
 // Attempts to get the username from an interaction.
 //
 // Regular `User` is only filled for a DM, so this func uses guild-specific `Member.User` otherwise.
-func UsernameFromInteraction(i *discordgo.InteractionCreate) string {
+func UserFromInteraction(i *discordgo.Interaction) *discordgo.User {
 	if i.User != nil {
-		return i.User.Username
+		return i.User
 	}
 
-	return i.Member.User.Username
+	return i.Member.User
 }

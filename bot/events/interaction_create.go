@@ -11,16 +11,16 @@ import (
 func OnInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Regular slash command interaction
 	if i.Type == discordgo.InteractionApplicationCommand {
-		author := utils.UsernameFromInteraction(i)
+		author := utils.UserFromInteraction(i.Interaction)
 
 		cmdName := i.ApplicationCommandData().Name
 		cmd := slashcommands.All()[cmdName]
 
 		err := cmd.Execute(s, i)
 		if err != nil {
-			fmt.Printf("'%s' failed to execute command /%s:\n%v", author, cmdName, err)
+			fmt.Printf("'%s' failed to execute command /%s:\n%v", author.Username, cmdName, err)
 		} else {
-			fmt.Printf("'%s' successfully executed command /%s", author, cmdName)
+			fmt.Printf("'%s' successfully executed command /%s", author.Username, cmdName)
 		}
 
 		return

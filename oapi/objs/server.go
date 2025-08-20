@@ -1,4 +1,4 @@
-package structs
+package objs
 
 type MoonPhaseV3 string
 
