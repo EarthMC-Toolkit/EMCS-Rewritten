@@ -40,7 +40,9 @@ type NationInfo struct {
 	Timestamps       Timestamps   `json:"timestamps"`
 	Status           NationStatus `json:"status"`
 	Stats            NationStats  `json:"stats"`
-	Spawn            Spawn        `json:"spawn"`
+	Coordinates      struct {
+		Spawn Spawn `json:"spawn"`
+	} `json:"coordinates"`
 }
 
 func (n NationInfo) Bal() float32 {

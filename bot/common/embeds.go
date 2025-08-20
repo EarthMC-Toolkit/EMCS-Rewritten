@@ -109,7 +109,8 @@ func CreateNationEmbed(nation objs.NationInfo) *dgo.MessageEmbed {
 	foundedTs := nation.Timestamps.Registered / 1000 // Seconds
 	dateFounded := fmt.Sprintf("<t:%d:R>", foundedTs)
 
-	spawn := nation.Spawn
+	stats := nation.Stats
+	spawn := nation.Coordinates.Spawn
 
 	return &dgo.MessageEmbed{
 		Type:  dgo.EmbedTypeRich,
@@ -120,9 +121,10 @@ func CreateNationEmbed(nation objs.NationInfo) *dgo.MessageEmbed {
 			EmbedField("Capital", nation.Capital.Name, true),
 			EmbedField("Location", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", spawn.X, spawn.Z, spawn.X, spawn.Y, spawn.Z), true),
 			EmbedField("Date Founded", dateFounded, true),
-			EmbedField("Area", fmt.Sprintf("%d Chunks", nation.Stats.NumTownBlocks), true),
-			EmbedField("Balance", fmt.Sprintf("%.0fG", nation.Stats.Balance), true),
-			EmbedField("Residents", fmt.Sprintf("`%d`", nation.Stats.NumResidents), false),
+			EmbedField("Area", fmt.Sprintf("%d Chunks", stats.NumTownBlocks), true),
+			EmbedField("Balance", fmt.Sprintf("%.0fG", stats.Balance), true),
+			EmbedField("Residents", fmt.Sprintf("`%d`", stats.NumResidents), false),
+			EmbedField("Allies/Enemies", fmt.Sprintf("`%d` / `%d`", stats.NumAllies, stats.NumEnemies), false),
 		},
 	}
 }

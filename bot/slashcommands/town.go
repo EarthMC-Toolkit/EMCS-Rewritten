@@ -9,7 +9,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var NameOption = &discordgo.ApplicationCommandOption{
+var townNameOption = &discordgo.ApplicationCommandOption{
 	Name:        "name",
 	Type:        discordgo.ApplicationCommandOptionString,
 	Description: "The name of the town to retrieve information for.",
@@ -27,7 +27,7 @@ func (TownCommand) Type() discordgo.ApplicationCommandType {
 
 func (TownCommand) Options() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
-		NameOption,
+		townNameOption,
 	}
 }
 
