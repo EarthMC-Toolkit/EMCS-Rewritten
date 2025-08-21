@@ -2,11 +2,33 @@ package slashcommands
 
 import "github.com/bwmarrin/discordgo"
 
+// 0 for Guild, 1 for User
+var integrationTypes = []discordgo.ApplicationIntegrationType{
+	discordgo.ApplicationIntegrationUserInstall,
+}
+
+// 0 for Guilds, 2 for DMs, 3 for Private Channels
+var contexts = []discordgo.InteractionContextType{
+	discordgo.InteractionContextGuild,
+}
+
+func ToApplicationCommand(cmd SlashCommand) *discordgo.ApplicationCommand {
+	return &discordgo.ApplicationCommand{
+		Name:             cmd.Name(),
+		Description:      cmd.Description(),
+		Options:          cmd.Options(),
+		IntegrationTypes: &integrationTypes, // TODO: Require these to implemented by SlashCommand instead?
+		Contexts:         &contexts,
+		Type:             discordgo.ChatApplicationCommand,
+	}
+}
+
 type SlashCommand interface {
 	Name() string
 	Description() string
-	Type() discordgo.ApplicationCommandType
 	Options() []*discordgo.ApplicationCommandOption
+	// IntegrationTypes() *[]discordgo.ApplicationIntegrationType
+	// Contexts() *[]discordgo.InteractionContextType
 	Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error
 }
 

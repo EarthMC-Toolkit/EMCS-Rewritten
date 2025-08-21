@@ -9,25 +9,21 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var townNameOption = &discordgo.ApplicationCommandOption{
-	Name:        "name",
-	Type:        discordgo.ApplicationCommandOptionString,
-	Description: "The name of the town to retrieve information for.",
-	Required:    true,
-}
-
 type TownCommand struct{}
 
-func (TownCommand) Name() string        { return "town" }
-func (TownCommand) Description() string { return "Retrieve information relating to one or more towns." }
-
-func (TownCommand) Type() discordgo.ApplicationCommandType {
-	return discordgo.ChatApplicationCommand
+func (TownCommand) Name() string { return "town" }
+func (TownCommand) Description() string {
+	return "Retrieve information relating to one or more towns."
 }
 
 func (TownCommand) Options() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
-		townNameOption,
+		{
+			Name:        "name",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Description: "The name of the town to retrieve information for.",
+			Required:    true,
+		},
 	}
 }
 

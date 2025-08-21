@@ -18,9 +18,6 @@ const testGuildID = ""
 
 //const RED, YELLOW int = 8858420, 15844367
 
-var integrationTypes = []dgo.ApplicationIntegrationType{dgo.ApplicationIntegrationUserInstall} // 0 for Guild, 1 for User
-var contexts = []dgo.InteractionContextType{dgo.InteractionContextGuild}                       // 0 for Guilds, 2 for DMs, 3 for Private Channels
-
 var guildIntents = dgo.IntentGuilds | dgo.IntentGuildMessages | dgo.IntentGuildMessageReactions
 
 //var dmIntents = dgo.IntentDirectMessages | dgo.IntentDirectMessageReactions
@@ -51,14 +48,7 @@ func Run(botToken string) {
 
 	fmt.Println("Registered " + strconv.Itoa(cmdsAmt) + " slash commands...")
 	for _, cmd := range slashcommands.All() {
-		_, err := discord.ApplicationCommandCreate(discord.State.User.ID, testGuildID, &dgo.ApplicationCommand{
-			Name:             cmd.Name(),
-			Description:      cmd.Description(),
-			Options:          cmd.Options(),
-			IntegrationTypes: &integrationTypes, // TODO: Integrate these into `cmd` itself and stop constructing new ApplicationCommand.
-			Contexts:         &contexts,
-		})
-
+		_, err := discord.ApplicationCommandCreate(discord.State.User.ID, testGuildID, slashcommands.ToApplicationCommand(cmd))
 		if err != nil {
 			fmt.Printf("Cannot create '%v' command: %v\n", cmd.Name(), err)
 		}

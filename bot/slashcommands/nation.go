@@ -8,13 +8,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var nationNameOption = &discordgo.ApplicationCommandOption{
-	Name:        "name",
-	Type:        discordgo.ApplicationCommandOptionString,
-	Description: "The name of the nation to retrieve information for.",
-	Required:    true,
-}
-
 type NationCommand struct{}
 
 func (NationCommand) Name() string { return "nation" }
@@ -22,13 +15,14 @@ func (NationCommand) Description() string {
 	return "Retrieve information relating to one or more nations."
 }
 
-func (NationCommand) Type() discordgo.ApplicationCommandType {
-	return discordgo.ChatApplicationCommand
-}
-
 func (NationCommand) Options() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
-		nationNameOption,
+		{
+			Name:        "name",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Description: "The name of the nation to retrieve information for.",
+			Required:    true,
+		},
 	}
 }
 
