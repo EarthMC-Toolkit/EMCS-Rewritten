@@ -11,12 +11,12 @@ import (
 
 type TownCommand struct{}
 
-func (TownCommand) Name() string { return "town" }
-func (TownCommand) Description() string {
+func (cmd TownCommand) Name() string { return "town" }
+func (cmd TownCommand) Description() string {
 	return "Retrieve information relating to one or more towns."
 }
 
-func (TownCommand) Options() []*discordgo.ApplicationCommandOption {
+func (cmd TownCommand) Options() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
 		{
 			Name:        "name",
@@ -27,7 +27,7 @@ func (TownCommand) Options() []*discordgo.ApplicationCommandOption {
 	}
 }
 
-func (TownCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (cmd TownCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	// Defer the interaction immediately
 	err := DeferReply(s, i.Interaction)
 	if err != nil {

@@ -3,6 +3,7 @@ package slashcommands
 import (
 	"emcsrw/bot/common"
 	"emcsrw/oapi"
+	"fmt"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -10,12 +11,12 @@ import (
 
 type NationCommand struct{}
 
-func (NationCommand) Name() string { return "nation" }
-func (NationCommand) Description() string {
+func (cmd NationCommand) Name() string { return "nation" }
+func (cmd NationCommand) Description() string {
 	return "Retrieve information relating to one or more nations."
 }
 
-func (NationCommand) Options() []*discordgo.ApplicationCommandOption {
+func (cmd NationCommand) Options() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
 		{
 			Name:        "name",
@@ -26,7 +27,7 @@ func (NationCommand) Options() []*discordgo.ApplicationCommandOption {
 	}
 }
 
-func (NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (cmd NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	// Defer the interaction immediately
 	err := DeferReply(s, i.Interaction)
 	if err != nil {
@@ -39,9 +40,14 @@ func (NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreat
 
 func SendSingleNation(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.Message, error) {
 	nationNameArg := i.ApplicationCommandData().GetOption("name").StringValue()
+
 	nations, err := oapi.QueryNations(strings.ToLower(nationNameArg))
 	if err != nil {
-		return FollowUpContent(s, i, "An error occurred retrieving town information :(")
+		return FollowUpContent(s, i, "An error occurred retrieving nation information :(")
+	}
+
+	if len(nations) == 0 {
+		return FollowUpContent(s, i, fmt.Sprintf("No nations retrieved. Nation `%s` does not seem to exist.", nationNameArg))
 	}
 
 	embed := common.CreateNationEmbed(nations[0])

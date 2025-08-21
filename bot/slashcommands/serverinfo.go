@@ -10,16 +10,16 @@ import (
 
 type ServerInfoCommand struct{}
 
-func (ServerInfoCommand) Name() string { return "serverinfo" }
-func (ServerInfoCommand) Description() string {
+func (cmd ServerInfoCommand) Name() string { return "serverinfo" }
+func (cmd ServerInfoCommand) Description() string {
 	return "Replies with information about the server and voteparty status."
 }
 
-func (ServerInfoCommand) Options() []*discordgo.ApplicationCommandOption {
+func (cmd ServerInfoCommand) Options() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{}
 }
 
-func (ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	serverInfo, err := oapi.ServerInfo()
 	if err != nil {
 		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{

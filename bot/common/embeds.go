@@ -20,7 +20,7 @@ func EmbedField(name string, value string, inline bool) *dgo.MessageEmbedField {
 	}
 }
 
-func CreateResidentEmbed(resident objs.PlayerInfo) *dgo.MessageEmbed {
+func CreatePlayerEmbed(resident objs.PlayerInfo) *dgo.MessageEmbed {
 	registeredTs := resident.Timestamps.Registered / 1000  // Seconds
 	lastOnlineTs := *resident.Timestamps.LastOnline / 1000 // Seconds
 
@@ -57,10 +57,10 @@ func CreateResidentEmbed(resident objs.PlayerInfo) *dgo.MessageEmbed {
 		Thumbnail: &dgo.MessageEmbedThumbnail{
 			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", resident.UUID),
 		},
-		Title: fmt.Sprintf("Resident | `%s`", resName),
+		Title: fmt.Sprintf("Player | `%s`", resName),
 		Fields: []*dgo.MessageEmbedField{
 			EmbedField("Affiliation", fmt.Sprintf("%s (%s)", townName, nationName), false),
-			EmbedField("Balance", fmt.Sprintf("%.0fG", resident.Stats.Balance), false),
+			EmbedField("Balance", utils.HumanizedSprintf("`%.0f`G", resident.Stats.Balance), false),
 			EmbedField("Status", status, true),
 			EmbedField("Last Online", fmt.Sprintf("<t:%d:R>", lastOnlineTs), true),
 			EmbedField("Registered", fmt.Sprintf("<t:%d:F>", registeredTs), true),
@@ -93,8 +93,8 @@ func CreateTownEmbed(town objs.TownInfo) *dgo.MessageEmbed {
 		Color:       utils.HexToInt("2ecc71"), // GREEN
 		Fields: []*dgo.MessageEmbedField{
 			EmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
-			EmbedField("Founder", town.Founder, true),
-			EmbedField("Mayor", town.Mayor.Name, true),
+			EmbedField("Founder", fmt.Sprintf("`%s`", town.Founder), true),
+			EmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
 			EmbedField("Area", utils.HumanizedSprintf("`%d`/`%d` Chunks", town.Stats.NumTownBlocks, town.Stats.MaxTownBlocks), true),
 			EmbedField("Balance", utils.HumanizedSprintf("`%0.0f`G", town.Bal()), true),
 			EmbedField("Residents", utils.HumanizedSprintf("`%d`", town.Stats.NumResidents), true),

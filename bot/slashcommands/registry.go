@@ -12,16 +12,7 @@ var contexts = []discordgo.InteractionContextType{
 	discordgo.InteractionContextGuild,
 }
 
-func ToApplicationCommand(cmd SlashCommand) *discordgo.ApplicationCommand {
-	return &discordgo.ApplicationCommand{
-		Name:             cmd.Name(),
-		Description:      cmd.Description(),
-		Options:          cmd.Options(),
-		IntegrationTypes: &integrationTypes, // TODO: Require these to implemented by SlashCommand instead?
-		Contexts:         &contexts,
-		Type:             discordgo.ChatApplicationCommand,
-	}
-}
+var commands = map[string]SlashCommand{}
 
 type SlashCommand interface {
 	Name() string
@@ -32,7 +23,16 @@ type SlashCommand interface {
 	Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error
 }
 
-var commands = map[string]SlashCommand{}
+func ToApplicationCommand(cmd SlashCommand) *discordgo.ApplicationCommand {
+	return &discordgo.ApplicationCommand{
+		Name:             cmd.Name(),
+		Description:      cmd.Description(),
+		Options:          cmd.Options(),
+		IntegrationTypes: &integrationTypes, // TODO: Require these to implemented by SlashCommand instead?
+		Contexts:         &contexts,
+		Type:             discordgo.ChatApplicationCommand,
+	}
+}
 
 func All() map[string]SlashCommand {
 	return commands
@@ -47,4 +47,5 @@ func init() {
 	Register(ServerInfoCommand{})
 	Register(TownCommand{})
 	Register(NationCommand{})
+	Register(PlayerCommand{})
 }
