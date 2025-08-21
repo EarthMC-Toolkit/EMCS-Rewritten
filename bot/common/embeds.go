@@ -69,14 +69,11 @@ func CreateResidentEmbed(resident objs.PlayerInfo) *dgo.MessageEmbed {
 }
 
 func CreateTownEmbed(town objs.TownInfo) *dgo.MessageEmbed {
+	foundedTs := town.Timestamps.Registered / 1000 // Seconds
+
 	townTitle := fmt.Sprintf("Town Information | %s", town.Name)
 	if town.Nation.Name != nil {
 		townTitle += fmt.Sprintf(" (%s)", *town.Nation.Name)
-	}
-
-	overclaimShield := SHIELD_EMOJIS.RED + " Inactive"
-	if town.Status.HasOverclaimShield {
-		overclaimShield = SHIELD_EMOJIS.GREEN + " Active"
 	}
 
 	desc := ""
@@ -84,7 +81,10 @@ func CreateTownEmbed(town objs.TownInfo) *dgo.MessageEmbed {
 		desc = fmt.Sprintf("*%s*", town.Board)
 	}
 
-	foundedTs := town.Timestamps.Registered / 1000 // Seconds
+	overclaimShield := "`Inactive` " + SHIELD_EMOJIS.RED
+	if town.Status.HasOverclaimShield {
+		overclaimShield = "`Active` " + SHIELD_EMOJIS.GREEN
+	}
 
 	return &dgo.MessageEmbed{
 		Type:        dgo.EmbedTypeRich,
@@ -92,14 +92,13 @@ func CreateTownEmbed(town objs.TownInfo) *dgo.MessageEmbed {
 		Description: desc,
 		Color:       utils.HexToInt("2ecc71"), // GREEN
 		Fields: []*dgo.MessageEmbedField{
-			EmbedField("Founder", town.Founder, true),
 			EmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
-			EmbedField("Mayor", town.Mayor.Name, false),
-			EmbedField("Area", fmt.Sprintf("%d / %d Chunks", town.Stats.NumTownBlocks, town.Stats.MaxTownBlocks), true),
-			EmbedField("Balance", fmt.Sprintf("%.0fG", town.Bal()), true),
-			EmbedField("Residents", fmt.Sprintf("`%d`", town.Stats.NumResidents), false),
-			EmbedField("Overclaimed", town.OverclaimedString(), false),
-			EmbedField("Overclaimed Shield", overclaimShield, false),
+			EmbedField("Founder", town.Founder, true),
+			EmbedField("Mayor", town.Mayor.Name, true),
+			EmbedField("Area", utils.HumanizedSprintf("`%d`/`%d` Chunks", town.Stats.NumTownBlocks, town.Stats.MaxTownBlocks), true),
+			EmbedField("Balance", utils.HumanizedSprintf("`%0.0f`G", town.Bal()), true),
+			EmbedField("Residents", utils.HumanizedSprintf("`%d`", town.Stats.NumResidents), true),
+			EmbedField("Overclaim Status", fmt.Sprintf("Overclaimed: `%s`\nShield: %s", town.OverclaimedString(), overclaimShield), false),
 		},
 	}
 }
