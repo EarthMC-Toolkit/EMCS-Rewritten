@@ -24,15 +24,6 @@ func getToken() string {
 	return token
 }
 
-// func getAppID() string {
-// 	id, _ := os.LookupEnv("BOT_APP_ID")
-// 	if id == "" {
-// 		log.Fatal("Could not use Application ID! Make sure it's set with 'APP_ID'")
-// 	}
-
-// 	return id
-// }
-
 func main() {
 	// Start the bot with the token.
 	loadEnv()

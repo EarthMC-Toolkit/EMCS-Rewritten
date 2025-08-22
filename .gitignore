@@ -22,4 +22,4 @@ go.work
 
 .env
 bot/test.go
-database/
+db/
