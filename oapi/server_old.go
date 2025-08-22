@@ -19,6 +19,21 @@ type BalanceTotals struct {
 	//Residents	*int
 }
 
+type Nameable struct {
+	Name string
+}
+
+func GetNamesFromEndpoint(toolkitEndpoint string) ([]string, error) {
+	res, err := utils.TKAPIRequest[[]Nameable](toolkitEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	return lo.Map(res, func(e Nameable, index int) string {
+		return e.Name
+	}), nil
+}
+
 func ValidateOptType(value any) (bool, error) {
 	switch v := value.(type) {
 	case bool:
@@ -26,21 +41,6 @@ func ValidateOptType(value any) (bool, error) {
 	default:
 		return false, errors.New("input value must be of type bool")
 	}
-}
-
-type Entity struct {
-	Name string
-}
-
-func GetNamesFromEndpoint(toolkitEndpoint string) ([]string, error) {
-	res, err := utils.TKAPIRequest[[]Entity](toolkitEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.Map(res, func(e Entity, index int) string {
-		return e.Name
-	}), nil
 }
 
 // func WorldNationBalance() int {

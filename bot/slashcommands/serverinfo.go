@@ -16,7 +16,7 @@ func (cmd ServerInfoCommand) Description() string {
 }
 
 func (cmd ServerInfoCommand) Options() []*discordgo.ApplicationCommandOption {
-	return []*discordgo.ApplicationCommandOption{}
+	return nil
 }
 
 func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {

@@ -13,6 +13,10 @@ func (cmd TownlessCommand) Description() string {
 	return "Retrieve a list of online players without a town."
 }
 
+func (cmd TownlessCommand) Options() []*discordgo.ApplicationCommandOption {
+	return nil
+}
+
 func (cmd TownlessCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	// Defer the interaction immediately
 	err := DeferReply(s, i.Interaction)
