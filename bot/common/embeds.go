@@ -117,7 +117,6 @@ func CreateTownEmbed(town objs.TownInfo) *dgo.MessageEmbed {
 }
 
 func CreateNationEmbed(nation objs.NationInfo) *dgo.MessageEmbed {
-	//foundedTs := strconv.FormatFloat(sec, 'f', 0, 64)
 	foundedTs := nation.Timestamps.Registered / 1000 // Seconds
 	dateFounded := fmt.Sprintf("<t:%d:R>", foundedTs)
 

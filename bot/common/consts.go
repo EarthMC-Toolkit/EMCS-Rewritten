@@ -4,6 +4,8 @@ const DEFAULT_TOWN_BOARD = "/town set board [msg]"
 
 type Emoji = string
 
+const GOLD_INGOT_EMOJI Emoji = "<:gold_ingot:1408321088823492728>"
+
 var SHIELD_EMOJIS = struct {
 	RED   Emoji
 	GREEN Emoji
