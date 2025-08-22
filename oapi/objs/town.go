@@ -46,6 +46,12 @@ type TownRanks struct {
 	Treasurer  []Entity `json:"Treasurer,omitempty"`
 }
 
+type TownTimestamps struct {
+	Timestamps
+	JoinedNationAt *uint64 `json:"joinedNationAt"`
+	RuinedAt       *uint64 `json:"ruinedAt"`
+}
+
 type TownInfo struct {
 	Entity
 	Board       string                `json:"board"`
@@ -54,7 +60,7 @@ type TownInfo struct {
 	Mayor       Entity                `json:"mayor"`
 	Nation      *EntityNullableValues `json:"nation"`
 	Residents   []Entity              `json:"residents"`
-	Timestamps  Timestamps            `json:"timestamps"`
+	Timestamps  TownTimestamps        `json:"timestamps"`
 	Status      TownStatus            `json:"status"`
 	Stats       TownStats             `json:"stats"`
 	Coordinates TownCoords            `json:"coordinates"`

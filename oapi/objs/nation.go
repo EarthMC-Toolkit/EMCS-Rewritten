@@ -23,23 +23,27 @@ type NationRanks struct {
 	Diplomat   []Entity `json:"Diplomat,omitempty"`
 }
 
+type NationTimestamps struct {
+	Timestamps
+}
+
 type NationInfo struct {
 	Entity
-	King             Entity       `json:"king"`
-	Board            string       `json:"board"`
-	Wiki             *string      `json:"wiki"`
-	MapColourFill    string       `json:"dynmapColour"`
-	MapColourOutline string       `json:"dynmapOutline"`
-	Capital          Entity       `json:"capital"`
-	Residents        []Entity     `json:"residents"`
-	Towns            []Entity     `json:"towns"`
-	Allies           []Entity     `json:"allies"`
-	Enemies          []Entity     `json:"enemies"`
-	Sanctioned       []Entity     `json:"sanctioned"`
-	Ranks            NationRanks  `json:"ranks"`
-	Timestamps       Timestamps   `json:"timestamps"`
-	Status           NationStatus `json:"status"`
-	Stats            NationStats  `json:"stats"`
+	King             Entity           `json:"king"`
+	Board            string           `json:"board"`
+	Wiki             *string          `json:"wiki"`
+	MapColourFill    string           `json:"dynmapColour"`
+	MapColourOutline string           `json:"dynmapOutline"`
+	Capital          Entity           `json:"capital"`
+	Residents        []Entity         `json:"residents"`
+	Towns            []Entity         `json:"towns"`
+	Allies           []Entity         `json:"allies"`
+	Enemies          []Entity         `json:"enemies"`
+	Sanctioned       []Entity         `json:"sanctioned"`
+	Ranks            NationRanks      `json:"ranks"`
+	Timestamps       NationTimestamps `json:"timestamps"`
+	Status           NationStatus     `json:"status"`
+	Stats            NationStats      `json:"stats"`
 	Coordinates      struct {
 		Spawn Spawn `json:"spawn"`
 	} `json:"coordinates"`

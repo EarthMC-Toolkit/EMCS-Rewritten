@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/samber/lo"
 	lop "github.com/samber/lo/parallel"
 
 	dgo "github.com/bwmarrin/discordgo"
@@ -39,33 +40,45 @@ func CreatePlayerEmbed(resident objs.PlayerInfo) *dgo.MessageEmbed {
 		nationName = *resident.Nation.Name
 	}
 
-	resTitle := utils.CheckAlphanumeric(resident.Title)
-	resSurname := utils.CheckAlphanumeric(resident.Surname)
 	resName := resident.Name
+	alias := resName
 
-	if resTitle != "" {
-		resName = resTitle + " " + resName
+	// Add Prefix if available
+	if resTitle := utils.CheckAlphanumeric(resident.Title); resTitle != "" {
+		alias = fmt.Sprintf("%s %s", resTitle, resName)
 	}
 
-	if resSurname != "" {
-		resName += (" " + resSurname)
+	// Add Postfix if available
+	if resSurname := utils.CheckAlphanumeric(resident.Surname); resSurname != "" {
+		alias = fmt.Sprintf("%s %s", resName, resSurname)
 	}
 
-	return &dgo.MessageEmbed{
+	affiliation := lo.Ternary(townName == "No Town", "None (Townless)", fmt.Sprintf("%s (%s)", townName, nationName))
+	affiliationField := EmbedField("Affiliation", affiliation, false)
+
+	embed := &dgo.MessageEmbed{
 		Type:  dgo.EmbedTypeRich,
 		Color: 7419530,
 		Thumbnail: &dgo.MessageEmbedThumbnail{
 			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", resident.UUID),
 		},
-		Title: fmt.Sprintf("Player | `%s`", resName),
+		Title: fmt.Sprintf("Player Information | `%s`", resName),
 		Fields: []*dgo.MessageEmbedField{
-			EmbedField("Affiliation", fmt.Sprintf("%s (%s)", townName, nationName), false),
+			affiliationField,
 			EmbedField("Balance", utils.HumanizedSprintf("`%.0f`G", resident.Stats.Balance), false),
 			EmbedField("Status", status, true),
 			EmbedField("Last Online", fmt.Sprintf("<t:%d:R>", lastOnlineTs), true),
 			EmbedField("Registered", fmt.Sprintf("<t:%d:F>", registeredTs), true),
 		},
 	}
+
+	// Alias differs from name (has surname and/or title)
+	if alias != resName {
+		field := EmbedField("Alias", alias, false)
+		embed.Fields = append([]*dgo.MessageEmbedField{field}, embed.Fields...) // Prepend
+	}
+
+	return embed
 }
 
 func CreateTownEmbed(town objs.TownInfo) *dgo.MessageEmbed {

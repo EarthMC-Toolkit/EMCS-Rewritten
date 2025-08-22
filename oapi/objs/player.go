@@ -1,9 +1,9 @@
 package objs
 
 type PlayerTimestamps struct {
-	Registered uint64  `json:"registered"`
-	JoinTownAt *uint64 `json:"joinedTownAt"`
-	LastOnline *uint64 `json:"lastOnline"`
+	Timestamps
+	JoinedTownAt *uint64 `json:"joinedTownAt"`
+	LastOnline   *uint64 `json:"lastOnline"`
 }
 
 type PlayerStatus struct {

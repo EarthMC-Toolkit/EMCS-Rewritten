@@ -12,6 +12,8 @@ import (
 	"golang.org/x/text/message"
 )
 
+// Check that `str` isn't gibberish and only has a combination of letters and numbers.
+// If it is found to contain anything else, an empty string is returned.
 func CheckAlphanumeric(str string) string {
 	return lo.Ternary(ContainsNonAlphanumeric(str), "", str)
 }

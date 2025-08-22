@@ -1,9 +1,7 @@
 package objs
 
 type Timestamps struct {
-	Registered     uint64  `json:"registered"`
-	JoinedNationAt *uint64 `json:"joinedNationAt,omitempty"`
-	LastOnline     *uint64 `json:"lastOnline,omitempty"`
+	Registered uint64 `json:"registered"`
 }
 
 type Spawn struct {
