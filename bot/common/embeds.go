@@ -94,9 +94,9 @@ func CreateTownEmbed(town objs.TownInfo) *dgo.MessageEmbed {
 		desc = fmt.Sprintf("*%s*", town.Board)
 	}
 
-	overclaimShield := "`Inactive` " + SHIELD_EMOJIS.RED
+	overclaimShield := "`Inactive` " + EMOJIS.SHIELD_RED
 	if town.Status.HasOverclaimShield {
-		overclaimShield = "`Active` " + SHIELD_EMOJIS.GREEN
+		overclaimShield = "`Active` " + EMOJIS.SHIELD_GREEN
 	}
 
 	return &dgo.MessageEmbed{
