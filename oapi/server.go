@@ -1,113 +1,72 @@
 package oapi
 
-import (
-	"emcsrw/oapi/objs"
-	"emcsrw/utils"
-	"errors"
+type MoonPhaseV3 string
 
-	"github.com/samber/lo"
+const (
+	MoonPhaseFirstQuarter   MoonPhaseV3 = "FIRST_QUARTER"
+	MoonPhaseFullMoon       MoonPhaseV3 = "FULL_MOON"
+	MoonPhaseLastQuarter    MoonPhaseV3 = "LAST_QUARTER"
+	MoonPhaseNewMoon        MoonPhaseV3 = "NEW_MOON"
+	MoonPhaseWaningCrescent MoonPhaseV3 = "WANING_CRESCENT"
+	MoonPhaseWaningGibbous  MoonPhaseV3 = "WANING_GIBBOUS"
+	MoonPhaseWaxingCrescent MoonPhaseV3 = "WAXING_CRESCENT"
+	MoonPhaseWaxingGibbous  MoonPhaseV3 = "WAXING_GIBBOUS"
 )
 
-func ServerInfo() (*objs.RawServerInfoV3, error) {
-	info, err := utils.OAPIGetRequest[objs.RawServerInfoV3]("")
-	if err != nil {
-		return nil, err
-	}
-
-	return &info, nil
+type RawServerInfoV3 struct {
+	Version    string `json:"version"`
+	MoonPhase  string `json:"moonPhase"`
+	Timestamps struct {
+		NewDayTime      int64 `json:"newDayTime"`
+		ServerTimeOfDay int64 `json:"serverTimeOfDay"`
+	} `json:"timestamps"`
+	Status struct {
+		HasStorm     bool `json:"hasStorm"`
+		IsThundering bool `json:"isThundering"`
+	} `json:"status"`
+	Stats struct {
+		Time             int64 `json:"time"`
+		FullTime         int64 `json:"fullTime"`
+		MaxPlayers       int   `json:"maxPlayers"`
+		NumOnlinePlayers int   `json:"numOnlinePlayers"`
+		NumOnlineNomads  int   `json:"numOnlineNomads"`
+		NumResidents     int   `json:"numResidents"`
+		NumNomads        int   `json:"numNomads"`
+		NumTowns         int   `json:"numTowns"`
+		NumTownBlocks    int   `json:"numTownBlocks"`
+		NumNations       int   `json:"numNations"`
+		NumQuarters      int   `json:"numQuarters"`
+		NumCuboids       int   `json:"numCuboids"`
+	} `json:"stats"`
+	VoteParty struct {
+		Target       int `json:"target"`
+		NumRemaining int `json:"numRemaining"`
+	} `json:"voteParty"`
 }
 
-type BalanceOpts struct {
-	Towns     any
-	Nations   any
-	Residents any
-}
-
-type BalanceTotals struct {
-	//Towns		*int
-	Nations *int
-	//Residents	*int
-}
-
-func ValidateOptType(value any) (bool, error) {
-	switch v := value.(type) {
-	case bool:
-		return v, nil
-	default:
-		return false, errors.New("input value must be of type bool")
-	}
-}
-
-type Entity struct {
-	Name string
-}
-
-func GetNamesFromEndpoint(toolkitEndpoint string) ([]string, error) {
-	res, err := utils.TKAPIRequest[[]Entity](toolkitEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	return lo.Map(res, func(e Entity, index int) string {
-		return e.Name
-	}), nil
-}
-
-// func WorldNationBalance() int {
-// 	names, _ := GetNamesFromEndpoint("/nations")
-// 	arr, _ := ConcurrentNations(names)
-
-// 	return WorldBalance(arr, "/nations")
+// type ServerWorld struct {
+// 	Storming   bool  `json:"hasStorm"`
+// 	Thundering bool  `json:"isThundering"`
+// 	Time       int16 `json:"time"`
+// 	FullTime   int32 `json:"fullTime"`
 // }
 
-// func WorldBalanceTotals(opts *BalanceOpts) (*BalanceTotals, error) {
-// 	var err error
-// 	var (
-// 		includeTowns     bool
-// 		includeNations   bool
-// 		includeResidents bool
-// 	)
-
-// 	var (
-// 		worldTownBal     *int
-// 		worldNationBal   *int
-// 		worldResidentBal *int
-// 	)
-
-// 	includeTowns, err = ValidateOptType(opts.Towns)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	includeNations, err = ValidateOptType(opts.Nations)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	includeResidents, err = ValidateOptType(opts.Nations)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &BalanceTotals{
-// 		Towns:   worldTownBal,
-// 		Nations: worldNationBal,
-// 	}, nil
+// type ServerPlayers struct {
+// 	Max            int16 `json:"maxPlayers"`
+// 	OnlineTownless int16 `json:"numOnlineTownless"`
+// 	OnlinePlayers  int16 `json:"numOnlinePlayers"`
 // }
 
-type Stats interface {
-	Bal() float32
-}
+// type ServerStats struct {
+// 	Residents  int32 `json:"numResidents"`
+// 	Townless   int32 `json:"numTownless"`
+// 	Towns      int16 `json:"numTowns"`
+// 	Nations    int16 `json:"numNations"`
+// 	TownBlocks int32 `json:"numTownBlocks"`
+// }
 
-func WorldBalance[T Stats](arr []T, endpoint string) int {
-	balances := lo.Map(arr, func(t T, _ int) int {
-		return int(t.Bal())
-	})
-
-	return CalcTotal(balances)
-}
-
-func CalcTotal(balances []int) int {
-	reducer := func(agg int, item int, _ int) int { return agg + item }
-	return lo.Reduce(balances, reducer, 0)
-}
+// type ServerInfo struct {
+// 	World   ServerWorld
+// 	Players ServerPlayers
+// 	Stats   ServerStats
+// }

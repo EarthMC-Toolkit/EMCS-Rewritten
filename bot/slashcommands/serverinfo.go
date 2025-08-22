@@ -20,7 +20,7 @@ func (cmd ServerInfoCommand) Options() []*discordgo.ApplicationCommandOption {
 }
 
 func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	serverInfo, err := oapi.ServerInfo()
+	serverInfo, err := oapi.QueryServer()
 	if err != nil {
 		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,

@@ -2,9 +2,9 @@ package common
 
 import (
 	"emcsrw/oapi"
-	"emcsrw/oapi/objs"
 	"emcsrw/utils"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/samber/lo"
@@ -21,7 +21,7 @@ func EmbedField(name string, value string, inline bool) *dgo.MessageEmbedField {
 	}
 }
 
-func CreatePlayerEmbed(resident objs.PlayerInfo) *dgo.MessageEmbed {
+func CreatePlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 	registeredTs := resident.Timestamps.Registered / 1000  // Seconds
 	lastOnlineTs := *resident.Timestamps.LastOnline / 1000 // Seconds
 
@@ -81,7 +81,7 @@ func CreatePlayerEmbed(resident objs.PlayerInfo) *dgo.MessageEmbed {
 	return embed
 }
 
-func CreateTownEmbed(town objs.TownInfo) *dgo.MessageEmbed {
+func CreateTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 	foundedTs := town.Timestamps.Registered / 1000 // Seconds
 
 	townTitle := fmt.Sprintf("Town Information | %s", town.Name)
@@ -116,7 +116,7 @@ func CreateTownEmbed(town objs.TownInfo) *dgo.MessageEmbed {
 	}
 }
 
-func CreateNationEmbed(nation objs.NationInfo) *dgo.MessageEmbed {
+func CreateNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 	foundedTs := nation.Timestamps.Registered / 1000 // Seconds
 	dateFounded := fmt.Sprintf("<t:%d:R>", foundedTs)
 
@@ -140,6 +140,16 @@ func CreateNationEmbed(nation objs.NationInfo) *dgo.MessageEmbed {
 	}
 }
 
+func CreateTownlessPageEmbed(names []string) (*dgo.MessageEmbed, error) {
+	embed := &dgo.MessageEmbed{
+		Type:        dgo.EmbedTypeRich,
+		Title:       fmt.Sprintf("[%d] Townless Players", len(names)),
+		Description: fmt.Sprintf("```%s```", strings.Join(names, "\n")),
+	}
+
+	return embed, nil
+}
+
 func CreateStaffEmbed() (*dgo.MessageEmbed, error) {
 	var onlineStaff []string
 	var errors []error
@@ -148,7 +158,7 @@ func CreateStaffEmbed() (*dgo.MessageEmbed, error) {
 	players, err := oapi.QueryPlayers(ids...)
 
 	// Calls specified func for every slice element in parallel.
-	lop.ForEach(players, func(p objs.PlayerInfo, _ int) {
+	lop.ForEach(players, func(p oapi.PlayerInfo, _ int) {
 		if err != nil {
 			fmt.Println(err)
 			errors = append(errors, err)
@@ -164,6 +174,8 @@ func CreateStaffEmbed() (*dgo.MessageEmbed, error) {
 	if len(errors) > 0 {
 		return nil, errors[0]
 	}
+
+	slices.Sort(onlineStaff)
 
 	content := "None"
 	if len(onlineStaff) > 0 {

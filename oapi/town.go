@@ -1,4 +1,4 @@
-package objs
+package oapi
 
 import (
 	"slices"
@@ -68,6 +68,7 @@ type TownInfo struct {
 	Trusted     []Entity              `json:"trusted"`
 	Outlaws     []Entity              `json:"outlaws"`
 	Perms       Perms                 `json:"perms"`
+	Quarters    []Entity              `json:"quarters"`
 }
 
 func (t TownInfo) Bal() float32 {

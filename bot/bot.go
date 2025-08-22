@@ -24,37 +24,26 @@ var guildIntents = dgo.IntentGuilds | dgo.IntentGuildMessages | dgo.IntentGuildM
 
 func Run(botToken string) {
 	// Initialize a Discord Session
-	discord, err := dgo.New("Bot " + botToken)
+	s, err := dgo.New("Bot " + botToken)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Register handler funcs for gateway events.
 	// https://discord.com/developers/docs/events/gateway-events#receive-events
-	discord.AddHandler(events.OnInteractionCreate)
-	discord.AddHandler(events.OnReady)
+	s.AddHandler(events.OnInteractionCreate)
+	s.AddHandler(events.OnReady)
 
-	discord.Identify.Intents = dgo.IntentMessageContent | guildIntents
+	s.Identify.Intents = dgo.IntentMessageContent | guildIntents
 
 	// Open WS connection to Discord
-	err = discord.Open()
+	err = s.Open()
 	if err != nil {
 		log.Fatal("Cannot open Discord session: ", err)
 	}
+	defer s.Close()
 
-	// Register commands
-	cmds := slashcommands.All()
-	cmdsAmt := len(cmds)
-
-	fmt.Println("Registered " + strconv.Itoa(cmdsAmt) + " slash commands...")
-	for _, cmd := range slashcommands.All() {
-		_, err := discord.ApplicationCommandCreate(discord.State.User.ID, testGuildID, slashcommands.ToApplicationCommand(cmd))
-		if err != nil {
-			fmt.Printf("Cannot create '%v' command: %v\n", cmd.Name(), err)
-		}
-	}
-
-	defer discord.Close()
+	RegisterSlashCommands(s)
 
 	// Run until code is terminated
 	fmt.Printf("Bot running...\n")
@@ -65,6 +54,20 @@ func Run(botToken string) {
 	sig := <-c
 
 	fmt.Printf("\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
+}
+
+func RegisterSlashCommands(s *dgo.Session) {
+	// Register commands
+	slashCmds := slashcommands.All()
+	cmdsAmt := len(slashCmds)
+
+	fmt.Println("Registering " + strconv.Itoa(cmdsAmt) + " slash commands.")
+	for _, cmd := range slashCmds {
+		_, err := s.ApplicationCommandCreate(s.State.User.ID, testGuildID, slashcommands.ToApplicationCommand(cmd))
+		if err != nil {
+			fmt.Printf("Cannot create '%v' command: %v\n", cmd.Name(), err)
+		}
+	}
 }
 
 // func SendComplex(discord *dgo.Session, message *dgo.MessageCreate, embed *dgo.MessageSend) {

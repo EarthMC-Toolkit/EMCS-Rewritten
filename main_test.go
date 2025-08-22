@@ -1,17 +1,11 @@
 package main
 
 import (
+	"emcsrw/mapi"
 	"emcsrw/oapi"
 	"emcsrw/utils"
 	"testing"
 )
-
-func TestServerInfo(t *testing.T) {
-	//t.SkipNow()
-
-	info, err := oapi.ServerInfo()
-	logVal(t, info, err)
-}
 
 func TestTown(t *testing.T) {
 	//t.SkipNow()
@@ -31,6 +25,13 @@ func TestResident(t *testing.T) {
 	//t.SkipNow()
 
 	res, err := oapi.QueryPlayers("Fruitloopins")
+	logVal(t, res, err)
+}
+
+func TestGetOnlinePlayers(t *testing.T) {
+	//t.SkipNow()
+
+	res, err := mapi.GetOnlinePlayers()
 	logVal(t, res, err)
 }
 

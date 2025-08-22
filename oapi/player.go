@@ -1,4 +1,4 @@
-package objs
+package oapi
 
 type PlayerTimestamps struct {
 	Timestamps

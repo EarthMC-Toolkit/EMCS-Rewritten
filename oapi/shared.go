@@ -1,4 +1,4 @@
-package objs
+package oapi
 
 type Timestamps struct {
 	Registered uint64 `json:"registered"`
