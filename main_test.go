@@ -5,6 +5,7 @@ import (
 	"emcsrw/oapi"
 	"emcsrw/utils"
 	"testing"
+	"time"
 
 	lop "github.com/samber/lo/parallel"
 )
@@ -40,17 +41,35 @@ func TestGetOnlinePlayers(t *testing.T) {
 func TestQueryPlayersConcurrent(t *testing.T) {
 	//t.SkipNow()
 
-	ops, err := mapi.GetOnlinePlayers()
+	// ops, err := mapi.GetOnlinePlayers()
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// names := lop.Map(ops, func(op mapi.OnlinePlayer, _ int) string {
+	// 	return op.Name
+	// })
+
+	nations, err := oapi.QueryNations("Venice")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("error getting nation: Venice", err)
 	}
 
-	opNames := lop.Map(ops, func(op mapi.OnlinePlayer, _ int) string {
-		return op.Name
+	names := lop.Map(nations[0].Residents, func(p oapi.Entity, _ int) string {
+		return p.Name
 	})
 
-	res, _ := oapi.QueryPlayersConcurrent(opNames, 100)
-	logVal(t, res, nil)
+	start := time.Now()
+	players, errs, reqAmt := oapi.QueryPlayersConcurrent(names, oapi.PLAYERS_QUERY_LIMIT)
+	elapsed := time.Since(start)
+
+	if len(errs) > 0 {
+		t.Fatalf("Encountered %d errors during requests:", len(errs))
+	}
+
+	//logVal(t, players, nil)
+
+	t.Logf("QueryPlayersConcurrent took %s. Sent %d requests containing %d players", elapsed, reqAmt, len(players))
 }
 
 // func TestConcurrentResidents(t *testing.T) {
@@ -94,7 +113,11 @@ func TestAlphanumeric(t *testing.T) {
 // 	logVal(t, names, err)
 // }
 
-func logVal(t *testing.T, v any, err error) {
+type Loggable interface {
+	Log(args ...any)
+}
+
+func logVal(t Loggable, v any, err error) {
 	if err != nil {
 		t.Log(err)
 	} else {

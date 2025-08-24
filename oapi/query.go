@@ -30,7 +30,7 @@ func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
 //	players, err := QueryPlayersConcurrent(names, 50)
 //
 // A [sync.WaitGroup] will catch the error that may occur during any of the requests and append it to the resulting error slice.
-func QueryPlayersConcurrent(identifiers []string, chunkSize uint8) ([]PlayerInfo, []error) {
+func QueryPlayersConcurrent(identifiers []string, chunkSize uint8) ([]PlayerInfo, []error, int) {
 	if chunkSize == 0 {
 		chunkSize = PLAYERS_QUERY_LIMIT
 	}
@@ -70,7 +70,7 @@ func QueryPlayersConcurrent(identifiers []string, chunkSize uint8) ([]PlayerInfo
 		errs = append(errs, err)
 	}
 
-	return all, errs
+	return all, errs, chunkLen
 }
 
 func QueryTowns(identifiers ...string) ([]TownInfo, error) {

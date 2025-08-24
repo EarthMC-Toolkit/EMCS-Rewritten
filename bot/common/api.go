@@ -26,7 +26,7 @@ func QueryOnlinePlayers(chunkSize uint8) ([]oapi.PlayerInfo, error) {
 		return op.Name
 	})
 
-	players, _ := oapi.QueryPlayersConcurrent(opNames, 100)
+	players, _, _ := oapi.QueryPlayersConcurrent(opNames, 100)
 
 	return players, nil
 }
