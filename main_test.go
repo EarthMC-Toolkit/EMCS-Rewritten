@@ -5,23 +5,25 @@ import (
 	"emcsrw/oapi"
 	"emcsrw/utils"
 	"testing"
+
+	lop "github.com/samber/lo/parallel"
 )
 
-func TestTown(t *testing.T) {
+func TestQueryTown(t *testing.T) {
 	//t.SkipNow()
 
 	town, err := oapi.QueryTowns("Venice")
 	logVal(t, town, err)
 }
 
-func TestNation(t *testing.T) {
+func TestQueryNation(t *testing.T) {
 	//t.SkipNow()
 
 	nation, err := oapi.QueryNations("Venice")
 	logVal(t, nation, err)
 }
 
-func TestResident(t *testing.T) {
+func TestQueryPlayer(t *testing.T) {
 	//t.SkipNow()
 
 	res, err := oapi.QueryPlayers("Fruitloopins")
@@ -33,6 +35,22 @@ func TestGetOnlinePlayers(t *testing.T) {
 
 	res, err := mapi.GetOnlinePlayers()
 	logVal(t, res, err)
+}
+
+func TestQueryPlayersConcurrent(t *testing.T) {
+	//t.SkipNow()
+
+	ops, err := mapi.GetOnlinePlayers()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	opNames := lop.Map(ops, func(op mapi.OnlinePlayer, _ int) string {
+		return op.Name
+	})
+
+	res, _ := oapi.QueryPlayersConcurrent(opNames, 100)
+	logVal(t, res, nil)
 }
 
 // func TestConcurrentResidents(t *testing.T) {
