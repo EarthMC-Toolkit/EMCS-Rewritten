@@ -48,12 +48,14 @@ func QueryPlayersConcurrent(identifiers []string, sleepAmt uint32) ([]PlayerInfo
 	wg := sync.WaitGroup{}
 	wg.Add(chunkLen)
 
-	// Ticker to avoid rate limit.
-	ticker := time.NewTicker(time.Duration(sleepAmt * uint32(time.Millisecond)))
-	defer ticker.Stop()
+	var ticker *time.Ticker
+	if sleepAmt > 0 {
+		ticker = time.NewTicker(time.Duration(sleepAmt * uint32(time.Millisecond))) // Ticker to avoid rate limit.
+		defer ticker.Stop()
+	}
 
 	for i, chunk := range chunks {
-		if i > 0 { // Don't add delay before first req.
+		if ticker != nil && i > 0 { // Don't add delay before first req.
 			<-ticker.C
 		}
 
@@ -81,7 +83,18 @@ func QueryPlayersConcurrent(identifiers []string, sleepAmt uint32) ([]PlayerInfo
 		errs = append(errs, err)
 	}
 
-	return all, errs, chunkLen
+	// Deduplicate by UUID, keeping the last occurrence
+	playerMap := make(map[string]PlayerInfo)
+	for _, p := range all {
+		playerMap[p.UUID] = p
+	}
+
+	unique := make([]PlayerInfo, 0, len(playerMap))
+	for _, p := range playerMap {
+		unique = append(unique, p)
+	}
+
+	return unique, errs, chunkLen
 }
 
 func QueryTowns(identifiers ...string) ([]TownInfo, error) {

@@ -5,6 +5,7 @@ import (
 	"emcsrw/api/mapi"
 	"emcsrw/api/oapi"
 	"emcsrw/utils"
+	"slices"
 	"testing"
 	"time"
 
@@ -32,10 +33,10 @@ func TestQueryPlayer(t *testing.T) {
 	logVal(t, len(players), err)
 }
 
-func TestQueryPlayerList(t *testing.T) {
+func TestQueryPlayersList(t *testing.T) {
 	//t.SkipNow()
 
-	plist, _ := oapi.QueryPlayerList()
+	plist, _ := oapi.QueryPlayersList()
 	names := lop.Map(plist, func(p oapi.Entity, _ int) string {
 		return p.Name
 	})
@@ -46,7 +47,16 @@ func TestQueryPlayerList(t *testing.T) {
 
 	t.Logf("Sent %d requests for %d players. Took %s", reqAmt, len(players), elapsed)
 
-	//logVal(t, len(players), err)
+	opNames := []string{}
+	lop.ForEach(players, func(p oapi.PlayerInfo, _ int) {
+		if p.Status.IsOnline {
+			opNames = append(opNames, p.Name)
+		}
+	})
+
+	slices.Sort(opNames)
+
+	t.Logf("Total Online: %d\nNames: %v", len(opNames), opNames)
 }
 
 func TestGetOnlinePlayers(t *testing.T) {
@@ -66,23 +76,23 @@ func TestQueryOnlinePlayers(t *testing.T) {
 func TestQueryPlayersConcurrent(t *testing.T) {
 	//t.SkipNow()
 
-	ops, err := mapi.GetOnlinePlayers()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	names := lop.Map(ops, func(op mapi.OnlinePlayer, _ int) string {
-		return op.Name
-	})
-
-	// nations, err := oapi.QueryNations("Venice")
+	// ops, err := mapi.GetOnlinePlayers()
 	// if err != nil {
-	// 	t.Fatal("error getting nation: Venice", err)
+	// 	t.Fatal(err)
 	// }
 
-	// names := lop.Map(nations[0].Residents, func(p oapi.Entity, _ int) string {
-	// 	return p.Name
+	// names := lop.Map(ops, func(op mapi.OnlinePlayer, _ int) string {
+	// 	return op.Name
 	// })
+
+	nations, err := oapi.QueryNations("Venice")
+	if err != nil {
+		t.Fatal("error getting nation: Venice", err)
+	}
+
+	names := lop.Map(nations[0].Residents, func(p oapi.Entity, _ int) string {
+		return p.Name
+	})
 
 	start := time.Now()
 	players, errs, reqAmt := oapi.QueryPlayersConcurrent(names, 0)
