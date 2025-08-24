@@ -13,22 +13,22 @@ import (
 func TestQueryTown(t *testing.T) {
 	//t.SkipNow()
 
-	town, err := oapi.QueryTowns("Venice")
-	logVal(t, town, err)
+	towns, err := oapi.QueryTowns("Venice")
+	logVal(t, len(towns), err)
 }
 
 func TestQueryNation(t *testing.T) {
 	//t.SkipNow()
 
-	nation, err := oapi.QueryNations("Venice")
-	logVal(t, nation, err)
+	nations, err := oapi.QueryNations("Venice")
+	logVal(t, len(nations), err)
 }
 
 func TestQueryPlayer(t *testing.T) {
 	//t.SkipNow()
 
-	res, err := oapi.QueryPlayers("Fruitloopins")
-	logVal(t, res, err)
+	players, err := oapi.QueryPlayers("Fruitloopins")
+	logVal(t, len(players), err)
 }
 
 func TestGetOnlinePlayers(t *testing.T) {
@@ -72,13 +72,6 @@ func TestQueryPlayersConcurrent(t *testing.T) {
 	t.Logf("QueryPlayersConcurrent took %s. Sent %d requests containing %d players", elapsed, reqAmt, len(players))
 }
 
-// func TestConcurrentResidents(t *testing.T) {
-// 	//t.SkipNow()
-
-// 	residents, _ := oapi.ConcurrentResidents([]string{"Owen3H", "Fruitloopins"})
-// 	logVal(t, residents, nil)
-// }
-
 func TestAlphanumeric(t *testing.T) {
 	var actual bool
 
@@ -105,12 +98,6 @@ func TestAlphanumeric(t *testing.T) {
 // 	})
 
 // 	logVal(t, worldBals, nil)
-// }
-
-// func TestResidentNames(t *testing.T) {
-// 	names, err := oapi.AllNames("/residents")
-// 	//residents, _ := oapi.ConcurrentResidents(names)
-// 	logVal(t, names, err)
 // }
 
 type Loggable interface {
