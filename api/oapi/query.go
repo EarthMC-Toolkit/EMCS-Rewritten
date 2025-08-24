@@ -3,6 +3,7 @@ package oapi
 import (
 	"emcsrw/utils"
 	"sync"
+	"time"
 
 	"github.com/samber/lo"
 )
@@ -18,6 +19,10 @@ func NewNamesQuery(names ...string) NamesQuery {
 	return NamesQuery{Query: names}
 }
 
+func QueryPlayersList() ([]Entity, error) {
+	return utils.OAPIGetRequest[[]Entity]("/players")
+}
+
 func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
 	return utils.OAPIPostRequest[[]PlayerInfo]("/players", NewNamesQuery(identifiers...))
 }
@@ -27,12 +32,12 @@ func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
 //
 // If you only need to send one request, use QueryPlayers instead.
 //
-// The following example sends X amount of requests as necessary until each req has max 50 names in the query.
+// The following example sends X amount of requests as necessary and sleeps for 200ms between each request.
 //
-//	players, err := QueryPlayersConcurrent(names, 50)
+//	players, err := QueryPlayersConcurrent(names, 200)
 //
 // A [sync.WaitGroup] will catch the error that may occur during any of the requests and append it to the resulting error slice.
-func QueryPlayersConcurrent(identifiers ...string) ([]PlayerInfo, []error, int) {
+func QueryPlayersConcurrent(identifiers []string, sleepAmt uint32) ([]PlayerInfo, []error, int) {
 	chunks := lo.Chunk(identifiers, int(PLAYERS_QUERY_LIMIT))
 	chunkLen := len(chunks)
 
@@ -43,12 +48,20 @@ func QueryPlayersConcurrent(identifiers ...string) ([]PlayerInfo, []error, int) 
 	wg := sync.WaitGroup{}
 	wg.Add(chunkLen)
 
-	for _, chunk := range chunks {
+	// Ticker to avoid rate limit.
+	ticker := time.NewTicker(time.Duration(sleepAmt * uint32(time.Millisecond)))
+	defer ticker.Stop()
+
+	for i, chunk := range chunks {
+		if i > 0 { // Don't add delay before first req.
+			<-ticker.C
+		}
+
 		// Execute for each chunk. Queries OAPI and sends result to result channel.
-		go func(c []string) {
+		go func(arr []string) {
 			defer wg.Done()
 
-			players, err := QueryPlayers(c...)
+			players, err := QueryPlayers(arr...)
 			if err != nil {
 				errCh <- err
 				return

@@ -6,31 +6,58 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type Page struct {
-	Embed *discordgo.MessageEmbed
-}
+const fiveMin = 5 * time.Minute
 
 type Paginator struct {
 	Session     *discordgo.Session
 	ChannelID   string
 	UserID      string
-	Pages       []Page
 	CurrentPage int
 	Timeout     time.Duration
 	MessageID   string
 	stopChan    chan struct{}
 }
 
-const fiveMin = 5 * time.Minute
+type Page struct {
+	Embed *discordgo.MessageEmbed
+}
 
-func NewPaginator(s *discordgo.Session, channelID, userID string, pages []Page) *Paginator {
-	return &Paginator{
-		Session:     s,
-		ChannelID:   channelID,
-		UserID:      userID,
-		Pages:       pages,
-		CurrentPage: 0,
-		Timeout:     fiveMin,
-		stopChan:    make(chan struct{}),
+type CachedPaginator struct {
+	*Paginator
+	Pages []Page
+}
+
+func NewCachedPaginator(s *discordgo.Session, channelID, userID string, pages []Page) *CachedPaginator {
+	return &CachedPaginator{
+		Pages: pages,
+		Paginator: &Paginator{
+			Session:     s,
+			ChannelID:   channelID,
+			UserID:      userID,
+			CurrentPage: 0,
+			Timeout:     fiveMin,
+			stopChan:    make(chan struct{}),
+		},
+	}
+}
+
+type PageFunc func(page int) *discordgo.MessageEmbed
+
+type LazyPaginator struct {
+	*Paginator
+	PageFunc PageFunc
+}
+
+func NewLazyPaginator(s *discordgo.Session, channelID, userID string, pageFunc PageFunc) *LazyPaginator {
+	return &LazyPaginator{
+		PageFunc: pageFunc,
+		Paginator: &Paginator{
+			Session:     s,
+			ChannelID:   channelID,
+			UserID:      userID,
+			CurrentPage: 0,
+			Timeout:     fiveMin,
+			stopChan:    make(chan struct{}),
+		},
 	}
 }

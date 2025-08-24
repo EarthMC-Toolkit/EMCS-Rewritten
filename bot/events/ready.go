@@ -7,5 +7,5 @@ import (
 )
 
 func OnReady(s *discordgo.Session, r *discordgo.Ready) {
-	fmt.Println("Logged in as", r.User.Username)
+	fmt.Println("Logged in as", s.State.User.Username)
 }

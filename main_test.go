@@ -32,6 +32,23 @@ func TestQueryPlayer(t *testing.T) {
 	logVal(t, len(players), err)
 }
 
+func TestQueryPlayerList(t *testing.T) {
+	//t.SkipNow()
+
+	plist, _ := oapi.QueryPlayerList()
+	names := lop.Map(plist, func(p oapi.Entity, _ int) string {
+		return p.Name
+	})
+
+	start := time.Now()
+	players, _, reqAmt := oapi.QueryPlayersConcurrent(names, 340)
+	elapsed := time.Since(start)
+
+	t.Logf("Sent %d requests for %d players. Took %s", reqAmt, len(players), elapsed)
+
+	//logVal(t, len(players), err)
+}
+
 func TestGetOnlinePlayers(t *testing.T) {
 	//t.SkipNow()
 
@@ -68,7 +85,7 @@ func TestQueryPlayersConcurrent(t *testing.T) {
 	// })
 
 	start := time.Now()
-	players, errs, reqAmt := oapi.QueryPlayersConcurrent(names...)
+	players, errs, reqAmt := oapi.QueryPlayersConcurrent(names, 0)
 	elapsed := time.Since(start)
 
 	if len(errs) > 0 {

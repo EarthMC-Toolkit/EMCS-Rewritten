@@ -29,6 +29,6 @@ func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
 		return op.Name
 	})
 
-	players, _, _ := oapi.QueryPlayersConcurrent(opNames...)
+	players, _, _ := oapi.QueryPlayersConcurrent(opNames, 0)
 	return players, nil
 }

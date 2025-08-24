@@ -29,10 +29,11 @@ func Run(botToken string) {
 		log.Fatal(err)
 	}
 
-	// Register handler funcs for gateway events.
+	// Register funcs that handle specific gateway events.
 	// https://discord.com/developers/docs/events/gateway-events#receive-events
-	s.AddHandler(events.OnInteractionCreate)
 	s.AddHandler(events.OnReady)
+	s.AddHandler(events.OnInteractionCreateApplicationCommand) // Slash cmds
+	s.AddHandler(events.OnInteractionCreateMessageComponent)   // Buttons, rows, select menus
 
 	s.Identify.Intents = dgo.IntentMessageContent | guildIntents
 
@@ -69,10 +70,3 @@ func RegisterSlashCommands(s *dgo.Session) {
 		}
 	}
 }
-
-// func SendComplex(discord *dgo.Session, message *dgo.MessageCreate, embed *dgo.MessageSend) {
-// 	_, err := discord.ChannelMessageSendComplex(message.ChannelID, embed)
-// 	if err != nil {
-// 		log.Error(err)
-// 	}
-// }
