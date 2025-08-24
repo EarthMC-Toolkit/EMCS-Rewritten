@@ -1,3 +1,10 @@
+// =========================================================================
+// THIS PACKAGE CONTAINS COMMON API UTILITIES USED THROUGHOUT THE BOT
+// THAT MAY NOT FIT IN EITHER THE MAPI OR OAPI PACKAGES.
+//
+// IT SERVES AS A BRIDGE BETWEEN THE TWO WHERE NECESSARY.
+// =========================================================================
+
 package api
 
 import (
@@ -6,13 +13,6 @@ import (
 
 	lop "github.com/samber/lo/parallel"
 )
-
-// =========================================================================
-// THIS FILE CONTAINS COMMON API UTILITIES USED THROUGHOUT THE BOT THAT
-// MAY NOT FIT IN EITHER THE MAPI OR OAPI PACKAGES.
-//
-// IT SERVES AS A BRIDGE BETWEEN THE TWO WHERE NECESSARY.
-// =========================================================================
 
 // Uses the map API to get online players, chunks them into slices with max len of [oapi.PLAYERS_QUERY_LIMIT],
 // and then queries the official API for their full player info.

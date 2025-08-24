@@ -3,6 +3,7 @@ package slashcommands
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
+	"emcsrw/bot/discordutil"
 	"fmt"
 	"strings"
 
@@ -28,8 +29,7 @@ func (cmd NationCommand) Options() []*discordgo.ApplicationCommandOption {
 }
 
 func (cmd NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	// Defer the interaction immediately
-	err := DeferReply(s, i.Interaction)
+	err := discordutil.DeferReply(s, i.Interaction)
 	if err != nil {
 		return err
 	}
@@ -43,13 +43,13 @@ func SendSingleNation(s *discordgo.Session, i *discordgo.Interaction) (*discordg
 
 	nations, err := oapi.QueryNations(strings.ToLower(nationNameArg))
 	if err != nil {
-		return FollowUpContent(s, i, "An error occurred retrieving nation information :(")
+		return discordutil.FollowUpContent(s, i, "An error occurred retrieving nation information :(")
 	}
 
 	if len(nations) == 0 {
-		return FollowUpContent(s, i, fmt.Sprintf("No nations retrieved. Nation `%s` does not seem to exist.", nationNameArg))
+		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No nations retrieved. Nation `%s` does not seem to exist.", nationNameArg))
 	}
 
 	embed := common.CreateNationEmbed(nations[0])
-	return FollowUpEmbeds(s, i, embed)
+	return discordutil.FollowUpEmbeds(s, i, embed)
 }

@@ -3,6 +3,7 @@ package slashcommands
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
+	"emcsrw/bot/discordutil"
 	"fmt"
 	"strings"
 
@@ -29,7 +30,7 @@ func (cmd TownCommand) Options() []*discordgo.ApplicationCommandOption {
 
 func (cmd TownCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	// Defer the interaction immediately
-	err := DeferReply(s, i.Interaction)
+	err := discordutil.DeferReply(s, i.Interaction)
 	if err != nil {
 		return err
 	}
@@ -43,13 +44,13 @@ func SendSingleTown(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.
 
 	towns, err := oapi.QueryTowns(strings.ToLower(townNameArg))
 	if err != nil {
-		return FollowUpContent(s, i, "An error occurred retrieving town information :(")
+		return discordutil.FollowUpContent(s, i, "An error occurred retrieving town information :(")
 	}
 
 	if len(towns) == 0 {
-		return FollowUpContent(s, i, fmt.Sprintf("No towns retrieved. Town `%s` does not seem to exist.", townNameArg))
+		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No towns retrieved. Town `%s` does not seem to exist.", townNameArg))
 	}
 
 	embed := common.CreateTownEmbed(towns[0])
-	return FollowUpEmbeds(s, i, embed)
+	return discordutil.FollowUpEmbeds(s, i, embed)
 }

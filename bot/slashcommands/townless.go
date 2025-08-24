@@ -2,6 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/mapi"
+	"emcsrw/bot/discordutil"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -18,20 +19,19 @@ func (cmd TownlessCommand) Options() []*discordgo.ApplicationCommandOption {
 }
 
 func (cmd TownlessCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	// Defer the interaction immediately
-	err := DeferReply(s, i.Interaction)
+	err := discordutil.DeferReply(s, i.Interaction)
 	if err != nil {
 		return err
 	}
 
 	ops, err := mapi.GetOnlinePlayers()
 	if err != nil {
-		_, err := FollowUpContent(s, i.Interaction, "An error occurred during the map request or response parsing :(")
+		_, err := discordutil.FollowUpContent(s, i.Interaction, "An error occurred during the map request or response parsing :(")
 		return err
 	}
 
 	if len(ops) == 0 {
-		_, err := FollowUpContent(s, i.Interaction, "An error occurred. Players array is empty (server may be partially down).")
+		_, err := discordutil.FollowUpContent(s, i.Interaction, "An error occurred. Players array is empty (server may be partially down).")
 		return err
 	}
 

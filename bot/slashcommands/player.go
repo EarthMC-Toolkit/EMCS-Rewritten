@@ -3,6 +3,7 @@ package slashcommands
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
+	"emcsrw/bot/discordutil"
 	"fmt"
 	"strings"
 
@@ -28,8 +29,7 @@ func (cmd PlayerCommand) Options() []*discordgo.ApplicationCommandOption {
 }
 
 func (cmd PlayerCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	// Defer the interaction immediately
-	err := DeferReply(s, i.Interaction)
+	err := discordutil.DeferReply(s, i.Interaction)
 	if err != nil {
 		return err
 	}
@@ -43,13 +43,13 @@ func SendSinglePlayer(s *discordgo.Session, i *discordgo.Interaction) (*discordg
 
 	players, err := oapi.QueryPlayers(strings.ToLower(playerNameArg))
 	if err != nil {
-		return FollowUpContent(s, i, "An error occurred retrieving player information :(")
+		return discordutil.FollowUpContent(s, i, "An error occurred retrieving player information :(")
 	}
 
 	if len(players) == 0 {
-		return FollowUpContent(s, i, fmt.Sprintf("No players retrieved. Player `%s` does not seem to exist.", playerNameArg))
+		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No players retrieved. Player `%s` does not seem to exist.", playerNameArg))
 	}
 
 	embed := common.CreatePlayerEmbed(players[0])
-	return FollowUpEmbeds(s, i, embed)
+	return discordutil.FollowUpEmbeds(s, i, embed)
 }
