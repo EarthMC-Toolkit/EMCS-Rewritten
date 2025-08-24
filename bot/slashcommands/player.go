@@ -1,8 +1,8 @@
 package slashcommands
 
 import (
+	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
-	"emcsrw/oapi"
 	"fmt"
 	"strings"
 

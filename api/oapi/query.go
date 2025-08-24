@@ -7,7 +7,8 @@ import (
 	"github.com/samber/lo"
 )
 
-const PLAYERS_QUERY_LIMIT = 100
+const RATE_LIMIT = 180          // 180 req/min
+const PLAYERS_QUERY_LIMIT = 100 // 100 identifiers in single req/query
 
 type NamesQuery struct {
 	Query []string `json:"query"`
@@ -21,21 +22,18 @@ func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
 	return utils.OAPIPostRequest[[]PlayerInfo]("/players", NewNamesQuery(identifiers...))
 }
 
-// Queries players in chunks concurrently where each chunk (request) query may only have up to chunkSize identifiers.
+// Queries players in chunks concurrently where each chunk (request) query may only have up to PLAYERS_QUERY_LIMIT identifiers.
 // If there are leftover identifiers, they will be queried in a final request.
 //
+// If you only need to send one request, use QueryPlayers instead.
+//
 // The following example sends X amount of requests as necessary until each req has max 50 names in the query.
-// If the chunkSize is 0, it defaults to the query limit for the players endpoint specified by PLAYERS_QUERY_LIMIT.
 //
 //	players, err := QueryPlayersConcurrent(names, 50)
 //
 // A [sync.WaitGroup] will catch the error that may occur during any of the requests and append it to the resulting error slice.
-func QueryPlayersConcurrent(identifiers []string, chunkSize uint8) ([]PlayerInfo, []error, int) {
-	if chunkSize == 0 {
-		chunkSize = PLAYERS_QUERY_LIMIT
-	}
-
-	chunks := lo.Chunk(identifiers, int(chunkSize))
+func QueryPlayersConcurrent(identifiers ...string) ([]PlayerInfo, []error, int) {
+	chunks := lo.Chunk(identifiers, int(PLAYERS_QUERY_LIMIT))
 	chunkLen := len(chunks)
 
 	all := make([]PlayerInfo, 0, len(identifiers))

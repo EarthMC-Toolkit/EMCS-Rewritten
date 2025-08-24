@@ -1,8 +1,9 @@
 package main
 
 import (
-	"emcsrw/mapi"
-	"emcsrw/oapi"
+	"emcsrw/api"
+	"emcsrw/api/mapi"
+	"emcsrw/api/oapi"
 	"emcsrw/utils"
 	"testing"
 	"time"
@@ -38,29 +39,36 @@ func TestGetOnlinePlayers(t *testing.T) {
 	logVal(t, res, err)
 }
 
+func TestQueryOnlinePlayers(t *testing.T) {
+	//t.SkipNow()
+
+	players, err := api.QueryOnlinePlayers()
+	logVal(t, len(players), err)
+}
+
 func TestQueryPlayersConcurrent(t *testing.T) {
 	//t.SkipNow()
 
-	// ops, err := mapi.GetOnlinePlayers()
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
-	// names := lop.Map(ops, func(op mapi.OnlinePlayer, _ int) string {
-	// 	return op.Name
-	// })
-
-	nations, err := oapi.QueryNations("Venice")
+	ops, err := mapi.GetOnlinePlayers()
 	if err != nil {
-		t.Fatal("error getting nation: Venice", err)
+		t.Fatal(err)
 	}
 
-	names := lop.Map(nations[0].Residents, func(p oapi.Entity, _ int) string {
-		return p.Name
+	names := lop.Map(ops, func(op mapi.OnlinePlayer, _ int) string {
+		return op.Name
 	})
 
+	// nations, err := oapi.QueryNations("Venice")
+	// if err != nil {
+	// 	t.Fatal("error getting nation: Venice", err)
+	// }
+
+	// names := lop.Map(nations[0].Residents, func(p oapi.Entity, _ int) string {
+	// 	return p.Name
+	// })
+
 	start := time.Now()
-	players, errs, reqAmt := oapi.QueryPlayersConcurrent(names, oapi.PLAYERS_QUERY_LIMIT)
+	players, errs, reqAmt := oapi.QueryPlayersConcurrent(names...)
 	elapsed := time.Since(start)
 
 	if len(errs) > 0 {

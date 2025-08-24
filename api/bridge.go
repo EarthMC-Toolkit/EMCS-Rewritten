@@ -1,22 +1,25 @@
-package common
+package api
 
 import (
-	"emcsrw/mapi"
-	"emcsrw/oapi"
+	"emcsrw/api/mapi"
+	"emcsrw/api/oapi"
 
 	lop "github.com/samber/lo/parallel"
 )
 
+// =========================================================================
 // THIS FILE CONTAINS COMMON API UTILITIES USED THROUGHOUT THE BOT THAT
 // MAY NOT FIT IN EITHER THE MAPI OR OAPI PACKAGES.
 //
 // IT SERVES AS A BRIDGE BETWEEN THE TWO WHERE NECESSARY.
+// =========================================================================
 
-// Uses the map api to get online players, chunks them into slices with max len of chunkSize, and queries official api for their full player info.
+// Uses the map API to get online players, chunks them into slices with max len of [oapi.PLAYERS_QUERY_LIMIT],
+// and then queries the official API for their full player info.
 //
 // Returns back the same list of online players as a single slice.
 // Essentially, this acts as a conversion between []mapi.OnlinePlayer and []oapi.PlayerInfo.
-func QueryOnlinePlayers(chunkSize uint8) ([]oapi.PlayerInfo, error) {
+func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
 	ops, err := mapi.GetOnlinePlayers()
 	if err != nil {
 		return nil, err
@@ -26,7 +29,6 @@ func QueryOnlinePlayers(chunkSize uint8) ([]oapi.PlayerInfo, error) {
 		return op.Name
 	})
 
-	players, _, _ := oapi.QueryPlayersConcurrent(opNames, 100)
-
+	players, _, _ := oapi.QueryPlayersConcurrent(opNames...)
 	return players, nil
 }

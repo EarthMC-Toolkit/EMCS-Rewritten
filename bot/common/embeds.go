@@ -1,7 +1,7 @@
 package common
 
 import (
-	"emcsrw/oapi"
+	"emcsrw/api/oapi"
 	"emcsrw/utils"
 	"fmt"
 	"slices"

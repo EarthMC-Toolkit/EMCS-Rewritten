@@ -1,7 +1,7 @@
 package slashcommands
 
 import (
-	"emcsrw/oapi"
+	"emcsrw/api/oapi"
 	"emcsrw/utils"
 	"fmt"
 

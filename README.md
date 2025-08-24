@@ -19,9 +19,8 @@ You can also fork this project and use it as a base if you so desire, but the GP
 ## Project Structure
 > `main.go` -> Project entrypoint. Responsible for loading `env` and passing bot token to `bot.Run`.\
 > `bot` -> Where the bot runs from. Contains all bot logic such as discord init, commands and events.\
-> `db` -> Where permanent data such as alliances are intended to be stored. Git ignored
-
-> `mapi` -> For interacting with the map API. (Currently Squaremap)\
-> `oapi` -> For interacting with the Official API.
-
-> `utils` -> Provides small funcs generally re-used a lot like helpers for strings, slices, http etc.
+> `utils` -> Provides small funcs generally re-used a lot like helpers for strings, slices, http etc.\
+> `db` -> Where permanent data such as alliances are intended to be stored. Git ignored.\
+> `api` -> Contains packages relating to APIs. Contains funcs that interact with both where necessary.
+    >- `mapi` -> For interacting with the map API. (Currently Squaremap)
+    >- `oapi` -> For interacting with the Official API.

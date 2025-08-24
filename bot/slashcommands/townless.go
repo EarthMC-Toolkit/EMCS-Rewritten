@@ -1,7 +1,7 @@
 package slashcommands
 
 import (
-	"emcsrw/mapi"
+	"emcsrw/api/mapi"
 
 	"github.com/bwmarrin/discordgo"
 )
