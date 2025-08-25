@@ -60,7 +60,7 @@ func CreatePlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 		Title: fmt.Sprintf("Player Information | `%s`", resName),
 		Fields: []*dgo.MessageEmbedField{
 			affiliationField,
-			EmbedField("Balance", utils.HumanizedSprintf("`%.0f`G", resident.Stats.Balance), false),
+			EmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", resident.Stats.Balance, EMOJIS.GOLD_INGOT), false),
 			EmbedField("Status", status, true),
 			EmbedField("Last Online", fmt.Sprintf("<t:%d:R>", lastOnlineTs), true),
 			EmbedField("Registered", fmt.Sprintf("<t:%d:F>", registeredTs), true),
