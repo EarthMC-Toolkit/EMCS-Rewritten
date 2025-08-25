@@ -2,6 +2,7 @@ package common
 
 import (
 	"emcsrw/api/oapi"
+	"emcsrw/bot/discordutil"
 	"emcsrw/utils"
 	"fmt"
 	"slices"
@@ -13,13 +14,7 @@ import (
 	dgo "github.com/bwmarrin/discordgo"
 )
 
-func EmbedField(name string, value string, inline bool) *dgo.MessageEmbedField {
-	return &dgo.MessageEmbedField{
-		Name:   name,
-		Value:  value,
-		Inline: inline,
-	}
-}
+var EmbedField = discordutil.EmbedField
 
 func CreatePlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 	registeredTs := resident.Timestamps.Registered / 1000  // Seconds

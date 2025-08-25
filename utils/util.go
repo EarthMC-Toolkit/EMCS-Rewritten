@@ -38,10 +38,6 @@ func HexToInt(hex string) int {
 	return int(output)
 }
 
-// func FormatTimestamp(unixTs float64) string {
-// 	return strconv.FormatFloat(unixTs/1000, 'f', 0, 64)
-// }
-
 // Attempts to get the username from an interaction.
 //
 // Regular `User` is only filled for a DM, so this func uses guild-specific `Member.User` otherwise.
