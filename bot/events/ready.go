@@ -18,7 +18,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 	fmt.Println()
 
-	scheduleTask(func() { fmt.Println("hi") }, 5*time.Second)
+	//scheduleTask(func() { fmt.Printf("\nhi\n") }, 10*time.Second)
 }
 
 func RegisterSlashCommands(s *discordgo.Session) {
