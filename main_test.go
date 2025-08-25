@@ -36,7 +36,7 @@ func TestQueryPlayer(t *testing.T) {
 func TestQueryPlayersList(t *testing.T) {
 	//t.SkipNow()
 
-	plist, _ := oapi.QueryPlayersList()
+	plist, _ := oapi.QueryList(oapi.PLAYERS_ENDPOINT)
 	names := lop.Map(plist, func(p oapi.Entity, _ int) string {
 		return p.Name
 	})

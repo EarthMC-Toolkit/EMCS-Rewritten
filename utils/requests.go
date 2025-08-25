@@ -9,27 +9,12 @@ import (
 	"time"
 )
 
-const OFFICIAL_API_URL = "https://api.earthmc.net/v3/aurora"
 const TOOLKIT_API_URL = "https://emctoolkit.vercel.app/api/aurora"
 
 var client = http.Client{Timeout: 8 * time.Second}
 
 func TKAPIRequest[T any](endpoint string) (T, error) {
 	return JsonGetRequest[T](TOOLKIT_API_URL + endpoint)
-}
-
-func OAPIGetRequest[T any](endpoint string) (T, error) {
-	url := OFFICIAL_API_URL + endpoint
-	res, err := JsonGetRequest[T](url)
-
-	return res, err
-}
-
-func OAPIPostRequest[T any](endpoint string, body any) (T, error) {
-	url := OFFICIAL_API_URL + endpoint
-	res, err := JsonPostRequest[T](url, body)
-
-	return res, err
 }
 
 // func OAPIConcurrentRequest[T any](endpoints []string, skipCache bool) ([]T, []error) {

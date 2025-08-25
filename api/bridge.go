@@ -10,6 +10,7 @@ package api
 import (
 	"emcsrw/api/mapi"
 	"emcsrw/api/oapi"
+	"fmt"
 
 	lop "github.com/samber/lo/parallel"
 )
@@ -31,4 +32,18 @@ func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
 
 	players, _, _ := oapi.QueryPlayersConcurrent(opNames, 0)
 	return players, nil
+}
+
+func QueryAllTowns(save bool) ([]oapi.TownInfo, error) {
+	_, err := oapi.QueryList(oapi.TOWNS_ENDPOINT)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query all towns, could not get initial list\n%v", err)
+	}
+
+	if save {
+		// write to db/towns.json
+
+	}
+
+	return nil, nil
 }

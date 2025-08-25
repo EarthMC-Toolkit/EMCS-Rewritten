@@ -73,7 +73,7 @@ type ServerVoteParty struct {
 	NumRemaining int `json:"numRemaining"`
 }
 
-type RawServerInfoV3 struct {
+type ServerInfo struct {
 	Version    string           `json:"version"`
 	MoonPhase  MoonPhaseV3      `json:"moonPhase"`
 	Timestamps ServerTimestamps `json:"timestamps"`

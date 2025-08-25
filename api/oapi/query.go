@@ -8,6 +8,8 @@ import (
 	"github.com/samber/lo"
 )
 
+const BASE_URL = "https://api.earthmc.net/v3/aurora"
+
 const RATE_LIMIT = 180          // 180 req/min
 const PLAYERS_QUERY_LIMIT = 100 // 100 identifiers in single req/query
 
@@ -15,16 +17,45 @@ type NamesQuery struct {
 	Query []string `json:"query"`
 }
 
+type Endpoint = string
+
+const (
+	SERVER_ENDPOINT  Endpoint = ""
+	TOWNS_ENDPOINT   Endpoint = "/towns"
+	NATIONS_ENDPOINT Endpoint = "/nations"
+	PLAYERS_ENDPOINT Endpoint = "/players"
+)
+
 func NewNamesQuery(names ...string) NamesQuery {
 	return NamesQuery{Query: names}
 }
 
-func QueryPlayersList() ([]Entity, error) {
-	return utils.OAPIGetRequest[[]Entity]("/players")
+// Queries the Official API with a GET request to the server endpoint.
+func QueryServer() (ServerInfo, error) {
+	return GetRequest[ServerInfo]("")
 }
 
+// Queries the Official API with a GET request to the given endpoint.
+// According to docs, this should return a list of entities (name, uuid) relating to the type of said endpoint.
+//
+// Do not call this function if you do not expect an [Entity] slice back. For example QueryList(oapi.SERVER_ENDPOINT) will fail.
+func QueryList(endpoint Endpoint) ([]Entity, error) {
+	return GetRequest[[]Entity](endpoint)
+}
+
+// Queries the Official API with a POST request providing all valid town identifier (name/uuid) strings to the body "query" key.
+func QueryTowns(identifiers ...string) ([]TownInfo, error) {
+	return PostRequest[[]TownInfo](TOWNS_ENDPOINT, NewNamesQuery(identifiers...))
+}
+
+// Queries the Official API with a POST request providing all valid nation identifier (name/uuid) strings to the body "query" key.
+func QueryNations(identifiers ...string) ([]NationInfo, error) {
+	return PostRequest[[]NationInfo](NATIONS_ENDPOINT, NewNamesQuery(identifiers...))
+}
+
+// Queries the Official API with a POST request providing all valid player identifier (name/uuid) strings to the body "query" key.
 func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
-	return utils.OAPIPostRequest[[]PlayerInfo]("/players", NewNamesQuery(identifiers...))
+	return PostRequest[[]PlayerInfo](PLAYERS_ENDPOINT, NewNamesQuery(identifiers...))
 }
 
 // Queries players in chunks concurrently where each chunk (request) query may only have up to PLAYERS_QUERY_LIMIT identifiers.
@@ -97,14 +128,16 @@ func QueryPlayersConcurrent(identifiers []string, sleepAmt uint32) ([]PlayerInfo
 	return unique, errs, chunkLen
 }
 
-func QueryTowns(identifiers ...string) ([]TownInfo, error) {
-	return utils.OAPIPostRequest[[]TownInfo]("/towns", NewNamesQuery(identifiers...))
+func GetRequest[T any](endpoint string) (T, error) {
+	url := BASE_URL + endpoint
+	res, err := utils.JsonGetRequest[T](url)
+
+	return res, err
 }
 
-func QueryNations(identifiers ...string) ([]NationInfo, error) {
-	return utils.OAPIPostRequest[[]NationInfo]("/nations", NewNamesQuery(identifiers...))
-}
+func PostRequest[T any](endpoint string, body any) (T, error) {
+	url := BASE_URL + endpoint
+	res, err := utils.JsonPostRequest[T](url, body)
 
-func QueryServer() (RawServerInfoV3, error) {
-	return utils.OAPIGetRequest[RawServerInfoV3]("")
+	return res, err
 }
