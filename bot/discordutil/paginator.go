@@ -18,38 +18,15 @@ type Paginator struct {
 	stopChan    chan struct{}
 }
 
-type Page struct {
-	Embed *discordgo.MessageEmbed
-}
+type InteractionPageFunc func(page int, data *discordgo.InteractionResponseData)
 
-type CachedPaginator struct {
+type InteractionPaginator struct {
 	*Paginator
-	Pages []Page
+	PageFunc InteractionPageFunc
 }
 
-func NewCachedPaginator(s *discordgo.Session, channelID, userID string, pages []Page) *CachedPaginator {
-	return &CachedPaginator{
-		Pages: pages,
-		Paginator: &Paginator{
-			Session:     s,
-			ChannelID:   channelID,
-			UserID:      userID,
-			CurrentPage: 0,
-			Timeout:     fiveMin,
-			stopChan:    make(chan struct{}),
-		},
-	}
-}
-
-type PageFunc func(page int) *discordgo.MessageEmbed
-
-type LazyPaginator struct {
-	*Paginator
-	PageFunc PageFunc
-}
-
-func NewLazyPaginator(s *discordgo.Session, channelID, userID string, pageFunc PageFunc) *LazyPaginator {
-	return &LazyPaginator{
+func NewInteractionPaginator(s *discordgo.Session, channelID, userID string, pageFunc InteractionPageFunc) *InteractionPaginator {
+	return &InteractionPaginator{
 		PageFunc: pageFunc,
 		Paginator: &Paginator{
 			Session:     s,

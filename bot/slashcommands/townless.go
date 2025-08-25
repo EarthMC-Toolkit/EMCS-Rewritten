@@ -36,13 +36,11 @@ func (cmd TownlessCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	// Create a paginator
-	//CreatePaginator(s, i.Interaction)
+	// paginator := discordutil.NewInteractionPaginator(s, i.ChannelID, i.Member.User.ID, func(page int, data *discordgo.InteractionResponseData) {
+
+	// })
 
 	return nil
-}
-
-func CreatePaginator(s *discordgo.Session, i *discordgo.Interaction, switchPage func(page int) error) {
-
 }
 
 // func SwitchTownlessPage() {

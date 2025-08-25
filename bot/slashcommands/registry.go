@@ -50,5 +50,5 @@ func init() {
 	Register(TownCommand{})
 	Register(NationCommand{})
 	Register(PlayerCommand{})
-	Register(TownlessCommand{})
+	//Register(TownlessCommand{})
 }
