@@ -21,23 +21,23 @@ const (
 )
 
 type Endpoint = string
-type PostQuery struct {
+type PostBody struct {
 	Query []string `json:"query"`
 }
 
-type PostQueryTemplate[T any] struct {
-	*PostQuery
+type PostBodyTemplate[T any] struct {
+	*PostBody
 	Template T
 }
 
-func NewPostQuery(identifiers ...string) *PostQuery {
-	return &PostQuery{Query: identifiers}
+func NewPostQuery(identifiers ...string) *PostBody {
+	return &PostBody{Query: identifiers}
 }
 
-func NewPostQueryTemplate[T any](identifiers []string, template T) *PostQueryTemplate[T] {
-	return &PostQueryTemplate[T]{
+func NewPostQueryTemplate[T any](identifiers []string, template T) *PostBodyTemplate[T] {
+	return &PostBodyTemplate[T]{
 		Template: template,
-		PostQuery: &PostQuery{
+		PostBody: &PostBody{
 			Query: identifiers,
 		},
 	}
