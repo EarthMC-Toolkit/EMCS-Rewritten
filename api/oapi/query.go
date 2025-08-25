@@ -13,12 +13,6 @@ const BASE_URL = "https://api.earthmc.net/v3/aurora"
 const RATE_LIMIT = 180          // 180 req/min
 const PLAYERS_QUERY_LIMIT = 100 // 100 identifiers in single req/query
 
-type NamesQuery struct {
-	Query []string `json:"query"`
-}
-
-type Endpoint = string
-
 const (
 	SERVER_ENDPOINT  Endpoint = ""
 	TOWNS_ENDPOINT   Endpoint = "/towns"
@@ -26,8 +20,27 @@ const (
 	PLAYERS_ENDPOINT Endpoint = "/players"
 )
 
-func NewNamesQuery(names ...string) NamesQuery {
-	return NamesQuery{Query: names}
+type Endpoint = string
+type PostQuery struct {
+	Query []string `json:"query"`
+}
+
+type PostQueryTemplate[T any] struct {
+	*PostQuery
+	Template T
+}
+
+func NewPostQuery(identifiers ...string) *PostQuery {
+	return &PostQuery{Query: identifiers}
+}
+
+func NewPostQueryTemplate[T any](identifiers []string, template T) *PostQueryTemplate[T] {
+	return &PostQueryTemplate[T]{
+		Template: template,
+		PostQuery: &PostQuery{
+			Query: identifiers,
+		},
+	}
 }
 
 // Queries the Official API with a GET request to the server endpoint.
@@ -45,17 +58,17 @@ func QueryList(endpoint Endpoint) ([]Entity, error) {
 
 // Queries the Official API with a POST request providing all valid town identifier (name/uuid) strings to the body "query" key.
 func QueryTowns(identifiers ...string) ([]TownInfo, error) {
-	return PostRequest[[]TownInfo](TOWNS_ENDPOINT, NewNamesQuery(identifiers...))
+	return PostRequest[[]TownInfo](TOWNS_ENDPOINT, NewPostQuery(identifiers...))
 }
 
 // Queries the Official API with a POST request providing all valid nation identifier (name/uuid) strings to the body "query" key.
 func QueryNations(identifiers ...string) ([]NationInfo, error) {
-	return PostRequest[[]NationInfo](NATIONS_ENDPOINT, NewNamesQuery(identifiers...))
+	return PostRequest[[]NationInfo](NATIONS_ENDPOINT, NewPostQuery(identifiers...))
 }
 
 // Queries the Official API with a POST request providing all valid player identifier (name/uuid) strings to the body "query" key.
 func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
-	return PostRequest[[]PlayerInfo](PLAYERS_ENDPOINT, NewNamesQuery(identifiers...))
+	return PostRequest[[]PlayerInfo](PLAYERS_ENDPOINT, NewPostQuery(identifiers...))
 }
 
 // Queries players in chunks concurrently where each chunk (request) query may only have up to PLAYERS_QUERY_LIMIT identifiers.
