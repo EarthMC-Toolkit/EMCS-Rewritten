@@ -14,10 +14,14 @@ const RATE_LIMIT = 180          // 180 req/min
 const PLAYERS_QUERY_LIMIT = 100 // 100 identifiers in single req/query
 
 const (
-	SERVER_ENDPOINT  Endpoint = ""
-	TOWNS_ENDPOINT   Endpoint = "/towns"
-	NATIONS_ENDPOINT Endpoint = "/nations"
-	PLAYERS_ENDPOINT Endpoint = "/players"
+	SERVER_ENDPOINT         Endpoint = ""
+	MYSTERY_MASTER_ENDPOINT Endpoint = "/mm"
+	TOWNS_ENDPOINT          Endpoint = "/towns"
+	NATIONS_ENDPOINT        Endpoint = "/nations"
+	PLAYERS_ENDPOINT        Endpoint = "/players"
+	LOCATION_ENDPOINT       Endpoint = "/location"
+	DISCORD_ENDPOINT        Endpoint = "/discord"
+	QUARTERS_ENDPOINT       Endpoint = "/quarters"
 )
 
 type Endpoint = string
@@ -46,6 +50,10 @@ func NewPostQueryTemplate[T any](identifiers []string, template T) *PostBodyTemp
 // Queries the Official API with a GET request to the server endpoint.
 func QueryServer() (ServerInfo, error) {
 	return GetRequest[ServerInfo]("")
+}
+
+func QueryMysteryMaster() ([]MysteryMaster, error) {
+	return GetRequest[[]MysteryMaster](MYSTERY_MASTER_ENDPOINT)
 }
 
 // Queries the Official API with a GET request to the given endpoint.

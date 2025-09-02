@@ -2,7 +2,8 @@
 // THIS PACKAGE CONTAINS COMMON API UTILITIES USED THROUGHOUT THE BOT
 // THAT MAY NOT FIT IN EITHER THE MAPI OR OAPI PACKAGES.
 //
-// IT SERVES AS A BRIDGE BETWEEN THE TWO WHERE NECESSARY.
+// SOME FUNCS MAY COMMUNICATE WITH BOTH PACKAGES WHERE NEEDED, SO THIS
+// PACKAGE WILL ACT AS A WIRE TO AVOID IMPORT CYCLES IN THOSE CASES.
 // =========================================================================
 
 package api
@@ -40,8 +41,15 @@ func QueryAllTowns(save bool) ([]oapi.TownInfo, error) {
 		return nil, fmt.Errorf("failed to query all towns, could not get initial list\n%v", err)
 	}
 
+	// identifiers := lop.Map(tlist, func(e oapi.Entity, _ int) string {
+	// 	return e.UUID
+	// })
+
+	// query towns concurrently
+	
+
+	// write to ~cwd/db/towns.json
 	if save {
-		// write to db/towns.json
 
 	}
 

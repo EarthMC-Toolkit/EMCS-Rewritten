@@ -16,21 +16,21 @@ func TestQueryTown(t *testing.T) {
 	//t.SkipNow()
 
 	towns, err := oapi.QueryTowns("Venice")
-	logVal(t, len(towns), err)
+	logVal(t, towns[0], err)
 }
 
 func TestQueryNation(t *testing.T) {
 	//t.SkipNow()
 
 	nations, err := oapi.QueryNations("Venice")
-	logVal(t, len(nations), err)
+	logVal(t, nations[0], err)
 }
 
 func TestQueryPlayer(t *testing.T) {
 	//t.SkipNow()
 
 	players, err := oapi.QueryPlayers("Fruitloopins")
-	logVal(t, len(players), err)
+	logVal(t, players[0], err)
 }
 
 func TestQueryPlayersList(t *testing.T) {
@@ -105,6 +105,17 @@ func TestQueryPlayersConcurrent(t *testing.T) {
 	//logVal(t, players, nil)
 
 	t.Logf("QueryPlayersConcurrent took %s. Sent %d requests containing %d players", elapsed, reqAmt, len(players))
+}
+
+func TestQueryAllTowns(t *testing.T) {
+	//t.SkipNow()
+
+	towns, err := api.QueryAllTowns(false)
+	if err != nil {
+		t.Fatal("error querying all towns", err)
+	}
+
+	logVal(t, len(towns), err)
 }
 
 func TestAlphanumeric(t *testing.T) {

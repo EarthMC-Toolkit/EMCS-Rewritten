@@ -29,7 +29,6 @@ func (cmd TownCommand) Options() []*discordgo.ApplicationCommandOption {
 }
 
 func (cmd TownCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	// Defer the interaction immediately
 	err := discordutil.DeferReply(s, i.Interaction)
 	if err != nil {
 		return err

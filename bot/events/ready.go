@@ -18,7 +18,8 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 	fmt.Println()
 
-	//scheduleTask(func() { fmt.Printf("\nhi\n") }, 10*time.Second)
+	//api.QueryAndSaveTowns()
+	//scheduleTask(api.QueryAndSaveTowns(), 30*time.Second)
 }
 
 func RegisterSlashCommands(s *discordgo.Session) {
