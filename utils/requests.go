@@ -73,37 +73,40 @@ func JsonGetRequest[T any](url string) (T, error) {
 	return data, err
 }
 
-func PostRequest(url string, contentType string, body io.Reader) ([]byte, error) {
-	response, err := client.Post(url, contentType, body)
+func PostRequest(url string, contentType string, reqBody io.Reader) ([]byte, error) {
+	response, err := client.Post(url, contentType, reqBody)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error during POST request:\n%v", err)
 	}
 
-	return ReadResponseBody(response, url)
+	resBody, err := ReadResponseBody(response, url)
+	if err != nil {
+		err = fmt.Errorf("error during POST request:\n%v", err)
+	}
+
+	return resBody, err
 }
 
 func GetRequest(url string) ([]byte, error) {
 	response, err := client.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error during GET request:\n%v", err)
 	}
 
-	return ReadResponseBody(response, url)
+	resBody, err := ReadResponseBody(response, url)
+	if err != nil {
+		err = fmt.Errorf("error during GET request:\n%v", err)
+	}
+
+	return resBody, err
 }
 
+// Reads the response body all at once with [io.ReadAll], but with an additional check for client/server error codes so that we know the body
+// is safe to read. If the status code is <400 (successful, informational or redirectional). If the caller is not expecting an empty body,
+// they should handle it appropriately with a length check as no error will be output in such a case.
 func ReadResponseBody(response *http.Response, url string) ([]byte, error) {
-	if response.StatusCode == http.StatusNotFound {
-		errStr := fmt.Errorf("404 Not Found: %s", url)
-		fmt.Println(errStr)
-
-		return nil, errStr
-	}
-
-	if response.StatusCode == http.StatusGatewayTimeout {
-		errStr := fmt.Errorf("504 Gateway Timeout: %s", url)
-		fmt.Println(errStr)
-
-		return nil, errStr
+	if response.StatusCode >= 400 {
+		return nil, fmt.Errorf("failed to read response body. %s", response.Status)
 	}
 
 	defer response.Body.Close()
