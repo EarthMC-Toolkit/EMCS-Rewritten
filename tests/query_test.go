@@ -1,4 +1,4 @@
-package main
+package tests
 
 import (
 	"emcsrw/api"
@@ -12,25 +12,43 @@ import (
 	lop "github.com/samber/lo/parallel"
 )
 
+func TestGetOnlinePlayers(t *testing.T) {
+	//t.SkipNow()
+
+	res, err := mapi.GetOnlinePlayers()
+	utils.CustomLog(t, res, err)
+}
+
+func TestQueryAllTowns(t *testing.T) {
+	//t.SkipNow()
+
+	towns, err := api.QueryAllTowns(false)
+	if err != nil {
+		t.Fatal("error querying all towns", err)
+	}
+
+	utils.CustomLog(t, len(towns), err)
+}
+
 func TestQueryTown(t *testing.T) {
 	//t.SkipNow()
 
 	towns, err := oapi.QueryTowns("Venice")
-	logVal(t, towns[0], err)
+	utils.CustomLog(t, towns[0], err)
 }
 
 func TestQueryNation(t *testing.T) {
 	//t.SkipNow()
 
 	nations, err := oapi.QueryNations("Venice")
-	logVal(t, nations[0], err)
+	utils.CustomLog(t, nations[0], err)
 }
 
 func TestQueryPlayer(t *testing.T) {
 	//t.SkipNow()
 
 	players, err := oapi.QueryPlayers("Fruitloopins")
-	logVal(t, players[0], err)
+	utils.CustomLog(t, players[0], err)
 }
 
 func TestQueryPlayersList(t *testing.T) {
@@ -59,18 +77,11 @@ func TestQueryPlayersList(t *testing.T) {
 	t.Logf("Total Online: %d\nNames: %v", len(opNames), opNames)
 }
 
-func TestGetOnlinePlayers(t *testing.T) {
-	//t.SkipNow()
-
-	res, err := mapi.GetOnlinePlayers()
-	logVal(t, res, err)
-}
-
 func TestQueryOnlinePlayers(t *testing.T) {
 	//t.SkipNow()
 
 	players, err := api.QueryOnlinePlayers()
-	logVal(t, len(players), err)
+	utils.CustomLog(t, len(players), err)
 }
 
 func TestQueryPlayersConcurrent(t *testing.T) {
@@ -102,58 +113,5 @@ func TestQueryPlayersConcurrent(t *testing.T) {
 		t.Fatalf("Encountered %d errors during requests:", len(errs))
 	}
 
-	//logVal(t, players, nil)
-
 	t.Logf("QueryPlayersConcurrent took %s. Sent %d requests containing %d players", elapsed, reqAmt, len(players))
-}
-
-func TestQueryAllTowns(t *testing.T) {
-	//t.SkipNow()
-
-	towns, err := api.QueryAllTowns(false)
-	if err != nil {
-		t.Fatal("error querying all towns", err)
-	}
-
-	logVal(t, len(towns), err)
-}
-
-func TestAlphanumeric(t *testing.T) {
-	var actual bool
-
-	actual = utils.ContainsNonAlphanumeric("<blue> owen")
-	if actual != true {
-		t.Errorf("Expected '%v' but got '%v'", true, actual)
-	}
-
-	actual = utils.ContainsNonAlphanumeric("owen3h")
-	if actual != false {
-		t.Errorf("Expected '%v' but got '%v'", false, actual)
-	}
-}
-
-// func TestWorldNationBal(t *testing.T) {
-// 	bal := oapi.WorldNationBalance()
-// 	logVal(t, bal, nil)
-// }
-
-// func TestWorldBalances(t *testing.T) {
-// 	worldBals, _ := oapi.WorldBalanceTotals(&oapi.BalanceOpts{
-// 		Towns: true,
-// 		Nations: true,
-// 	})
-
-// 	logVal(t, worldBals, nil)
-// }
-
-type Loggable interface {
-	Log(args ...any)
-}
-
-func logVal(t Loggable, v any, err error) {
-	if err != nil {
-		t.Log(err)
-	} else {
-		t.Log(utils.Prettify(v))
-	}
 }

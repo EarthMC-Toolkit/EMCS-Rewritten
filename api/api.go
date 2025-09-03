@@ -46,7 +46,6 @@ func QueryAllTowns(save bool) ([]oapi.TownInfo, error) {
 	// })
 
 	// query towns concurrently
-	
 
 	// write to ~cwd/db/towns.json
 	if save {

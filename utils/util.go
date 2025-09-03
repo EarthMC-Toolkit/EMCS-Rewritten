@@ -5,12 +5,25 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
 	"github.com/sanity-io/litter"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
+
+type Loggable interface {
+	Log(args ...any)
+}
+
+// Attempts to prettify and log the value if the given error is nil, otherwise the error is logged normally.
+func CustomLog(l Loggable, value any, err error) {
+	if err == nil {
+		l.Log(Prettify(value))
+		return
+	}
+
+	l.Log(err)
+}
 
 // Check that `str` isn't gibberish and only has a combination of letters and numbers.
 // If it is found to contain anything else, an empty string is returned.
@@ -36,17 +49,6 @@ func HexToInt(hex string) int {
 	output, _ := strconv.ParseUint(str, 16, 32)
 
 	return int(output)
-}
-
-// Attempts to get the username from an interaction.
-//
-// Regular `User` is only filled for a DM, so this func uses guild-specific `Member.User` otherwise.
-func UserFromInteraction(i *discordgo.Interaction) *discordgo.User {
-	if i.User != nil {
-		return i.User
-	}
-
-	return i.Member.User
 }
 
 // dis printer is bri ish
