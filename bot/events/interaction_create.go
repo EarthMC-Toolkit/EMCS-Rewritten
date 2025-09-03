@@ -1,8 +1,8 @@
 package events
 
 import (
+	"emcsrw/bot/discordutil"
 	"emcsrw/bot/slashcommands"
-	"emcsrw/utils"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -13,7 +13,7 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 		return
 	}
 
-	author := utils.UserFromInteraction(i.Interaction)
+	author := discordutil.UserFromInteraction(i.Interaction)
 
 	cmdName := i.ApplicationCommandData().Name
 	cmd := slashcommands.All()[cmdName]

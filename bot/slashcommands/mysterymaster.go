@@ -33,7 +33,10 @@ func SendMysteryMasterList(s *discordgo.Session, i *discordgo.Interaction) (*dis
 		return discordutil.FollowUpContent(s, i, "No mystery masters seem to exist? The API may be broken.")
 	}
 
-	// do paginator
+	// create paginator
+	discordutil.NewInteractionPaginator(s, i, func(page int, data *discordgo.InteractionResponseData) {
+
+	})
 
 	return nil, nil
 }
