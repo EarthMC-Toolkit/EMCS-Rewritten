@@ -9,13 +9,13 @@ import (
 	"time"
 )
 
-const TOOLKIT_API_URL = "https://emctoolkit.vercel.app/api/aurora"
+//const TOOLKIT_API_URL = "https://emctoolkit.vercel.app/api/aurora"
 
 var client = http.Client{Timeout: 8 * time.Second}
 
-func TKAPIRequest[T any](endpoint string) (T, error) {
-	return JsonGetRequest[T](TOOLKIT_API_URL + endpoint)
-}
+// func TKAPIRequest[T any](endpoint string) (T, error) {
+// 	return JsonGetRequest[T](TOOLKIT_API_URL + endpoint)
+// }
 
 // func OAPIConcurrentRequest[T any](endpoints []string, skipCache bool) ([]T, []error) {
 // 	var results []T
