@@ -21,7 +21,7 @@ import (
 //
 // Returns back the same list of online players as a single slice.
 // Essentially, this acts as a conversion between []mapi.OnlinePlayer and []oapi.PlayerInfo.
-func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
+func QueryAllOnlinePlayers() ([]oapi.PlayerInfo, error) {
 	ops, err := mapi.GetOnlinePlayers()
 	if err != nil {
 		return nil, err
@@ -31,26 +31,27 @@ func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
 		return op.Name
 	})
 
-	players, _, _ := oapi.QueryPlayersConcurrent(opNames, 0)
+	players, _, _ := oapi.QueryConcurrent(opNames, 0, oapi.QueryPlayers)
 	return players, nil
 }
 
 func QueryAllTowns(save bool) ([]oapi.TownInfo, error) {
-	_, err := oapi.QueryList(oapi.TOWNS_ENDPOINT)
+	tlist, err := oapi.QueryList(oapi.TOWNS_ENDPOINT)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query all towns, could not get initial list\n%v", err)
 	}
 
-	// identifiers := lop.Map(tlist, func(e oapi.Entity, _ int) string {
-	// 	return e.UUID
-	// })
+	identifiers := lop.Map(tlist, func(e oapi.Entity, _ int) string {
+		return e.UUID
+	})
 
 	// query towns concurrently
+	towns, _, _ := oapi.QueryConcurrent(identifiers, 50, oapi.QueryTowns)
 
-	// write to ~cwd/db/towns.json
 	if save {
+		// write to ~cwd/db/towns.json
 
 	}
 
-	return nil, nil
+	return towns, nil
 }

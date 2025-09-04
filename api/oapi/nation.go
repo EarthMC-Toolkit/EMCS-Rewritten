@@ -49,6 +49,10 @@ type NationInfo struct {
 	} `json:"coordinates"`
 }
 
+func (n NationInfo) GetUUID() string {
+	return n.UUID
+}
+
 func (n NationInfo) Bal() float32 {
 	return n.Stats.Balance
 }

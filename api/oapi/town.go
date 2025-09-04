@@ -56,7 +56,7 @@ type TownInfo struct {
 	Entity
 	Board       string                `json:"board"`
 	Founder     string                `json:"founder"`
-	Wiki        string                `json:"wiki"`
+	Wiki        *string               `json:"wiki"`
 	Mayor       Entity                `json:"mayor"`
 	Nation      *EntityNullableValues `json:"nation"`
 	Residents   []Entity              `json:"residents"`
@@ -69,6 +69,10 @@ type TownInfo struct {
 	Outlaws     []Entity              `json:"outlaws"`
 	Perms       Perms                 `json:"perms"`
 	Quarters    []Entity              `json:"quarters"`
+}
+
+func (t TownInfo) GetUUID() string {
+	return t.UUID
 }
 
 func (t TownInfo) Bal() float32 {

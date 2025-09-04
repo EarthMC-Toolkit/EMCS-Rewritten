@@ -15,7 +15,7 @@ type Loggable interface {
 	Log(args ...any)
 }
 
-// Attempts to prettify and log the value if the given error is nil, otherwise the error is logged normally.
+// Attempts to prettify and log the value if the given error is nil, otherwise the error itself is logged.
 func CustomLog(l Loggable, value any, err error) {
 	if err == nil {
 		l.Log(Prettify(value))

@@ -8,6 +8,10 @@ const (
 )
 
 type MysteryMaster struct {
-	*Entity
+	Entity
 	Change *ChangeDirection `json:"change"`
+}
+
+func (mm MysteryMaster) GetUUID() string {
+	return mm.UUID
 }

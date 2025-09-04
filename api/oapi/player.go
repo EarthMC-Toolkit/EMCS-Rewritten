@@ -26,8 +26,7 @@ type ResidentRanks struct {
 }
 
 type PlayerInfo struct {
-	Name       string               `json:"name"`
-	UUID       string               `json:"uuid"`
+	Entity
 	Title      string               `json:"title,omitempty"`
 	Surname    string               `json:"surname,omitempty"`
 	Town       EntityNullableValues `json:"town"`
@@ -38,4 +37,8 @@ type PlayerInfo struct {
 	Ranks      ResidentRanks        `json:"ranks"`
 	Friends    []Entity             `json:"friends,omitempty"`
 	Perms      Perms                `json:"perms"`
+}
+
+func (p PlayerInfo) GetUUID() string {
+	return p.UUID
 }

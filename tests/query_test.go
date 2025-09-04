@@ -19,6 +19,13 @@ func TestGetOnlinePlayers(t *testing.T) {
 	utils.CustomLog(t, res, err)
 }
 
+func TestQueryAllOnlinePlayers(t *testing.T) {
+	//t.SkipNow()
+
+	players, err := api.QueryAllOnlinePlayers()
+	utils.CustomLog(t, len(players), err)
+}
+
 func TestQueryAllTowns(t *testing.T) {
 	//t.SkipNow()
 
@@ -27,7 +34,13 @@ func TestQueryAllTowns(t *testing.T) {
 		t.Fatal("error querying all towns", err)
 	}
 
-	utils.CustomLog(t, len(towns), err)
+	count := len(towns)
+	if count < 1 {
+		t.Fatal("error querying all towns. no towns retreived")
+	}
+
+	t.Log(count)
+	utils.CustomLog(t, towns[0], err)
 }
 
 func TestQueryTown(t *testing.T) {
@@ -60,7 +73,7 @@ func TestQueryPlayersList(t *testing.T) {
 	})
 
 	start := time.Now()
-	players, _, reqAmt := oapi.QueryPlayersConcurrent(names, 340)
+	players, _, reqAmt := oapi.QueryConcurrent(names, 340, oapi.QueryPlayers)
 	elapsed := time.Since(start)
 
 	t.Logf("Sent %d requests for %d players. Took %s", reqAmt, len(players), elapsed)
@@ -75,13 +88,6 @@ func TestQueryPlayersList(t *testing.T) {
 	slices.Sort(opNames)
 
 	t.Logf("Total Online: %d\nNames: %v", len(opNames), opNames)
-}
-
-func TestQueryOnlinePlayers(t *testing.T) {
-	//t.SkipNow()
-
-	players, err := api.QueryOnlinePlayers()
-	utils.CustomLog(t, len(players), err)
 }
 
 func TestQueryPlayersConcurrent(t *testing.T) {
@@ -106,11 +112,13 @@ func TestQueryPlayersConcurrent(t *testing.T) {
 	})
 
 	start := time.Now()
-	players, errs, reqAmt := oapi.QueryPlayersConcurrent(names, 0)
-	elapsed := time.Since(start)
+	players, errs, reqAmt := oapi.QueryConcurrent(names, 0, oapi.QueryPlayers)
 
-	if len(errs) > 0 {
-		t.Fatalf("Encountered %d errors during requests:", len(errs))
+	elapsed := time.Since(start)
+	errCount := len(errs)
+
+	if errCount > 0 {
+		t.Fatalf("Encountered %d errors during requests:", errCount)
 	}
 
 	t.Logf("QueryPlayersConcurrent took %s. Sent %d requests containing %d players", elapsed, reqAmt, len(players))
