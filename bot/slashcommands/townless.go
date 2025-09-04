@@ -24,13 +24,13 @@ func (cmd TownlessCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return err
 	}
 
-	ops, err := mapi.GetOnlinePlayers()
+	visible, err := mapi.GetVisiblePlayers()
 	if err != nil {
 		_, err := discordutil.FollowUpContent(s, i.Interaction, "An error occurred during the map request or response parsing :(")
 		return err
 	}
 
-	if len(ops) == 0 {
+	if len(visible) == 0 {
 		_, err := discordutil.FollowUpContent(s, i.Interaction, "An error occurred. Players array is empty (server may be partially down).")
 		return err
 	}
@@ -44,11 +44,11 @@ func (cmd TownlessCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 }
 
 // func SwitchTownlessPage() {
-// 	opNames := lop.Map(ops, func(op mapi.OnlinePlayer, i int) string {
-// 		return op.Name
+// 	names := lop.Map(visible, func(p mapi.MapPlayer, i int) string {
+// 		return p.Name
 // 	})
 
-// 	players, err := oapi.QueryPlayers(opNames...)
+// 	players, err := oapi.QueryPlayers(names...)
 // 	if err != nil {
 // 		return nil, err
 // 	}

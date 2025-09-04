@@ -15,14 +15,14 @@ import (
 func TestGetOnlinePlayers(t *testing.T) {
 	//t.SkipNow()
 
-	res, err := mapi.GetOnlinePlayers()
+	res, err := mapi.GetVisiblePlayers()
 	utils.CustomLog(t, res, err)
 }
 
 func TestQueryAllOnlinePlayers(t *testing.T) {
 	//t.SkipNow()
 
-	players, err := api.QueryAllOnlinePlayers()
+	players, err := api.QueryVisiblePlayers()
 	utils.CustomLog(t, len(players), err)
 }
 

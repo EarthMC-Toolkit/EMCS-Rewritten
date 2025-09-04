@@ -21,17 +21,17 @@ import (
 //
 // Returns back the same list of online players as a single slice.
 // Essentially, this acts as a conversion between []mapi.OnlinePlayer and []oapi.PlayerInfo.
-func QueryAllOnlinePlayers() ([]oapi.PlayerInfo, error) {
-	ops, err := mapi.GetOnlinePlayers()
+func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
+	visible, err := mapi.GetVisiblePlayers()
 	if err != nil {
 		return nil, err
 	}
 
-	opNames := lop.Map(ops, func(op mapi.OnlinePlayer, _ int) string {
-		return op.Name
+	names := lop.Map(visible, func(p mapi.MapPlayer, _ int) string {
+		return p.Name
 	})
 
-	players, _, _ := oapi.QueryConcurrent(opNames, 0, oapi.QueryPlayers)
+	players, _, _ := oapi.QueryConcurrent(names, 0, oapi.QueryPlayers)
 	return players, nil
 }
 

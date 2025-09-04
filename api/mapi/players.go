@@ -10,7 +10,7 @@ type Location struct {
 	Z int64 `json:"z"`
 }
 
-type OnlinePlayer struct {
+type MapPlayer struct {
 	UUID        string `json:"uuid"`
 	Name        string `json:"name"`
 	DisplayName string `json:"display_name"`
@@ -20,11 +20,11 @@ type OnlinePlayer struct {
 }
 
 type PlayersResponse struct {
-	Max     uint16         `json:"max"`
-	Players []OnlinePlayer `json:"players"`
+	Max     uint16      `json:"max"`
+	Players []MapPlayer `json:"players"`
 }
 
-func GetOnlinePlayers() ([]OnlinePlayer, error) {
+func GetVisiblePlayers() ([]MapPlayer, error) {
 	res, err := utils.JsonGetRequest[PlayersResponse](PLAYERS_URL)
 	if err != nil {
 		return nil, err
