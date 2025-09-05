@@ -2,10 +2,12 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
+	"emcsrw/bot/common"
 	"emcsrw/bot/discordutil"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo"
 )
 
 type MysteryMasterCommand struct{}
@@ -35,20 +37,19 @@ func SendMysteryMasterList(s *discordgo.Session, i *discordgo.Interaction) (*dis
 		return discordutil.FollowUpContent(s, i, "No mystery masters seem to exist? The API may be broken.")
 	}
 
-	// Init paginator with 20 items per page. Pressing a btn will change the current page and call PageFunc again.
-	paginator := discordutil.NewInteractionPaginator(s, i, count, 20)
+	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
+	paginator := discordutil.NewInteractionPaginator(s, i, count, 15)
 	paginator.PageFunc = func(curPage, perPage int, data *discordgo.InteractionResponseData) {
 		start := curPage * perPage
 		end := min(start+perPage, count)
 
-		content := fmt.Sprintf("Page %d/%d\n\n", curPage+1, paginator.TotalPages())
+		var content string
 		for idx, item := range list[start:end] {
-			content += fmt.Sprintf("%d. %s - %s\n", start+idx+1, item.Name, *item.Change)
+			changeEmoji := lo.Ternary(*item.Change == "UP", common.EMOJIS.ARROW_UP_GREEN, common.EMOJIS.ARROW_DOWN_RED)
+			content += fmt.Sprintf("%d. %s %s\n", start+idx+1, changeEmoji, item.Name) // add start to keep index across pages. just idx+1 shows 1-perPage every time.
 		}
 
-		fmt.Println("curPage:", curPage, "start:", start, "end:", end, "count:", count)
-
-		data.Content = content
+		data.Content = content + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
 		data.Components = []discordgo.MessageComponent{
 			paginator.NewNavigationButtonRow(),
 		}
