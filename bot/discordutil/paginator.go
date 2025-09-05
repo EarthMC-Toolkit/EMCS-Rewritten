@@ -13,8 +13,8 @@ type Paginator struct {
 	channelID   string
 	userID      string
 	currentPage *int
-	pageLen     int
 	totalPages  int
+	perPage     int
 	timeout     time.Duration
 	stopChan    chan struct{}
 }
@@ -23,7 +23,7 @@ func (p *Paginator) TotalPages() int {
 	return p.totalPages
 }
 
-type InteractionPageFunc func(curPage, pageLen int, data *discordgo.InteractionResponseData)
+type InteractionPageFunc func(curPage, perPage int, data *discordgo.InteractionResponseData)
 
 type InteractionPaginator struct {
 	*Paginator
@@ -32,11 +32,11 @@ type InteractionPaginator struct {
 	PageFunc    InteractionPageFunc
 }
 
-func NewInteractionPaginator(s *discordgo.Session, i *discordgo.Interaction, totalItems, pageLen int) *InteractionPaginator {
+func NewInteractionPaginator(s *discordgo.Session, i *discordgo.Interaction, totalItems, perPage int) *InteractionPaginator {
 	author := UserFromInteraction(i)
 
 	initPage := 0
-	totalPages := (totalItems + pageLen - 1) / pageLen // round to next largest int (ceil)
+	totalPages := (totalItems + perPage - 1) / perPage // round to next largest int (ceil)
 
 	return &InteractionPaginator{
 		interaction: i,
@@ -47,6 +47,7 @@ func NewInteractionPaginator(s *discordgo.Session, i *discordgo.Interaction, tot
 			userID:      author.ID,
 			currentPage: &initPage,
 			totalPages:  totalPages,
+			perPage:     perPage,
 			timeout:     fiveMin,
 			stopChan:    make(chan struct{}),
 		},
@@ -74,26 +75,27 @@ func (p *InteractionPaginator) NewNavigationButtonRow() discordgo.ActionsRow {
 				Label:    ">",
 				CustomID: "next",
 				Style:    discordgo.SuccessButton,
-				Disabled: curPage == p.TotalPages()-1,
+				Disabled: curPage == p.totalPages-1,
 			},
 			discordgo.Button{
 				Label:    ">>",
 				CustomID: "last",
 				Style:    discordgo.PrimaryButton,
-				Disabled: curPage == p.TotalPages()-1,
+				Disabled: curPage == p.totalPages-1,
 			},
 		},
 	}
 }
 
 func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionResponseData {
-	data, ok := p.cache[page]
-	if !ok {
-		// Page not already cached, render page and cache.
-		data = &discordgo.InteractionResponseData{}
-		p.PageFunc(page, p.pageLen, data)
-		p.cache[page] = data
+	// Use the cached data for this page if available.
+	if data, ok := p.cache[page]; ok {
+		return data
 	}
+
+	data := &discordgo.InteractionResponseData{}
+	p.PageFunc(page, p.perPage, data)
+	p.cache[page] = data
 
 	return data
 }
@@ -113,8 +115,6 @@ func (p *InteractionPaginator) Start() error {
 }
 
 func (p *InteractionPaginator) beginButtonListener() {
-	curPage := *p.currentPage
-
 	handler := func(s *discordgo.Session, ic *discordgo.InteractionCreate) {
 		if ic.Type != discordgo.InteractionMessageComponent {
 			return
@@ -122,22 +122,26 @@ func (p *InteractionPaginator) beginButtonListener() {
 
 		switch ic.MessageComponentData().CustomID {
 		case "first":
-			curPage = 0
+			*p.currentPage = 0
 		case "prev":
-			if curPage > 0 {
-				curPage--
-			}
+			*p.currentPage--
 		case "next":
-			if curPage < p.totalPages-1 {
-				curPage++
-			}
+			*p.currentPage++
 		case "last":
-			curPage = p.totalPages - 1
+			*p.currentPage = p.totalPages - 1
 		default:
 			return
 		}
 
-		data := p.getPageData(curPage)
+		// clamp to valid range
+		if *p.currentPage < 0 {
+			*p.currentPage = 0
+		}
+		if *p.currentPage >= p.totalPages {
+			*p.currentPage = p.totalPages - 1
+		}
+
+		data := p.getPageData(*p.currentPage)
 		s.InteractionRespond(ic.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: data,

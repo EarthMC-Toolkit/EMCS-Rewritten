@@ -1,6 +1,10 @@
 package slashcommands
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"fmt"
+
+	"github.com/bwmarrin/discordgo"
+)
 
 // 0 for Guild, 1 for User
 var integrationTypes = []discordgo.ApplicationIntegrationType{
@@ -41,6 +45,11 @@ func All() map[string]SlashCommand {
 }
 
 func Register(cmd SlashCommand) {
+	if _, exists := commands[cmd.Name()]; exists {
+		fmt.Printf("Command '%s' is already registered!\n", cmd.Name())
+		return
+	}
+
 	commands[cmd.Name()] = cmd
 }
 
@@ -51,4 +60,5 @@ func init() {
 	Register(NationCommand{})
 	Register(PlayerCommand{})
 	//Register(TownlessCommand{})
+	Register(MysteryMasterCommand{})
 }

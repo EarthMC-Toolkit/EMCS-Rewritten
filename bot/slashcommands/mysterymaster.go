@@ -10,9 +10,9 @@ import (
 
 type MysteryMasterCommand struct{}
 
-func (cmd MysteryMasterCommand) Name() string { return "serverinfo" }
+func (cmd MysteryMasterCommand) Name() string { return "mysterymaster" }
 func (cmd MysteryMasterCommand) Description() string {
-	return "Retrieve top 50 players participating in Mystery Master. Change = direction moved on the score board."
+	return "Top 50 players in Mystery Master. Change = movement on the scoreboard."
 }
 
 func (cmd MysteryMasterCommand) Options() []*discordgo.ApplicationCommandOption {
@@ -37,14 +37,16 @@ func SendMysteryMasterList(s *discordgo.Session, i *discordgo.Interaction) (*dis
 
 	// Init paginator with 20 items per page. Pressing a btn will change the current page and call PageFunc again.
 	paginator := discordutil.NewInteractionPaginator(s, i, count, 20)
-	paginator.PageFunc = func(curPage, pageLen int, data *discordgo.InteractionResponseData) {
-		start := curPage * pageLen
-		end := min(start+pageLen, count)
+	paginator.PageFunc = func(curPage, perPage int, data *discordgo.InteractionResponseData) {
+		start := curPage * perPage
+		end := min(start+perPage, count)
 
 		content := fmt.Sprintf("Page %d/%d\n\n", curPage+1, paginator.TotalPages())
-		for i, item := range list[start:end] {
-			content += fmt.Sprintf("%d. %s - %s\n", i+1, item.Name, *item.Change)
+		for idx, item := range list[start:end] {
+			content += fmt.Sprintf("%d. %s - %s\n", start+idx+1, item.Name, *item.Change)
 		}
+
+		fmt.Println("curPage:", curPage, "start:", start, "end:", end, "count:", count)
 
 		data.Content = content
 		data.Components = []discordgo.MessageComponent{
