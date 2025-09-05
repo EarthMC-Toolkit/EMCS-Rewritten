@@ -28,3 +28,14 @@ func FollowUpContent(s *discordgo.Session, i *discordgo.Interaction, content str
 		Content: content,
 	})
 }
+
+// Attempts to get the username from an interaction.
+//
+// Regular `User` is only filled for a DM, so this func uses guild-specific `Member.User` otherwise.
+func UserFromInteraction(i *discordgo.Interaction) *discordgo.User {
+	if i.User != nil {
+		return i.User
+	}
+
+	return i.Member.User
+}
