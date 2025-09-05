@@ -17,10 +17,10 @@ If you know **Golang** and the basics of the **discordgo** library, I encourage 
 You can also fork this project and use it as a base if you so desire, but the GPL license requires you to keep the source code available.
 
 ## Project Structure
-> `main.go` -> Project entrypoint. Responsible for loading `env` and passing bot token to `bot.Run`.\
-> `bot` -> Where the bot runs from. Contains all bot logic such as discord init, commands and events.\
-> `utils` -> Provides small funcs generally re-used a lot like helpers for strings, slices, http etc.\
-> `db` -> Where permanent data such as alliances are intended to be stored. Git ignored.\
-> `api` -> Contains packages relating to APIs. Contains funcs that interact with both where necessary.
-    >- `mapi` -> For interacting with the map API. (Currently Squaremap)
-    >- `oapi` -> For interacting with the Official API.
+>- `main.go` -> Project entrypoint. Responsible for loading `env` and passing bot token to `bot.Run`.
+>- `bot` -> Where the bot runs from. Contains all bot logic such as discord init, commands and events.
+>- `utils` -> Provides small funcs generally re-used a lot like helpers for strings, slices, http etc.
+>- `db` -> Where permanent data such as alliances are intended to be stored. Git ignored.
+>- `api` -> Contains packages relating to APIs. Contains funcs that interact with both where necessary.
+>     - `mapi` -> For interacting with the map API. (Currently Squaremap)
+>     - `oapi` -> For interacting with the Official API.
