@@ -1,15 +1,32 @@
 package utils
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"github.com/sanity-io/litter"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
+
+type UUID4 uuid.UUID
+
+func (u *UUID4) UnmarshalJSON(b []byte) error {
+	id, err := uuid.Parse(string(b[:]))
+	if err != nil {
+		return err
+	}
+	*u = UUID4(id)
+	return nil
+}
+
+func (u *UUID4) MarshalJSON() ([]byte, error) {
+	return fmt.Appendf(nil, "\"%s\"", uuid.UUID(*u).String()), nil
+}
 
 type Loggable interface {
 	Log(args ...any)

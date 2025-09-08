@@ -2,6 +2,14 @@ package common
 
 const DEFAULT_TOWN_BOARD = "/town set board [msg]"
 
+type EMCMap = string
+
+var SUPPORTED_MAPS = struct {
+	AURORA EMCMap
+}{
+	AURORA: "aurora",
+}
+
 type Emoji = string
 
 var EMOJIS = struct {

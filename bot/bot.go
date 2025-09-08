@@ -1,6 +1,8 @@
 package bot
 
 import (
+	"emcsrw/bot/common"
+	"emcsrw/bot/database"
 	"emcsrw/bot/events"
 	"fmt"
 	"os"
@@ -41,6 +43,13 @@ func Run(botToken string) {
 		log.Fatal("Cannot open Discord session: ", err)
 	}
 	defer s.Close()
+
+	// Create or open badger DB
+	auroraDB, err := database.InitMapDB(common.SUPPORTED_MAPS.AURORA)
+	if err != nil {
+		log.Fatalf("Cannot initialize database for map '%s':\n%v", common.SUPPORTED_MAPS.AURORA, err)
+	}
+	defer auroraDB.Close()
 
 	// Wait for Ctrl+C (exit)
 	c := make(chan os.Signal, 1)

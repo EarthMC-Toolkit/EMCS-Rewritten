@@ -20,10 +20,11 @@ var contexts = []discordgo.InteractionContextType{
 
 var commands = map[string]SlashCommand{}
 
+type AppCommandOpts = []*discordgo.ApplicationCommandOption
 type SlashCommand interface {
 	Name() string
 	Description() string
-	Options() []*discordgo.ApplicationCommandOption
+	Options() AppCommandOpts
 	// IntegrationTypes() *[]discordgo.ApplicationIntegrationType
 	// Contexts() *[]discordgo.InteractionContextType
 	Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error
@@ -61,4 +62,21 @@ func init() {
 	Register(PlayerCommand{})
 	//Register(TownlessCommand{})
 	Register(MysteryMasterCommand{})
+	Register(AllianceCommand{})
 }
+
+// ======================================= COMMAND TEMPLATE =======================================
+// type ExampleCommand struct{}
+
+// func (cmd ExampleCommand) Name() string { return "example" }
+// func (cmd ExampleCommand) Description() string {
+// 	return "This is an example description for a slash command."
+// }
+
+// func (cmd ExampleCommand) Options() []*discordgo.ApplicationCommandOption {
+// 	return nil
+// }
+
+// func (cmd ExampleCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+// 	return nil
+// }

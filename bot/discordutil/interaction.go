@@ -2,6 +2,20 @@ package discordutil
 
 import "github.com/bwmarrin/discordgo"
 
+func OpenModal(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) error {
+	return s.InteractionRespond(i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseModal,
+		Data: data,
+	})
+}
+
+func Reply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) error {
+	return s.InteractionRespond(i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: data,
+	})
+}
+
 // Responds to an interaction with a deferred response, allowing more time to process before sending a follow-up message.
 func DeferReply(s *discordgo.Session, i *discordgo.Interaction) error {
 	return s.InteractionRespond(i, &discordgo.InteractionResponse{
@@ -26,6 +40,13 @@ func FollowUpEmbeds(s *discordgo.Session, i *discordgo.Interaction, embeds ...*d
 func FollowUpContent(s *discordgo.Session, i *discordgo.Interaction, content string) (*discordgo.Message, error) {
 	return FollowUp(s, i, &discordgo.WebhookParams{
 		Content: content,
+	})
+}
+
+func FollowUpContentEphemeral(s *discordgo.Session, i *discordgo.Interaction, content string) (*discordgo.Message, error) {
+	return FollowUp(s, i, &discordgo.WebhookParams{
+		Content: content,
+		Flags:   discordgo.MessageFlagsEphemeral,
 	})
 }
 
