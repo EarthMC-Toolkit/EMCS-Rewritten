@@ -27,16 +27,18 @@ type ResidentRanks struct {
 
 type PlayerInfo struct {
 	Entity
-	Title      string               `json:"title,omitempty"`
-	Surname    string               `json:"surname,omitempty"`
-	Town       EntityNullableValues `json:"town"`
-	Nation     EntityNullableValues `json:"nation"`
-	Timestamps PlayerTimestamps     `json:"timestamps"`
-	Status     PlayerStatus         `json:"status"`
-	Stats      PlayerStats          `json:"stats"`
-	Ranks      ResidentRanks        `json:"ranks"`
-	Friends    []Entity             `json:"friends,omitempty"`
-	Perms      Perms                `json:"perms"`
+	Title         *string              `json:"title,omitempty"`
+	Surname       *string              `json:"surname,omitempty"`
+	FormattedName string               `json:"formattedName,omitempty"`
+	About         *string              `json:"about,omitempty"`
+	Town          EntityNullableValues `json:"town"`
+	Nation        EntityNullableValues `json:"nation"`
+	Timestamps    PlayerTimestamps     `json:"timestamps"`
+	Status        PlayerStatus         `json:"status"`
+	Stats         PlayerStats          `json:"stats"`
+	Ranks         ResidentRanks        `json:"ranks"`
+	Friends       []Entity             `json:"friends,omitempty"`
+	Perms         Perms                `json:"perms"`
 }
 
 func (p PlayerInfo) GetUUID() string {

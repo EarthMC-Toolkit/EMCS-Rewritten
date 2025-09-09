@@ -1,6 +1,7 @@
 package common
 
 const DEFAULT_TOWN_BOARD = "/town set board [msg]"
+const DEFAULT_ABOUT = "/res set about [msg]"
 
 var SUPPORTED_MAPS = struct {
 	AURORA string

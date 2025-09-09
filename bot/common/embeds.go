@@ -78,25 +78,19 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 }
 
 func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
-	registeredTs := resident.Timestamps.Registered // ms
-	lastOnlineTs := resident.Timestamps.LastOnline // ms
+	registeredTs := resident.Timestamps.Registered   // ms
+	lastOnlineTs := resident.Timestamps.LastOnline   // ms
+	joinedTownTs := resident.Timestamps.JoinedTownAt // ms
 
 	status := "Offline" // Assume they are offline
 	if resident.Status.IsOnline {
 		status = "Online"
 	} else {
-		status = lo.Ternary(lastOnlineTs != nil, "Offline", fmt.Sprintf("Offline (Last Online: <t:%d:R>)", *lastOnlineTs/1000))
+		status = lo.Ternary(lastOnlineTs == nil, "Offline", fmt.Sprintf("Offline (Last Online: <t:%d:R>)", *lastOnlineTs/1000))
 	}
 
-	townName := "No Town"
-	if resident.Town.Name != nil {
-		townName = *resident.Town.Name
-	}
-
-	nationName := "No Nation"
-	if resident.Nation.Name != nil {
-		nationName = *resident.Nation.Name
-	}
+	townName := lo.Ternary(resident.Town.Name == nil, "No Town", *resident.Town.Name)
+	nationName := lo.Ternary(resident.Nation.Name == nil, "No Nation", *resident.Nation.Name)
 
 	resName := resident.Name
 	alias := resName
@@ -114,6 +108,14 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 	affiliation := lo.Ternary(townName == "No Town", "None (Townless)", fmt.Sprintf("%s (%s)", townName, nationName))
 	affiliationField := EmbedField("Affiliation", affiliation, false)
 
+	rank := "Resident"
+	if resident.Status.IsMayor {
+		rank = "Mayor"
+	}
+	if resident.Status.IsKing {
+		rank = "Nation Leader"
+	}
+
 	embed := &dgo.MessageEmbed{
 		Type:  dgo.EmbedTypeRich,
 		Color: 7419530,
@@ -123,17 +125,45 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 		Title: fmt.Sprintf("Player Information | `%s`", resName),
 		Fields: []*dgo.MessageEmbedField{
 			affiliationField,
-			EmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", resident.Stats.Balance, EMOJIS.GOLD_INGOT), false),
+			EmbedField("Rank", rank, true),
+			EmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", resident.Stats.Balance, EMOJIS.GOLD_INGOT), true),
 			EmbedField("Status", status, true),
-			EmbedField("Registered", fmt.Sprintf("<t:%d:F>", registeredTs/1000), true),
 		},
+	}
+
+	if resident.About != nil {
+		about := *resident.About
+		if about != "" && about != DEFAULT_ABOUT {
+			embed.Description = fmt.Sprintf("*%s*", about)
+		}
 	}
 
 	// Alias differs from name (has surname and/or title)
 	if alias != resName {
 		field := EmbedField("Alias", alias, false)
-		embed.Fields = append([]*dgo.MessageEmbedField{field}, embed.Fields...) // Prepend
+		embed.Fields = append([]*dgo.MessageEmbedField{field}, embed.Fields...) // Insert at slice start
 	}
+
+	if joinedTownTs != nil {
+		field := EmbedField("Joined Town", fmt.Sprintf("<t:%d:F>", *joinedTownTs/1000), false)
+		embed.Fields = append(embed.Fields, field)
+	}
+
+	registeredField := EmbedField("Registered", fmt.Sprintf("<t:%d:F>", registeredTs/1000), false)
+	embed.Fields = append(embed.Fields, registeredField)
+
+	friendsStr := "No Friends :("
+	if resident.Stats.NumFriends > 0 {
+		friends := lop.Map(resident.Friends, func(e oapi.Entity, _ int) string {
+			return e.Name
+		})
+
+		slices.Sort(friends)
+		friendsStr = fmt.Sprintf("```%s```", strings.Join(friends, ", "))
+	}
+
+	friendsField := EmbedField("Friends", friendsStr, false)
+	embed.Fields = append(embed.Fields, friendsField)
 
 	return embed
 }

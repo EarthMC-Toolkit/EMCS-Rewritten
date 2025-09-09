@@ -44,8 +44,12 @@ func CustomLog(l Loggable, value any, err error) {
 
 // Check that `str` isn't gibberish and only has a combination of letters and numbers.
 // If it is found to contain anything else, an empty string is returned.
-func CheckAlphanumeric(str string) string {
-	return lo.Ternary(ContainsNonAlphanumeric(str), "", str)
+func CheckAlphanumeric(str *string) string {
+	if str == nil {
+		return ""
+	}
+
+	return lo.Ternary(ContainsNonAlphanumeric(*str), "", *str)
 }
 
 func ContainsNonAlphanumeric(input string) bool {

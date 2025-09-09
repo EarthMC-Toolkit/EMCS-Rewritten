@@ -12,8 +12,22 @@ import (
 
 func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("handler InteractionCreateApplicationCommand recovered from a panic.\n%v\n%s", r, debug.Stack())
+		if err := recover(); err != nil {
+			log.Printf("handler InteractionCreateApplicationCommand recovered from a panic.\n%v\n%s", err, debug.Stack())
+
+			errStr := fmt.Sprintf("```%v```", err) // NOTE: This could panic itself. Maybe handle it or just send generic text.
+			content := "Bot attempted to panic during this command. Please report the following error.\n" + errStr
+
+			// Not already deferred, reply.
+			err := discordutil.Reply(s, i.Interaction, &discordgo.InteractionResponseData{
+				Flags:   discordgo.MessageFlagsEphemeral,
+				Content: content,
+			})
+
+			if err != nil {
+				// Must be deferred, send follow up.
+				discordutil.FollowUpContentEphemeral(s, i.Interaction, content)
+			}
 		}
 	}()
 
