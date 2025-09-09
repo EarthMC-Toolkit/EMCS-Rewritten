@@ -7,7 +7,11 @@ The database will be local, so you are responsible for upkeep of data. For 24/7 
 
 ## Development
 1. Clone this repository.
-1. Create a Discord bot and put its **Client Token** in an `.env` file in the project root like so: `export BOT_TOKEN=yourTokenHere`.
+1. Create a Discord bot and put its **Client Token** in an `.env` file in the project root like so:
+
+    ```console 
+    export BOT_TOKEN=yourTokenHere
+    ```
 1. Authorize and invite your bot to a guild or install it as a user app.
 1. Start the bot with `go run main.go`.
 
