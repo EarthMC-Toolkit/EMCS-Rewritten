@@ -34,7 +34,6 @@ func Run(botToken string) {
 
 	s.Identify.Intents = dgo.IntentMessageContent | guildIntents
 
-	// Run until code is terminated
 	fmt.Printf("\nEstablishing Discord connection..\n")
 
 	// Open WS connection to Discord
@@ -43,6 +42,8 @@ func Run(botToken string) {
 		log.Fatal("Cannot open Discord session: ", err)
 	}
 	defer s.Close()
+
+	fmt.Printf("\nInitializing map databases..\n")
 
 	// Create or open badger DB
 	auroraDB, err := database.InitMapDB(common.SUPPORTED_MAPS.AURORA)

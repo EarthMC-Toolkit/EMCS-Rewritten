@@ -38,37 +38,19 @@ func (a *Alliance) CreatedTimestamp() uint64 {
 // ================================== DATABASE INTERACTION ==================================
 const ALLIANCES_KEY_PREFIX = "alliances/"
 
-func GetAllianceByIdentifier(mapDB *badger.DB, identifier string) (*Alliance, error) {
-	var a Alliance
-
-	key := ALLIANCES_KEY_PREFIX + identifier
-	err := mapDB.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(key))
-		if err != nil {
-			return err
-		}
-
-		val, _ := item.ValueCopy(nil)
-		return json.Unmarshal(val, &a)
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &a, nil
-}
-
 func PutAlliance(mapDB *badger.DB, a *Alliance) error {
 	data, err := json.Marshal(a)
 	if err != nil {
 		return fmt.Errorf("error putting alliance '%s' into db at %s:\n%v", a.Identifier, mapDB.Opts().Dir, err)
 	}
 
-	key := ALLIANCES_KEY_PREFIX + a.Identifier
-	return mapDB.Update(func(txn *badger.Txn) error {
-		return txn.Set([]byte(key), data)
-	})
+	return PutInsensitive(mapDB, ALLIANCES_KEY_PREFIX+a.Identifier, data)
+}
+
+// Finds the alliance by its key. ident is automatically lowercased for case-insensitive lookup.
+// The actual `Identifier` property on the alliance will still have its original casing.
+func GetAllianceByIdentifier(mapDB *badger.DB, ident string) (*Alliance, error) {
+	return GetInsensitive[Alliance](mapDB, ALLIANCES_KEY_PREFIX+ident)
 }
 
 func DumpAlliances(mapDB *badger.DB) error {
@@ -77,9 +59,10 @@ func DumpAlliances(mapDB *badger.DB) error {
 		defer it.Close()
 		for it.Rewind(); it.Valid(); it.Next() {
 			item := it.Item()
+
 			key := string(item.Key())
 			if !strings.HasPrefix(key, ALLIANCES_KEY_PREFIX) {
-				continue
+				continue // Not an alliance, no need to dump.
 			}
 
 			var data Alliance
