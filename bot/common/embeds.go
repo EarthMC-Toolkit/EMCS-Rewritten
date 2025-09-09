@@ -145,11 +145,11 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 	}
 
 	if joinedTownTs != nil {
-		field := EmbedField("Joined Town", fmt.Sprintf("<t:%d:F>", *joinedTownTs/1000), false)
+		field := EmbedField("Joined Town", fmt.Sprintf("<t:%d:R>", *joinedTownTs/1000), false)
 		embed.Fields = append(embed.Fields, field)
 	}
 
-	registeredField := EmbedField("Registered", fmt.Sprintf("<t:%d:F>", registeredTs/1000), false)
+	registeredField := EmbedField("Registered", fmt.Sprintf("<t:%d:R>", registeredTs/1000), false)
 	embed.Fields = append(embed.Fields, registeredField)
 
 	friendsStr := "No Friends :("
