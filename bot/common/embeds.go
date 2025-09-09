@@ -18,7 +18,7 @@ import (
 
 var DEFAULT_FOOTER = &dgo.MessageEmbedFooter{
 	IconURL: "https://cdn.discordapp.com/avatars/263377802647175170/a_0cd469f208f88cf98941123eb1b52259.webp?size=512&animated=true",
-	Text:    "Maintained by Owen3H | 💛",
+	Text:    "Maintained by Owen3H • Open Source on GitHub 💛", // unless you maintain your own fork, pls keep this as is :)
 }
 
 var EmbedField = discordutil.EmbedField
@@ -41,9 +41,11 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 
 	// Representative field logic
 	var representativeValue string = "None"
-	u, err := s.User(strconv.FormatUint(*a.RepresentativeID, 10))
-	if err != nil {
-		representativeValue = u.Mention()
+	if a.RepresentativeID != nil {
+		u, err := s.User(strconv.FormatUint(*a.RepresentativeID, 10))
+		if err != nil {
+			representativeValue = u.Mention()
+		}
 	}
 
 	// Nation field logic
@@ -63,9 +65,13 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 			EmbedField("Leader(s)", leadersValue, false),
 			EmbedField("Representative", representativeValue, true),
 			EmbedField(nationsKey, nationsValue, false),
-			EmbedField("Created At", fmt.Sprintf("<t:%d:R>", a.CreatedTimestamp()), true),
-			EmbedField("Last Updated", fmt.Sprintf("<t:%d:R>", *a.UpdatedTimestamp), true),
+			EmbedField("Created At", fmt.Sprintf("<t:%d:f>", a.CreatedTimestamp()/1000), true),
 		},
+	}
+
+	if a.UpdatedTimestamp != nil {
+		updatedField := EmbedField("Last Updated", fmt.Sprintf("<t:%d:R>", *a.UpdatedTimestamp), true)
+		embed.Fields = append(embed.Fields, updatedField)
 	}
 
 	return embed

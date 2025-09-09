@@ -2,6 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
+	"emcsrw/bot/common"
 	"emcsrw/utils"
 	"fmt"
 
@@ -53,6 +54,7 @@ func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.Interact
 		Title:  "Server Info",
 		Fields: []*discordgo.MessageEmbedField{statsField, vpField},
 		Color:  0x5C4DFF,
+		Footer: common.DEFAULT_FOOTER,
 	}
 
 	// Should generally respond in 3 seconds. May need to defer in future?

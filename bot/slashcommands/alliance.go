@@ -80,9 +80,9 @@ func LookupAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 	auroraDB := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
 	alliance, err := database.GetAllianceByIdentifier(auroraDB, ident)
 	if err != nil {
-		fmt.Printf("failed to get alliance '%s' from db:\n%v", ident, err)
+		fmt.Printf("failed to get alliance '%s' from db: %v", ident, err)
 
-		_, err := discordutil.FollowUpContentEphemeral(s, i, "Could not lookup alliance `%s`.")
+		_, err := discordutil.FollowUpContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 		return err
 	}
 

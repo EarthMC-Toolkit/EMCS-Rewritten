@@ -4,11 +4,19 @@ import (
 	"emcsrw/bot/discordutil"
 	"emcsrw/bot/slashcommands"
 	"fmt"
+	"log"
+	"runtime/debug"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("handler InteractionCreateApplicationCommand recovered from a panic.\n%v\n%s", r, debug.Stack())
+		}
+	}()
+
 	if i.Type != discordgo.InteractionApplicationCommand {
 		return
 	}
@@ -20,9 +28,9 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 
 	err := cmd.Execute(s, i)
 	if err != nil {
-		fmt.Printf("'%s' failed to execute command /%s:\n%v", author.Username, cmdName, err)
+		fmt.Printf("\n'%s' failed to execute command /%s:\n%v", author.Username, cmdName, err)
 	} else {
-		fmt.Printf("'%s' successfully executed command /%s", author.Username, cmdName)
+		fmt.Printf("\n'%s' successfully executed command /%s", author.Username, cmdName)
 	}
 }
 
