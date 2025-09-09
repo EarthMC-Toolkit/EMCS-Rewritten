@@ -36,7 +36,7 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 			Name:        "lookup",
 			Description: "Retrieves information about an alliance via it's identifier.",
 			Options: AppCommandOpts{
-				RequiredStringOption("name", "The alliance's identifier/short name.", 3, 16),
+				RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
 			},
 		},
 		{
@@ -61,45 +61,57 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 
 	lookup := cmdData.GetOption("lookup")
 	if lookup != nil {
-		return LookupAlliance(s, i.Interaction, cmdData)
+		return LookupAlliance(s, i.Interaction)
 	}
 
 	create := cmdData.GetOption("create")
 	if create != nil {
-		return CreateAlliance(s, i.Interaction, cmdData)
+		return CreateAlliance(s, i.Interaction)
 	}
 
 	return err
 }
 
-func LookupAlliance(s *discordgo.Session, i *discordgo.Interaction, cmdData discordgo.ApplicationCommandInteractionData) error {
-	// TODO	1. Grab alliance from db
-	// 		2. Create embed from alliance info
-	// 		3. Send embed with followup
+func LookupAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
+	cmdData := i.ApplicationCommandData().GetOption("lookup")
+	ident := cmdData.GetOption("identifier").StringValue()
 
-	return nil
+	// Try find alliance in DB
+	auroraDB := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	alliance, err := database.GetAllianceByIdentifier(auroraDB, ident)
+	if err != nil {
+		fmt.Printf("failed to get alliance '%s' from db:\n%v", ident, err)
+
+		_, err := discordutil.FollowUpContentEphemeral(s, i, "Could not lookup alliance `%s`.")
+		return err
+	}
+
+	_, err = discordutil.FollowUpEmbeds(s, i, common.CreateAllianceEmbed(alliance))
+	return err
 }
 
-func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction, cmdData discordgo.ApplicationCommandInteractionData) error {
-	identifier := cmdData.GetOption("identifier").StringValue()
+func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
+	cmdData := i.ApplicationCommandData().GetOption("create")
+
+	ident := cmdData.GetOption("identifier").StringValue()
 	label := cmdData.GetOption("label").StringValue()
 
 	createdAlliance := &database.Alliance{
 		ID:         generateAllianceID(),
-		Identifier: identifier,
+		Identifier: ident,
 		Label:      label,
 	}
 
 	auroraDB := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
 	err := database.PutAlliance(auroraDB, createdAlliance)
 	if err != nil {
-		fmt.Printf("failed to put alliance %s into db:\n%v", identifier, err)
+		fmt.Printf("failed to put alliance %s into db:\n%v", ident, err)
 
-		_, err := discordutil.FollowUpContentEphemeral(s, i, "could not create alliance! check the console")
+		_, err := discordutil.FollowUpContentEphemeral(s, i, fmt.Sprintf("Could not create alliance `%s`! Check the console.", ident))
 		return err
 	}
 
-	_, err = discordutil.FollowUpContent(s, i, fmt.Sprintf("successfully created alliance `%s (%s)`", label, identifier))
+	_, err = discordutil.FollowUpContent(s, i, fmt.Sprintf("Successfully created alliance `%s (%s)`", label, ident))
 	return err
 }
 

@@ -2,6 +2,7 @@ package common
 
 import (
 	"emcsrw/api/oapi"
+	"emcsrw/bot/database"
 	"emcsrw/bot/discordutil"
 	"emcsrw/utils"
 	"fmt"
@@ -15,6 +16,27 @@ import (
 )
 
 var EmbedField = discordutil.EmbedField
+
+// Creates a single embed given alliance data. This is the output from `/alliance lookup`.
+func CreateAllianceEmbed(a *database.Alliance) *dgo.MessageEmbed {
+	leaderStr := "None"
+	leaders := a.Optional.Leaders
+	if leaders != nil {
+		leaderStr = strings.Join(*leaders, "\n")
+	}
+
+	embed := &dgo.MessageEmbed{
+		Title: fmt.Sprintf("Alliance Info | `%s` (%s)", a.Label, a.Identifier),
+		Fields: []*dgo.MessageEmbedField{
+			EmbedField("Leader(s)", leaderStr, false),
+			EmbedField("Nations", fmt.Sprintf("```%s```", strings.Join(a.OwnNations, ", ")), false),
+			EmbedField("Created At", fmt.Sprintf("<t:%d:R>", a.CreatedTimestamp()), true),
+			EmbedField("Last Updated", fmt.Sprintf("<t:%d:R>", *a.UpdatedTimestamp), true),
+		},
+	}
+
+	return embed
+}
 
 func CreatePlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 	registeredTs := resident.Timestamps.Registered / 1000  // Seconds
@@ -149,7 +171,7 @@ func CreateStaffEmbed() (*dgo.MessageEmbed, error) {
 	var onlineStaff []string
 	var errors []error
 
-	ids := GetStaffIds()
+	ids := []string{} // Fetch them from somewhere
 	players, err := oapi.QueryPlayers(ids...)
 
 	// Calls specified func for every slice element in parallel.
