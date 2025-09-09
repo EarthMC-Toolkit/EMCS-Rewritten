@@ -78,12 +78,14 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 }
 
 func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
-	registeredTs := resident.Timestamps.Registered / 1000  // Seconds
-	lastOnlineTs := *resident.Timestamps.LastOnline / 1000 // Seconds
+	registeredTs := resident.Timestamps.Registered // ms
+	lastOnlineTs := resident.Timestamps.LastOnline // ms
 
-	status := "Offline"
+	status := "Offline" // Assume they are offline
 	if resident.Status.IsOnline {
 		status = "Online"
+	} else {
+		status = lo.Ternary(lastOnlineTs != nil, "Offline", fmt.Sprintf("Offline (Last Online: <t:%d:R>)", *lastOnlineTs/1000))
 	}
 
 	townName := "No Town"
@@ -123,8 +125,7 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 			affiliationField,
 			EmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", resident.Stats.Balance, EMOJIS.GOLD_INGOT), false),
 			EmbedField("Status", status, true),
-			EmbedField("Last Online", fmt.Sprintf("<t:%d:R>", lastOnlineTs), true),
-			EmbedField("Registered", fmt.Sprintf("<t:%d:F>", registeredTs), true),
+			EmbedField("Registered", fmt.Sprintf("<t:%d:F>", registeredTs/1000), true),
 		},
 	}
 
