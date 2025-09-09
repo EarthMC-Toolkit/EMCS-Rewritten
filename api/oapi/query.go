@@ -8,23 +8,27 @@ import (
 	"github.com/samber/lo"
 )
 
-const BASE_URL = "https://api.earthmc.net/v3/aurora"
-
 const RATE_LIMIT = 180  // 180 req/min
 const QUERY_LIMIT = 100 // 100 identifiers in single req/query
 
+type Endpoint = string
+
 const (
-	SERVER_ENDPOINT         Endpoint = ""
-	MYSTERY_MASTER_ENDPOINT Endpoint = "/mm"
-	TOWNS_ENDPOINT          Endpoint = "/towns"
-	NATIONS_ENDPOINT        Endpoint = "/nations"
-	PLAYERS_ENDPOINT        Endpoint = "/players"
-	LOCATION_ENDPOINT       Endpoint = "/location"
-	DISCORD_ENDPOINT        Endpoint = "/discord"
-	QUARTERS_ENDPOINT       Endpoint = "/quarters"
+	ENDPOINT_BASE           Endpoint = "https://api.earthmc.net/v3/aurora"
+	ENDPOINT_MYSTERY_MASTER Endpoint = ENDPOINT_BASE + "/mm"
+	ENDPOINT_TOWNS          Endpoint = ENDPOINT_BASE + "/towns"
+	ENDPOINT_NATIONS        Endpoint = ENDPOINT_BASE + "/nations"
+	ENDPOINT_PLAYERS        Endpoint = ENDPOINT_BASE + "/players"
+	ENDPOINT_LOCATION       Endpoint = ENDPOINT_BASE + "/location"
+	ENDPOINT_DISCORD        Endpoint = ENDPOINT_BASE + "/discord"
+	ENDPOINT_QUARTERS       Endpoint = ENDPOINT_BASE + "/quarters"
 )
 
-type Endpoint = string
+// Identifiable is a constraint for things with a UUID such as an Entity.
+type Identifiable interface {
+	GetUUID() string
+}
+
 type PostBody struct {
 	Query []string `json:"query"`
 }
@@ -47,101 +51,36 @@ func NewPostQueryTemplate[T any](identifiers []string, template T) *PostBodyTemp
 	}
 }
 
-// Queries the Official API with a GET request to the server endpoint.
-func QueryServer() (ServerInfo, error) {
-	return GetRequest[ServerInfo]("")
-}
-
-func QueryMysteryMaster() ([]MysteryMaster, error) {
-	return GetRequest[[]MysteryMaster](MYSTERY_MASTER_ENDPOINT)
-}
-
 // Queries the Official API with a GET request to the given endpoint.
 // According to docs, this should return a list of entities (name, uuid) relating to the type of said endpoint.
 //
 // Do not call this function if you do not expect an [Entity] slice back. For example QueryList(oapi.SERVER_ENDPOINT) will fail.
 func QueryList(endpoint Endpoint) ([]Entity, error) {
-	return GetRequest[[]Entity](endpoint)
+	return utils.JsonGetRequest[[]Entity](endpoint)
+}
+
+// Queries the Official API with a GET request to the server endpoint.
+func QueryServer() (ServerInfo, error) {
+	return utils.JsonGetRequest[ServerInfo](ENDPOINT_BASE)
+}
+
+func QueryMysteryMaster() ([]MysteryMaster, error) {
+	return utils.JsonGetRequest[[]MysteryMaster](ENDPOINT_MYSTERY_MASTER)
 }
 
 // Queries the Official API with a POST request providing all valid town identifier (name/uuid) strings to the body "query" key.
 func QueryTowns(identifiers ...string) ([]TownInfo, error) {
-	return PostRequest[[]TownInfo](TOWNS_ENDPOINT, NewPostQuery(identifiers...))
+	return utils.JsonPostRequest[[]TownInfo](ENDPOINT_TOWNS, NewPostQuery(identifiers...))
 }
 
 // Queries the Official API with a POST request providing all valid nation identifier (name/uuid) strings to the body "query" key.
 func QueryNations(identifiers ...string) ([]NationInfo, error) {
-	return PostRequest[[]NationInfo](NATIONS_ENDPOINT, NewPostQuery(identifiers...))
+	return utils.JsonPostRequest[[]NationInfo](ENDPOINT_NATIONS, NewPostQuery(identifiers...))
 }
 
 // Queries the Official API with a POST request providing all valid player identifier (name/uuid) strings to the body "query" key.
 func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
-	return PostRequest[[]PlayerInfo](PLAYERS_ENDPOINT, NewPostQuery(identifiers...))
-}
-
-// func QueryPlayersConcurrent(identifiers []string, sleepAmt uint32) ([]PlayerInfo, []error, int) {
-// 	chunks := lo.Chunk(identifiers, int(PLAYERS_QUERY_LIMIT))
-// 	chunkLen := len(chunks)
-
-// 	all := make([]PlayerInfo, 0, len(identifiers))
-// 	errCh := make(chan error, chunkLen)
-
-// 	mu := sync.Mutex{}
-// 	wg := sync.WaitGroup{}
-// 	wg.Add(chunkLen)
-
-// 	var ticker *time.Ticker
-// 	if sleepAmt > 0 {
-// 		ticker = time.NewTicker(time.Duration(sleepAmt * uint32(time.Millisecond))) // Ticker to avoid rate limit.
-// 		defer ticker.Stop()
-// 	}
-
-// 	for i, chunk := range chunks {
-// 		if ticker != nil && i > 0 { // Don't add delay before first req.
-// 			<-ticker.C
-// 		}
-
-// 		// Execute for each chunk. Queries OAPI and sends result to result channel.
-// 		go func(arr []string) {
-// 			defer wg.Done()
-
-// 			players, err := QueryPlayers(arr...)
-// 			if err != nil {
-// 				errCh <- err
-// 				return
-// 			}
-
-// 			mu.Lock()
-// 			all = append(all, players...)
-// 			mu.Unlock()
-// 		}(chunk)
-// 	}
-
-// 	wg.Wait()
-// 	close(errCh)
-
-// 	var errs []error
-// 	for err := range errCh {
-// 		errs = append(errs, err)
-// 	}
-
-// 	// Deduplicate by UUID, keeping the last occurrence
-// 	playerMap := make(map[string]PlayerInfo)
-// 	for _, p := range all {
-// 		playerMap[p.UUID] = p
-// 	}
-
-// 	unique := make([]PlayerInfo, 0, len(playerMap))
-// 	for _, p := range playerMap {
-// 		unique = append(unique, p)
-// 	}
-
-// 	return unique, errs, chunkLen
-// }
-
-// Identifiable is a constraint for things with a UUID such as an Entity.
-type Identifiable interface {
-	GetUUID() string
+	return utils.JsonPostRequest[[]PlayerInfo](ENDPOINT_PLAYERS, NewPostQuery(identifiers...))
 }
 
 // Queries entities of type T in chunks concurrently where each chunk (request) query may only have up to QUERY_LIMIT identifiers.
@@ -214,18 +153,4 @@ func QueryConcurrent[T Identifiable](
 	// }
 
 	return all, errs, chunkLen
-}
-
-func GetRequest[T any](endpoint string) (T, error) {
-	url := BASE_URL + endpoint
-	res, err := utils.JsonGetRequest[T](url)
-
-	return res, err
-}
-
-func PostRequest[T any](endpoint string, body any) (T, error) {
-	url := BASE_URL + endpoint
-	res, err := utils.JsonPostRequest[T](url, body)
-
-	return res, err
 }

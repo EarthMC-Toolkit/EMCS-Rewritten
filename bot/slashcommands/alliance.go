@@ -86,7 +86,7 @@ func LookupAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 		return err
 	}
 
-	_, err = discordutil.FollowUpEmbeds(s, i, common.CreateAllianceEmbed(alliance))
+	_, err = discordutil.FollowUpEmbeds(s, i, common.NewAllianceEmbed(s, alliance))
 	return err
 }
 

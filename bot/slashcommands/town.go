@@ -50,6 +50,6 @@ func SendSingleTown(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.
 		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No towns retrieved. Town `%s` does not seem to exist.", townNameArg))
 	}
 
-	embed := common.CreateTownEmbed(towns[0])
+	embed := common.NewTownEmbed(towns[0])
 	return discordutil.FollowUpEmbeds(s, i, embed)
 }

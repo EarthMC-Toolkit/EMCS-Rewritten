@@ -50,6 +50,6 @@ func SendSingleNation(s *discordgo.Session, i *discordgo.Interaction) (*discordg
 		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No nations retrieved. Nation `%s` does not seem to exist.", nationNameArg))
 	}
 
-	embed := common.CreateNationEmbed(nations[0])
+	embed := common.NewNationEmbed(nations[0])
 	return discordutil.FollowUpEmbeds(s, i, embed)
 }

@@ -50,6 +50,6 @@ func SendSinglePlayer(s *discordgo.Session, i *discordgo.Interaction) (*discordg
 		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No players retrieved. Player `%s` does not seem to exist.", playerNameArg))
 	}
 
-	embed := common.CreatePlayerEmbed(players[0])
+	embed := common.NewPlayerEmbed(players[0])
 	return discordutil.FollowUpEmbeds(s, i, embed)
 }

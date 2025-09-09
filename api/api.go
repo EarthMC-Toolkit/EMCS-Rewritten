@@ -36,7 +36,7 @@ func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
 }
 
 func QueryAllTowns(save bool) ([]oapi.TownInfo, error) {
-	tlist, err := oapi.QueryList(oapi.TOWNS_ENDPOINT)
+	tlist, err := oapi.QueryList(oapi.ENDPOINT_TOWNS)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query all towns, could not get initial list\n%v", err)
 	}

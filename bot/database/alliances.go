@@ -9,8 +9,8 @@ import (
 )
 
 type AllianceColours struct {
-	Fill    string `json:"fill"`
-	Outline string `json:"outline"`
+	Fill    *string `json:"fill"`
+	Outline *string `json:"outline"`
 }
 
 type AllianceOptionals struct {

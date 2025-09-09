@@ -7,6 +7,7 @@ import (
 	"emcsrw/utils"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/samber/lo"
@@ -15,21 +16,53 @@ import (
 	dgo "github.com/bwmarrin/discordgo"
 )
 
+var DEFAULT_FOOTER = &dgo.MessageEmbedFooter{
+	IconURL: "https://cdn.discordapp.com/avatars/263377802647175170/a_0cd469f208f88cf98941123eb1b52259.webp?size=512&animated=true",
+	Text:    "Maintained by Owen3H | 💛",
+}
+
 var EmbedField = discordutil.EmbedField
 
 // Creates a single embed given alliance data. This is the output from `/alliance lookup`.
-func CreateAllianceEmbed(a *database.Alliance) *dgo.MessageEmbed {
-	leaderStr := "None"
-	leaders := a.Optional.Leaders
-	if leaders != nil {
-		leaderStr = strings.Join(*leaders, "\n")
+func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
+	// Resort to dark blue unless alliance has optional fill colour specified.
+	embedColour := discordutil.DARK_AQUA
+	colours := a.Optional.Colours
+	if colours != nil && colours.Fill != nil {
+		embedColour = utils.HexToInt(*colours.Fill)
 	}
 
+	// Leader field logic
+	leadersValue := "None"
+	leaders := a.Optional.Leaders
+	if leaders != nil {
+		leadersValue = strings.Join(*leaders, "\n")
+	}
+
+	// Representative field logic
+	var representativeValue string = "None"
+	u, err := s.User(strconv.FormatUint(*a.RepresentativeID, 10))
+	if err != nil {
+		representativeValue = u.Mention()
+	}
+
+	// Nation field logic
+	nationsLen := len(a.OwnNations)
+	if nationsLen > 0 {
+		slices.Sort(a.OwnNations) // Alphabet sort
+	}
+
+	nationsKey := fmt.Sprintf("Nations [%d]", nationsLen)
+	nationsValue := fmt.Sprintf("```%s```", strings.Join(a.OwnNations, ", "))
+
 	embed := &dgo.MessageEmbed{
-		Title: fmt.Sprintf("Alliance Info | `%s` (%s)", a.Label, a.Identifier),
+		Color:  embedColour,
+		Footer: DEFAULT_FOOTER,
+		Title:  fmt.Sprintf("Alliance Info | `%s` (%s)", a.Label, a.Identifier),
 		Fields: []*dgo.MessageEmbedField{
-			EmbedField("Leader(s)", leaderStr, false),
-			EmbedField("Nations", fmt.Sprintf("```%s```", strings.Join(a.OwnNations, ", ")), false),
+			EmbedField("Leader(s)", leadersValue, false),
+			EmbedField("Representative", representativeValue, true),
+			EmbedField(nationsKey, nationsValue, false),
 			EmbedField("Created At", fmt.Sprintf("<t:%d:R>", a.CreatedTimestamp()), true),
 			EmbedField("Last Updated", fmt.Sprintf("<t:%d:R>", *a.UpdatedTimestamp), true),
 		},
@@ -38,7 +71,7 @@ func CreateAllianceEmbed(a *database.Alliance) *dgo.MessageEmbed {
 	return embed
 }
 
-func CreatePlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
+func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 	registeredTs := resident.Timestamps.Registered / 1000  // Seconds
 	lastOnlineTs := *resident.Timestamps.LastOnline / 1000 // Seconds
 
@@ -98,7 +131,7 @@ func CreatePlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 	return embed
 }
 
-func CreateTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
+func NewTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 	foundedTs := town.Timestamps.Registered / 1000 // Seconds
 
 	townTitle := fmt.Sprintf("Town Information | %s", town.Name)
@@ -133,7 +166,7 @@ func CreateTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 	}
 }
 
-func CreateNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
+func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 	foundedTs := nation.Timestamps.Registered / 1000 // Seconds
 	dateFounded := fmt.Sprintf("<t:%d:R>", foundedTs)
 
@@ -157,7 +190,7 @@ func CreateNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 	}
 }
 
-func CreateTownlessPageEmbed(names []string) (*dgo.MessageEmbed, error) {
+func NewTownlessPageEmbed(names []string) (*dgo.MessageEmbed, error) {
 	embed := &dgo.MessageEmbed{
 		Type:        dgo.EmbedTypeRich,
 		Title:       fmt.Sprintf("[%d] Townless Players", len(names)),
@@ -167,7 +200,7 @@ func CreateTownlessPageEmbed(names []string) (*dgo.MessageEmbed, error) {
 	return embed, nil
 }
 
-func CreateStaffEmbed() (*dgo.MessageEmbed, error) {
+func NewStaffEmbed() (*dgo.MessageEmbed, error) {
 	var onlineStaff []string
 	var errors []error
 
