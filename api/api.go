@@ -35,7 +35,7 @@ func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
 	return players, nil
 }
 
-func QueryAllTowns(save bool) ([]oapi.TownInfo, error) {
+func QueryAllTowns() ([]oapi.TownInfo, error) {
 	tlist, err := oapi.QueryList(oapi.ENDPOINT_TOWNS)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query all towns, could not get initial list\n%v", err)
@@ -47,11 +47,6 @@ func QueryAllTowns(save bool) ([]oapi.TownInfo, error) {
 
 	// query towns concurrently
 	towns, _, _ := oapi.QueryConcurrent(identifiers, 50, oapi.QueryTowns)
-
-	if save {
-		// write to ~cwd/db/towns.json
-
-	}
 
 	return towns, nil
 }

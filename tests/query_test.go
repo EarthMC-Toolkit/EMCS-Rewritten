@@ -29,7 +29,7 @@ func TestQueryAllOnlinePlayers(t *testing.T) {
 func TestQueryAllTowns(t *testing.T) {
 	//t.SkipNow()
 
-	towns, err := api.QueryAllTowns(false)
+	towns, err := api.QueryAllTowns()
 	if err != nil {
 		t.Fatal("error querying all towns", err)
 	}

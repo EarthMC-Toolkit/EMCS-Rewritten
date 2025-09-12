@@ -3,6 +3,8 @@ package slashcommands
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
+	"emcsrw/bot/database"
+	"emcsrw/bot/discordutil"
 	"emcsrw/utils"
 	"fmt"
 
@@ -21,32 +23,41 @@ func (cmd ServerInfoCommand) Options() []*discordgo.ApplicationCommandOption {
 }
 
 func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	serverInfo, err := oapi.QueryServer()
+	// serverInfo, err := oapi.QueryServer()
+	// if err != nil {
+	// 	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	// 		Type: discordgo.InteractionResponseChannelMessageWithSource,
+	// 		Data: &discordgo.InteractionResponseData{
+	// 			Content: fmt.Sprintf("Error fetching server info: %v", err),
+	// 		},
+	// 	})
+	// }
+
+	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	info, err := database.GetInsensitive[oapi.ServerInfo](db, "serverinfo")
 	if err != nil {
-		return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("Error fetching server info: %v", err),
-			},
+		fmt.Printf("failed to get serverinfo from db:\n%v", err)
+		return discordutil.Reply(s, i.Interaction, &discordgo.InteractionResponseData{
+			Content: "An error occurred retrieving server info from the database. check the console",
 		})
 	}
 
-	onlineStr := utils.HumanizedSprintf("Online: `%d`\n", serverInfo.Stats.NumOnlinePlayers)
-	townlessStr := utils.HumanizedSprintf("Townless (Online/Total): `%d`/`%d`\n", serverInfo.Stats.NumOnlineNomads, serverInfo.Stats.NumNomads)
-	residentsStr := utils.HumanizedSprintf("Residents: `%d`\n", serverInfo.Stats.NumResidents)
-	townsStr := utils.HumanizedSprintf("Towns: `%d`\n", serverInfo.Stats.NumTowns)
-	nationsStr := utils.HumanizedSprintf("Nations: `%d`", serverInfo.Stats.NumNations)
+	onlineStr := utils.HumanizedSprintf("Online: `%d`\n", info.Stats.NumOnlinePlayers)
+	townlessStr := utils.HumanizedSprintf("Townless (Online/Total): `%d`/`%d`\n", info.Stats.NumOnlineNomads, info.Stats.NumNomads)
+	residentsStr := utils.HumanizedSprintf("Residents: `%d`\n", info.Stats.NumResidents)
+	townsStr := utils.HumanizedSprintf("Towns: `%d`\n", info.Stats.NumTowns)
+	nationsStr := utils.HumanizedSprintf("Nations: `%d`", info.Stats.NumNations)
 	statsField := &discordgo.MessageEmbedField{
 		Name:   "Statistics",
 		Value:  onlineStr + townlessStr + residentsStr + townsStr + nationsStr,
 		Inline: true,
 	}
 
-	vpTarget := serverInfo.VoteParty.Target
-	vpRemaining := serverInfo.VoteParty.NumRemaining
+	vpTarget := info.VoteParty.Target
+	vpRemaining := info.VoteParty.NumRemaining
 	vpField := &discordgo.MessageEmbedField{
 		Name:   "Vote Party",
-		Value:  utils.HumanizedSprintf("Current/Target: `%d`/`%d`\nRemaining: `%d`", vpTarget-vpRemaining, vpTarget, vpRemaining),
+		Value:  utils.HumanizedSprintf("Votes Completed/Target: `%d`/`%d`\nVotes Left: `%d`", vpTarget-vpRemaining, vpTarget, vpRemaining),
 		Inline: true,
 	}
 

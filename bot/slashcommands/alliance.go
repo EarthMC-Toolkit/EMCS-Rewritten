@@ -77,8 +77,8 @@ func LookupAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 	ident := cmdData.GetOption("identifier").StringValue()
 
 	// Try find alliance in DB
-	auroraDB := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	alliance, err := database.GetAllianceByIdentifier(auroraDB, ident)
+	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	alliance, err := database.GetAllianceByIdentifier(db, ident)
 	if err != nil {
 		fmt.Printf("failed to get alliance '%s' from db: %v", ident, err)
 
@@ -102,8 +102,8 @@ func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 		Label:      label,
 	}
 
-	auroraDB := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	err := database.PutAlliance(auroraDB, createdAlliance)
+	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	err := database.PutAlliance(db, createdAlliance)
 	if err != nil {
 		fmt.Printf("failed to put alliance %s into db:\n%v", ident, err)
 

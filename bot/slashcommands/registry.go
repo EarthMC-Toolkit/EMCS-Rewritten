@@ -63,6 +63,7 @@ func init() {
 	//Register(TownlessCommand{})
 	Register(MysteryMasterCommand{})
 	Register(AllianceCommand{})
+	Register(VotePartyCommand{})
 }
 
 // ======================================= COMMAND TEMPLATE =======================================

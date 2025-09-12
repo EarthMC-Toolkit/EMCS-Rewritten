@@ -1,11 +1,16 @@
 package events
 
 import (
+	"emcsrw/api/oapi"
+	"emcsrw/bot/common"
+	"emcsrw/bot/database"
 	"emcsrw/bot/slashcommands"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/dgraph-io/badger/v4"
 )
 
 // Leave empty to register commands globally
@@ -20,8 +25,12 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 	fmt.Println() // Print blank line. Keep this here.
 
+	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+
 	//api.QueryAndSaveTowns()
-	//scheduleTask(api.QueryAndSaveTowns(), 30*time.Second)
+	scheduleTask(func() {
+		QueryAndSaveServerInfo(db)
+	}, 60*time.Second)
 }
 
 // Deletes any commands existing on the remote (what discord has registered) as long as they
@@ -50,7 +59,7 @@ func CleanupOldCommands(s *discordgo.Session) {
 
 func RegisterSlashCommands(s *discordgo.Session) {
 	for _, cmd := range slashcommands.All() {
-		fmt.Printf("Registering slash command: %s.\n", cmd.Name())
+		fmt.Printf("Registering slash command '%s'\n", cmd.Name())
 
 		_, err := s.ApplicationCommandCreate(s.State.User.ID, guildID, slashcommands.ToApplicationCommand(cmd))
 		if err != nil {
@@ -59,21 +68,38 @@ func RegisterSlashCommands(s *discordgo.Session) {
 	}
 }
 
-func scheduleTask(fn func(), interval time.Duration) chan struct{} {
+func scheduleTask(task func(), interval time.Duration) chan struct{} {
 	stop := make(chan struct{})
 	ticker := time.NewTicker(interval)
 
 	go func() {
 		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				fn()
-			case <-stop:
-				return
-			}
+		for range ticker.C {
+			task()
 		}
 	}()
 
 	return stop
+}
+
+func QueryAndSaveAllTowns() {
+
+}
+
+func QueryAndSaveServerInfo(mapDB *badger.DB) {
+	info, err := oapi.QueryServer()
+	if err != nil {
+		fmt.Printf("error putting server info into db at %s:\n%v", mapDB.Opts().Dir, err)
+		return
+	}
+
+	data, err := json.Marshal(info)
+	if err != nil {
+		fmt.Printf("error putting server info into db at %s:\n%v", mapDB.Opts().Dir, err)
+		return
+	}
+
+	// NOTE: Consider putting VP and statistics seperately. Is this optimization worth it?
+	database.PutInsensitive(mapDB, "serverinfo", data)
+	fmt.Printf("put server info into db at %s\n", mapDB.Opts().Dir)
 }
