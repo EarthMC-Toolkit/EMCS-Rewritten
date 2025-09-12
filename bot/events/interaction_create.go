@@ -44,7 +44,7 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 	if err != nil {
 		fmt.Printf("\n'%s' failed to execute command /%s:\n%v", author.Username, cmdName, err)
 	} else {
-		fmt.Printf("\n'%s' successfully executed command /%s", author.Username, cmdName)
+		fmt.Printf("\n'%s' successfully executed command /%s\n", author.Username, cmdName)
 	}
 }
 
