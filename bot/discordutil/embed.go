@@ -9,8 +9,8 @@ const (
 	GREEN       = 0x2ecc71
 	BLUE        = 0x3498db
 	YELLOW      = 0xffff00
-	PURPLE      = 0x9b59b6
 	GOLD        = 0xf1c40f
+	PURPLE      = 0x9b59b6
 	ORANGE      = 0xe67e22
 	RED         = 0xe74c3c
 	GREY        = 0x95a5a6

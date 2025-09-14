@@ -2,9 +2,11 @@ package database
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/dgraph-io/badger/v4"
 )
@@ -46,8 +48,15 @@ func GetInsensitive[T any](db *badger.DB, key string) (*T, error) {
 			return err
 		}
 
+		start := time.Now()
+
 		val, _ := item.ValueCopy(nil)
-		return json.Unmarshal(val, &a)
+		err = json.Unmarshal(val, &a)
+
+		elapsed := time.Since(start)
+		fmt.Printf("DEBUG: time to copy and unmarshal '%s' value: %s\n", key, elapsed)
+
+		return err
 	})
 
 	if err != nil {

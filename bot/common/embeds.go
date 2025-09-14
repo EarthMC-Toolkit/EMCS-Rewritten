@@ -118,7 +118,7 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 
 	embed := &dgo.MessageEmbed{
 		Type:  dgo.EmbedTypeRich,
-		Color: 7419530,
+		Color: discordutil.DARK_PURPLE,
 		Thumbnail: &dgo.MessageEmbedThumbnail{
 			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", resident.UUID),
 		},
@@ -190,7 +190,7 @@ func NewTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 		Type:        dgo.EmbedTypeRich,
 		Title:       townTitle,
 		Description: desc,
-		Color:       utils.HexToInt("2ecc71"), // GREEN
+		Color:       discordutil.GREEN,
 		Fields: []*dgo.MessageEmbedField{
 			EmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
 			EmbedField("Founder", fmt.Sprintf("`%s`", town.Founder), true),
@@ -273,6 +273,6 @@ func NewStaffEmbed() (*dgo.MessageEmbed, error) {
 		Type:        dgo.EmbedTypeRich,
 		Title:       "Staff List | Online",
 		Description: fmt.Sprintf("```%s```", content),
-		Color:       15844367,
+		Color:       discordutil.GOLD,
 	}, nil
 }

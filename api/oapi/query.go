@@ -87,14 +87,15 @@ func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
 // If there are any leftover identifiers, they will be queried in a final request.
 // A [sync.WaitGroup] will catch the error that may occur during any of the requests and append it to the resulting error slice.
 //
-// The following example sends X amount of requests as necessary and sleeps for 350ms between each request.
+// The following example sends X amount of requests as necessary and sleeps for a 350ms (custom) between each request. To send requests
+// with the default dynamic amount of sleep depending on the amount of items to keep under RATE_LIMIT, pass 0. For no sleep at all, pass any negative value.
 //
 //	players, err := oapi.QueryConcurrent(names, 350, oapi.QueryPlayers)
 //
 // This func has slight overhead and calling queryFunc directly where possible is always preferred!
 func QueryConcurrent[T Identifiable](
 	identifiers []string,
-	sleepAmt uint32,
+	sleepAmt int,
 	queryFunc func(ids ...string) ([]T, error),
 ) ([]T, []error, int) {
 	chunks := lo.Chunk(identifiers, QUERY_LIMIT)
@@ -107,9 +108,8 @@ func QueryConcurrent[T Identifiable](
 	wg := &sync.WaitGroup{}
 	wg.Add(chunkLen)
 
-	var ticker *time.Ticker
-	if sleepAmt > 0 {
-		ticker = time.NewTicker(time.Duration(sleepAmt) * time.Millisecond)
+	var ticker = queryTicker(sleepAmt)
+	if ticker != nil {
 		defer ticker.Stop()
 	}
 
@@ -141,16 +141,18 @@ func QueryConcurrent[T Identifiable](
 		errs = append(errs, err)
 	}
 
-	// Deduplicate by UUID via getUUID
-	// entityMap := make(map[string]T)
-	// for _, e := range all {
-	// 	entityMap[e.GetUUID()] = e
-	// }
-
-	// unique := make([]T, 0, len(entityMap))
-	// for _, e := range entityMap {
-	// 	unique = append(unique, e)
-	// }
-
 	return all, errs, chunkLen
+}
+
+func queryTicker(sleepAmt int) (ticker *time.Ticker) {
+	if sleepAmt < 0 {
+		return nil
+	}
+
+	if sleepAmt == 0 {
+		perRequestMs := (60 * 1000) / RATE_LIMIT
+		return time.NewTicker(time.Duration(perRequestMs) * time.Millisecond)
+	}
+
+	return time.NewTicker(time.Duration(sleepAmt) * time.Millisecond)
 }

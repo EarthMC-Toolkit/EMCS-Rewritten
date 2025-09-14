@@ -1,6 +1,7 @@
 package events
 
 import (
+	"emcsrw/api"
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
 	"emcsrw/bot/database"
@@ -23,14 +24,14 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	CleanupOldCommands(s)
 	RegisterSlashCommands(s)
 
-	fmt.Println() // Print blank line. Keep this here.
+	fmt.Printf("\n\n")
 
 	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
 
 	//api.QueryAndSaveTowns()
 	scheduleTask(func() {
 		QueryAndSaveServerInfo(db)
-	}, 60*time.Second)
+	}, true, 60*time.Second)
 }
 
 // Deletes any commands existing on the remote (what discord has registered) as long as they
@@ -68,7 +69,11 @@ func RegisterSlashCommands(s *discordgo.Session) {
 	}
 }
 
-func scheduleTask(task func(), interval time.Duration) chan struct{} {
+func scheduleTask(task func(), runInitial bool, interval time.Duration) chan struct{} {
+	if runInitial {
+		task()
+	}
+
 	stop := make(chan struct{})
 	ticker := time.NewTicker(interval)
 
@@ -82,8 +87,21 @@ func scheduleTask(task func(), interval time.Duration) chan struct{} {
 	return stop
 }
 
-func QueryAndSaveAllTowns() {
+func QueryAndSaveAllTowns(mapDB *badger.DB) {
+	towns, err := api.QueryAllTowns()
+	if err != nil {
+		fmt.Printf("error putting towns into db at %s:\n%v", mapDB.Opts().Dir, err)
+		return
+	}
 
+	data, err := json.Marshal(towns)
+	if err != nil {
+		fmt.Printf("error putting towns into db at %s:\n%v", mapDB.Opts().Dir, err)
+		return
+	}
+
+	database.PutInsensitive(mapDB, "towns", data)
+	fmt.Printf("put towns into db at %s\n", mapDB.Opts().Dir)
 }
 
 func QueryAndSaveServerInfo(mapDB *badger.DB) {

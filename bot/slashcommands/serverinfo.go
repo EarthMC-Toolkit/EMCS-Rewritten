@@ -23,16 +23,6 @@ func (cmd ServerInfoCommand) Options() []*discordgo.ApplicationCommandOption {
 }
 
 func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	// serverInfo, err := oapi.QueryServer()
-	// if err != nil {
-	// 	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-	// 		Type: discordgo.InteractionResponseChannelMessageWithSource,
-	// 		Data: &discordgo.InteractionResponseData{
-	// 			Content: fmt.Sprintf("Error fetching server info: %v", err),
-	// 		},
-	// 	})
-	// }
-
 	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
 	info, err := database.GetInsensitive[oapi.ServerInfo](db, "serverinfo")
 	if err != nil {
@@ -64,7 +54,7 @@ func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.Interact
 	embed := &discordgo.MessageEmbed{
 		Title:  "Server Info",
 		Fields: []*discordgo.MessageEmbedField{statsField, vpField},
-		Color:  0x5C4DFF,
+		Color:  discordutil.BLURPLE,
 		Footer: common.DEFAULT_FOOTER,
 	}
 

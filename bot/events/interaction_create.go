@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"runtime/debug"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -40,11 +41,14 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 	cmdName := i.ApplicationCommandData().Name
 	cmd := slashcommands.All()[cmdName]
 
+	start := time.Now()
 	err := cmd.Execute(s, i)
+	elapsed := time.Since(start)
+
 	if err != nil {
 		fmt.Printf("\n'%s' failed to execute command /%s:\n%v", author.Username, cmdName, err)
 	} else {
-		fmt.Printf("\n'%s' successfully executed command /%s\n", author.Username, cmdName)
+		fmt.Printf("\n'%s' successfully executed command /%s (took: %s)\n", author.Username, cmdName, elapsed)
 	}
 }
 

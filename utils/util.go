@@ -1,32 +1,30 @@
 package utils
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"github.com/sanity-io/litter"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
 
-type UUID4 uuid.UUID
+// type UUID4 uuid.UUID
 
-func (u *UUID4) UnmarshalJSON(b []byte) error {
-	id, err := uuid.Parse(string(b[:]))
-	if err != nil {
-		return err
-	}
-	*u = UUID4(id)
-	return nil
-}
+// func (u *UUID4) UnmarshalJSON(b []byte) error {
+// 	id, err := uuid.Parse(string(b[:]))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	*u = UUID4(id)
+// 	return nil
+// }
 
-func (u *UUID4) MarshalJSON() ([]byte, error) {
-	return fmt.Appendf(nil, "\"%s\"", uuid.UUID(*u).String()), nil
-}
+// func (u *UUID4) MarshalJSON() ([]byte, error) {
+// 	return fmt.Appendf(nil, "\"%s\"", uuid.UUID(*u).String()), nil
+// }
 
 type Loggable interface {
 	Log(args ...any)
@@ -66,9 +64,10 @@ func Prettify(i any) string {
 }
 
 func HexToInt(hex string) int {
-	str := strings.ReplaceAll(hex, "0x", "")
-	output, _ := strconv.ParseUint(str, 16, 32)
+	str := strings.ReplaceAll(hex, "#", "")
+	str = strings.ReplaceAll(str, "0x", "")
 
+	output, _ := strconv.ParseUint(str, 16, 32)
 	return int(output)
 }
 

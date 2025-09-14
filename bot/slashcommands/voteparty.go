@@ -4,6 +4,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
 	"emcsrw/bot/database"
+	"emcsrw/bot/discordutil"
 	"emcsrw/utils"
 
 	"github.com/bwmarrin/discordgo"
@@ -33,7 +34,7 @@ func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.Interacti
 	embed := &discordgo.MessageEmbed{
 		Title:       "VoteParty Status",
 		Description: utils.HumanizedSprintf("Votes Completed/Target: `%d`/`%d`\nVotes Left: `%d`", vpTarget-vpRemaining, vpTarget, vpRemaining),
-		Color:       0x5C4DFF,
+		Color:       discordutil.BLURPLE,
 		Footer:      common.DEFAULT_FOOTER,
 	}
 

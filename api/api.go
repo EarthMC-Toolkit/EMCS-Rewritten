@@ -31,7 +31,7 @@ func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
 		return p.Name
 	})
 
-	players, _, _ := oapi.QueryConcurrent(names, 0, oapi.QueryPlayers)
+	players, _, _ := oapi.QueryConcurrent(names, -1, oapi.QueryPlayers)
 	return players, nil
 }
 
@@ -45,8 +45,6 @@ func QueryAllTowns() ([]oapi.TownInfo, error) {
 		return e.UUID
 	})
 
-	// query towns concurrently
-	towns, _, _ := oapi.QueryConcurrent(identifiers, 50, oapi.QueryTowns)
-
+	towns, _, _ := oapi.QueryConcurrent(identifiers, 40, oapi.QueryTowns)
 	return towns, nil
 }
