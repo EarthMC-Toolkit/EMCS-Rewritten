@@ -45,6 +45,14 @@ func All() map[string]SlashCommand {
 	return commands
 }
 
+func AllNames() (names []string) {
+	for name := range commands {
+		names = append(names, name)
+	}
+
+	return
+}
+
 func Register(cmd SlashCommand) {
 	if _, exists := commands[cmd.Name()]; exists {
 		fmt.Printf("Command '%s' is already registered!\n", cmd.Name())
@@ -64,6 +72,7 @@ func init() {
 	Register(MysteryMasterCommand{})
 	Register(AllianceCommand{})
 	Register(VotePartyCommand{})
+	Register(UsageCommand{})
 }
 
 // ======================================= COMMAND TEMPLATE =======================================

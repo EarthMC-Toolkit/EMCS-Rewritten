@@ -58,14 +58,10 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	cmdData := i.ApplicationCommandData()
-
-	lookup := cmdData.GetOption("lookup")
-	if lookup != nil {
+	if lookup := cmdData.GetOption("lookup"); lookup != nil {
 		return LookupAlliance(s, i.Interaction)
 	}
-
-	create := cmdData.GetOption("create")
-	if create != nil {
+	if create := cmdData.GetOption("create"); create != nil {
 		return CreateAlliance(s, i.Interaction)
 	}
 

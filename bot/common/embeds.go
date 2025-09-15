@@ -16,12 +16,11 @@ import (
 	dgo "github.com/bwmarrin/discordgo"
 )
 
+var EmbedField = discordutil.EmbedField
 var DEFAULT_FOOTER = &dgo.MessageEmbedFooter{
 	IconURL: "https://cdn.discordapp.com/avatars/263377802647175170/a_0cd469f208f88cf98941123eb1b52259.webp?size=512&animated=true",
 	Text:    "Maintained by Owen3H • Open Source on GitHub 💛", // unless you maintain your own fork, pls keep this as is :)
 }
-
-var EmbedField = discordutil.EmbedField
 
 // Creates a single embed given alliance data. This is the output from `/alliance lookup`.
 func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {

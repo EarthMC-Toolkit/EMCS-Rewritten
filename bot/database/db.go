@@ -33,35 +33,37 @@ func GetMapDB(mapName string) *badger.DB {
 	return databases[mapName]
 }
 
+func GetInsensitiveTxn[T any](txn *badger.Txn, key string) (out *T, err error) {
+	out = new(T)
+
+	item, err := txn.Get([]byte(strings.ToLower(key)))
+	if err != nil {
+		return
+	}
+
+	val, _ := item.ValueCopy(nil)
+	err = json.Unmarshal(val, out)
+
+	return
+}
+
+func GetInsensitive[T any](db *badger.DB, key string) (out *T, err error) {
+	err = db.View(func(txn *badger.Txn) error {
+		start := time.Now()
+		out, err = GetInsensitiveTxn[T](txn, key)
+		fmt.Printf("DEBUG | time to get key '%s' from db: %s\n", key, time.Since(start))
+		return err
+	})
+
+	return
+}
+
+// Puts data into the DB at the specified key which is automatically lowercased.
+//
+// This func is a very simple wrapper around db.Update() and txn.Set().
+// If any get call or data manipulation is required prior to txn.Set(), prefer a single transaction via db.Update().
 func PutInsensitive(db *badger.DB, key string, data []byte) error {
 	return db.Update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(strings.ToLower(key)), data)
 	})
-}
-
-func GetInsensitive[T any](db *badger.DB, key string) (*T, error) {
-	var a T
-
-	err := db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(strings.ToLower(key)))
-		if err != nil {
-			return err
-		}
-
-		start := time.Now()
-
-		val, _ := item.ValueCopy(nil)
-		err = json.Unmarshal(val, &a)
-
-		elapsed := time.Since(start)
-		fmt.Printf("DEBUG: time to copy and unmarshal '%s' value: %s\n", key, elapsed)
-
-		return err
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &a, nil
 }

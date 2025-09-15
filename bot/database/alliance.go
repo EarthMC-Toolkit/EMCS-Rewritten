@@ -38,6 +38,12 @@ func (a *Alliance) CreatedTimestamp() uint64 {
 // ================================== DATABASE INTERACTION ==================================
 const ALLIANCES_KEY_PREFIX = "alliances/"
 
+// Finds the alliance by its key. ident is automatically lowercased for case-insensitive lookup.
+// The actual `Identifier` property on the alliance will still have its original casing.
+func GetAllianceByIdentifier(mapDB *badger.DB, ident string) (*Alliance, error) {
+	return GetInsensitive[Alliance](mapDB, ALLIANCES_KEY_PREFIX+ident)
+}
+
 func PutAlliance(mapDB *badger.DB, a *Alliance) error {
 	data, err := json.Marshal(a)
 	if err != nil {
@@ -45,12 +51,6 @@ func PutAlliance(mapDB *badger.DB, a *Alliance) error {
 	}
 
 	return PutInsensitive(mapDB, ALLIANCES_KEY_PREFIX+a.Identifier, data)
-}
-
-// Finds the alliance by its key. ident is automatically lowercased for case-insensitive lookup.
-// The actual `Identifier` property on the alliance will still have its original casing.
-func GetAllianceByIdentifier(mapDB *badger.DB, ident string) (*Alliance, error) {
-	return GetInsensitive[Alliance](mapDB, ALLIANCES_KEY_PREFIX+ident)
 }
 
 func DumpAlliances(mapDB *badger.DB) error {

@@ -2,8 +2,10 @@ package main
 
 import (
 	"emcsrw/bot"
+	"fmt"
 	"log"
 	"os"
+	"runtime"
 
 	"github.com/joho/godotenv"
 )
@@ -27,5 +29,7 @@ func getToken() string {
 func main() {
 	// Start the bot with the token.
 	loadEnv()
+
+	fmt.Printf("Loaded ENV. Starting bot with %d threads.\n", runtime.GOMAXPROCS(-1))
 	bot.Run(getToken())
 }

@@ -7,6 +7,7 @@ import (
 	"emcsrw/bot/discordutil"
 	"emcsrw/utils"
 	"fmt"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -32,14 +33,16 @@ func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.Interact
 		})
 	}
 
-	onlineStr := utils.HumanizedSprintf("Online: `%d`\n", info.Stats.NumOnlinePlayers)
-	townlessStr := utils.HumanizedSprintf("Townless (Online/Total): `%d`/`%d`\n", info.Stats.NumOnlineNomads, info.Stats.NumNomads)
-	residentsStr := utils.HumanizedSprintf("Residents: `%d`\n", info.Stats.NumResidents)
-	townsStr := utils.HumanizedSprintf("Towns: `%d`\n", info.Stats.NumTowns)
-	nationsStr := utils.HumanizedSprintf("Nations: `%d`", info.Stats.NumNations)
 	statsField := &discordgo.MessageEmbedField{
-		Name:   "Statistics",
-		Value:  onlineStr + townlessStr + residentsStr + townsStr + nationsStr,
+		Name: "Statistics",
+		Value: strings.Join([]string{
+			utils.HumanizedSprintf("Online: `%d`", info.Stats.NumOnlinePlayers),
+			utils.HumanizedSprintf("Townless (Online/Total): `%d`/`%d`", info.Stats.NumOnlineNomads, info.Stats.NumNomads),
+			utils.HumanizedSprintf("Residents: `%d`", info.Stats.NumResidents),
+			utils.HumanizedSprintf("Towns: `%d`", info.Stats.NumTowns),
+			utils.HumanizedSprintf("Nations: `%d`", info.Stats.NumNations),
+			utils.HumanizedSprintf("Quarters: `%d`", info.Stats.NumQuarters),
+		}, "\n"),
 		Inline: true,
 	}
 

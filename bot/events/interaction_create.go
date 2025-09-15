@@ -1,6 +1,8 @@
 package events
 
 import (
+	"emcsrw/bot/common"
+	"emcsrw/bot/database"
 	"emcsrw/bot/discordutil"
 	"emcsrw/bot/slashcommands"
 	"fmt"
@@ -39,16 +41,46 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 	author := discordutil.UserFromInteraction(i.Interaction)
 
 	cmdName := i.ApplicationCommandData().Name
+	cmdType := i.ApplicationCommandData().CommandType
 	cmd := slashcommands.All()[cmdName]
 
 	start := time.Now()
 	err := cmd.Execute(s, i)
 	elapsed := time.Since(start)
 
+	success := false
 	if err != nil {
 		fmt.Printf("\n'%s' failed to execute command /%s:\n%v", author.Username, cmdName, err)
 	} else {
 		fmt.Printf("\n'%s' successfully executed command /%s (took: %s)\n", author.Username, cmdName, elapsed)
+		success = true
+	}
+
+	// TODO: Maybe combine get/put into single update transaction. Rn this is View&Get + Update&Set
+	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	// usage, err := database.GetUserUsage(db, author.ID)
+	// if err != nil {
+	// 	fmt.Printf("\ndb error occurred. could not get usage for user: %s (%s)\n%v", author.Username, author.ID, err)
+	// 	return
+	// }
+
+	// Add a new command usage entry to history.
+	// usage.CommandHistory[cmdName] = append(usage.CommandHistory[cmdName], database.CommandEntry{
+	// 	Type:      uint8(cmdType),
+	// 	Timestamp: time.Now().Unix(),
+	// 	Success:   success,
+	// })
+
+	if cmdName != "usage" {
+		err = database.UpdateUserUsage(db, author.ID, cmdName, database.CommandEntry{
+			Type:      uint8(cmdType),
+			Timestamp: time.Now().Unix(),
+			Success:   success,
+		})
+	}
+
+	if err != nil {
+		fmt.Printf("\ndb error occurred. could not update usage for user: %s (%s)\n%v", author.Username, author.ID, err)
 	}
 }
 

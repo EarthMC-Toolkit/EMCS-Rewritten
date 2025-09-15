@@ -1,6 +1,8 @@
 package discordutil
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"github.com/bwmarrin/discordgo"
+)
 
 const (
 	DEFAULT     = 0x000000
@@ -25,6 +27,11 @@ const (
 	BLURPLE     = 0x7289da
 	DARK        = 0x2c2f33
 )
+
+type LabelledValue struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
+}
 
 func EmbedField(name string, value string, inline bool) *discordgo.MessageEmbedField {
 	return &discordgo.MessageEmbedField{
