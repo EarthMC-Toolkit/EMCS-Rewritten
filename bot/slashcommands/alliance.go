@@ -11,17 +11,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func RequiredStringOption(name, description string, minLen, maxLen int) *discordgo.ApplicationCommandOption {
-	return &discordgo.ApplicationCommandOption{
-		Type:        discordgo.ApplicationCommandOptionString,
-		Name:        name,
-		Description: description,
-		MinLength:   &minLen,
-		MaxLength:   maxLen,
-		Required:    true,
-	}
-}
-
 type AllianceCommand struct{}
 
 func (cmd AllianceCommand) Name() string { return "alliance" }
@@ -33,10 +22,10 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 	return AppCommandOpts{
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "lookup",
-			Description: "Retrieves information about an alliance via it's identifier.",
+			Name:        "query",
+			Description: "Query information about an alliance (meganation or pact between nations).",
 			Options: AppCommandOpts{
-				RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
+				discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
 			},
 		},
 		{
@@ -44,8 +33,8 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 			Name:        "create",
 			Description: "Create an alliance.",
 			Options: AppCommandOpts{
-				RequiredStringOption("identifier", "The short unique name used to look up the alliance.", 3, 16),
-				RequiredStringOption("label", "The full name for display purposes.", 4, 36),
+				discordutil.RequiredStringOption("identifier", "The short unique name used to look up the alliance.", 3, 16),
+				discordutil.RequiredStringOption("label", "The full name for display purposes.", 4, 36),
 			},
 		},
 	}
@@ -58,19 +47,19 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	cmdData := i.ApplicationCommandData()
-	if lookup := cmdData.GetOption("lookup"); lookup != nil {
-		return LookupAlliance(s, i.Interaction)
+	if lookup := cmdData.GetOption("query"); lookup != nil {
+		return QueryAlliance(s, i.Interaction, cmdData)
 	}
 	if create := cmdData.GetOption("create"); create != nil {
-		return CreateAlliance(s, i.Interaction)
+		return CreateAlliance(s, i.Interaction, cmdData)
 	}
 
 	return err
 }
 
-func LookupAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
-	cmdData := i.ApplicationCommandData().GetOption("lookup")
-	ident := cmdData.GetOption("identifier").StringValue()
+func QueryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
+	opt := data.GetOption("query")
+	ident := opt.GetOption("identifier").StringValue()
 
 	// Try find alliance in DB
 	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
@@ -86,11 +75,11 @@ func LookupAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 	return err
 }
 
-func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
-	cmdData := i.ApplicationCommandData().GetOption("create")
+func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
+	opt := data.GetOption("create")
 
-	ident := cmdData.GetOption("identifier").StringValue()
-	label := cmdData.GetOption("label").StringValue()
+	ident := opt.GetOption("identifier").StringValue()
+	label := opt.GetOption("label").StringValue()
 
 	createdAlliance := &database.Alliance{
 		ID:         generateAllianceID(),

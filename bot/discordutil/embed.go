@@ -40,3 +40,14 @@ func EmbedField(name string, value string, inline bool) *discordgo.MessageEmbedF
 		Inline: inline,
 	}
 }
+
+func RequiredStringOption(name, description string, minLen, maxLen int) *discordgo.ApplicationCommandOption {
+	return &discordgo.ApplicationCommandOption{
+		Type:        discordgo.ApplicationCommandOptionString,
+		Name:        name,
+		Description: description,
+		MinLength:   &minLen,
+		MaxLength:   maxLen,
+		Required:    true,
+	}
+}

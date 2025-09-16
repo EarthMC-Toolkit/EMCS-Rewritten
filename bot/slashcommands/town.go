@@ -20,10 +20,12 @@ func (cmd TownCommand) Description() string {
 func (cmd TownCommand) Options() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
 		{
-			Name:        "name",
-			Type:        discordgo.ApplicationCommandOptionString,
-			Description: "The name of the town to retrieve information for.",
-			Required:    true,
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "query",
+			Description: "Query information about a town. Similar to /t in-game.",
+			Options: AppCommandOpts{
+				discordutil.RequiredStringOption("name", "The name of the town to query.", 2, 36),
+			},
 		},
 	}
 }
@@ -34,12 +36,13 @@ func (cmd TownCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCre
 		return err
 	}
 
-	_, err = SendSingleTown(s, i.Interaction)
+	_, err = QueryTown(s, i.Interaction)
 	return err
 }
 
-func SendSingleTown(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.Message, error) {
-	townNameArg := i.ApplicationCommandData().GetOption("name").StringValue()
+func QueryTown(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.Message, error) {
+	data := i.ApplicationCommandData()
+	townNameArg := data.GetOption("query").GetOption("name").StringValue()
 
 	towns, err := oapi.QueryTowns(strings.ToLower(townNameArg))
 	if err != nil {

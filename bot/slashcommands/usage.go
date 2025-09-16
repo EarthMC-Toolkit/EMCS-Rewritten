@@ -7,6 +7,7 @@ import (
 	"emcsrw/utils"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/dgraph-io/badger/v4"
@@ -64,20 +65,30 @@ func ExecuteSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 		})
 	}
 
-	stats := usage.GetCommandStats()
-
-	top := min(len(stats), 5)
+	// Get stats for all time and convert to formatted string.
+	statsAllTime := usage.GetCommandStats()
+	top := min(20, len(statsAllTime)) // How many "most used commands" to display.
 	mostUsed := make([]string, 0, top)
-
-	for _, stat := range stats[:top] {
+	for _, stat := range statsAllTime[:top] {
 		mostUsed = append(mostUsed, utils.HumanizedSprintf("/%s - `%d` times", stat.Name, stat.Count))
 	}
+	mostUsedStr := strings.Join(mostUsed, "\n")
+
+	// Get stats for last 30d and convert to formatted string.
+	statsLast30Days := usage.GetCommandStatsSince(time.Now().AddDate(0, 0, -30))
+	top = min(20, len(statsLast30Days)) // How many "most used commands" to display.
+	mostUsed = make([]string, 0, top)
+	for _, stat := range statsLast30Days[:top] {
+		mostUsed = append(mostUsed, utils.HumanizedSprintf("/%s - `%d` times", stat.Name, stat.Count))
+	}
+	mostUsed30DaysStr := strings.Join(mostUsed, "\n")
 
 	embed := &discordgo.MessageEmbed{
 		Title: fmt.Sprintf("Bot Usage Statistics | `%s`", author.Username),
 		Fields: []*discordgo.MessageEmbedField{
-			common.EmbedField("Most Used Commands", strings.Join(mostUsed, "\n"), false),
 			common.EmbedField("Total Commands Executed", utils.HumanizedSprintf("`%d`", usage.TotalCommandsExecuted()), false),
+			common.EmbedField("Top Commands (All Time)", mostUsedStr, true),
+			common.EmbedField("Top Commands (Last 30 Days)", mostUsed30DaysStr, true),
 		},
 		Color: discordutil.WHITE,
 	}

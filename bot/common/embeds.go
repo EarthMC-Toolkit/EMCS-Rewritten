@@ -209,21 +209,53 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 	stats := nation.Stats
 	spawn := nation.Coordinates.Spawn
 
-	return &dgo.MessageEmbed{
-		Type:  dgo.EmbedTypeRich,
-		Title: fmt.Sprintf("Nation | %s", nation.Name),
-		Color: nation.FillColourInt(),
+	towns := lop.Map(nation.Towns, func(e oapi.Entity, _ int) string {
+		return e.Name
+	})
+
+	slices.Sort(towns)
+
+	board := nation.Board
+	if board != "" {
+		board = fmt.Sprintf("*%s*", board)
+	}
+
+	capitalName := nation.Capital.Name
+	leaderName := nation.King.Name
+	leaderProfileLink := NAMEMC_URL + nation.King.UUID
+
+	leaderStr := fmt.Sprintf("[%s](%s)", leaderName, leaderProfileLink)
+
+	open := fmt.Sprintf("%s Open", lo.Ternary(nation.Status.Open, ":green_circle:", ":red_circle:"))
+	public := fmt.Sprintf("%s Public", lo.Ternary(nation.Status.Public, ":green_circle:", ":red_circle:"))
+	neutral := fmt.Sprintf("%s Neutral", lo.Ternary(nation.Status.Neutral, ":green_circle:", ":red_circle:"))
+
+	embed := &dgo.MessageEmbed{
+		Type:        dgo.EmbedTypeRich,
+		Title:       fmt.Sprintf("Nation Information | `%s`", nation.Name),
+		Description: board,
+		Color:       nation.FillColourInt(),
 		Fields: []*dgo.MessageEmbedField{
-			EmbedField("King", nation.King.Name, true),
-			EmbedField("Capital", nation.Capital.Name, true),
+			EmbedField("Leader", leaderStr, true),
+			EmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
 			EmbedField("Location", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", spawn.X, spawn.Z, spawn.X, spawn.Y, spawn.Z), true),
-			EmbedField("Date Founded", dateFounded, true),
-			EmbedField("Area", fmt.Sprintf("%d Chunks", stats.NumTownBlocks), true),
-			EmbedField("Balance", fmt.Sprintf("%.0fG", stats.Balance), true),
-			EmbedField("Residents", fmt.Sprintf("`%d`", stats.NumResidents), false),
-			EmbedField("Allies/Enemies", fmt.Sprintf("`%d` / `%d`", stats.NumAllies, stats.NumEnemies), false),
+			EmbedField("Size", fmt.Sprintf("%s `%d` Chunks", EMOJIS.CHUNK, stats.NumTownBlocks), true),
+			EmbedField("Residents", fmt.Sprintf("`%d`", stats.NumResidents), true),
+			EmbedField("Balance", utils.HumanizedSprintf("%s `%.0f`G", EMOJIS.GOLD_INGOT, stats.Balance), true),
+			EmbedField("Allies/Enemies", fmt.Sprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies), true),
+			EmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
+			EmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),
+			EmbedField(fmt.Sprintf("Towns [%d]", stats.NumTowns), fmt.Sprintf("```%s```", strings.Join(towns, ", ")), false),
+			EmbedField("Founded", dateFounded, true),
 		},
 	}
+
+	if nation.Wiki != nil {
+		field := EmbedField("Wiki", fmt.Sprintf("[Visit wiki page](%s)", *nation.Wiki), true)
+		embed.Fields = append(embed.Fields, field)
+	}
+
+	return embed
 }
 
 func NewTownlessPageEmbed(names []string) (*dgo.MessageEmbed, error) {

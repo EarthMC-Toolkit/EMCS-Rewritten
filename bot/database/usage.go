@@ -6,13 +6,14 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/dgraph-io/badger/v4"
 )
 
 type CommandStat struct {
-	Name  string
-	Entry CommandEntry
+	Name string
+	//Entry CommandEntry
 	Count int
 }
 
@@ -45,14 +46,39 @@ func (u *UserUsage) GetCommandStats() []CommandStat {
 	stats := make([]CommandStat, 0, len(keys))
 	for _, k := range keys {
 		entries := u.CommandHistory[k]
-		if len(entries) > 0 {
+		entriesLen := len(entries)
+
+		if entriesLen > 0 {
 			stats = append(stats, CommandStat{
 				Name:  k,
-				Entry: entries[0],
-				Count: len(entries),
+				Count: entriesLen,
+				//Entry: entries[0],
 			})
 		}
 	}
+
+	return stats
+}
+
+func (u *UserUsage) GetCommandStatsSince(t time.Time) []CommandStat {
+	executionCounts := make(map[string]int) // key = command name | value = times executed since t
+	for name, entries := range u.CommandHistory {
+		for _, entry := range entries {
+			executedAt := time.Unix(entry.Timestamp, 0).UTC()
+			if executedAt.After(t) {
+				executionCounts[name]++
+			}
+		}
+	}
+
+	stats := make([]CommandStat, 0, len(executionCounts))
+	for name, count := range executionCounts {
+		stats = append(stats, CommandStat{Name: name, Count: count})
+	}
+
+	sort.Slice(stats, func(i, j int) bool {
+		return stats[i].Count > stats[j].Count
+	})
 
 	return stats
 }

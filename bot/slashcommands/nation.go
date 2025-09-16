@@ -20,10 +20,12 @@ func (cmd NationCommand) Description() string {
 func (cmd NationCommand) Options() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
 		{
-			Name:        "name",
-			Type:        discordgo.ApplicationCommandOptionString,
-			Description: "The name of the nation to retrieve information for.",
-			Required:    true,
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "query",
+			Description: "Query information about a nation. Similar to /n in-game.",
+			Options: AppCommandOpts{
+				discordutil.RequiredStringOption("name", "The name of the nation to query.", 2, 36),
+			},
 		},
 	}
 }
@@ -34,12 +36,13 @@ func (cmd NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	_, err = SendSingleNation(s, i.Interaction)
+	_, err = QueryNation(s, i.Interaction)
 	return err
 }
 
-func SendSingleNation(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.Message, error) {
-	nationNameArg := i.ApplicationCommandData().GetOption("name").StringValue()
+func QueryNation(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.Message, error) {
+	data := i.ApplicationCommandData()
+	nationNameArg := data.GetOption("query").GetOption("name").StringValue()
 
 	nations, err := oapi.QueryNations(strings.ToLower(nationNameArg))
 	if err != nil {

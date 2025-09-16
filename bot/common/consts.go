@@ -1,5 +1,7 @@
 package common
 
+const NAMEMC_URL = "https://namemc.com/profile/"
+
 const DEFAULT_TOWN_BOARD = "/town set board [msg]"
 const DEFAULT_ABOUT = "/res set about [msg]"
 
