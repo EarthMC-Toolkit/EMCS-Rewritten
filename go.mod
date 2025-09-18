@@ -27,7 +27,6 @@ require (
 
 require (
 	github.com/dgraph-io/badger/v4 v4.8.0
-	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.41.0 // indirect
