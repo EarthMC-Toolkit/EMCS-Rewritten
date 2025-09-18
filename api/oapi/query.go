@@ -3,13 +3,9 @@ package oapi
 import (
 	"emcsrw/utils"
 	"sync"
-	"time"
 
 	"github.com/samber/lo"
 )
-
-const RATE_LIMIT = 180  // 180 req/min
-const QUERY_LIMIT = 100 // 100 identifiers in single req/query
 
 type Endpoint = string
 
@@ -95,7 +91,7 @@ func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
 // This func has slight overhead and calling queryFunc directly where possible is always preferred!
 func QueryConcurrent[T Identifiable](
 	identifiers []string,
-	sleepAmt int,
+	//sleepAmt int,
 	queryFunc func(ids ...string) ([]T, error),
 ) ([]T, []error, int) {
 	chunks := lo.Chunk(identifiers, QUERY_LIMIT)
@@ -108,29 +104,20 @@ func QueryConcurrent[T Identifiable](
 	wg := &sync.WaitGroup{}
 	wg.Add(chunkLen)
 
-	var ticker = queryTicker(sleepAmt)
-	if ticker != nil {
-		defer ticker.Stop()
-	}
-
-	for i, chunk := range chunks {
-		if ticker != nil && i > 0 {
-			<-ticker.C
-		}
-
-		go func(arr []string) {
+	for _, chunk := range chunks {
+		chunkCopy := chunk // So that queue knows which chunk to work on.
+		Dispatcher.Queue(func() {
 			defer wg.Done()
 
-			results, err := queryFunc(arr...)
+			results, err := queryFunc(chunkCopy...)
 			if err != nil {
 				errCh <- err
-				return
 			}
 
 			mu.Lock()
 			all = append(all, results...)
 			mu.Unlock()
-		}(chunk)
+		})
 	}
 
 	wg.Wait()
@@ -142,17 +129,4 @@ func QueryConcurrent[T Identifiable](
 	}
 
 	return all, errs, chunkLen
-}
-
-func queryTicker(sleepAmt int) (ticker *time.Ticker) {
-	if sleepAmt < 0 {
-		return nil
-	}
-
-	if sleepAmt == 0 {
-		perRequestMs := (60 * 1000) / RATE_LIMIT
-		return time.NewTicker(time.Duration(perRequestMs) * time.Millisecond)
-	}
-
-	return time.NewTicker(time.Duration(sleepAmt) * time.Millisecond)
 }

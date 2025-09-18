@@ -64,6 +64,9 @@ func TestQueryPlayer(t *testing.T) {
 	utils.CustomLog(t, players[0], err)
 }
 
+// To run this test with higher timeout
+//
+//	"go test -timeout 5m -run ^TestQueryPlayersList$ emcsrw/tests -v -count=1"
 func TestQueryPlayersList(t *testing.T) {
 	//t.SkipNow()
 
@@ -72,8 +75,14 @@ func TestQueryPlayersList(t *testing.T) {
 		return p.Name
 	})
 
+	if len(names) < 1 {
+		t.Fatal("invalid array len for player list")
+	}
+
+	t.Logf("Starting QueryConcurrent. Expect %d players. Tokens: %d", len(plist), len(oapi.Dispatcher.GetBucketTokens()))
+
 	start := time.Now()
-	players, _, reqAmt := oapi.QueryConcurrent(names, 340, oapi.QueryPlayers)
+	players, _, reqAmt := oapi.QueryConcurrent(names, oapi.QueryPlayers)
 	elapsed := time.Since(start)
 
 	t.Logf("Sent %d requests for %d players. Took %s", reqAmt, len(players), elapsed)
@@ -112,7 +121,7 @@ func TestQueryPlayersConcurrent(t *testing.T) {
 	})
 
 	start := time.Now()
-	players, errs, reqAmt := oapi.QueryConcurrent(names, 0, oapi.QueryPlayers)
+	players, errs, reqAmt := oapi.QueryConcurrent(names, oapi.QueryPlayers)
 
 	elapsed := time.Since(start)
 	errCount := len(errs)

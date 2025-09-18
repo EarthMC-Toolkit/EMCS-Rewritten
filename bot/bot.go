@@ -26,6 +26,9 @@ func Run(botToken string) {
 		log.Fatal(err)
 	}
 
+	// Never run handlers synchronously, always run them in a goroutine.
+	s.SyncEvents = false
+
 	// Register funcs that handle specific gateway events.
 	// https://discord.com/developers/docs/events/gateway-events#receive-events
 	s.AddHandler(events.OnReady)

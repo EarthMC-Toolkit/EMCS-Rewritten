@@ -209,12 +209,6 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 	stats := nation.Stats
 	spawn := nation.Coordinates.Spawn
 
-	towns := lop.Map(nation.Towns, func(e oapi.Entity, _ int) string {
-		return e.Name
-	})
-
-	slices.Sort(towns)
-
 	board := nation.Board
 	if board != "" {
 		board = fmt.Sprintf("*%s*", board)
@@ -222,13 +216,16 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 
 	capitalName := nation.Capital.Name
 	leaderName := nation.King.Name
-	leaderProfileLink := NAMEMC_URL + nation.King.UUID
-
-	leaderStr := fmt.Sprintf("[%s](%s)", leaderName, leaderProfileLink)
 
 	open := fmt.Sprintf("%s Open", lo.Ternary(nation.Status.Open, ":green_circle:", ":red_circle:"))
 	public := fmt.Sprintf("%s Public", lo.Ternary(nation.Status.Public, ":green_circle:", ":red_circle:"))
 	neutral := fmt.Sprintf("%s Neutral", lo.Ternary(nation.Status.Neutral, ":green_circle:", ":red_circle:"))
+
+	towns := lop.Map(nation.Towns, func(e oapi.Entity, _ int) string {
+		return e.Name
+	})
+
+	slices.Sort(towns)
 
 	embed := &dgo.MessageEmbed{
 		Type:        dgo.EmbedTypeRich,
@@ -236,11 +233,11 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 		Description: board,
 		Color:       nation.FillColourInt(),
 		Fields: []*dgo.MessageEmbedField{
-			EmbedField("Leader", leaderStr, true),
+			EmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
 			EmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
 			EmbedField("Location", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", spawn.X, spawn.Z, spawn.X, spawn.Y, spawn.Z), true),
-			EmbedField("Size", fmt.Sprintf("%s `%d` Chunks", EMOJIS.CHUNK, stats.NumTownBlocks), true),
-			EmbedField("Residents", fmt.Sprintf("`%d`", stats.NumResidents), true),
+			EmbedField("Size", utils.HumanizedSprintf("%s `%d` Chunks", EMOJIS.CHUNK, stats.NumTownBlocks), true),
+			EmbedField("Residents", utils.HumanizedSprintf("`%d`", stats.NumResidents), true),
 			EmbedField("Balance", utils.HumanizedSprintf("%s `%.0f`G", EMOJIS.GOLD_INGOT, stats.Balance), true),
 			EmbedField("Allies/Enemies", fmt.Sprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies), true),
 			EmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
