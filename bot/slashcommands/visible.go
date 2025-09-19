@@ -4,7 +4,6 @@ import (
 	"emcsrw/api/mapi"
 	"emcsrw/bot/common"
 	"emcsrw/bot/discordutil"
-	"emcsrw/utils"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -58,11 +57,13 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 		desc := fmt.Sprintf("Page %d/%d\n\n", curPage+1, paginator.TotalPages())
 		for idx, p := range visible[start:end] {
-			loc := utils.HumanizedSprintf("`%d`, `%d`, `%d`", p.X, p.Y, p.Z)
-			desc += fmt.Sprintf("%d. **%s** - %s\n", start+idx+1, p.Name, loc)
+			loc := fmt.Sprintf("`%d, %d, %d`", p.X, p.Y, p.Z)
+			desc += fmt.Sprintf("%d. **%s** | %s\n", start+idx+1, p.Name, loc)
 		}
 
 		embed.Description = desc
+
+		data.Embeds = append(data.Embeds, embed)
 		data.Components = []discordgo.MessageComponent{
 			paginator.NewNavigationButtonRow(),
 		}

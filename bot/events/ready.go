@@ -17,14 +17,17 @@ import (
 // Leave empty to register commands globally
 const guildID = ""
 
+// TODO: We shouldn't really be registering commands here bc of the limit.
+// Prefer a standalone script that registers via the REST API and run it when a command "definition" changes (such as description, options etc).
+// To see changes after modifying the `Execute` func, just restart the client without running said script.
+//
+// https://discordjs.guide/creating-your-bot/command-deployment.html#command-registration.
 func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	fmt.Printf("Logged in as: %s\n\n", s.State.User.Username)
 
-	// TODO: Combine these into a single pass if possible. Something like `SyncSlashCommands()`.
-	CleanupOldCommands(s)
-	RegisterSlashCommands(s)
+	SyncSlashCommands(s)
 
-	fmt.Printf("\n\n")
+	fmt.Printf("\n")
 
 	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
 
@@ -34,28 +37,19 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	}, true, 60*time.Second)
 }
 
-// Deletes any commands existing on the remote (what discord has registered) as long as they
-// aren't currently registered on the local side via slashcommands.All()
-func CleanupOldCommands(s *discordgo.Session) {
-	discordCmds, err := s.ApplicationCommands(s.State.User.ID, guildID) // Get commands discord has registered.
+func SyncSlashCommands(s *discordgo.Session) {
+	localCmds := []*discordgo.ApplicationCommand{}
+	for _, cmd := range slashcommands.All() {
+		localCmds = append(localCmds, slashcommands.ToApplicationCommand(cmd))
+	}
+
+	_, err := s.ApplicationCommandBulkOverwrite(s.State.User.ID, guildID, localCmds)
 	if err != nil {
-		fmt.Printf("Cannot clean up old commands. Failed to query discord: %v", err)
+		fmt.Printf("Failed to sync slash commands. Error occurred during bulk overwrite: %v\n", err)
 		return
 	}
 
-	for _, cmd := range discordCmds {
-		_, ok := slashcommands.All()[cmd.Name] // Check this cmd still exists in ones we registered.
-		if !ok {
-			// Doesn't exist, must be old. Delete dat shit
-			err := s.ApplicationCommandDelete(s.State.User.ID, guildID, cmd.ID)
-			if err != nil {
-				fmt.Printf("Failed to delete old command %s: %v", cmd.Name, err)
-				continue
-			}
-
-			fmt.Printf("Deleted stale remote command: %s", cmd.Name)
-		}
-	}
+	fmt.Println("\nSuccessfully synced slash commands!")
 }
 
 func RegisterSlashCommands(s *discordgo.Session) {
@@ -68,6 +62,30 @@ func RegisterSlashCommands(s *discordgo.Session) {
 		}
 	}
 }
+
+// Deletes any commands existing on the remote (what discord has registered) as long as they
+// aren't currently registered on the local side via slashcommands.All()
+// func CleanupOldCommands(s *discordgo.Session) {
+// 	discordCmds, err := s.ApplicationCommands(s.State.User.ID, guildID) // Get commands discord has registered.
+// 	if err != nil {
+// 		fmt.Printf("Cannot clean up old commands. Failed to query discord: %v", err)
+// 		return
+// 	}
+
+// 	for _, cmd := range discordCmds {
+// 		_, ok := slashcommands.All()[cmd.Name] // Check this cmd still exists in ones we registered.
+// 		if !ok {
+// 			// Doesn't exist, must be old. Delete dat shit
+// 			err := s.ApplicationCommandDelete(s.State.User.ID, guildID, cmd.ID)
+// 			if err != nil {
+// 				fmt.Printf("Failed to delete old command %s: %v", cmd.Name, err)
+// 				continue
+// 			}
+
+// 			fmt.Printf("Deleted stale remote command: %s", cmd.Name)
+// 		}
+// 	}
+// }
 
 func scheduleTask(task func(), runInitial bool, interval time.Duration) chan struct{} {
 	if runInitial {
