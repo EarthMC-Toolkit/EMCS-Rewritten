@@ -64,13 +64,13 @@ func Register(cmd SlashCommand) {
 
 // Called before the bot runs (just before main).
 func init() {
-	Register(ServerInfoCommand{})
+	Register(AllianceCommand{})
 	Register(TownCommand{})
 	Register(NationCommand{})
 	Register(PlayerCommand{})
-	//Register(TownlessCommand{})
+	Register(VisibleCommand{})
 	Register(MysteryMasterCommand{})
-	Register(AllianceCommand{})
+	Register(ServerInfoCommand{})
 	Register(VotePartyCommand{})
 	Register(UsageCommand{})
 }

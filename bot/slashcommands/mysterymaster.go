@@ -27,24 +27,28 @@ func (cmd MysteryMasterCommand) Execute(s *discordgo.Session, i *discordgo.Inter
 }
 
 func SendMysteryMasterList(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.Message, error) {
-	list, err := oapi.QueryMysteryMaster()
+	mmList, err := oapi.QueryMysteryMaster()
 	if err != nil {
-		return discordutil.FollowUpContent(s, i, "An error occurred retrieving town information :(")
+		return discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: "An error occurred retrieving town information :(",
+		})
 	}
 
-	count := len(list)
+	count := len(mmList)
 	if count == 0 {
-		return discordutil.FollowUpContent(s, i, "No mystery masters seem to exist? The API may be broken.")
+		return discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: "No mystery masters seem to exist? The API may be broken.",
+		})
 	}
 
 	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
-	paginator := discordutil.NewInteractionPaginator(s, i, count, 15)
-	paginator.PageFunc = func(curPage, perPage int, data *discordgo.InteractionResponseData) {
-		start := curPage * perPage
-		end := min(start+perPage, count)
+	perPage := 15
+	paginator := discordutil.NewInteractionPaginator(s, i, count, perPage)
+	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
+		start, end := paginator.CurrentPageBounds(count)
 
 		content := ""
-		for idx, item := range list[start:end] {
+		for idx, item := range mmList[start:end] {
 			changeEmoji := lo.Ternary(*item.Change == "UP", common.EMOJIS.ARROW_UP_GREEN, common.EMOJIS.ARROW_DOWN_RED)
 			content += fmt.Sprintf("%d. %s %s\n", start+idx+1, changeEmoji, item.Name) // add start to keep index across pages. just idx+1 shows 1-perPage every time.
 		}
@@ -55,10 +59,7 @@ func SendMysteryMasterList(s *discordgo.Session, i *discordgo.Interaction) (*dis
 		}
 	}
 
-	err = paginator.Start()
-	if err != nil {
-		return discordutil.FollowUpContent(s, i, "An error occurred starting embed pagination.")
-	}
+	paginator.Start()
 
 	return nil, nil
 }

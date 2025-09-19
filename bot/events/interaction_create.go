@@ -22,7 +22,7 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 			content := "Bot attempted to panic during this command. Please report the following error.\n" + errStr
 
 			// Not already deferred, reply.
-			err := discordutil.Reply(s, i.Interaction, &discordgo.InteractionResponseData{
+			err := discordutil.SendReply(s, i.Interaction, &discordgo.InteractionResponseData{
 				Flags:   discordgo.MessageFlagsEphemeral,
 				Content: content,
 			})

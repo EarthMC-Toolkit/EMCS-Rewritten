@@ -23,7 +23,12 @@ func (p *Paginator) TotalPages() int {
 	return p.totalPages
 }
 
-type InteractionPageFunc func(curPage, perPage int, data *discordgo.InteractionResponseData)
+func (p *Paginator) CurrentPageBounds(totalItems int) (int, int) {
+	start := *p.currentPage * p.perPage
+	return start, min(start+p.perPage, totalItems)
+}
+
+type InteractionPageFunc func(curPage int, data *discordgo.InteractionResponseData)
 
 type InteractionPaginator struct {
 	*Paginator
@@ -94,24 +99,21 @@ func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionRespo
 	}
 
 	data := &discordgo.InteractionResponseData{}
-	p.PageFunc(page, p.perPage, data)
+	p.PageFunc(page, data)
 	p.cache[page] = data
 
 	return data
 }
 
-func (p *InteractionPaginator) Start() error {
+func (p *InteractionPaginator) Start() (err error) {
 	data := p.getPageData(*p.currentPage)
-	err := p.session.InteractionRespond(p.interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: data,
-	})
-	if err != nil {
-		return err
+
+	_, err = EditOrSendReply(p.session, p.interaction, data)
+	if err == nil {
+		go p.beginButtonListener()
 	}
 
-	go p.beginButtonListener()
-	return nil
+	return
 }
 
 func (p *InteractionPaginator) beginButtonListener() {

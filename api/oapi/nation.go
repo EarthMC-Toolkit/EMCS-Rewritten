@@ -1,6 +1,12 @@
 package oapi
 
-import "emcsrw/utils"
+import (
+	"emcsrw/utils"
+	"slices"
+	"strings"
+
+	"github.com/samber/lo"
+)
 
 type NationStatus struct {
 	Public  bool `json:"isPublic"`
@@ -29,24 +35,32 @@ type NationTimestamps struct {
 
 type NationInfo struct {
 	Entity
-	King             Entity           `json:"king"`
-	Board            string           `json:"board"`
-	Wiki             *string          `json:"wiki"`
-	MapColourFill    string           `json:"dynmapColour"`
-	MapColourOutline string           `json:"dynmapOutline"`
-	Capital          Entity           `json:"capital"`
-	Residents        []Entity         `json:"residents"`
-	Towns            []Entity         `json:"towns"`
-	Allies           []Entity         `json:"allies"`
-	Enemies          []Entity         `json:"enemies"`
-	Sanctioned       []Entity         `json:"sanctioned"`
-	Ranks            NationRanks      `json:"ranks"`
-	Timestamps       NationTimestamps `json:"timestamps"`
-	Status           NationStatus     `json:"status"`
-	Stats            NationStats      `json:"stats"`
+	King             Entity              `json:"king"`
+	Board            string              `json:"board"`
+	Wiki             *string             `json:"wiki"`
+	MapColourFill    string              `json:"dynmapColour"`
+	MapColourOutline string              `json:"dynmapOutline"`
+	Capital          Entity              `json:"capital"`
+	Residents        []Entity            `json:"residents"`
+	Towns            []Entity            `json:"towns"`
+	Allies           []Entity            `json:"allies"`
+	Enemies          []Entity            `json:"enemies"`
+	Sanctioned       []Entity            `json:"sanctioned"`
+	Ranks            map[string][]Entity `json:"ranks"`
+	Timestamps       NationTimestamps    `json:"timestamps"`
+	Status           NationStatus        `json:"status"`
+	Stats            NationStats         `json:"stats"`
 	Coordinates      struct {
 		Spawn Spawn `json:"spawn"`
 	} `json:"coordinates"`
+}
+
+func (n NationInfo) GetPlayerRanks(name string) []string {
+	return lo.FilterMapToSlice(n.Ranks, func(rank string, entities []Entity) (string, bool) {
+		return rank, slices.ContainsFunc(entities, func(e Entity) bool {
+			return strings.EqualFold(name, e.Name)
+		})
+	})
 }
 
 func (n NationInfo) GetUUID() string {

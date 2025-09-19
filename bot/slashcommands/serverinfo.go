@@ -28,7 +28,7 @@ func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.Interact
 	info, err := database.GetInsensitive[oapi.ServerInfo](db, "serverinfo")
 	if err != nil {
 		fmt.Printf("failed to get serverinfo from db:\n%v", err)
-		return discordutil.Reply(s, i.Interaction, &discordgo.InteractionResponseData{
+		return discordutil.SendReply(s, i.Interaction, &discordgo.InteractionResponseData{
 			Content: "An error occurred retrieving server info from the database. check the console",
 		})
 	}

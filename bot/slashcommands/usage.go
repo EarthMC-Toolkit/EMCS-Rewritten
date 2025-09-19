@@ -54,13 +54,13 @@ func ExecuteSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 	usage, err := database.GetUserUsage(db, author.ID)
 	if err != nil && err != badger.ErrKeyNotFound {
 		fmt.Printf("failed to get user usage for %s (%s):\n%v", author.Username, author.ID, err)
-		discordutil.Reply(s, i, &discordgo.InteractionResponseData{
+		discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
 			Content: "Error occurred getting usage statistics from db.",
 		})
 	}
 
 	if len(usage.CommandHistory) < 1 {
-		return discordutil.Reply(s, i, &discordgo.InteractionResponseData{
+		return discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
 			Content: "No usage recorded.",
 		})
 	}
@@ -93,7 +93,7 @@ func ExecuteSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 		Color: discordutil.WHITE,
 	}
 
-	return discordutil.Reply(s, i, &discordgo.InteractionResponseData{
+	return discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	})
 }
