@@ -43,7 +43,7 @@ func SendMysteryMasterList(s *discordgo.Session, i *discordgo.Interaction) (*dis
 		start := curPage * perPage
 		end := min(start+perPage, count)
 
-		var content string
+		content := ""
 		for idx, item := range list[start:end] {
 			changeEmoji := lo.Ternary(*item.Change == "UP", common.EMOJIS.ARROW_UP_GREEN, common.EMOJIS.ARROW_DOWN_RED)
 			content += fmt.Sprintf("%d. %s %s\n", start+idx+1, changeEmoji, item.Name) // add start to keep index across pages. just idx+1 shows 1-perPage every time.

@@ -33,12 +33,17 @@ type LabelledValue struct {
 	Value string `json:"value"`
 }
 
-func EmbedField(name string, value string, inline bool) *discordgo.MessageEmbedField {
+// TODO: Maybe create a CustomEmbed that wraps MessageEmbed and adds these methods?
+func NewEmbedField(name string, value string, inline bool) *discordgo.MessageEmbedField {
 	return &discordgo.MessageEmbedField{
 		Name:   name,
 		Value:  value,
 		Inline: inline,
 	}
+}
+
+func AddField(embed *discordgo.MessageEmbed, name string, value string, inline bool) {
+	embed.Fields = append(embed.Fields, NewEmbedField(name, value, inline))
 }
 
 func RequiredStringOption(name, description string, minLen, maxLen int) *discordgo.ApplicationCommandOption {

@@ -25,7 +25,7 @@ func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.Interacti
 	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
 	info, err := database.GetInsensitive[oapi.ServerInfo](db, "serverinfo")
 	if err != nil {
-		// TODO: Respond
+		// TODO: Respond to interaction with appropriate err msg
 		return err
 	}
 

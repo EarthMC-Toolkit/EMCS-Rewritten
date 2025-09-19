@@ -16,7 +16,8 @@ import (
 	dgo "github.com/bwmarrin/discordgo"
 )
 
-var EmbedField = discordutil.EmbedField
+var AddField = discordutil.AddField
+var NewEmbedField = discordutil.NewEmbedField
 var DEFAULT_FOOTER = &dgo.MessageEmbedFooter{
 	IconURL: "https://cdn.discordapp.com/avatars/263377802647175170/a_0cd469f208f88cf98941123eb1b52259.webp?size=512&animated=true",
 	Text:    "Maintained by Owen3H • Open Source on GitHub 💛", // unless you maintain your own fork, pls keep this as is :)
@@ -61,16 +62,15 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 		Footer: DEFAULT_FOOTER,
 		Title:  fmt.Sprintf("Alliance Info | `%s` (%s)", a.Label, a.Identifier),
 		Fields: []*dgo.MessageEmbedField{
-			EmbedField("Leader(s)", leadersValue, false),
-			EmbedField("Representative", representativeValue, true),
-			EmbedField(nationsKey, nationsValue, false),
-			EmbedField("Created At", fmt.Sprintf("<t:%d:f>", a.CreatedTimestamp()/1000), true),
+			NewEmbedField("Leader(s)", leadersValue, false),
+			NewEmbedField("Representative", representativeValue, true),
+			NewEmbedField(nationsKey, nationsValue, false),
+			NewEmbedField("Created At", fmt.Sprintf("<t:%d:f>", a.CreatedTimestamp()/1000), true),
 		},
 	}
 
 	if a.UpdatedTimestamp != nil {
-		updatedField := EmbedField("Last Updated", fmt.Sprintf("<t:%d:R>", *a.UpdatedTimestamp), true)
-		embed.Fields = append(embed.Fields, updatedField)
+		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:R>", *a.UpdatedTimestamp), true)
 	}
 
 	return embed
@@ -88,9 +88,6 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 		status = lo.Ternary(lastOnlineTs == nil, "Offline", fmt.Sprintf("Offline (Last Online: <t:%d:R>)", *lastOnlineTs/1000))
 	}
 
-	townName := lo.Ternary(resident.Town.Name == nil, "No Town", *resident.Town.Name)
-	nationName := lo.Ternary(resident.Nation.Name == nil, "No Nation", *resident.Nation.Name)
-
 	resName := resident.Name
 	alias := resName
 
@@ -104,8 +101,11 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 		alias = fmt.Sprintf("%s %s", resName, resSurname)
 	}
 
+	townName := lo.TernaryF(resident.Town.Name == nil, func() string { return "No Town" }, func() string { return *resident.Town.Name })
+	nationName := lo.TernaryF(resident.Nation.Name == nil, func() string { return "No Nation" }, func() string { return *resident.Nation.Name })
+
 	affiliation := lo.Ternary(townName == "No Town", "None (Townless)", fmt.Sprintf("%s (%s)", townName, nationName))
-	affiliationField := EmbedField("Affiliation", affiliation, false)
+	affiliationField := NewEmbedField("Affiliation", affiliation, true)
 
 	rank := "Resident"
 	if resident.Status.IsMayor {
@@ -113,6 +113,13 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 	}
 	if resident.Status.IsKing {
 		rank = "Nation Leader"
+	}
+
+	title := fmt.Sprintf("Player Information | `%s`", resName)
+
+	// Alias differs from name (has surname and/or title)
+	if alias != resName {
+		title += fmt.Sprintf(" aka \"%s\"", alias)
 	}
 
 	embed := &dgo.MessageEmbed{
@@ -124,9 +131,9 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 		Title: fmt.Sprintf("Player Information | `%s`", resName),
 		Fields: []*dgo.MessageEmbedField{
 			affiliationField,
-			EmbedField("Rank", rank, true),
-			EmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", resident.Stats.Balance, EMOJIS.GOLD_INGOT), true),
-			EmbedField("Status", status, true),
+			NewEmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", resident.Stats.Balance, EMOJIS.GOLD_INGOT), true),
+			NewEmbedField("Registered", fmt.Sprintf("<t:%d:R>", registeredTs/1000), true),
+			NewEmbedField("Status", status, true),
 		},
 	}
 
@@ -137,19 +144,13 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 		}
 	}
 
-	// Alias differs from name (has surname and/or title)
-	if alias != resName {
-		field := EmbedField("Alias", alias, false)
-		embed.Fields = append([]*dgo.MessageEmbedField{field}, embed.Fields...) // Insert at slice start
+	if townName != "No Town" {
+		AddField(embed, "Rank", rank, true)
 	}
 
 	if joinedTownTs != nil {
-		field := EmbedField("Joined Town", fmt.Sprintf("<t:%d:R>", *joinedTownTs/1000), false)
-		embed.Fields = append(embed.Fields, field)
+		AddField(embed, "Joined Town", fmt.Sprintf("<t:%d:R>", *joinedTownTs/1000), false)
 	}
-
-	registeredField := EmbedField("Registered", fmt.Sprintf("<t:%d:R>", registeredTs/1000), false)
-	embed.Fields = append(embed.Fields, registeredField)
 
 	friendsStr := "No Friends :("
 	if resident.Stats.NumFriends > 0 {
@@ -161,8 +162,7 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 		friendsStr = fmt.Sprintf("```%s```", strings.Join(friends, ", "))
 	}
 
-	friendsField := EmbedField("Friends", friendsStr, false)
-	embed.Fields = append(embed.Fields, friendsField)
+	AddField(embed, "Friends", friendsStr, false)
 
 	return embed
 }
@@ -191,13 +191,13 @@ func NewTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 		Description: desc,
 		Color:       discordutil.GREEN,
 		Fields: []*dgo.MessageEmbedField{
-			EmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
-			EmbedField("Founder", fmt.Sprintf("`%s`", town.Founder), true),
-			EmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
-			EmbedField("Area", utils.HumanizedSprintf("`%d`/`%d` Chunks", town.Stats.NumTownBlocks, town.Stats.MaxTownBlocks), true),
-			EmbedField("Balance", utils.HumanizedSprintf("`%0.0f`G", town.Bal()), true),
-			EmbedField("Residents", utils.HumanizedSprintf("`%d`", town.Stats.NumResidents), true),
-			EmbedField("Overclaim Status", fmt.Sprintf("Overclaimed: `%s`\nShield: %s", town.OverclaimedString(), overclaimShield), false),
+			NewEmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
+			NewEmbedField("Founder", fmt.Sprintf("`%s`", town.Founder), true),
+			NewEmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
+			NewEmbedField("Area", utils.HumanizedSprintf("`%d`/`%d` Chunks", town.Stats.NumTownBlocks, town.Stats.MaxTownBlocks), true),
+			NewEmbedField("Balance", utils.HumanizedSprintf("`%0.0f`G", town.Bal()), true),
+			NewEmbedField("Residents", utils.HumanizedSprintf("`%d`", town.Stats.NumResidents), true),
+			NewEmbedField("Overclaim Status", fmt.Sprintf("Overclaimed: `%s`\nShield: %s", town.OverclaimedString(), overclaimShield), false),
 		},
 	}
 }
@@ -233,23 +233,22 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 		Description: board,
 		Color:       nation.FillColourInt(),
 		Fields: []*dgo.MessageEmbedField{
-			EmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
-			EmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
-			EmbedField("Location", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", spawn.X, spawn.Z, spawn.X, spawn.Y, spawn.Z), true),
-			EmbedField("Size", utils.HumanizedSprintf("%s `%d` Chunks", EMOJIS.CHUNK, stats.NumTownBlocks), true),
-			EmbedField("Residents", utils.HumanizedSprintf("`%d`", stats.NumResidents), true),
-			EmbedField("Balance", utils.HumanizedSprintf("%s `%.0f`G", EMOJIS.GOLD_INGOT, stats.Balance), true),
-			EmbedField("Allies/Enemies", fmt.Sprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies), true),
-			EmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
-			EmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),
-			EmbedField(fmt.Sprintf("Towns [%d]", stats.NumTowns), fmt.Sprintf("```%s```", strings.Join(towns, ", ")), false),
-			EmbedField("Founded", dateFounded, true),
+			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
+			NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
+			NewEmbedField("Location", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", spawn.X, spawn.Z, spawn.X, spawn.Y, spawn.Z), true),
+			NewEmbedField("Size", utils.HumanizedSprintf("%s `%d` Chunks", EMOJIS.CHUNK, stats.NumTownBlocks), true),
+			NewEmbedField("Residents", utils.HumanizedSprintf("`%d`", stats.NumResidents), true),
+			NewEmbedField("Balance", utils.HumanizedSprintf("%s `%.0f`G", EMOJIS.GOLD_INGOT, stats.Balance), true),
+			NewEmbedField("Allies/Enemies", fmt.Sprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies), true),
+			NewEmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
+			NewEmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),
+			NewEmbedField(fmt.Sprintf("Towns [%d]", stats.NumTowns), fmt.Sprintf("```%s```", strings.Join(towns, ", ")), false),
+			NewEmbedField("Founded", dateFounded, true),
 		},
 	}
 
 	if nation.Wiki != nil {
-		field := EmbedField("Wiki", fmt.Sprintf("[Visit wiki page](%s)", *nation.Wiki), true)
-		embed.Fields = append(embed.Fields, field)
+		AddField(embed, "Wiki", fmt.Sprintf("[Visit wiki page](%s)", *nation.Wiki), true)
 	}
 
 	return embed

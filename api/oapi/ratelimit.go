@@ -38,8 +38,9 @@ func NewRequestBucket(reqPerMin int) (bucket *RequestBucket) {
 		bucket.tokens <- Token{}
 	}
 
-	// Essentially the token refill rate. Eg: 3req/s becomes 333ms between ticks.
-	ticker := time.NewTicker(time.Second / time.Duration(reqPerSec))
+	// Token refill rate. Eg: 3req/s becomes 333ms between ticks.
+	refillRate := time.Second / time.Duration(reqPerSec)
+	ticker := time.NewTicker(refillRate + (time.Millisecond * 10)) // Extra 10ms for safety.
 
 	go func() {
 		for range ticker.C {
@@ -71,13 +72,11 @@ func (b *RequestBucket) TryAcquireToken() bool {
 // Reads from the queue and launches requests if the bucket allows.
 type RequestDispatcher struct {
 	reqBucket *RequestBucket
-	//queue     chan Request
 }
 
 func NewRequestDispatcher(bucket *RequestBucket) (dispatcher *RequestDispatcher) {
 	dispatcher = &RequestDispatcher{
 		reqBucket: bucket,
-		//queue:     make(chan Request, 1000),
 	}
 
 	return

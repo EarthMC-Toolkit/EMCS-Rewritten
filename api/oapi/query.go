@@ -91,7 +91,6 @@ func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
 // This func has slight overhead and calling queryFunc directly where possible is always preferred!
 func QueryConcurrent[T Identifiable](
 	identifiers []string,
-	//sleepAmt int,
 	queryFunc func(ids ...string) ([]T, error),
 ) ([]T, []error, int) {
 	chunks := lo.Chunk(identifiers, QUERY_LIMIT)

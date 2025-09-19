@@ -9,8 +9,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	lop "github.com/samber/lo/parallel"
 )
+
+func isBetweenNowAndDuration(tsMilli *uint64, ago time.Duration) bool {
+	if tsMilli == nil {
+		return false
+	}
+
+	ts := time.UnixMilli(int64(*tsMilli))
+	return ts.After(time.Now().Add(-ago)) && ts.Before(time.Now())
+}
 
 func TestGetOnlinePlayers(t *testing.T) {
 	//t.SkipNow()
@@ -64,7 +74,7 @@ func TestQueryPlayer(t *testing.T) {
 	utils.CustomLog(t, players[0], err)
 }
 
-// To run this test with higher timeout
+// To run this test with higher timeout, execute the following:
 //
 //	"go test -timeout 5m -run ^TestQueryPlayersList$ emcsrw/tests -v -count=1"
 func TestQueryPlayersList(t *testing.T) {
@@ -87,16 +97,18 @@ func TestQueryPlayersList(t *testing.T) {
 
 	t.Logf("Sent %d requests for %d players. Took %s", reqAmt, len(players), elapsed)
 
-	opNames := []string{}
-	lop.ForEach(players, func(p oapi.PlayerInfo, _ int) {
-		if p.Status.IsOnline {
-			opNames = append(opNames, p.Name)
-		}
+	opNames := lo.FilterMap(players, func(p oapi.PlayerInfo, _ int) (string, bool) {
+		return p.Name, p.Status.IsOnline
 	})
-
 	slices.Sort(opNames)
 
-	t.Logf("Total Online: %d\nNames: %v", len(opNames), opNames)
+	opNames72h := lo.FilterMap(players, func(p oapi.PlayerInfo, _ int) (string, bool) {
+		return p.Name, isBetweenNowAndDuration(p.Timestamps.LastOnline, 72*time.Hour)
+	})
+	slices.Sort(opNames72h)
+
+	t.Logf("Currently Online: %d\nNames: %v", len(opNames), opNames)
+	t.Logf("Online Last 72h: %d\nNames: %v", len(opNames72h), opNames72h)
 }
 
 func TestQueryPlayersConcurrent(t *testing.T) {

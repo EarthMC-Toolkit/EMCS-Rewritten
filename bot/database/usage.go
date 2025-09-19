@@ -12,8 +12,7 @@ import (
 )
 
 type CommandStat struct {
-	Name string
-	//Entry CommandEntry
+	Name  string
 	Count int
 }
 
@@ -89,15 +88,6 @@ const USER_USAGE_KEY_PREFIX = "usage/users/"
 func GetUserUsage(mapDB *badger.DB, discordID string) (*UserUsage, error) {
 	return GetInsensitive[UserUsage](mapDB, USER_USAGE_KEY_PREFIX+discordID)
 }
-
-// func PutUserUsage(mapDB *badger.DB, u *UserUsage, discordID string) error {
-// 	data, err := json.Marshal(u)
-// 	if err != nil {
-// 		return fmt.Errorf("error putting user '%s' usage into db at %s:\n%v", discordID, mapDB.Opts().Dir, err)
-// 	}
-
-// 	return PutInsensitive(mapDB, USER_USAGE_KEY_PREFIX+discordID, data)
-// }
 
 // Updates the user's usage using discordID as the key, adding entry to the history slice associated with the cmdName.
 //
