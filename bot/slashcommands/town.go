@@ -14,11 +14,11 @@ type TownCommand struct{}
 
 func (cmd TownCommand) Name() string { return "town" }
 func (cmd TownCommand) Description() string {
-	return "Retrieve information relating to one or more towns."
+	return "Base command for town related subcommands."
 }
 
-func (cmd TownCommand) Options() []*discordgo.ApplicationCommandOption {
-	return []*discordgo.ApplicationCommandOption{
+func (cmd TownCommand) Options() AppCommandOpts {
+	return AppCommandOpts{
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "query",

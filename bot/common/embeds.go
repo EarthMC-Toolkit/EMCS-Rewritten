@@ -16,8 +16,10 @@ import (
 	dgo "github.com/bwmarrin/discordgo"
 )
 
-var AddField = discordutil.AddField
 var NewEmbedField = discordutil.NewEmbedField
+var PrependField = discordutil.PrependField
+var AddField = discordutil.AddField
+
 var DEFAULT_FOOTER = &dgo.MessageEmbedFooter{
 	IconURL: "https://cdn.discordapp.com/avatars/263377802647175170/a_0cd469f208f88cf98941123eb1b52259.webp?size=512&animated=true",
 	Text:    "Maintained by Owen3H • Open Source on GitHub 💛", // unless you maintain your own fork, pls keep this as is :)
@@ -40,7 +42,7 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 	}
 
 	// Representative field logic
-	var representativeValue string = "None"
+	representativeValue := "None"
 	if a.RepresentativeID != nil {
 		u, err := s.User(strconv.FormatUint(*a.RepresentativeID, 10))
 		if err != nil {
@@ -76,85 +78,47 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 	return embed
 }
 
-func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
-	registeredTs := resident.Timestamps.Registered   // ms
-	lastOnlineTs := resident.Timestamps.LastOnline   // ms
-	joinedTownTs := resident.Timestamps.JoinedTownAt // ms
+func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
+	registeredTs := player.Timestamps.Registered   // ms
+	lastOnlineTs := player.Timestamps.LastOnline   // ms
+	joinedTownTs := player.Timestamps.JoinedTownAt // ms
 
 	status := "Offline" // Assume they are offline
-	if resident.Status.IsOnline {
+	if player.Status.IsOnline {
 		status = "Online"
 	} else {
 		status = lo.Ternary(lastOnlineTs == nil, "Offline", fmt.Sprintf("Offline (Last Online: <t:%d:R>)", *lastOnlineTs/1000))
 	}
 
-	resName := resident.Name
-	alias := resName
+	playerName := player.Name
+	alias := playerName
 
 	// Add Prefix if available
-	if resTitle := utils.CheckAlphanumeric(resident.Title); resTitle != "" {
-		alias = fmt.Sprintf("%s %s", resTitle, resName)
+	if title := utils.CheckAlphanumeric(player.Title); title != "" {
+		alias = fmt.Sprintf("%s %s", title, playerName)
 	}
 
 	// Add Postfix if available
-	if resSurname := utils.CheckAlphanumeric(resident.Surname); resSurname != "" {
-		alias = fmt.Sprintf("%s %s", resName, resSurname)
+	if surname := utils.CheckAlphanumeric(player.Surname); surname != "" {
+		alias = fmt.Sprintf("%s %s", playerName, surname)
 	}
 
-	townName := lo.TernaryF(resident.Town.Name == nil, func() string { return "No Town" }, func() string { return *resident.Town.Name })
-	nationName := lo.TernaryF(resident.Nation.Name == nil, func() string { return "No Nation" }, func() string { return *resident.Nation.Name })
+	townName := lo.TernaryF(player.Town.Name == nil, func() string { return "No Town" }, func() string { return *player.Town.Name })
+	nationName := lo.TernaryF(player.Nation.Name == nil, func() string { return "No Nation" }, func() string { return *player.Nation.Name })
 
 	affiliation := lo.Ternary(townName == "No Town", "None (Townless)", fmt.Sprintf("%s (%s)", townName, nationName))
-	affiliationField := NewEmbedField("Affiliation", affiliation, true)
 
 	rank := "Resident"
-	if resident.Status.IsMayor {
+	if player.Status.IsMayor {
 		rank = "Mayor"
 	}
-	if resident.Status.IsKing {
+	if player.Status.IsKing {
 		rank = "Nation Leader"
 	}
 
-	title := fmt.Sprintf("Player Information | `%s`", resName)
-
-	// Alias differs from name (has surname and/or title)
-	if alias != resName {
-		title += fmt.Sprintf(" aka \"%s\"", alias)
-	}
-
-	embed := &dgo.MessageEmbed{
-		Type:  dgo.EmbedTypeRich,
-		Color: discordutil.DARK_PURPLE,
-		Thumbnail: &dgo.MessageEmbedThumbnail{
-			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", resident.UUID),
-		},
-		Title: fmt.Sprintf("Player Information | `%s`", resName),
-		Fields: []*dgo.MessageEmbedField{
-			affiliationField,
-			NewEmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", resident.Stats.Balance, EMOJIS.GOLD_INGOT), true),
-			NewEmbedField("Registered", fmt.Sprintf("<t:%d:R>", registeredTs/1000), true),
-			NewEmbedField("Status", status, true),
-		},
-	}
-
-	if resident.About != nil {
-		about := *resident.About
-		if about != "" && about != DEFAULT_ABOUT {
-			embed.Description = fmt.Sprintf("*%s*", about)
-		}
-	}
-
-	if townName != "No Town" {
-		AddField(embed, "Rank", rank, true)
-	}
-
-	if joinedTownTs != nil {
-		AddField(embed, "Joined Town", fmt.Sprintf("<t:%d:R>", *joinedTownTs/1000), false)
-	}
-
 	friendsStr := "No Friends :("
-	if resident.Stats.NumFriends > 0 {
-		friends := lop.Map(resident.Friends, func(e oapi.Entity, _ int) string {
+	if player.Stats.NumFriends > 0 {
+		friends := lop.Map(player.Friends, func(e oapi.Entity, _ int) string {
 			return e.Name
 		})
 
@@ -162,7 +126,51 @@ func NewPlayerEmbed(resident oapi.PlayerInfo) *dgo.MessageEmbed {
 		friendsStr = fmt.Sprintf("```%s```", strings.Join(friends, ", "))
 	}
 
+	title := fmt.Sprintf("Player Information | `%s`", playerName)
+
+	// Alias differs from name (has surname and/or title)
+	if alias != playerName {
+		title += fmt.Sprintf(" aka \"%s\"", alias)
+	}
+
+	embed := &dgo.MessageEmbed{
+		Type:   dgo.EmbedTypeRich,
+		Color:  discordutil.DARK_PURPLE,
+		Footer: DEFAULT_FOOTER,
+		Thumbnail: &dgo.MessageEmbedThumbnail{
+			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID),
+		},
+		Title: title,
+		Fields: []*dgo.MessageEmbedField{
+			// affiliation (prepended)
+			// rank (prepended)
+			NewEmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, EMOJIS.GOLD_INGOT), true),
+			NewEmbedField("Status", status, true),
+		},
+	}
+
+	if player.About != nil {
+		about := *player.About
+		if about != "" && about != DEFAULT_ABOUT {
+			embed.Description = fmt.Sprintf("*%s*", about)
+		}
+	}
+
+	if joinedTownTs != nil {
+		AddField(embed, "Joined Town", fmt.Sprintf("<t:%d:R>", *joinedTownTs/1000), true)
+	}
+
+	AddField(embed, "Registered", fmt.Sprintf("<t:%d:R>", registeredTs/1000), true)
 	AddField(embed, "Friends", friendsStr, false)
+	AddField(embed, "Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false)
+
+	// Second field
+	if townName != "No Town" {
+		PrependField(embed, "Rank", rank, true)
+	}
+
+	// First field
+	PrependField(embed, "Affiliation", affiliation, true)
 
 	return embed
 }

@@ -17,7 +17,7 @@ func (cmd MysteryMasterCommand) Description() string {
 	return "Top 50 players in Mystery Master. Change = movement on the scoreboard."
 }
 
-func (cmd MysteryMasterCommand) Options() []*discordgo.ApplicationCommandOption {
+func (cmd MysteryMasterCommand) Options() AppCommandOpts {
 	return nil
 }
 

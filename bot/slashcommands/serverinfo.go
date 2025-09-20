@@ -19,7 +19,7 @@ func (cmd ServerInfoCommand) Description() string {
 	return "Replies with information about the server and voteparty status."
 }
 
-func (cmd ServerInfoCommand) Options() []*discordgo.ApplicationCommandOption {
+func (cmd ServerInfoCommand) Options() AppCommandOpts {
 	return nil
 }
 

@@ -20,7 +20,9 @@ var contexts = []discordgo.InteractionContextType{
 
 var commands = map[string]SlashCommand{}
 
-type AppCommandOpts = []*discordgo.ApplicationCommandOption
+type AppCommandOpt = *discordgo.ApplicationCommandOption
+type AppCommandOpts = []AppCommandOpt
+
 type SlashCommand interface {
 	Name() string
 	Description() string
@@ -83,7 +85,7 @@ func init() {
 // 	return "This is an example description for a slash command."
 // }
 
-// func (cmd ExampleCommand) Options() []*discordgo.ApplicationCommandOption {
+// func (cmd ExampleCommand) Options() AppCommandOpts {
 // 	return nil
 // }
 

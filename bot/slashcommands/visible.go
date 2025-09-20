@@ -16,7 +16,7 @@ func (cmd VisibleCommand) Description() string {
 	return "Shows the list of online players that are not currently under a block."
 }
 
-func (cmd VisibleCommand) Options() []*discordgo.ApplicationCommandOption {
+func (cmd VisibleCommand) Options() AppCommandOpts {
 	return nil
 }
 

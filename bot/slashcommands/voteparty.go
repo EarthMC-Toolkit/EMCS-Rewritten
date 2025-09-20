@@ -17,7 +17,7 @@ func (cmd VotePartyCommand) Description() string {
 	return "Retrieves info on the current status of the VoteParty."
 }
 
-func (cmd VotePartyCommand) Options() []*discordgo.ApplicationCommandOption {
+func (cmd VotePartyCommand) Options() AppCommandOpts {
 	return nil
 }
 

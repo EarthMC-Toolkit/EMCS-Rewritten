@@ -46,6 +46,21 @@ func AddField(embed *discordgo.MessageEmbed, name string, value string, inline b
 	embed.Fields = append(embed.Fields, NewEmbedField(name, value, inline))
 }
 
+func PrependField(embed *discordgo.MessageEmbed, name string, value string, inline bool) {
+	embed.Fields = append([]*discordgo.MessageEmbedField{NewEmbedField(name, value, inline)}, embed.Fields...)
+}
+
+func StringOption(name, description string, minLen *int, maxLen int) *discordgo.ApplicationCommandOption {
+	return &discordgo.ApplicationCommandOption{
+		Type:        discordgo.ApplicationCommandOptionString,
+		Name:        name,
+		Description: description,
+		MinLength:   minLen,
+		MaxLength:   maxLen,
+		Required:    false,
+	}
+}
+
 func RequiredStringOption(name, description string, minLen, maxLen int) *discordgo.ApplicationCommandOption {
 	return &discordgo.ApplicationCommandOption{
 		Type:        discordgo.ApplicationCommandOptionString,

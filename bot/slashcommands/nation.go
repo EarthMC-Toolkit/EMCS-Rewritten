@@ -14,11 +14,11 @@ type NationCommand struct{}
 
 func (cmd NationCommand) Name() string { return "nation" }
 func (cmd NationCommand) Description() string {
-	return "Retrieve information relating to one or more nations."
+	return "Base command for nation related subcommands."
 }
 
-func (cmd NationCommand) Options() []*discordgo.ApplicationCommandOption {
-	return []*discordgo.ApplicationCommandOption{
+func (cmd NationCommand) Options() AppCommandOpts {
+	return AppCommandOpts{
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "query",
