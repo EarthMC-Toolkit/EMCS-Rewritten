@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"emcsrw/bot/common"
 	"emcsrw/bot/database"
-	"emcsrw/bot/discordutil"
 	"emcsrw/utils"
+	"emcsrw/utils/discordutil"
 	"fmt"
 	"strings"
 	"time"

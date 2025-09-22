@@ -3,7 +3,7 @@ package slashcommands
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
-	"emcsrw/bot/discordutil"
+	"emcsrw/utils/discordutil"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"

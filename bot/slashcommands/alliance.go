@@ -3,10 +3,8 @@ package slashcommands
 import (
 	"emcsrw/bot/common"
 	"emcsrw/bot/database"
-	"emcsrw/bot/discordutil"
+	"emcsrw/utils/discordutil"
 	"fmt"
-	"math/rand"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -32,29 +30,31 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "create",
 			Description: "Create an alliance.",
-			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("identifier", "The short unique name used to look up the alliance.", 3, 16),
-				discordutil.RequiredStringOption("label", "The full name for display purposes.", 4, 36),
-			},
+			// Options: AppCommandOpts{
+			// 	discordutil.RequiredStringOption("identifier", "The short unique name used to query the alliance.", 3, 16),
+			// 	discordutil.RequiredStringOption("label", "The full name for display purposes.", 4, 36),
+			// },
 		},
 	}
 }
 
 func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	err := discordutil.DeferReply(s, i.Interaction)
-	if err != nil {
-		return err
-	}
-
 	cmdData := i.ApplicationCommandData()
+
 	if lookup := cmdData.GetOption("query"); lookup != nil {
+		err := discordutil.DeferReply(s, i.Interaction)
+		if err != nil {
+			return err
+		}
+
 		return QueryAlliance(s, i.Interaction, cmdData)
 	}
+
 	if create := cmdData.GetOption("create"); create != nil {
 		return CreateAlliance(s, i.Interaction, cmdData)
 	}
 
-	return err
+	return nil
 }
 
 func QueryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
@@ -76,32 +76,78 @@ func QueryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordg
 }
 
 func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
-	opt := data.GetOption("create")
-
-	ident := opt.GetOption("identifier").StringValue()
-	label := opt.GetOption("label").StringValue()
-
-	createdAlliance := &database.Alliance{
-		ID:         generateAllianceID(),
-		Identifier: ident,
-		Label:      label,
-	}
-
-	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	err := database.PutAlliance(db, createdAlliance)
+	err := discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
+		CustomID: "alliance_creator_modal",
+		Title:    "Alliance Creator",
+		Components: []discordgo.MessageComponent{
+			discordgo.ActionsRow{
+				Components: []discordgo.MessageComponent{
+					discordgo.TextInput{
+						CustomID:    "identifier",
+						Label:       "Query Identifier (3-16 chars)",
+						Placeholder: "Enter a unique short name used to query the alliance...",
+						Required:    true,
+						Style:       discordgo.TextInputShort,
+						MinLength:   3,
+						MaxLength:   16,
+					},
+				},
+			},
+			discordgo.ActionsRow{
+				Components: []discordgo.MessageComponent{
+					discordgo.TextInput{
+						CustomID:    "label",
+						Label:       "Alliance Name (4-36 chars)",
+						Placeholder: "Enter the full alliance name...",
+						Required:    true,
+						Style:       discordgo.TextInputShort,
+						MinLength:   4,
+						MaxLength:   36,
+					},
+				},
+			},
+			discordgo.ActionsRow{
+				Components: []discordgo.MessageComponent{
+					discordgo.TextInput{
+						CustomID:    "nations",
+						Label:       "Nations",
+						Placeholder: "Nation1, Nation2, Nation3...",
+						Required:    true,
+						MinLength:   3,
+						Style:       discordgo.TextInputParagraph,
+					},
+				},
+			},
+		},
+	})
 	if err != nil {
-		fmt.Printf("failed to put alliance %s into db:\n%v", ident, err)
-
-		_, err := discordutil.FollowUpContentEphemeral(s, i, fmt.Sprintf("Could not create alliance `%s`! Check the console.", ident))
 		return err
 	}
 
-	_, err = discordutil.FollowUpContent(s, i, fmt.Sprintf("Successfully created alliance `%s (%s)`", label, ident))
-	return err
+	return nil
 }
 
-func generateAllianceID() uint64 {
-	created := uint64(time.Now().UnixMilli()) // Shouldn't ever be negative after 1970 :P
-	suffix := uint64(rand.Intn(1 << 16))      // Safe to cast to uint since Intn returns 0-n anyway.
-	return (created << 16) | suffix
-}
+// func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
+// 	opt := data.GetOption("create")
+
+// 	ident := opt.GetOption("identifier").StringValue()
+// 	label := opt.GetOption("label").StringValue()
+
+// 	createdAlliance := &database.Alliance{
+// 		ID:         generateAllianceID(),
+// 		Identifier: ident,
+// 		Label:      label,
+// 	}
+
+// 	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+// 	err := database.PutAlliance(db, createdAlliance)
+// 	if err != nil {
+// 		fmt.Printf("failed to put alliance %s into db:\n%v", ident, err)
+
+// 		_, err := discordutil.FollowUpContentEphemeral(s, i, fmt.Sprintf("Could not create alliance `%s`! Check the console.", ident))
+// 		return err
+// 	}
+
+// 	_, err = discordutil.FollowUpContent(s, i, fmt.Sprintf("Successfully created alliance `%s (%s)`", label, ident))
+// 	return err
+// }

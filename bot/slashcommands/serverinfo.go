@@ -4,8 +4,8 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
 	"emcsrw/bot/database"
-	"emcsrw/bot/discordutil"
 	"emcsrw/utils"
+	"emcsrw/utils/discordutil"
 	"fmt"
 	"strings"
 

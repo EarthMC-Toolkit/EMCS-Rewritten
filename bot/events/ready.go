@@ -8,6 +8,7 @@ import (
 	"emcsrw/bot/slashcommands"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -23,7 +24,6 @@ import (
 func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	fmt.Printf("Logged in as: %s\n\n", s.State.User.Username)
 	slashcommands.SyncWithRemote(s)
-	fmt.Printf("\n")
 
 	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
 	if db == nil {
@@ -38,6 +38,8 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	// }, true, 20*time.Second)
 
 	scheduleTask(func() {
+		start := time.Now()
+
 		plist, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
 		if err != nil {
 			return
@@ -47,25 +49,33 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 			return api.QueryAllTowns()
 		})
 
-		residents := PutFunc(db, "residents", func() (entities map[string]oapi.Entity, err error) {
-			entities = make(map[string]oapi.Entity)
-			for _, t := range towns {
-				for _, r := range t.Residents {
-					entities[r.UUID] = r
-				}
+		nationlist := make(map[string]oapi.Entity)
+		residentlist := make(map[string]oapi.Entity)
+		for _, t := range towns {
+			for _, r := range t.Residents {
+				residentlist[r.UUID] = r
 			}
 
-			return
+			if t.Nation.UUID != nil {
+				nationlist[*t.Nation.UUID] = oapi.Entity{
+					Name: *t.Nation.Name,
+					UUID: *t.Nation.UUID,
+				}
+			}
+		}
+
+		nations := PutFunc(db, "nations", func() ([]oapi.NationInfo, error) {
+			res, _, _ := oapi.QueryConcurrent(lo.Keys(nationlist), oapi.QueryNations)
+			return res, nil
 		})
 
-		// staleTownless, err := database.GetInsensitive[map[string]oapi.Entity](db, "townless")
-		// if err != nil {
-		// 	return
-		// }
+		PutFunc(db, "residentlist", func() (entities map[string]oapi.Entity, err error) {
+			return residentlist, nil
+		})
 
-		townless := PutFunc(db, "townless", func() (map[string]oapi.Entity, error) {
+		townlesslist := PutFunc(db, "townlesslist", func() (map[string]oapi.Entity, error) {
 			entities := lo.FilterMap(plist, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
-				_, ok := residents[p.UUID]
+				_, ok := residentlist[p.UUID]
 				return p, !ok
 			})
 
@@ -79,8 +89,10 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		// fmt.Printf("\nJoined a town: %s\n", strings.Join(joined, ", "))
 		// fmt.Printf("\nLeft a town: %s\n", strings.Join(left, ", "))
 
-		fmt.Printf("\nTotal Players: %d, Residents: %d, Townless: %d\n\n", len(plist), len(residents), len(townless))
-	}, true, 30*time.Second)
+		fmt.Printf("\nTotal Players: %d, Residents: %d, Townless: %d", len(plist), len(residentlist), len(townlesslist))
+		fmt.Printf("\nNations List: %d, Nations: %d", len(nationlist), len(nations))
+		fmt.Printf("\n\nTook: %s\n\n", time.Since(start))
+	}, true, 40*time.Second)
 
 	// Updating every 1m30s should be fine. doubt people are running /vp or /serverinfo that often.
 	scheduleTask(func() {
@@ -113,18 +125,18 @@ func PutFunc[T any](mapDB *badger.DB, key string, task func() (T, error)) T {
 
 	res, err := task()
 	if err != nil {
-		fmt.Printf("error putting '%s' into db at %s:\n%v", key, dbDir, err)
+		log.Printf("error putting '%s' into db at %s:\n%v", key, dbDir, err)
 		return res
 	}
 
 	data, err := json.Marshal(res)
 	if err != nil {
-		fmt.Printf("error putting '%s' into db at %s:\n%v", key, dbDir, err)
+		log.Printf("error putting '%s' into db at %s:\n%v", key, dbDir, err)
 		return res
 	}
 
 	database.PutInsensitive(mapDB, key, data)
-	fmt.Printf("put '%s' into db at %s\n", key, dbDir)
+	log.Printf("put '%s' into db at %s\n", key, dbDir)
 
 	return res
 }

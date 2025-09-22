@@ -9,30 +9,12 @@ import (
 	"time"
 )
 
-//const TOOLKIT_API_URL = "https://emctoolkit.vercel.app/api/aurora"
+var client = http.Client{Timeout: 10 * time.Second}
 
-var client = http.Client{Timeout: 8 * time.Second}
+//const TOOLKIT_API_URL = "https://emctoolkit.vercel.app/api/aurora"
 
 // func TKAPIRequest[T any](endpoint string) (T, error) {
 // 	return JsonGetRequest[T](TOOLKIT_API_URL + endpoint)
-// }
-
-// func OAPIConcurrentRequest[T any](endpoints []string, skipCache bool) ([]T, []error) {
-// 	var results []T
-// 	var errors []error
-
-// 	lop.ForEach(endpoints, func(ep string, _ int) {
-// 		res, err := OAPIGetRequest[T](ep)
-
-// 		// Use JsonRequest here
-// 		if err != nil {
-// 			errors = append(errors, err)
-// 		} else {
-// 			results = append(results, res)
-// 		}
-// 	})
-
-// 	return results, errors
 // }
 
 // Sends a POST request with a JSON body and since JSON is expected to be returned, the response is unmarshalled into the provided type.

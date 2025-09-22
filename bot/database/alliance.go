@@ -21,7 +21,7 @@ type AllianceOptionals struct {
 }
 
 type Alliance struct {
-	ID               uint64            `json:"id"` // First 48bits = ms timestamp. Extra 16bits = randomness.
+	UUID             uint64            `json:"id"` // First 48bits = ms timestamp. Extra 16bits = randomness.
 	Identifier       string            `json:"identifier"`
 	Label            string            `json:"label"`
 	RepresentativeID *uint64           `json:"representativeID"`
@@ -32,7 +32,7 @@ type Alliance struct {
 }
 
 func (a *Alliance) CreatedTimestamp() uint64 {
-	return a.ID >> 16
+	return a.UUID >> 16
 }
 
 // ================================== DATABASE INTERACTION ==================================

@@ -3,11 +3,14 @@ package events
 import (
 	"emcsrw/bot/common"
 	"emcsrw/bot/database"
-	"emcsrw/bot/discordutil"
 	"emcsrw/bot/slashcommands"
+	"emcsrw/utils"
+	"emcsrw/utils/discordutil"
 	"fmt"
 	"log"
+	"math/rand"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -16,21 +19,8 @@ import (
 func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("handler InteractionCreateApplicationCommand recovered from a panic.\n%v\n%s", err, debug.Stack())
-
-			errStr := fmt.Sprintf("```%v```", err) // NOTE: This could panic itself. Maybe handle it or just send generic text.
-			content := "Bot attempted to panic during this command. Please report the following error.\n" + errStr
-
-			// Not already deferred, reply.
-			err := discordutil.SendReply(s, i.Interaction, &discordgo.InteractionResponseData{
-				Flags:   discordgo.MessageFlagsEphemeral,
-				Content: content,
-			})
-
-			if err != nil {
-				// Must be deferred, send follow up.
-				discordutil.FollowUpContentEphemeral(s, i.Interaction, content)
-			}
+			log.Printf("handler OnInteractionCreateApplicationCommand recovered from a panic.\n%v\n%s", err, debug.Stack())
+			ReplyWithError(s, i.Interaction, err)
 		}
 	}()
 
@@ -50,9 +40,9 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 
 	success := false
 	if err != nil {
-		fmt.Printf("\n'%s' failed to execute command /%s:\n%v", author.Username, cmdName, err)
+		log.Printf("'%s' failed to execute command /%s:\n%v\n\n", author.Username, cmdName, err)
 	} else {
-		fmt.Printf("\n'%s' successfully executed command /%s (took: %s)\n", author.Username, cmdName, elapsed)
+		log.Printf("'%s' successfully executed command /%s (took: %s)\n", author.Username, cmdName, elapsed)
 		success = true
 	}
 
@@ -80,7 +70,7 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 	}
 
 	if err != nil {
-		fmt.Printf("\ndb error occurred. could not update usage for user: %s (%s)\n%v", author.Username, author.ID, err)
+		log.Printf("\ndb error occurred. could not update usage for user: %s (%s)\n%v", author.Username, author.ID, err)
 	}
 }
 
@@ -89,5 +79,76 @@ func OnInteractionCreateMessageComponent(s *discordgo.Session, i *discordgo.Inte
 	if i.Type != discordgo.InteractionMessageComponent {
 		return
 	}
+}
 
+func OnInteractionCreateModalSubmit(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("handler OnInteractionCreateModalSubmit recovered from a panic.\n%v\n%s", err, debug.Stack())
+			ReplyWithError(s, i.Interaction, err)
+		}
+	}()
+
+	if i.Type != discordgo.InteractionModalSubmit {
+		return
+	}
+
+	data := i.ModalSubmitData()
+	if data.CustomID == "alliance_creator_modal" {
+		HandleAllianceCreatorModal(s, i.Interaction, data)
+	}
+}
+
+func HandleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ModalSubmitInteractionData) {
+	inputs := ModalInputsToMap(i)
+
+	label := inputs["label"]
+	ident := inputs["identifier"]
+	nations := inputs["nations"]
+
+	createdAlliance := &database.Alliance{
+		UUID:       generateAllianceUUID(),
+		Identifier: ident,
+		Label:      label,
+		OwnNations: strings.Split(nations, ", "),
+	}
+
+	fmt.Print(utils.Prettify(createdAlliance))
+	//fmt.Printf("Label: %s, Ident: %s\nNations: %s\n", label, ident, nationsInput)
+}
+
+func ModalInputsToMap(i *discordgo.Interaction) map[string]string {
+	inputs := make(map[string]string)
+	for _, row := range i.ModalSubmitData().Components {
+		if actionRow, ok := row.(*discordgo.ActionsRow); ok {
+			for _, comp := range actionRow.Components {
+				if input, ok := comp.(*discordgo.TextInput); ok {
+					inputs[input.CustomID] = input.Value
+				}
+			}
+		}
+	}
+	return inputs
+}
+
+func generateAllianceUUID() uint64 {
+	created := uint64(time.Now().UnixMilli()) // Shouldn't ever be negative after 1970 :P
+	suffix := uint64(rand.Intn(1 << 16))      // Safe to cast to uint since Intn returns 0-n anyway.
+	return (created << 16) | suffix
+}
+
+func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err any) {
+	errStr := fmt.Sprintf("```%v```", err) // NOTE: This could panic itself. Maybe handle it or just send generic text.
+	content := "Bot attempted to panic during this command. Please report the following error.\n" + errStr
+
+	// Not already deferred, reply.
+	err = discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
+		Flags:   discordgo.MessageFlagsEphemeral,
+		Content: content,
+	})
+
+	if err != nil {
+		// Must be deferred, send follow up.
+		discordutil.FollowUpContentEphemeral(s, i, content)
+	}
 }

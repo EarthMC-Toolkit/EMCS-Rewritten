@@ -49,6 +49,8 @@ func QueryAllTowns() ([]oapi.TownInfo, error) {
 	return towns, nil
 }
 
+// TODO: Might not even need this since we can just do QueryConcurrent for nations
+// using gathered from doing QueryConcurrent for towns previously.
 func QueryAllNations() ([]oapi.NationInfo, error) {
 	nlist, err := oapi.QueryList(oapi.ENDPOINT_NATIONS)
 	if err != nil {
