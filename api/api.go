@@ -48,3 +48,17 @@ func QueryAllTowns() ([]oapi.TownInfo, error) {
 	towns, _, _ := oapi.QueryConcurrent(identifiers, oapi.QueryTowns)
 	return towns, nil
 }
+
+func QueryAllNations() ([]oapi.NationInfo, error) {
+	nlist, err := oapi.QueryList(oapi.ENDPOINT_NATIONS)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query all nations, could not get initial list\n%v", err)
+	}
+
+	identifiers := lop.Map(nlist, func(e oapi.Entity, _ int) string {
+		return e.UUID
+	})
+
+	nations, _, _ := oapi.QueryConcurrent(identifiers, oapi.QueryNations)
+	return nations, nil
+}

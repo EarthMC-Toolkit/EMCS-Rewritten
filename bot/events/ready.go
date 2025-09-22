@@ -12,10 +12,8 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/dgraph-io/badger/v4"
+	"github.com/samber/lo"
 )
-
-// Leave empty to register commands globally
-const guildID = ""
 
 // TODO: We shouldn't really be registering commands here bc of the limit.
 // Prefer a standalone script that registers via the REST API and run it when a command "definition" changes (such as description, options etc).
@@ -24,68 +22,73 @@ const guildID = ""
 // https://discordjs.guide/creating-your-bot/command-deployment.html#command-registration.
 func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	fmt.Printf("Logged in as: %s\n\n", s.State.User.Username)
-
-	SyncSlashCommands(s)
-
+	slashcommands.SyncWithRemote(s)
 	fmt.Printf("\n")
 
 	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-
-	//api.QueryAndSaveTowns()
-	scheduleTask(func() {
-		QueryAndSaveServerInfo(db)
-	}, true, 60*time.Second)
-}
-
-func SyncSlashCommands(s *discordgo.Session) {
-	localCmds := []*discordgo.ApplicationCommand{}
-	for _, cmd := range slashcommands.All() {
-		localCmds = append(localCmds, slashcommands.ToApplicationCommand(cmd))
-	}
-
-	_, err := s.ApplicationCommandBulkOverwrite(s.State.User.ID, guildID, localCmds)
-	if err != nil {
-		fmt.Printf("Failed to sync slash commands. Error occurred during bulk overwrite: %v\n", err)
+	if db == nil {
+		fmt.Printf("[OnReady]: wtf happened? db is nil")
 		return
 	}
 
-	fmt.Println("\nSuccessfully synced slash commands!")
-}
+	// scheduleTask(func() {
+	// 	PutFunc(db, "playerlist", func() ([]oapi.Entity, error) {
+	// 		return oapi.QueryList(oapi.ENDPOINT_PLAYERS)
+	// 	})
+	// }, true, 20*time.Second)
 
-func RegisterSlashCommands(s *discordgo.Session) {
-	for _, cmd := range slashcommands.All() {
-		fmt.Printf("Registering slash command '%s'\n", cmd.Name())
-
-		_, err := s.ApplicationCommandCreate(s.State.User.ID, guildID, slashcommands.ToApplicationCommand(cmd))
+	scheduleTask(func() {
+		plist, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
 		if err != nil {
-			fmt.Printf("Failed to register slash command '%v': %v\n", cmd.Name(), err)
+			return
 		}
-	}
+
+		towns := PutFunc(db, "towns", func() ([]oapi.TownInfo, error) {
+			return api.QueryAllTowns()
+		})
+
+		residents := PutFunc(db, "residents", func() (entities map[string]oapi.Entity, err error) {
+			entities = make(map[string]oapi.Entity)
+			for _, t := range towns {
+				for _, r := range t.Residents {
+					entities[r.UUID] = r
+				}
+			}
+
+			return
+		})
+
+		// staleTownless, err := database.GetInsensitive[map[string]oapi.Entity](db, "townless")
+		// if err != nil {
+		// 	return
+		// }
+
+		townless := PutFunc(db, "townless", func() (map[string]oapi.Entity, error) {
+			entities := lo.FilterMap(plist, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
+				_, ok := residents[p.UUID]
+				return p, !ok
+			})
+
+			// Convert slice to map using UUID as key.
+			return lo.Associate(entities, func(p oapi.Entity) (string, oapi.Entity) {
+				return p.UUID, p
+			}), nil
+		})
+
+		// joined, left := EntityMapsDifference(townless, *staleTownless)
+		// fmt.Printf("\nJoined a town: %s\n", strings.Join(joined, ", "))
+		// fmt.Printf("\nLeft a town: %s\n", strings.Join(left, ", "))
+
+		fmt.Printf("\nTotal Players: %d, Residents: %d, Townless: %d\n\n", len(plist), len(residents), len(townless))
+	}, true, 30*time.Second)
+
+	// Updating every 1m30s should be fine. doubt people are running /vp or /serverinfo that often.
+	scheduleTask(func() {
+		PutFunc(db, "serverinfo", func() (oapi.ServerInfo, error) {
+			return oapi.QueryServer()
+		})
+	}, true, 90*time.Second)
 }
-
-// Deletes any commands existing on the remote (what discord has registered) as long as they
-// aren't currently registered on the local side via slashcommands.All()
-// func CleanupOldCommands(s *discordgo.Session) {
-// 	discordCmds, err := s.ApplicationCommands(s.State.User.ID, guildID) // Get commands discord has registered.
-// 	if err != nil {
-// 		fmt.Printf("Cannot clean up old commands. Failed to query discord: %v", err)
-// 		return
-// 	}
-
-// 	for _, cmd := range discordCmds {
-// 		_, ok := slashcommands.All()[cmd.Name] // Check this cmd still exists in ones we registered.
-// 		if !ok {
-// 			// Doesn't exist, must be old. Delete dat shit
-// 			err := s.ApplicationCommandDelete(s.State.User.ID, guildID, cmd.ID)
-// 			if err != nil {
-// 				fmt.Printf("Failed to delete old command %s: %v", cmd.Name, err)
-// 				continue
-// 			}
-
-// 			fmt.Printf("Deleted stale remote command: %s", cmd.Name)
-// 		}
-// 	}
-// }
 
 func scheduleTask(task func(), runInitial bool, interval time.Duration) chan struct{} {
 	if runInitial {
@@ -105,37 +108,46 @@ func scheduleTask(task func(), runInitial bool, interval time.Duration) chan str
 	return stop
 }
 
-func QueryAndSaveAllTowns(mapDB *badger.DB) {
-	towns, err := api.QueryAllTowns()
+func PutFunc[T any](mapDB *badger.DB, key string, task func() (T, error)) T {
+	dbDir := mapDB.Opts().Dir
+
+	res, err := task()
 	if err != nil {
-		fmt.Printf("error putting towns into db at %s:\n%v", mapDB.Opts().Dir, err)
-		return
+		fmt.Printf("error putting '%s' into db at %s:\n%v", key, dbDir, err)
+		return res
 	}
 
-	data, err := json.Marshal(towns)
+	data, err := json.Marshal(res)
 	if err != nil {
-		fmt.Printf("error putting towns into db at %s:\n%v", mapDB.Opts().Dir, err)
-		return
+		fmt.Printf("error putting '%s' into db at %s:\n%v", key, dbDir, err)
+		return res
 	}
 
-	database.PutInsensitive(mapDB, "towns", data)
-	fmt.Printf("put towns into db at %s\n", mapDB.Opts().Dir)
+	database.PutInsensitive(mapDB, key, data)
+	fmt.Printf("put '%s' into db at %s\n", key, dbDir)
+
+	return res
 }
 
-func QueryAndSaveServerInfo(mapDB *badger.DB) {
-	info, err := oapi.QueryServer()
-	if err != nil {
-		fmt.Printf("error putting server info into db at %s:\n%v", mapDB.Opts().Dir, err)
-		return
-	}
+// func EntityMapsDifference(fresh, stale map[string]oapi.Entity) (newEntities []string, oldEntities []string) {
+// 	staleNames := make(map[string]struct{})
+// 	for _, e := range stale {
+// 		staleNames[e.Name] = struct{}{}
+// 	}
 
-	data, err := json.Marshal(info)
-	if err != nil {
-		fmt.Printf("error putting server info into db at %s:\n%v", mapDB.Opts().Dir, err)
-		return
-	}
+// 	freshNames := make(map[string]struct{})
+// 	for _, e := range fresh {
+// 		freshNames[e.Name] = struct{}{}
+// 		if _, ok := staleNames[e.Name]; !ok {
+// 			newEntities = append(newEntities, e.Name) // in fresh, not in stale → new
+// 		}
+// 	}
 
-	// NOTE: Consider putting VP and statistics seperately. Is this optimization worth it?
-	database.PutInsensitive(mapDB, "serverinfo", data)
-	fmt.Printf("put server info into db at %s\n", mapDB.Opts().Dir)
-}
+// 	for _, e := range stale {
+// 		if _, ok := freshNames[e.Name]; !ok {
+// 			oldEntities = append(oldEntities, e.Name) // in stale, not in fresh → old
+// 		}
+// 	}
+
+// 	return
+// }

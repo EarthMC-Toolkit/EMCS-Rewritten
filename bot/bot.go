@@ -37,15 +37,6 @@ func Run(botToken string) {
 
 	s.Identify.Intents = dgo.IntentMessageContent | guildIntents
 
-	fmt.Printf("\nEstablishing Discord connection..\n")
-
-	// Open WS connection to Discord
-	err = s.Open()
-	if err != nil {
-		log.Fatal("Cannot open Discord session: ", err)
-	}
-	defer s.Close()
-
 	fmt.Printf("\nInitializing map databases..\n")
 
 	// Create or open badger DB
@@ -54,6 +45,15 @@ func Run(botToken string) {
 		log.Fatalf("Cannot initialize database for map '%s':\n%v", common.SUPPORTED_MAPS.AURORA, err)
 	}
 	defer auroraDB.Close()
+
+	fmt.Printf("\nEstablishing Discord connection..\n")
+
+	// Open WS connection to Discord
+	err = s.Open()
+	if err != nil {
+		log.Fatal("Cannot open Discord session: ", err)
+	}
+	defer s.Close()
 
 	// Wait for Ctrl+C (exit)
 	c := make(chan os.Signal, 1)
