@@ -71,3 +71,9 @@ func RequiredStringOption(name, description string, minLen, maxLen int) *discord
 		Required:    true,
 	}
 }
+
+func TextInputActionRow(input discordgo.TextInput) discordgo.ActionsRow {
+	return discordgo.ActionsRow{
+		Components: []discordgo.MessageComponent{input},
+	}
+}

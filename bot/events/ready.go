@@ -40,17 +40,16 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	scheduleTask(func() {
 		start := time.Now()
 
-		plist, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
+		towns, err := PutFunc(db, "towns", func() ([]oapi.TownInfo, error) {
+			return api.QueryAllTowns()
+		})
 		if err != nil {
 			return
 		}
 
-		towns := PutFunc(db, "towns", func() ([]oapi.TownInfo, error) {
-			return api.QueryAllTowns()
-		})
-
-		nationlist := make(map[string]oapi.Entity)
+		//region ============ GATHER DATA USING TOWNS ============
 		residentlist := make(map[string]oapi.Entity)
+		nationlist := make(map[string]oapi.Entity)
 		for _, t := range towns {
 			for _, r := range t.Residents {
 				residentlist[r.UUID] = r
@@ -64,16 +63,23 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 			}
 		}
 
-		nations := PutFunc(db, "nations", func() ([]oapi.NationInfo, error) {
-			res, _, _ := oapi.QueryConcurrent(lo.Keys(nationlist), oapi.QueryNations)
-			return res, nil
-		})
-
 		PutFunc(db, "residentlist", func() (entities map[string]oapi.Entity, err error) {
 			return residentlist, nil
 		})
 
-		townlesslist := PutFunc(db, "townlesslist", func() (map[string]oapi.Entity, error) {
+		nations, _ := PutFunc(db, "nations", func() ([]oapi.NationInfo, error) {
+			res, _, _ := oapi.QueryConcurrent(lo.Keys(nationlist), oapi.QueryNations)
+			return res, nil
+		})
+		//endregion
+
+		//region ============ SPLIT RESIDENTS FROM TOWNLESS ============
+		plist, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
+		if err != nil {
+			return
+		}
+
+		townlesslist, _ := PutFunc(db, "townlesslist", func() (map[string]oapi.Entity, error) {
 			entities := lo.FilterMap(plist, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
 				_, ok := residentlist[p.UUID]
 				return p, !ok
@@ -84,6 +90,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 				return p.UUID, p
 			}), nil
 		})
+		//endregion
 
 		// joined, left := EntityMapsDifference(townless, *staleTownless)
 		// fmt.Printf("\nJoined a town: %s\n", strings.Join(joined, ", "))
@@ -120,25 +127,27 @@ func scheduleTask(task func(), runInitial bool, interval time.Duration) chan str
 	return stop
 }
 
-func PutFunc[T any](mapDB *badger.DB, key string, task func() (T, error)) T {
+// Runs a task that returns a value, said value is then marshalled and stored in the given badger DB under the given key.
+// If an error occurs during the task, the error is logged and returned, and the DB write will not occur.
+func PutFunc[T any](mapDB *badger.DB, key string, task func() (T, error)) (T, error) {
 	dbDir := mapDB.Opts().Dir
 
 	res, err := task()
 	if err != nil {
 		log.Printf("error putting '%s' into db at %s:\n%v", key, dbDir, err)
-		return res
+		return res, err
 	}
 
 	data, err := json.Marshal(res)
 	if err != nil {
 		log.Printf("error putting '%s' into db at %s:\n%v", key, dbDir, err)
-		return res
+		return res, err
 	}
 
 	database.PutInsensitive(mapDB, key, data)
 	log.Printf("put '%s' into db at %s\n", key, dbDir)
 
-	return res
+	return res, err
 }
 
 // func EntityMapsDifference(fresh, stale map[string]oapi.Entity) (newEntities []string, oldEntities []string) {

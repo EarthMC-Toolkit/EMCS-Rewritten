@@ -11,20 +11,28 @@ import (
 	"golang.org/x/text/message"
 )
 
-// type UUID4 uuid.UUID
+// dis printer is bri ish
+var printer = message.NewPrinter(language.BritishEnglish)
 
-// func (u *UUID4) UnmarshalJSON(b []byte) error {
-// 	id, err := uuid.Parse(string(b[:]))
-// 	if err != nil {
-// 		return err
-// 	}
-// 	*u = UUID4(id)
-// 	return nil
-// }
+// Calls Sprintf like usual, but in a humanized way. For example:
+//
+//	utils.HumanizedSprintf("Number is: %d\n", 10000)
+//
+// Outputs:
+//
+//	"Number is: 10,000"
+func HumanizedSprintf(key message.Reference, a ...any) string {
+	return printer.Sprintf(key, a...)
+}
 
-// func (u *UUID4) MarshalJSON() ([]byte, error) {
-// 	return fmt.Appendf(nil, "\"%s\"", uuid.UUID(*u).String()), nil
-// }
+func PrettyPrint(v any) (int, error) {
+	return printer.Print(Prettify(v))
+}
+
+func Prettify(v any) string {
+	litter.Config.StripPackageNames = true
+	return litter.Sdump(v)
+}
 
 type Loggable interface {
 	Log(args ...any)
@@ -58,11 +66,6 @@ func ContainsNonAlphanumeric(input string) bool {
 	return pattern.MatchString(input)
 }
 
-func Prettify(i any) string {
-	litter.Config.StripPackageNames = true
-	return litter.Sdump(i)
-}
-
 func HexToInt(hex string) int {
 	str := strings.ReplaceAll(hex, "#", "")
 	str = strings.ReplaceAll(str, "0x", "")
@@ -71,16 +74,17 @@ func HexToInt(hex string) int {
 	return int(output)
 }
 
-// dis printer is bri ish
-var printer = message.NewPrinter(language.BritishEnglish)
+// type UUID4 uuid.UUID
 
-// Calls Sprintf like usual, but in a humanized way. For example:
-//
-//	utils.HumanizedSprintf("Number is: %d\n", 10000)
-//
-// Outputs:
-//
-//	"Number is: 10,000"
-func HumanizedSprintf(key message.Reference, a ...any) string {
-	return printer.Sprintf(key, a...)
-}
+// func (u *UUID4) UnmarshalJSON(b []byte) error {
+// 	id, err := uuid.Parse(string(b[:]))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	*u = UUID4(id)
+// 	return nil
+// }
+
+// func (u *UUID4) MarshalJSON() ([]byte, error) {
+// 	return fmt.Appendf(nil, "\"%s\"", uuid.UUID(*u).String()), nil
+// }

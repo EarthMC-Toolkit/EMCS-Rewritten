@@ -35,6 +35,9 @@ func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
 	return players, nil
 }
 
+// Runs a GET query for the town list, then POST queries every town concurrently using its UUID.
+//
+// Total number of requests sent should be (total towns/QUERY_LIMIT)+1.
 func QueryAllTowns() ([]oapi.TownInfo, error) {
 	tlist, err := oapi.QueryList(oapi.ENDPOINT_TOWNS)
 	if err != nil {

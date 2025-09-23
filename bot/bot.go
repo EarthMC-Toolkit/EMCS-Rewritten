@@ -34,6 +34,7 @@ func Run(botToken string) {
 	s.AddHandler(events.OnReady)
 	s.AddHandler(events.OnInteractionCreateApplicationCommand) // Slash cmds
 	s.AddHandler(events.OnInteractionCreateMessageComponent)   // Buttons, rows, select menus
+	s.AddHandler(events.OnInteractionCreateModalSubmit)        // Modal submit
 
 	s.Identify.Intents = dgo.IntentMessageContent | guildIntents
 
