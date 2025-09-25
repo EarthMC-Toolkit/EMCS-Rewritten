@@ -51,7 +51,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	})
 
 	count := len(ruined)
-	perPage := 20
+	perPage := 10
 
 	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, len(ruined), perPage)
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
@@ -70,6 +70,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			Title:       fmt.Sprintf("List of Ruined Towns [%d]", count),
 			Footer:      common.DEFAULT_FOOTER,
 			Description: desc + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages()),
+			Color:       discordutil.DARK_GOLD,
 		}
 
 		data.Embeds = append(data.Embeds, embed)

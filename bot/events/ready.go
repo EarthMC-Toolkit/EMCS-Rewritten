@@ -7,6 +7,7 @@ import (
 	"emcsrw/bot/database"
 	"emcsrw/bot/slashcommands"
 	"emcsrw/utils"
+	"emcsrw/utils/discordutil"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -55,9 +56,11 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	scheduleTask(func() {
 		start := time.Now()
 
-		staleTowns := append(make([]oapi.TownInfo, 0, len(towns)), towns...)
+		staleTowns, err := database.GetInsensitive[[]oapi.TownInfo](db, "towns")
+		if err != nil {
+			staleTowns = &[]oapi.TownInfo{}
+		}
 
-		var err error
 		towns, err = PutFunc(db, "towns", func() ([]oapi.TownInfo, error) {
 			return api.QueryAllTowns()
 		})
@@ -114,8 +117,8 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		fmt.Printf("\nNations List: %d, Nations: %d", len(nationlist), len(nations))
 		fmt.Printf("\n\nTook: %s\n\n", time.Since(start))
 
-		TrySendLeftJoinedNotif(s, staleTowns)
-		TrySendRuinedNotif(s, staleTowns)
+		TrySendLeftJoinedNotif(s, *staleTowns)
+		TrySendRuinedNotif(s, *staleTowns)
 	}, true, 30*time.Second)
 
 	// Updating every min should be fine. doubt people care about having /vp and /serverinfo be realtime.
@@ -251,31 +254,34 @@ func TrySendLeftJoinedNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
 }
 
 func TrySendRuinedNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
-	staleTownsMap := lo.Associate(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo) {
-		return t.UUID, t
+	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
+		return t.UUID, t, t.Status.Ruined
 	})
 
-	ruined := []oapi.TownInfo{}
-	for _, t := range towns {
-		wasRuined := staleTownsMap[t.UUID].Status.Ruined
-		if t.Status.Ruined && !wasRuined {
-			// Town has just been ruined.
-			ruined = append(ruined, t)
-		}
-	}
+	ruined := lo.FilterMap(towns, func(t oapi.TownInfo, _ int) (oapi.TownInfo, bool) {
+		_, wasRuined := staleRuined[t.UUID]
+		return t, !wasRuined && t.Status.Ruined
+	})
 
 	sort.Slice(ruined, func(i, j int) bool {
 		return *ruined[i].Timestamps.RuinedAt > *ruined[j].Timestamps.RuinedAt
 	})
 
-	if len(ruined) > 0 {
+	count := len(ruined)
+	if count > 0 {
 		desc := lop.Map(ruined, func(t oapi.TownInfo, _ int) string {
-			return fmt.Sprintf("`%s` fell into ruin <t:%d:R>", t.Name, *t.Timestamps.RuinedAt/1000)
+			nation := "No Nation"
+			if t.Nation.Name != nil {
+				nation = *t.Nation.Name
+			}
+
+			return fmt.Sprintf("`%s` (**%s**) fell into ruin <t:%d:R>", t.Name, nation, *t.Timestamps.RuinedAt/1000)
 		})
 
 		s.ChannelMessageSendEmbed("1420855039357878469", &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("Town Flow | Ruin Events [%d]", len(ruined)),
+			Title:       fmt.Sprintf("Town Flow | Ruin Events [%d]", count),
 			Description: strings.Join(desc, "\n"),
+			Color:       discordutil.DARK_GOLD,
 		})
 	}
 }
