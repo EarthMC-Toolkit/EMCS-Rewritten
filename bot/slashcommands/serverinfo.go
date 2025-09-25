@@ -6,7 +6,7 @@ import (
 	"emcsrw/bot/database"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
-	"fmt"
+	"log"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -27,9 +27,9 @@ func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.Interact
 	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
 	info, err := database.GetInsensitive[oapi.ServerInfo](db, "serverinfo")
 	if err != nil {
-		fmt.Printf("failed to get serverinfo from db:\n%v", err)
+		log.Printf("failed to get serverinfo from db:\n%v", err)
 		return discordutil.SendReply(s, i.Interaction, &discordgo.InteractionResponseData{
-			Content: "An error occurred retrieving server info from the database. check the console",
+			Content: "An error occurred retrieving server info from the database. Check the console.",
 		})
 	}
 
@@ -62,10 +62,7 @@ func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.Interact
 	}
 
 	// Should generally respond in 3 seconds. May need to defer in future?
-	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Embeds: []*discordgo.MessageEmbed{embed},
-		},
+	return discordutil.SendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+		Embeds: []*discordgo.MessageEmbed{embed},
 	})
 }

@@ -178,9 +178,15 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
 func NewTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 	foundedTs := town.Timestamps.Registered / 1000 // Seconds
 
-	townTitle := fmt.Sprintf("Town Information | %s", town.Name)
-	if town.Nation.Name != nil {
-		townTitle += fmt.Sprintf(" (%s)", *town.Nation.Name)
+	townTitle := fmt.Sprintf("Town Information | `%s`", town.Name)
+	// if town.Nation.Name != nil {
+	// 	townTitle += fmt.Sprintf(" (%s)", *town.Nation.Name)
+	// }
+
+	colour := discordutil.GREEN
+	if town.Status.Ruined {
+		townTitle += " (Ruined)"
+		colour = discordutil.DARK_GOLD
 	}
 
 	desc := ""
@@ -193,17 +199,23 @@ func NewTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 		overclaimShield = "`Active` " + EMOJIS.SHIELD_GREEN
 	}
 
+	nationName := "No Nation"
+	if town.Nation.Name != nil {
+		nationName = *town.Nation.Name
+	}
+
 	return &dgo.MessageEmbed{
 		Type:        dgo.EmbedTypeRich,
 		Title:       townTitle,
 		Description: desc,
-		Color:       discordutil.GREEN,
+		Color:       colour,
 		Fields: []*dgo.MessageEmbedField{
-			NewEmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
-			NewEmbedField("Founder", fmt.Sprintf("`%s`", town.Founder), true),
+			//NewEmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
+			NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by `%s`", foundedTs, town.Founder), true),
 			NewEmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
+			NewEmbedField("Nation", fmt.Sprintf("`%s`", nationName), true),
 			NewEmbedField("Area", utils.HumanizedSprintf("`%d`/`%d` Chunks", town.Stats.NumTownBlocks, town.Stats.MaxTownBlocks), true),
-			NewEmbedField("Balance", utils.HumanizedSprintf("`%0.0f`G", town.Bal()), true),
+			NewEmbedField("Balance", utils.HumanizedSprintf("`%0.0f`G %s", town.Bal(), EMOJIS.GOLD_INGOT), true),
 			NewEmbedField("Residents", utils.HumanizedSprintf("`%d`", town.Stats.NumResidents), true),
 			NewEmbedField("Overclaim Status", fmt.Sprintf("Overclaimed: `%s`\nShield: %s", town.OverclaimedString(), overclaimShield), false),
 		},

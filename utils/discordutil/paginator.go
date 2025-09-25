@@ -28,6 +28,10 @@ func (p *Paginator) CurrentPageBounds(totalItems int) (int, int) {
 	return start, min(start+p.perPage, totalItems)
 }
 
+func (p *Paginator) Stop() {
+	close(p.stopChan)
+}
+
 type InteractionPageFunc func(curPage int, data *discordgo.InteractionResponseData)
 
 type InteractionPaginator struct {
@@ -59,37 +63,15 @@ func NewInteractionPaginator(s *discordgo.Session, i *discordgo.Interaction, tot
 	}
 }
 
-func (p *InteractionPaginator) NewNavigationButtonRow() discordgo.ActionsRow {
-	curPage := *p.currentPage
+func (p *InteractionPaginator) Start() (err error) {
+	data := p.getPageData(*p.currentPage)
 
-	return discordgo.ActionsRow{
-		Components: []discordgo.MessageComponent{
-			discordgo.Button{
-				Label:    "<<",
-				CustomID: "first",
-				Style:    discordgo.PrimaryButton,
-				Disabled: curPage == 0,
-			},
-			discordgo.Button{
-				Label:    "<",
-				CustomID: "prev",
-				Style:    discordgo.SuccessButton,
-				Disabled: curPage == 0,
-			},
-			discordgo.Button{
-				Label:    ">",
-				CustomID: "next",
-				Style:    discordgo.SuccessButton,
-				Disabled: curPage == p.totalPages-1,
-			},
-			discordgo.Button{
-				Label:    ">>",
-				CustomID: "last",
-				Style:    discordgo.PrimaryButton,
-				Disabled: curPage == p.totalPages-1,
-			},
-		},
+	_, err = EditOrSendReply(p.session, p.interaction, data)
+	if err == nil {
+		go p.beginButtonListener()
 	}
+
+	return
 }
 
 func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionResponseData {
@@ -103,17 +85,6 @@ func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionRespo
 	p.cache[page] = data
 
 	return data
-}
-
-func (p *InteractionPaginator) Start() (err error) {
-	data := p.getPageData(*p.currentPage)
-
-	_, err = EditOrSendReply(p.session, p.interaction, data)
-	if err == nil {
-		go p.beginButtonListener()
-	}
-
-	return
 }
 
 func (p *InteractionPaginator) beginButtonListener() {
@@ -158,6 +129,35 @@ func (p *InteractionPaginator) beginButtonListener() {
 	}
 }
 
-func (p *Paginator) Stop() {
-	close(p.stopChan)
+func (p *InteractionPaginator) NewNavigationButtonRow() discordgo.ActionsRow {
+	curPage := *p.currentPage
+
+	return discordgo.ActionsRow{
+		Components: []discordgo.MessageComponent{
+			discordgo.Button{
+				Label:    "<<",
+				CustomID: "first",
+				Style:    discordgo.PrimaryButton,
+				Disabled: curPage == 0,
+			},
+			discordgo.Button{
+				Label:    "<",
+				CustomID: "prev",
+				Style:    discordgo.SuccessButton,
+				Disabled: curPage == 0,
+			},
+			discordgo.Button{
+				Label:    ">",
+				CustomID: "next",
+				Style:    discordgo.SuccessButton,
+				Disabled: curPage == p.totalPages-1,
+			},
+			discordgo.Button{
+				Label:    ">>",
+				CustomID: "last",
+				Style:    discordgo.PrimaryButton,
+				Disabled: curPage == p.totalPages-1,
+			},
+		},
+	}
 }

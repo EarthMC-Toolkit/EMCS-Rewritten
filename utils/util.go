@@ -25,6 +25,18 @@ func HumanizedSprintf(key message.Reference, a ...any) string {
 	return printer.Sprintf(key, a...)
 }
 
+func HumanizeDuration(minutes float64) (float64, string) {
+	if minutes >= 60 {
+		return minutes / 60, "hr"
+	}
+
+	if minutes >= 1 {
+		return minutes, "min"
+	}
+
+	return minutes * 60, "sec"
+}
+
 func PrettyPrint(v any) (int, error) {
 	return printer.Print(Prettify(v))
 }

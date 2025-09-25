@@ -68,7 +68,5 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		}
 	}
 
-	paginator.Start()
-
-	return nil
+	return paginator.Start()
 }

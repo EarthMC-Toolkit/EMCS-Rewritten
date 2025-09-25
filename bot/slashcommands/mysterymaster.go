@@ -59,7 +59,5 @@ func SendMysteryMasterList(s *discordgo.Session, i *discordgo.Interaction) (*dis
 		}
 	}
 
-	paginator.Start()
-
-	return nil, nil
+	return nil, paginator.Start()
 }
