@@ -86,6 +86,34 @@ func HexToInt(hex string) int {
 	return int(output)
 }
 
+// Returns items in listA but not in listB based on keyFunc.
+func DifferenceBy[T any, K comparable](listA []T, listB []T, keyFn func(T) K) ([]T, map[K]struct{}) {
+	seen := make(map[K]struct{}, len(listB))
+	for _, v := range listB {
+		seen[keyFn(v)] = struct{}{}
+	}
+
+	result := make([]T, 0)
+	for _, v := range listA {
+		if _, ok := seen[keyFn(v)]; !ok {
+			result = append(result, v)
+		}
+	}
+
+	return result, seen
+}
+
+func DifferenceByReverse[T any, K comparable](listB []T, seenA map[K]struct{}, keyFn func(T) K) []T {
+	onlyB := make([]T, 0)
+	for _, v := range listB {
+		if _, ok := seenA[keyFn(v)]; !ok {
+			onlyB = append(onlyB, v)
+		}
+	}
+
+	return onlyB
+}
+
 // type UUID4 uuid.UUID
 
 // func (u *UUID4) UnmarshalJSON(b []byte) error {

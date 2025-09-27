@@ -6,6 +6,7 @@ import (
 	"emcsrw/bot/database"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"fmt"
 	"log"
 	"strings"
 
@@ -33,15 +34,16 @@ func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.Interact
 		})
 	}
 
-	statsField := &discordgo.MessageEmbedField{
-		Name: "Statistics",
+	timePassed := info.Stats.Time
+	serverTime := info.Timestamps.ServerTimeOfDay
+	newDayTime := info.Timestamps.NewDayTime
+
+	timestampsField := &discordgo.MessageEmbedField{
+		Name: "Timestamps",
 		Value: strings.Join([]string{
-			utils.HumanizedSprintf("Online: `%d`", info.Stats.NumOnlinePlayers),
-			utils.HumanizedSprintf("Townless (Online/Total): `%d`/`%d`", info.Stats.NumOnlineNomads, info.Stats.NumNomads),
-			utils.HumanizedSprintf("Residents: `%d`", info.Stats.NumResidents),
-			utils.HumanizedSprintf("Towns: `%d`", info.Stats.NumTowns),
-			utils.HumanizedSprintf("Nations: `%d`", info.Stats.NumNations),
-			utils.HumanizedSprintf("Quarters: `%d`", info.Stats.NumQuarters),
+			fmt.Sprintf("Server Time Of Day: `%d`", serverTime),
+			fmt.Sprintf("Time Passed In Current Day: `%d`", timePassed),
+			fmt.Sprintf("New Day At: `%d`", newDayTime),
 		}, "\n"),
 		Inline: true,
 	}
@@ -54,9 +56,22 @@ func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.Interact
 		Inline: true,
 	}
 
+	statsField := &discordgo.MessageEmbedField{
+		Name: "Statistics",
+		Value: strings.Join([]string{
+			utils.HumanizedSprintf("Online: `%d`", info.Stats.NumOnlinePlayers),
+			utils.HumanizedSprintf("Townless (Online/Total): `%d`/`%d`", info.Stats.NumOnlineNomads, info.Stats.NumNomads),
+			utils.HumanizedSprintf("Residents: `%d`", info.Stats.NumResidents),
+			utils.HumanizedSprintf("Towns: `%d`", info.Stats.NumTowns),
+			utils.HumanizedSprintf("Nations: `%d`", info.Stats.NumNations),
+			utils.HumanizedSprintf("Quarters: `%d`", info.Stats.NumQuarters),
+		}, "\n"),
+		Inline: false,
+	}
+
 	embed := &discordgo.MessageEmbed{
 		Title:  "Server Info",
-		Fields: []*discordgo.MessageEmbedField{statsField, vpField},
+		Fields: []*discordgo.MessageEmbedField{timestampsField, vpField, statsField},
 		Color:  discordutil.BLURPLE,
 		Footer: common.DEFAULT_FOOTER,
 	}

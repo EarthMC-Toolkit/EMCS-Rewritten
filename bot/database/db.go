@@ -19,8 +19,15 @@ func InitMapDB(mapName string) (*badger.DB, error) {
 		return nil, err
 	}
 
+	// Absolute path to the db for the input map.
 	dbDir := filepath.Join(cwd, "db", mapName)
-	db, err := badger.Open(badger.DefaultOptions(dbDir))
+
+	opts := badger.DefaultOptions(dbDir)
+	opts.ZSTDCompressionLevel = 2
+	opts.NumLevelZeroTables = 1
+	opts.NumVersionsToKeep = 1
+
+	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
 	}

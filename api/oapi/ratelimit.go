@@ -59,7 +59,7 @@ func (b *RequestBucket) AcquireToken() {
 	<-b.tokens
 }
 
-// TryAcquireToken tries to acquire without blocking
+// Attempts to a acquire without blocking.
 func (b *RequestBucket) TryAcquireToken() bool {
 	select {
 	case <-b.tokens:
