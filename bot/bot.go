@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"syscall"
 
 	dgo "github.com/bwmarrin/discordgo"
 	log "github.com/sirupsen/logrus"
@@ -45,7 +46,6 @@ func Run(botToken string) {
 	if err != nil {
 		log.Fatalf("Cannot initialize database for map '%s':\n%v", common.SUPPORTED_MAPS.AURORA, err)
 	}
-	defer auroraDB.Close()
 
 	fmt.Printf("\nEstablishing Discord connection..\n")
 
@@ -54,12 +54,20 @@ func Run(botToken string) {
 	if err != nil {
 		log.Fatal("Cannot open Discord session: ", err)
 	}
-	defer s.Close()
 
-	// Wait for Ctrl+C (exit)
+	// Wait for Ctrl+C or kill.
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	sig := <-c
 
 	fmt.Printf("\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
+
+	// Since the `defer` keyword only works in successful exits,
+	// closing explicitly here makes sure we always properly cleanup.
+	if err := auroraDB.Close(); err != nil {
+		log.Printf("Error closing DB: %v", err)
+	}
+	if err := s.Close(); err != nil {
+		log.Printf("Error closing Discord session: %v", err)
+	}
 }

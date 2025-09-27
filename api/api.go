@@ -11,6 +11,7 @@ package api
 import (
 	"emcsrw/api/mapi"
 	"emcsrw/api/oapi"
+	"errors"
 	"fmt"
 
 	lop "github.com/samber/lo/parallel"
@@ -31,13 +32,21 @@ func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
 		return p.Name
 	})
 
-	players, _, _ := oapi.QueryConcurrent(names, oapi.QueryPlayers)
+	players, errs, _ := oapi.QueryConcurrent(names, oapi.QueryPlayers)
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+
+	if len(players) == 0 {
+		return nil, errors.New("failed to query all players, received 0 players from QueryConcurrent")
+	}
+
 	return players, nil
 }
 
 // Runs a GET query for the town list, then POST queries every town concurrently using its UUID.
 //
-// Total number of requests sent should be (total towns/QUERY_LIMIT)+1.
+// Total number of requests sent should be 1+(total towns/QUERY_LIMIT).
 func QueryAllTowns() ([]oapi.TownInfo, error) {
 	tlist, err := oapi.QueryList(oapi.ENDPOINT_TOWNS)
 	if err != nil {
@@ -48,22 +57,30 @@ func QueryAllTowns() ([]oapi.TownInfo, error) {
 		return e.UUID
 	})
 
-	towns, _, _ := oapi.QueryConcurrent(identifiers, oapi.QueryTowns)
+	towns, errs, _ := oapi.QueryConcurrent(identifiers, oapi.QueryTowns)
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+
+	if len(towns) == 0 {
+		return nil, errors.New("failed to query all towns, received 0 towns from QueryConcurrent")
+	}
+
 	return towns, nil
 }
 
 // TODO: Might not even need this since we can just do QueryConcurrent for nations
-// using gathered from doing QueryConcurrent for towns previously.
-func QueryAllNations() ([]oapi.NationInfo, error) {
-	nlist, err := oapi.QueryList(oapi.ENDPOINT_NATIONS)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query all nations, could not get initial list\n%v", err)
-	}
+// using gathered data we got from doing QueryConcurrent for towns previously.
+// func QueryAllNations() ([]oapi.NationInfo, error) {
+// 	nlist, err := oapi.QueryList(oapi.ENDPOINT_NATIONS)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to query all nations, could not get initial list\n%v", err)
+// 	}
 
-	identifiers := lop.Map(nlist, func(e oapi.Entity, _ int) string {
-		return e.UUID
-	})
+// 	identifiers := lop.Map(nlist, func(e oapi.Entity, _ int) string {
+// 		return e.UUID
+// 	})
 
-	nations, _, _ := oapi.QueryConcurrent(identifiers, oapi.QueryNations)
-	return nations, nil
-}
+// 	nations, _, _ := oapi.QueryConcurrent(identifiers, oapi.QueryNations)
+// 	return nations, nil
+// }

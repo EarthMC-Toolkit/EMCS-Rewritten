@@ -204,22 +204,32 @@ func NewTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 		nationName = *town.Nation.Name
 	}
 
-	return &dgo.MessageEmbed{
+	locX := town.Coordinates.Spawn.X
+	locY := town.Coordinates.Spawn.Y
+	locZ := town.Coordinates.Spawn.Z
+
+	embed := &dgo.MessageEmbed{
 		Type:        dgo.EmbedTypeRich,
 		Title:       townTitle,
 		Description: desc,
 		Color:       colour,
 		Fields: []*dgo.MessageEmbedField{
 			//NewEmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
-			NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by `%s`", foundedTs, town.Founder), true),
+			NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by `%s`", foundedTs, town.Founder), false),
 			NewEmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
 			NewEmbedField("Nation", fmt.Sprintf("`%s`", nationName), true),
+			NewEmbedField("Location", fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=3)", locX, locY, locZ, locX, locZ), true),
 			NewEmbedField("Area", utils.HumanizedSprintf("`%d`/`%d` Chunks", town.Stats.NumTownBlocks, town.Stats.MaxTownBlocks), true),
 			NewEmbedField("Balance", utils.HumanizedSprintf("`%0.0f`G %s", town.Bal(), EMOJIS.GOLD_INGOT), true),
 			NewEmbedField("Residents", utils.HumanizedSprintf("`%d`", town.Stats.NumResidents), true),
-			NewEmbedField("Overclaim Status", fmt.Sprintf("Overclaimed: `%s`\nShield: %s", town.OverclaimedString(), overclaimShield), false),
 		},
 	}
+
+	if !town.Status.Ruined {
+		AddField(embed, "Overclaim Status", fmt.Sprintf("Overclaimed: `%s`\nShield: %s", town.OverclaimedString(), overclaimShield), false)
+	}
+
+	return embed
 }
 
 func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
@@ -47,7 +48,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	})
 
 	sort.Slice(ruined, func(i, j int) bool {
-		return *ruined[i].Timestamps.RuinedAt > *ruined[j].Timestamps.RuinedAt
+		return *ruined[i].Timestamps.RuinedAt < *ruined[j].Timestamps.RuinedAt
 	})
 
 	count := len(ruined)
@@ -58,18 +59,29 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		start, end := paginator.CurrentPageBounds(count)
 
 		desc := ""
-		for idx, t := range ruined[start:end] {
-			ts := fmt.Sprintf("<t:%d:R>", *t.Timestamps.RuinedAt/1000)
+		items := ruined[start:end]
+		count := len(items)
+
+		for idx, t := range items {
+			ruinedTs := *t.Timestamps.RuinedAt
+			deleteTs := time.UnixMilli(int64(ruinedTs)).Add(74 * time.Hour) // 72 UTC but EMC goes on UTC+2 (i think?)
+
 			chunks := utils.HumanizedSprintf("%s `%d`", common.EMOJIS.CHUNK, t.Stats.NumTownBlocks)
 			balance := utils.HumanizedSprintf("%s `%0.0f`", common.EMOJIS.GOLD_INGOT, t.Stats.Balance)
 
-			desc += fmt.Sprintf("%d. **%s** fell into ruin %s | %s Chunks, %sG\n", start+idx+1, t.Name, ts, chunks, balance)
+			spawn := t.Coordinates.Spawn
+			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
+
+			desc += fmt.Sprintf(
+				"%d. **%s** fell into ruin <t:%d:R> | %s Chunks %sG\nScheduled for deletion in <t:%d:R>. Located at %s\n\n",
+				start+idx+1, t.Name, ruinedTs/1000, chunks, balance, deleteTs.Unix(), locationLink,
+			)
 		}
 
 		embed := &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("List of Ruined Towns [%d]", count),
 			Footer:      common.DEFAULT_FOOTER,
-			Description: desc + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages()),
+			Description: desc + fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages()),
 			Color:       discordutil.DARK_GOLD,
 		}
 
