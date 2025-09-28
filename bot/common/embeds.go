@@ -106,7 +106,21 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
 	townName := lo.TernaryF(player.Town.Name == nil, func() string { return "No Town" }, func() string { return *player.Town.Name })
 	nationName := lo.TernaryF(player.Nation.Name == nil, func() string { return "No Nation" }, func() string { return *player.Nation.Name })
 
-	affiliation := lo.Ternary(townName == "No Town", "None (Townless)", fmt.Sprintf("%s (%s)", townName, nationName))
+	affiliation := "None (Townless)"
+	if townName != "No Town" {
+		db := database.GetMapDB(SUPPORTED_MAPS.AURORA)
+		towns, _ := database.GetInsensitive[[]oapi.TownInfo](db, "towns")
+
+		town, ok := lo.Find(*towns, func(t oapi.TownInfo) bool {
+			return t.UUID == *player.Town.UUID
+		})
+
+		// Should never rly be false bc we established they aren't townless.
+		if ok {
+			spawn := town.Coordinates.Spawn
+			affiliation = fmt.Sprintf("[%s](https://map.earthmc.net?x=%f&z=%f&zoom=3) (%s)", townName, spawn.X, spawn.Z, nationName)
+		}
+	}
 
 	rank := "Resident"
 	if player.Status.IsMayor {
@@ -213,6 +227,7 @@ func NewTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 		Title:       townTitle,
 		Description: desc,
 		Color:       colour,
+		Footer:      DEFAULT_FOOTER,
 		Fields: []*dgo.MessageEmbedField{
 			//NewEmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
 			NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by `%s`", foundedTs, town.Founder), false),
@@ -262,6 +277,7 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 		Title:       fmt.Sprintf("Nation Information | `%s`", nation.Name),
 		Description: board,
 		Color:       nation.FillColourInt(),
+		Footer:      DEFAULT_FOOTER,
 		Fields: []*dgo.MessageEmbedField{
 			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
 			NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),

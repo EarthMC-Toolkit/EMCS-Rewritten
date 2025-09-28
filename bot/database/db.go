@@ -26,6 +26,7 @@ func InitMapDB(mapName string) (*badger.DB, error) {
 	opts.ZSTDCompressionLevel = 2
 	opts.NumLevelZeroTables = 1
 	opts.NumVersionsToKeep = 1
+	opts.CompactL0OnClose = true
 
 	db, err := badger.Open(opts)
 	if err != nil {

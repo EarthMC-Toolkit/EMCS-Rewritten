@@ -50,9 +50,9 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return QueryAlliance(s, i.Interaction, cmdData)
 	}
 
-	if create := cmdData.GetOption("create"); create != nil {
-		return CreateAlliance(s, i.Interaction, cmdData)
-	}
+	// if create := cmdData.GetOption("create"); create != nil {
+	// 	return CreateAlliance(s, i.Interaction, cmdData)
+	// }
 
 	return nil
 }
@@ -80,44 +80,32 @@ func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction, data discord
 		CustomID: "alliance_creator_modal",
 		Title:    "Alliance Creator",
 		Components: []discordgo.MessageComponent{
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
-					discordgo.TextInput{
-						CustomID:    "identifier",
-						Label:       "Query Identifier (3-16 chars)",
-						Placeholder: "Enter a unique short name used to query the alliance...",
-						Required:    true,
-						Style:       discordgo.TextInputShort,
-						MinLength:   3,
-						MaxLength:   16,
-					},
-				},
-			},
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
-					discordgo.TextInput{
-						CustomID:    "label",
-						Label:       "Alliance Name (4-36 chars)",
-						Placeholder: "Enter the full alliance name...",
-						Required:    true,
-						Style:       discordgo.TextInputShort,
-						MinLength:   4,
-						MaxLength:   36,
-					},
-				},
-			},
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
-					discordgo.TextInput{
-						CustomID:    "nations",
-						Label:       "Nations",
-						Placeholder: "Nation1, Nation2, Nation3...",
-						Required:    true,
-						MinLength:   3,
-						Style:       discordgo.TextInputParagraph,
-					},
-				},
-			},
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "identifier",
+				Label:       "Query Identifier (3-16 chars)",
+				Placeholder: "Enter a unique short name used to query the alliance...",
+				Required:    true,
+				Style:       discordgo.TextInputShort,
+				MinLength:   3,
+				MaxLength:   16,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "label",
+				Label:       "Alliance Name (4-36 chars)",
+				Placeholder: "Enter the full alliance name...",
+				Required:    true,
+				Style:       discordgo.TextInputShort,
+				MinLength:   4,
+				MaxLength:   36,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "nations",
+				Label:       "Nations",
+				Placeholder: "Nation1, Nation2, Nation3...",
+				Required:    true,
+				MinLength:   3,
+				Style:       discordgo.TextInputParagraph,
+			}),
 		},
 	})
 	if err != nil {

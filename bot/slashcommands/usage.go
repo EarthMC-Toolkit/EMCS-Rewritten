@@ -84,7 +84,8 @@ func ExecuteSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 	mostUsed30DaysStr := strings.Join(mostUsed, "\n")
 
 	embed := &discordgo.MessageEmbed{
-		Title: fmt.Sprintf("Bot Usage Statistics | `%s`", author.Username),
+		Title:  fmt.Sprintf("Bot Usage Statistics | `%s`", author.Username),
+		Footer: common.DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
 			discordutil.NewEmbedField("Total Commands Executed", utils.HumanizedSprintf("`%d`", usage.TotalCommandsExecuted()), false),
 			discordutil.NewEmbedField("Top Commands (All Time)", mostUsedStr, true),

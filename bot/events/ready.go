@@ -62,6 +62,8 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		TrySendLeftJoinedNotif(s, *staleTowns)
 		TrySendRuinedNotif(s, *staleTowns)
 		TrySendFallenNotif(s, *staleTowns)
+
+		db.RunValueLogGC(0.2) // 0 - 1. lower = aggressive reclaim.
 	}, true, 30*time.Second)
 
 	// Updating every min should be fine. doubt people care about having /vp and /serverinfo be realtime.
