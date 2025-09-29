@@ -3,7 +3,7 @@ package slashcommands
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
-	"emcsrw/bot/database"
+	"emcsrw/bot/store"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 
@@ -22,8 +22,8 @@ func (cmd VotePartyCommand) Options() AppCommandOpts {
 }
 
 func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	info, err := database.GetInsensitive[oapi.ServerInfo](db, "serverinfo")
+	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	info, err := store.GetInsensitive[oapi.ServerInfo](db, "serverinfo")
 	if err != nil {
 		// TODO: Respond to interaction with appropriate err msg
 		return err

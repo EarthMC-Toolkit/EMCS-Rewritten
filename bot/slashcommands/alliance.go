@@ -2,7 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/bot/common"
-	"emcsrw/bot/database"
+	"emcsrw/bot/store"
 	"emcsrw/utils/discordutil"
 	"fmt"
 
@@ -62,8 +62,8 @@ func QueryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordg
 	ident := opt.GetOption("identifier").StringValue()
 
 	// Try find alliance in DB
-	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	alliance, err := database.GetAllianceByIdentifier(db, ident)
+	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	alliance, err := store.GetAllianceByIdentifier(db, ident)
 	if err != nil {
 		fmt.Printf("failed to get alliance '%s' from db: %v", ident, err)
 

@@ -2,8 +2,8 @@ package bot
 
 import (
 	"emcsrw/bot/common"
-	"emcsrw/bot/database"
 	"emcsrw/bot/events"
+	"emcsrw/bot/store"
 	"fmt"
 	"os"
 	"os/signal"
@@ -42,7 +42,7 @@ func Run(botToken string) {
 	fmt.Printf("\nInitializing map databases..\n")
 
 	// Create or open badger DB
-	auroraDB, err := database.InitMapDB(common.SUPPORTED_MAPS.AURORA)
+	auroraDB, err := store.InitMapDB(common.SUPPORTED_MAPS.AURORA)
 	if err != nil {
 		log.Fatalf("Cannot initialize database for map '%s':\n%v", common.SUPPORTED_MAPS.AURORA, err)
 	}

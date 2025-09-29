@@ -2,7 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/bot/common"
-	"emcsrw/bot/database"
+	"emcsrw/bot/store"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -50,8 +50,8 @@ func (cmd UsageCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 func ExecuteSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 	author := discordutil.UserFromInteraction(i)
 
-	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	usage, err := database.GetUserUsage(db, author.ID)
+	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	usage, err := store.GetUserUsage(db, author.ID)
 	if err != nil && err != badger.ErrKeyNotFound {
 		fmt.Printf("failed to get user usage for %s (%s):\n%v", author.Username, author.ID, err)
 		discordutil.SendReply(s, i, &discordgo.InteractionResponseData{

@@ -1,4 +1,4 @@
-package database
+package store
 
 import (
 	"encoding/json"
@@ -11,19 +11,19 @@ import (
 	"github.com/dgraph-io/badger/v4"
 )
 
-type CommandStat struct {
+type UsageCommandStat struct {
 	Name  string
 	Count int
 }
 
-type CommandEntry struct {
+type UsageCommandEntry struct {
 	Type      uint8 `json:"type"` // see discordgo.ApplicationCommandType
 	Timestamp int64 `json:"timestamp"`
 	Success   bool  `json:"success"`
 }
 
 type UserUsage struct {
-	CommandHistory map[string][]CommandEntry `json:"slash_command_history"` // key = command name
+	CommandHistory map[string][]UsageCommandEntry `json:"slash_command_history"` // key = command name
 }
 
 func (u *UserUsage) TotalCommandsExecuted() (total int) {
@@ -35,20 +35,20 @@ func (u *UserUsage) TotalCommandsExecuted() (total int) {
 }
 
 // Retrieves the command entries sorted in order of most times executed first.
-func (u *UserUsage) GetCommandStats() []CommandStat {
+func (u *UserUsage) GetCommandStats() []UsageCommandStat {
 	keys := slices.Collect(maps.Keys(u.CommandHistory))
 
 	sort.Slice(keys, func(i, j int) bool {
 		return len(u.CommandHistory[keys[i]]) > len(u.CommandHistory[keys[j]])
 	})
 
-	stats := make([]CommandStat, 0, len(keys))
+	stats := make([]UsageCommandStat, 0, len(keys))
 	for _, k := range keys {
 		entries := u.CommandHistory[k]
 		entriesLen := len(entries)
 
 		if entriesLen > 0 {
-			stats = append(stats, CommandStat{
+			stats = append(stats, UsageCommandStat{
 				Name:  k,
 				Count: entriesLen,
 				//Entry: entries[0],
@@ -59,7 +59,7 @@ func (u *UserUsage) GetCommandStats() []CommandStat {
 	return stats
 }
 
-func (u *UserUsage) GetCommandStatsSince(t time.Time) []CommandStat {
+func (u *UserUsage) GetCommandStatsSince(t time.Time) []UsageCommandStat {
 	executionCounts := make(map[string]int) // key = command name | value = times executed since t
 	for name, entries := range u.CommandHistory {
 		for _, entry := range entries {
@@ -70,9 +70,9 @@ func (u *UserUsage) GetCommandStatsSince(t time.Time) []CommandStat {
 		}
 	}
 
-	stats := make([]CommandStat, 0, len(executionCounts))
+	stats := make([]UsageCommandStat, 0, len(executionCounts))
 	for name, count := range executionCounts {
-		stats = append(stats, CommandStat{Name: name, Count: count})
+		stats = append(stats, UsageCommandStat{Name: name, Count: count})
 	}
 
 	sort.Slice(stats, func(i, j int) bool {
@@ -92,7 +92,7 @@ func GetUserUsage(mapDB *badger.DB, discordID string) (*UserUsage, error) {
 // Updates the user's usage using discordID as the key, adding entry to the history slice associated with the cmdName.
 //
 // All of this is done in a single transaction as opposed to two transactions (View-Get + Update-Set).
-func UpdateUserUsage(mapDB *badger.DB, discordID, cmdName string, entry CommandEntry) error {
+func UpdateUserUsage(mapDB *badger.DB, discordID, cmdName string, entry UsageCommandEntry) error {
 	return mapDB.Update(func(txn *badger.Txn) error {
 		key := []byte(strings.ToLower(USER_USAGE_KEY_PREFIX + discordID))
 
@@ -108,7 +108,7 @@ func UpdateUserUsage(mapDB *badger.DB, discordID, cmdName string, entry CommandE
 				return err
 			}
 		} else {
-			usage.CommandHistory = make(map[string][]CommandEntry)
+			usage.CommandHistory = make(map[string][]UsageCommandEntry)
 		}
 
 		usage.CommandHistory[cmdName] = append(usage.CommandHistory[cmdName], entry)

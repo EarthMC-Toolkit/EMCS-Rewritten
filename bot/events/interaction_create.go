@@ -2,8 +2,8 @@ package events
 
 import (
 	"emcsrw/bot/common"
-	"emcsrw/bot/database"
 	"emcsrw/bot/slashcommands"
+	"emcsrw/bot/store"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -47,7 +47,7 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 	}
 
 	// TODO: Maybe combine get/put into single update transaction. Rn this is View&Get + Update&Set
-	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
 	// usage, err := database.GetUserUsage(db, author.ID)
 	// if err != nil {
 	// 	fmt.Printf("\ndb error occurred. could not get usage for user: %s (%s)\n%v", author.Username, author.ID, err)
@@ -62,7 +62,7 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 	// })
 
 	if cmdName != "usage" {
-		err = database.UpdateUserUsage(db, author.ID, cmdName, database.CommandEntry{
+		err = store.UpdateUserUsage(db, author.ID, cmdName, store.UsageCommandEntry{
 			Type:      uint8(cmdType),
 			Timestamp: time.Now().Unix(),
 			Success:   success,
@@ -106,7 +106,7 @@ func HandleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction, 
 	ident := inputs["identifier"]
 	nations := inputs["nations"]
 
-	createdAlliance := &database.Alliance{
+	createdAlliance := &store.Alliance{
 		UUID:       generateAllianceUUID(),
 		Identifier: ident,
 		Label:      label,

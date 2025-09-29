@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"emcsrw/bot/database"
+	"emcsrw/bot/store"
 	"testing"
 
 	"github.com/dgraph-io/badger/v4"
@@ -13,7 +13,7 @@ func TestDumpAlliances(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = database.DumpAlliances(db)
+	err = store.DumpAlliances(db)
 	if err != nil {
 		t.Fatal(err)
 	}

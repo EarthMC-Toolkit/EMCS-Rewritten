@@ -1,4 +1,4 @@
-package database
+package store
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"github.com/dgraph-io/badger/v4"
 )
 
-var databases = make(map[string]*badger.DB)
+var MAP_DATABASES = make(map[string]*badger.DB)
 
 func InitMapDB(mapName string) (*badger.DB, error) {
 	cwd, err := os.Getwd()
@@ -24,21 +24,23 @@ func InitMapDB(mapName string) (*badger.DB, error) {
 
 	opts := badger.DefaultOptions(dbDir)
 	opts.ZSTDCompressionLevel = 3
-	opts.NumLevelZeroTables = 1
-	opts.NumVersionsToKeep = 1
 	opts.CompactL0OnClose = true
+	opts.MemTableSize = 64 << 20 // 64 MB per LSM table
+	opts.NumMemtables = 5        // Num of memtables in memory
+	opts.NumLevelZeroTables = 5  // L0 flush frequency
+	opts.NumLevelZeroTablesStall = 10
 
 	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	databases[mapName] = db
+	MAP_DATABASES[mapName] = db
 	return db, nil
 }
 
 func GetMapDB(mapName string) *badger.DB {
-	return databases[mapName]
+	return MAP_DATABASES[mapName]
 }
 
 func GetInsensitiveTxn[T any](txn *badger.Txn, key string) (out *T, err error) {

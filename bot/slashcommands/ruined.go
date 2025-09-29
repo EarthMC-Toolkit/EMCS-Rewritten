@@ -3,7 +3,7 @@ package slashcommands
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
-	"emcsrw/bot/database"
+	"emcsrw/bot/store"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -32,8 +32,8 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	towns, err := database.GetInsensitive[[]oapi.TownInfo](db, "towns")
+	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	towns, err := store.GetInsensitive[[]oapi.TownInfo](db, "towns")
 	if err != nil {
 		log.Printf("failed to get towns from db:\n%v", err)
 		_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{

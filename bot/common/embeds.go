@@ -2,7 +2,7 @@ package common
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/database"
+	"emcsrw/bot/store"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -26,7 +26,7 @@ var DEFAULT_FOOTER = &dgo.MessageEmbedFooter{
 }
 
 // Creates a single embed given alliance data. This is the output from `/alliance lookup`.
-func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
+func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
 	// Resort to dark blue unless alliance has optional fill colour specified.
 	embedColour := discordutil.DARK_AQUA
 	colours := a.Optional.Colours
@@ -108,8 +108,8 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
 
 	affiliation := "None (Townless)"
 	if townName != "No Town" {
-		db := database.GetMapDB(SUPPORTED_MAPS.AURORA)
-		towns, _ := database.GetInsensitive[[]oapi.TownInfo](db, "towns")
+		db := store.GetMapDB(SUPPORTED_MAPS.AURORA)
+		towns, _ := store.GetInsensitive[[]oapi.TownInfo](db, "towns")
 
 		town, ok := lo.Find(*towns, func(t oapi.TownInfo) bool {
 			return t.UUID == *player.Town.UUID

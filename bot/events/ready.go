@@ -4,8 +4,8 @@ import (
 	"emcsrw/api"
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
-	"emcsrw/bot/database"
 	"emcsrw/bot/slashcommands"
+	"emcsrw/bot/store"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"encoding/json"
@@ -41,7 +41,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	fmt.Printf("Logged in as: %s\n\n", s.State.User.Username)
 	slashcommands.SyncWithRemote(s)
 
-	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
 	if db == nil {
 		fmt.Println("[OnReady]: wtf happened? db is nil")
 		return
@@ -128,14 +128,14 @@ func PutFunc[T any](mapDB *badger.DB, key string, ttl time.Duration, task func()
 		return res, err
 	}
 
-	database.PutInsensitiveTTL(mapDB, key, data, ttl)
+	store.PutInsensitiveTTL(mapDB, key, data, ttl)
 	//log.Printf("put '%s' into db at %s\n", key, dbDir)
 
 	return res, err
 }
 
 func UpdateData(db *badger.DB) *[]oapi.TownInfo {
-	staleTowns, err := database.GetInsensitive[[]oapi.TownInfo](db, "towns")
+	staleTowns, err := store.GetInsensitive[[]oapi.TownInfo](db, "towns")
 	if err != nil {
 		staleTowns = &[]oapi.TownInfo{}
 	}

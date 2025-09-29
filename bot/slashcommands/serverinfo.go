@@ -3,7 +3,7 @@ package slashcommands
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
-	"emcsrw/bot/database"
+	"emcsrw/bot/store"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -25,8 +25,8 @@ func (cmd ServerInfoCommand) Options() AppCommandOpts {
 }
 
 func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	info, err := database.GetInsensitive[oapi.ServerInfo](db, "serverinfo")
+	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	info, err := store.GetInsensitive[oapi.ServerInfo](db, "serverinfo")
 	if err != nil {
 		log.Printf("failed to get serverinfo from db:\n%v", err)
 		return discordutil.SendReply(s, i.Interaction, &discordgo.InteractionResponseData{
