@@ -62,13 +62,11 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		TrySendLeftJoinedNotif(s, *staleTowns)
 		TrySendRuinedNotif(s, *staleTowns)
 		TrySendFallenNotif(s, *staleTowns)
-
-		db.RunValueLogGC(0.2) // 0 - 1. lower = aggressive reclaim.
 	}, true, 30*time.Second)
 
 	// Updating every min should be fine. doubt people care about having /vp and /serverinfo be realtime.
 	scheduleTask(func() {
-		info, err := PutFunc(db, "serverinfo", func() (oapi.ServerInfo, error) {
+		info, err := PutFunc(db, "serverinfo", 120*time.Second, func() (oapi.ServerInfo, error) {
 			return oapi.QueryServer()
 		})
 		if err != nil {
@@ -76,16 +74,27 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		}
 
 		TrySendVotePartyNotif(s, info.VoteParty)
-
-		// remaining := info.VoteParty.NumRemaining
-		// for _, threshold := range []int{1000, 500, 300, 150, 50} {
-		// 	if remaining <= threshold && !voteNotified[threshold] {
-		// 		msg := fmt.Sprintf("VoteParty has less than %d votes remaining!", threshold)
-		// 		s.ChannelMessageSend("1420146203454083144", msg)
-		// 		voteNotified[threshold] = true
-		// 	}
-		// }
 	}, true, 60*time.Second)
+
+	// Clean up stale DB entries
+	scheduleDatabaseGC(db, 5*time.Minute)
+}
+
+func scheduleDatabaseGC(db *badger.DB, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for range ticker.C {
+	retry:
+		err := db.RunValueLogGC(0.1)
+		switch err {
+		case nil:
+			goto retry
+		case badger.ErrNoRewrite:
+		default:
+			log.Printf("badger GC error: %v", err)
+		}
+	}
 }
 
 func scheduleTask(task func(), runInitial bool, interval time.Duration) {
@@ -93,10 +102,9 @@ func scheduleTask(task func(), runInitial bool, interval time.Duration) {
 		task()
 	}
 
-	//stop := make(chan struct{})
 	ticker := time.NewTicker(interval)
 	go func() {
-		defer ticker.Stop()
+		//defer ticker.Stop()
 		for range ticker.C {
 			task()
 		}
@@ -105,7 +113,7 @@ func scheduleTask(task func(), runInitial bool, interval time.Duration) {
 
 // Runs a task that returns a value, said value is then marshalled and stored in the given badger DB under the given key.
 // If an error occurs during the task, the error is logged and returned, and the DB write will not occur.
-func PutFunc[T any](mapDB *badger.DB, key string, task func() (T, error)) (T, error) {
+func PutFunc[T any](mapDB *badger.DB, key string, ttl time.Duration, task func() (T, error)) (T, error) {
 	dbDir := mapDB.Opts().Dir
 
 	res, err := task()
@@ -120,7 +128,7 @@ func PutFunc[T any](mapDB *badger.DB, key string, task func() (T, error)) (T, er
 		return res, err
 	}
 
-	database.PutInsensitive(mapDB, key, data)
+	database.PutInsensitiveTTL(mapDB, key, data, ttl)
 	//log.Printf("put '%s' into db at %s\n", key, dbDir)
 
 	return res, err
@@ -132,7 +140,7 @@ func UpdateData(db *badger.DB) *[]oapi.TownInfo {
 		staleTowns = &[]oapi.TownInfo{}
 	}
 
-	towns, err = PutFunc(db, "towns", func() ([]oapi.TownInfo, error) {
+	towns, err = PutFunc(db, "towns", 60*time.Second, func() ([]oapi.TownInfo, error) {
 		return api.QueryAllTowns()
 	})
 	if err != nil {
@@ -155,11 +163,11 @@ func UpdateData(db *badger.DB) *[]oapi.TownInfo {
 		}
 	}
 
-	PutFunc(db, "residentlist", func() (entities map[string]oapi.Entity, err error) {
+	PutFunc(db, "residentlist", 60*time.Second, func() (entities map[string]oapi.Entity, err error) {
 		return residentlist, nil
 	})
 
-	nations, _ = PutFunc(db, "nations", func() ([]oapi.NationInfo, error) {
+	nations, _ = PutFunc(db, "nations", 60*time.Second, func() ([]oapi.NationInfo, error) {
 		res, _, _ := oapi.QueryConcurrent(lo.Keys(nationlist), oapi.QueryNations)
 		return res, nil
 	})
@@ -171,7 +179,7 @@ func UpdateData(db *badger.DB) *[]oapi.TownInfo {
 		return staleTowns
 	}
 
-	townlesslist, _ = PutFunc(db, "townlesslist", func() (map[string]oapi.Entity, error) {
+	townlesslist, _ = PutFunc(db, "townlesslist", 60*time.Second, func() (map[string]oapi.Entity, error) {
 		entities := lo.FilterMap(playerlist, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
 			_, ok := residentlist[p.UUID]
 			return p, !ok
@@ -317,7 +325,9 @@ func TrySendFallenNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
 	}
 }
 
-// TODO: Increase sample size from 2 (last check and current) to like 5 with a sliding window for better rate/ETA accuracy.
+// TODO: Increase sample size from 2 (last check and current) with a sliding window for better rate/ETA accuracy.
+//
+// For example, recording the last 15 minutes would be done using 15 samples, each sample at 60 second intervals.
 func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
 	remaining := vp.NumRemaining
 

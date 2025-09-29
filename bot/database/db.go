@@ -23,7 +23,7 @@ func InitMapDB(mapName string) (*badger.DB, error) {
 	dbDir := filepath.Join(cwd, "db", mapName)
 
 	opts := badger.DefaultOptions(dbDir)
-	opts.ZSTDCompressionLevel = 2
+	opts.ZSTDCompressionLevel = 3
 	opts.NumLevelZeroTables = 1
 	opts.NumVersionsToKeep = 1
 	opts.CompactL0OnClose = true
@@ -73,5 +73,12 @@ func GetInsensitive[T any](db *badger.DB, key string) (out *T, err error) {
 func PutInsensitive(db *badger.DB, key string, data []byte) error {
 	return db.Update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(strings.ToLower(key)), data)
+	})
+}
+
+func PutInsensitiveTTL(db *badger.DB, key string, data []byte, ttl time.Duration) error {
+	return db.Update(func(txn *badger.Txn) error {
+		e := badger.NewEntry([]byte(strings.ToLower(key)), data).WithTTL(ttl)
+		return txn.SetEntry(e)
 	})
 }
