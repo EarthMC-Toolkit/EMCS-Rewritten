@@ -1,13 +1,5 @@
 package store
 
-import (
-	"encoding/json"
-	"fmt"
-	"strings"
-
-	"github.com/dgraph-io/badger/v4"
-)
-
 type AllianceColours struct {
 	Fill    *string `json:"fill"`
 	Outline *string `json:"outline"`
@@ -36,46 +28,42 @@ func (a *Alliance) CreatedTimestamp() uint64 {
 }
 
 // ================================== DATABASE INTERACTION ==================================
-const ALLIANCES_KEY_PREFIX = "alliances/"
+//const ALLIANCES_KEY_PREFIX = "alliances/"
 
 // Finds the alliance by its key. ident is automatically lowercased for case-insensitive lookup.
 // The actual `Identifier` property on the alliance will still have its original casing.
-func GetAllianceByIdentifier(mapDB *badger.DB, ident string) (*Alliance, error) {
-	return GetInsensitive[Alliance](mapDB, ALLIANCES_KEY_PREFIX+ident)
-}
+// func GetAllianceByIdentifier(allianceStore *Store[Alliance], ident string) (*Alliance, error) {
+// 	a, err := allianceStore.GetKey(ident)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-func PutAlliance(mapDB *badger.DB, a *Alliance) error {
-	data, err := json.Marshal(a)
-	if err != nil {
-		return fmt.Errorf("error putting alliance '%s' into db at %s:\n%v", a.Identifier, mapDB.Opts().Dir, err)
-	}
+// 	return a, nil
+// }
 
-	return PutInsensitive(mapDB, ALLIANCES_KEY_PREFIX+a.Identifier, data)
-}
+// func DumpAlliances(mapDB *badger.DB) error {
+// 	return mapDB.View(func(txn *badger.Txn) error {
+// 		it := txn.NewIterator(badger.DefaultIteratorOptions)
+// 		defer it.Close()
+// 		for it.Rewind(); it.Valid(); it.Next() {
+// 			item := it.Item()
 
-func DumpAlliances(mapDB *badger.DB) error {
-	return mapDB.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		for it.Rewind(); it.Valid(); it.Next() {
-			item := it.Item()
+// 			key := string(item.Key())
+// 			if !strings.HasPrefix(key, ALLIANCES_KEY_PREFIX) {
+// 				continue // Not an alliance, no need to dump.
+// 			}
 
-			key := string(item.Key())
-			if !strings.HasPrefix(key, ALLIANCES_KEY_PREFIX) {
-				continue // Not an alliance, no need to dump.
-			}
+// 			var data Alliance
+// 			val, _ := item.ValueCopy(nil)
+// 			if err := json.Unmarshal(val, &data); err != nil {
+// 				fmt.Printf("\n%s\n%s\n\n", key, val)
+// 				continue
+// 			}
 
-			var data Alliance
-			val, _ := item.ValueCopy(nil)
-			if err := json.Unmarshal(val, &data); err != nil {
-				fmt.Printf("\n%s\n%s\n\n", key, val)
-				continue
-			}
+// 			valPretty, _ := json.MarshalIndent(data, "", "  ")
+// 			fmt.Printf("\n%s\n%s\n\n", key, valPretty)
+// 		}
 
-			valPretty, _ := json.MarshalIndent(data, "", "  ")
-			fmt.Printf("\n%s\n%s\n\n", key, valPretty)
-		}
-
-		return nil
-	})
-}
+// 		return nil
+// 	})
+// }

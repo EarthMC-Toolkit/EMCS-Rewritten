@@ -85,9 +85,9 @@ func (u *UserUsage) GetCommandStatsSince(t time.Time) []UsageCommandStat {
 // ================================== DATABASE INTERACTION ==================================
 const USER_USAGE_KEY_PREFIX = "usage/users/"
 
-func GetUserUsage(mapDB *badger.DB, discordID string) (*UserUsage, error) {
-	return GetInsensitive[UserUsage](mapDB, USER_USAGE_KEY_PREFIX+discordID)
-}
+// func GetUserUsage(mapDB *badger.DB, discordID string) (*UserUsage, error) {
+// 	return GetInsensitive[UserUsage](mapDB, USER_USAGE_KEY_PREFIX+discordID)
+// }
 
 // Updates the user's usage using discordID as the key, adding entry to the history slice associated with the cmdName.
 //

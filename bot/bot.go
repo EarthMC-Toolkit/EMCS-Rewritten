@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
 	"emcsrw/bot/events"
 	"emcsrw/bot/store"
@@ -41,11 +42,18 @@ func Run(botToken string) {
 
 	fmt.Printf("\nInitializing map databases..\n")
 
-	// Create or open badger DB
-	auroraDB, err := store.InitMapDB(common.SUPPORTED_MAPS.AURORA)
+	// Create or open DB
+	auroraDB, err := store.NewMapDB("./db", common.SUPPORTED_MAPS.AURORA)
 	if err != nil {
 		log.Fatalf("Cannot initialize database for map '%s':\n%v", common.SUPPORTED_MAPS.AURORA, err)
 	}
+
+	store.AddStore[oapi.ServerInfo](auroraDB, "server")
+	store.AddStore[oapi.TownInfo](auroraDB, "towns")
+	store.AddStore[oapi.NationInfo](auroraDB, "nations")
+	store.AddStore[map[string]oapi.Entity](auroraDB, "entities")
+	store.AddStore[store.Alliance](auroraDB, "alliances")
+	store.AddStore[store.UserUsage](auroraDB, "usage")
 
 	fmt.Printf("\nEstablishing Discord connection..\n")
 

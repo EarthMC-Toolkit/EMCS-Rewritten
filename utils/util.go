@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"maps"
 	"regexp"
 	"strconv"
 	"strings"
@@ -112,6 +113,22 @@ func DifferenceByReverse[T any, K comparable](listB []T, seenA map[K]struct{}, k
 	}
 
 	return onlyB
+}
+
+// Uses the built-in copy function and outputs a shallow copy of the input slice.
+//
+// Elements are copied into a new slice, but if T is a reference type (e.g. pointer, map, slice),
+// the references themselves are copied, not the underlying data.
+func CopySlice[T any](value []T) []T {
+	cpy := make([]T, len(value))
+	copy(cpy, value)
+	return cpy
+}
+
+func CopyMap[K comparable, V any](value map[K]V) map[K]V {
+	cpy := make(map[K]V, len(value))
+	maps.Copy(cpy, value)
+	return cpy
 }
 
 // type UUID4 uuid.UUID

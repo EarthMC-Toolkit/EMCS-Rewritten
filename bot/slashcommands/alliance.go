@@ -62,8 +62,17 @@ func QueryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordg
 	ident := opt.GetOption("identifier").StringValue()
 
 	// Try find alliance in DB
-	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	alliance, err := store.GetAllianceByIdentifier(db, ident)
+	db, err := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	if err != nil {
+		return err
+	}
+
+	allianceStore, err := store.GetStore[store.Alliance](db, "alliances")
+	if err != nil {
+		return err
+	}
+
+	alliance, err := allianceStore.GetKey(ident)
 	if err != nil {
 		fmt.Printf("failed to get alliance '%s' from db: %v", ident, err)
 

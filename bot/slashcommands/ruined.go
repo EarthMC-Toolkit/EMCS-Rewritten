@@ -32,8 +32,8 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	towns, err := store.GetInsensitive[[]oapi.TownInfo](db, "towns")
+	db, _ := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	townsStore, err := store.GetStore[oapi.TownInfo](db, "towns")
 	if err != nil {
 		log.Printf("failed to get towns from db:\n%v", err)
 		_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
@@ -43,7 +43,8 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	ruined := lo.FilterMap(*towns, func(t oapi.TownInfo, _ int) (oapi.TownInfo, bool) {
+	towns := townsStore.All()
+	ruined := lo.FilterMapToSlice(towns, func(_ string, t oapi.TownInfo) (oapi.TownInfo, bool) {
 		return t, t.Status.Ruined
 	})
 
