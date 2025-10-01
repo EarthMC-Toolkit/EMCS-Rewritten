@@ -7,19 +7,23 @@ import (
 	"emcsrw/bot/slashcommands"
 	"emcsrw/bot/store"
 	"emcsrw/utils"
+	"emcsrw/utils/discordutil"
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
+	lop "github.com/samber/lo/parallel"
 )
 
-var townlesslist oapi.EntityList
-var residentlist oapi.EntityList
+var townlessList oapi.EntityList
+var residentList oapi.EntityList
 
-var towns map[string]oapi.TownInfo
-var nations map[string]oapi.NationInfo
+var townList map[string]oapi.TownInfo
+var nationList map[string]oapi.NationInfo
 
 // VoteParty notification tracking.
 var vpThresholds = []int{500, 300, 150, 50}
@@ -134,7 +138,7 @@ func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
 
 	staleTowns := townStore.All()
 
-	towns, err = OverwriteFunc(townStore, func() (map[string]oapi.TownInfo, error) {
+	townList, err = OverwriteFunc(townStore, func() (map[string]oapi.TownInfo, error) {
 		res, err := api.QueryAllTowns()
 		if err != nil {
 			return nil, err
@@ -149,24 +153,24 @@ func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
 	}
 
 	//region ============ GATHER DATA USING TOWNS ============
-	residentlist = make(oapi.EntityList)
-	nationlist := make(oapi.EntityList)
-	for _, t := range towns {
+	residentList = make(oapi.EntityList)
+	nlist := make(oapi.EntityList)
+	for _, t := range townList {
 		for _, r := range t.Residents {
-			residentlist[r.UUID] = r.Name
+			residentList[r.UUID] = r.Name
 		}
 
 		if t.Nation.UUID != nil {
-			nationlist[*t.Nation.UUID] = *t.Nation.Name
+			nlist[*t.Nation.UUID] = *t.Nation.Name
 		}
 	}
 
 	SetKeyFunc(entityStore, "residentlist", func() (entities oapi.EntityList, err error) {
-		return residentlist, nil
+		return residentList, nil
 	})
 
-	nations, _ = OverwriteFunc(nationStore, func() (map[string]oapi.NationInfo, error) {
-		res, _, _ := oapi.QueryConcurrent(lo.Keys(nationlist), oapi.QueryNations)
+	nationList, _ = OverwriteFunc(nationStore, func() (map[string]oapi.NationInfo, error) {
+		res, _, _ := oapi.QueryConcurrent(lo.Keys(nlist), oapi.QueryNations)
 		return lo.SliceToMap(res, func(n oapi.NationInfo) (string, oapi.NationInfo) {
 			return n.UUID, n
 		}), nil
@@ -179,9 +183,9 @@ func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
 		return staleTowns
 	}
 
-	townlesslist, _ = SetKeyFunc(entityStore, "townlesslist", func() (oapi.EntityList, error) {
+	townlessList, _ = SetKeyFunc(entityStore, "townlesslist", func() (oapi.EntityList, error) {
 		entities := lo.FilterMap(playerlist, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
-			_, ok := residentlist[p.UUID]
+			_, ok := residentList[p.UUID]
 			return p, !ok
 		})
 
@@ -192,8 +196,8 @@ func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
 	})
 	//endregion
 
-	fmt.Printf("\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(playerlist), len(residentlist), len(townlesslist))
-	fmt.Printf("\nDEBUG | Nations List: %d, Nations: %d, Towns: %d", len(nationlist), len(nations), len(towns))
+	fmt.Printf("\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(playerlist), len(residentList), len(townlessList))
+	fmt.Printf("\nDEBUG | Nations: %d, Towns: %d", len(nationList), len(townList))
 
 	return staleTowns
 }
@@ -267,63 +271,67 @@ func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
 // 	}
 // }
 
-// func TrySendRuinedNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
-// 	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
-// 		return t.UUID, t, t.Status.Ruined
-// 	})
+func TrySendRuinedNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
+	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
+		return t.UUID, t, t.Status.Ruined
+	})
 
-// 	ruined := lo.FilterMap(towns, func(t oapi.TownInfo, _ int) (oapi.TownInfo, bool) {
-// 		_, wasRuined := staleRuined[t.UUID]
-// 		return t, !wasRuined && t.Status.Ruined
-// 	})
+	ruined := lo.FilterMapToSlice(townList, func(_ string, t oapi.TownInfo) (oapi.TownInfo, bool) {
+		_, wasRuined := staleRuined[t.UUID]
+		return t, !wasRuined && t.Status.Ruined
+	})
 
-// 	sort.Slice(ruined, func(i, j int) bool {
-// 		return *ruined[i].Timestamps.RuinedAt < *ruined[j].Timestamps.RuinedAt
-// 	})
+	sort.Slice(ruined, func(i, j int) bool {
+		return *ruined[i].Timestamps.RuinedAt < *ruined[j].Timestamps.RuinedAt
+	})
 
-// 	count := len(ruined)
-// 	if count > 0 {
-// 		desc := lop.Map(ruined, func(t oapi.TownInfo, _ int) string {
-// 			// nation := "No Nation"
-// 			// if t.Nation.Name != nil {
-// 			// 	nation = *t.Nation.Name
-// 			// }
+	count := len(ruined)
+	if count > 0 {
+		desc := lop.Map(ruined, func(t oapi.TownInfo, _ int) string {
+			// nation := "No Nation"
+			// if t.Nation.Name != nil {
+			// 	nation = *t.Nation.Name
+			// }
 
-// 			ruinedTs := *t.Timestamps.RuinedAt
-// 			deleteTs := time.UnixMilli(int64(ruinedTs)).Add(74 * time.Hour) // 72 UTC but EMC goes on UTC+2 (i think?)
+			ruinedTs := *t.Timestamps.RuinedAt
+			deleteTs := time.UnixMilli(int64(ruinedTs)).Add(74 * time.Hour) // 72 UTC but EMC goes on UTC+2 (i think?)
 
-// 			return fmt.Sprintf("`%s` fell into ruin <t:%d:R>. Deletion in <t:%d:R>.", t.Name, ruinedTs/1000, deleteTs.Unix())
-// 		})
+			return fmt.Sprintf("`%s` fell into ruin <t:%d:R>. Deletion in <t:%d:R>.", t.Name, ruinedTs/1000, deleteTs.Unix())
+		})
 
-// 		s.ChannelMessageSendEmbed("1420855039357878469", &discordgo.MessageEmbed{
-// 			Title:       fmt.Sprintf("Town Flow | Ruin Events [%d]", count),
-// 			Description: strings.Join(desc, "\n"),
-// 			Color:       discordutil.DARK_GOLD,
-// 		})
-// 	}
-// }
+		s.ChannelMessageSendEmbed("1420855039357878469", &discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("Town Flow | Ruin Events [%d]", count),
+			Description: strings.Join(desc, "\n"),
+			Color:       discordutil.DARK_GOLD,
+		})
+	}
+}
 
-// func TrySendFallenNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
-// 	diff, _ := utils.DifferenceBy(staleTowns, towns, func(t oapi.TownInfo) string {
-// 		return t.UUID
-// 	})
+func TrySendFallenNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
+	towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo {
+		return t
+	})
 
-// 	count := len(diff)
-// 	if count > 0 {
-// 		desc := lop.Map(diff, func(t oapi.TownInfo, _ int) string {
-// 			spawn := t.Coordinates.Spawn
-// 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
+	diff, _ := utils.DifferenceBy(staleTowns, towns, func(t oapi.TownInfo) string {
+		return t.UUID
+	})
 
-// 			return fmt.Sprintf("`%s` was deleted. Located at %s", t.Name, locationLink)
-// 		})
+	count := len(diff)
+	if count > 0 {
+		desc := lop.Map(diff, func(t oapi.TownInfo, _ int) string {
+			spawn := t.Coordinates.Spawn
+			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
-// 		s.ChannelMessageSendEmbed("1420855039357878469", &discordgo.MessageEmbed{
-// 			Title:       fmt.Sprintf("Town Flow | Fall Events [%d]", count),
-// 			Description: strings.Join(desc, "\n"),
-// 			Color:       discordutil.RED,
-// 		})
-// 	}
-// }
+			return fmt.Sprintf("`%s` was deleted. Located at %s", t.Name, locationLink)
+		})
+
+		s.ChannelMessageSendEmbed("1420855039357878469", &discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("Town Flow | Fall Events [%d]", count),
+			Description: strings.Join(desc, "\n"),
+			Color:       discordutil.RED,
+		})
+	}
+}
 
 // TODO: Increase sample size from 2 (last check and current) with a sliding window for better rate/ETA accuracy.
 //
