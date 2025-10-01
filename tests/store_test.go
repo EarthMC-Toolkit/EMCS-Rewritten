@@ -25,7 +25,7 @@ func setupMapDB(t *testing.T) *store.MapDB {
 
 func TestStorePersistence(t *testing.T) {
 	// Setup MapDB folder for test
-	dbDir := "../db/testpersist"
+	dbDir := "./db/testpersist"
 	os.RemoveAll(dbDir) // clean up old data
 
 	mdb, err := store.NewMapDB("./db/", "testpersist")
@@ -88,9 +88,7 @@ func TestSetGetAlliance(t *testing.T) {
 
 func setupStoreForBenchmark[T any](key string) *store.Store[T] {
 	mdb, _ := store.NewMapDB("./db/", "testmap")
-	s, _ := store.AssignStoreToDB[T](mdb, "alliances")
-
-	return s
+	return store.AssignStoreToDB[T](mdb, key)
 }
 
 func BenchmarkAllianceSet(b *testing.B) {

@@ -56,7 +56,7 @@ func Run(botToken string) {
 	store.AssignStoreToDB[store.Alliance](auroraDB, "alliances")
 	store.AssignStoreToDB[store.UserUsage](auroraDB, "usage")
 
-	fmt.Printf("\nEstablishing Discord connection..\n")
+	fmt.Printf("\n\nEstablishing Discord connection..\n")
 
 	// Open WS connection to Discord
 	err = s.Open()

@@ -35,22 +35,24 @@ func NewMapDB(baseDir string, mapName string) (*MapDB, error) {
 }
 
 // Creates a new store an adds it to the given MapDB stores. Returns an error if the store already exists.
-func AssignStoreToDB[T any](mdb *MapDB, name string) (*Store[T], error) {
+func AssignStoreToDB[T any](mdb *MapDB, name string) *Store[T] {
 	if s, ok := mdb.stores[name]; ok {
-		return s.(*Store[T]), fmt.Errorf("store '%s' already defined", name)
+		fmt.Printf("\nstore '%s' already defined", name)
+		return s.(*Store[T])
 	}
 
 	path := filepath.Join(mdb.dir, name+".json")
 	store, err := NewStore[T](path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create store '%s': %w", name, err)
+		fmt.Printf("\nfailed to create store '%s': %v", name, err)
+		return nil
 	}
 
 	mdb.mut.Lock()
 	defer mdb.mut.Unlock()
 
 	mdb.stores[name] = store
-	return store, nil
+	return store
 }
 
 func RegisterMapDB(name string, mdb *MapDB) {
