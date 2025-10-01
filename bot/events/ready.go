@@ -55,19 +55,27 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	// }, true, 20*time.Second)
 
 	scheduleTask(func() {
-		log.Println("\n[OnReady]: Running data update task...")
-		start := time.Now()
+		fmt.Println()
+		log.Println("[OnReady]: Running data update task...")
 
-		_, err := UpdateData(db)
+		start := time.Now()
+		staleTownsList, err := UpdateData(db)
+		elapsed := time.Since(start)
+
+		fmt.Println()
 		if err != nil {
-			log.Println("\n[OnReady]: Failed data update task.")
+			log.Println("[OnReady]: Failed data update task.")
 			log.Println(err)
 		}
 
-		log.Println("\n[OnReady]: Completed data update task. Took: " + time.Since(start).String())
+		log.Println("[OnReady]: Completed data update task. Took: " + elapsed.String())
+
+		staleTowns := lo.MapToSlice(staleTownsList, func(_ string, t oapi.TownInfo) oapi.TownInfo {
+			return t
+		})
 
 		//TrySendLeftJoinedNotif(s, *staleTowns)
-		//TrySendRuinedNotif(s, *staleTowns)
+		TrySendRuinedNotif(s, staleTowns)
 		//TrySendFallenNotif(s, *staleTowns)
 	}, true, 30*time.Second)
 
@@ -185,26 +193,25 @@ func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, error) {
 	//endregion
 
 	//region ============ SPLIT RESIDENTS FROM TOWNLESS ============
-	playerlist, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
+	players, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
 	if err != nil {
 		return staleTowns, err
 	}
 
 	townlessList, _ = SetKeyFunc(entityStore, "townlesslist", func() (oapi.EntityList, error) {
-		entities := lo.FilterMap(playerlist, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
+		entities := lo.FilterMap(players, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
 			_, ok := residentList[p.UUID]
 			return p, !ok
 		})
 
-		// Convert slice to map using UUID as key.
-		return lo.Associate(entities, func(p oapi.Entity) (string, string) {
+		return lo.SliceToMap(entities, func(p oapi.Entity) (string, string) {
 			return p.UUID, p.Name
 		}), nil
 	})
 	//endregion
 
-	fmt.Printf("\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(playerlist), len(residentList), len(townlessList))
-	fmt.Printf("\nDEBUG | Nations: %d, Towns: %d", len(nationList), len(townList))
+	fmt.Printf("\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
+	fmt.Printf("\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))
 
 	return staleTowns, err
 }
