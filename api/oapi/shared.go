@@ -35,3 +35,6 @@ type Entity struct {
 	Name string `json:"name"`
 	UUID string `json:"uuid"`
 }
+
+// Maps an entity's UUID -> Name. More preferrable alternative to oapi.Entity
+type EntityList = map[string]string

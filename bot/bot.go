@@ -48,12 +48,13 @@ func Run(botToken string) {
 		log.Fatalf("Cannot initialize database for map '%s':\n%v", common.SUPPORTED_MAPS.AURORA, err)
 	}
 
-	store.AddStore[oapi.ServerInfo](auroraDB, "server")
-	store.AddStore[oapi.TownInfo](auroraDB, "towns")
-	store.AddStore[oapi.NationInfo](auroraDB, "nations")
-	store.AddStore[map[string]oapi.Entity](auroraDB, "entities")
-	store.AddStore[store.Alliance](auroraDB, "alliances")
-	store.AddStore[store.UserUsage](auroraDB, "usage")
+	// Define all stores the Aurora DB should have.
+	store.AssignStoreToDB[oapi.ServerInfo](auroraDB, "server")
+	store.AssignStoreToDB[oapi.TownInfo](auroraDB, "towns")
+	store.AssignStoreToDB[oapi.NationInfo](auroraDB, "nations")
+	store.AssignStoreToDB[oapi.EntityList](auroraDB, "entities")
+	store.AssignStoreToDB[store.Alliance](auroraDB, "alliances")
+	store.AssignStoreToDB[store.UserUsage](auroraDB, "usage")
 
 	fmt.Printf("\nEstablishing Discord connection..\n")
 

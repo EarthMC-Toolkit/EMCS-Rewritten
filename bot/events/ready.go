@@ -15,10 +15,11 @@ import (
 	"github.com/samber/lo"
 )
 
-var nations map[string]oapi.NationInfo
+var townlesslist oapi.EntityList
+var residentlist oapi.EntityList
+
 var towns map[string]oapi.TownInfo
-var townlesslist map[string]oapi.Entity
-var residentlist map[string]oapi.Entity
+var nations map[string]oapi.NationInfo
 
 // VoteParty notification tracking.
 var vpThresholds = []int{500, 300, 150, 50}
@@ -71,27 +72,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 		TrySendVotePartyNotif(s, info.VoteParty)
 	}, true, 60*time.Second)
-
-	// Clean up stale DB entries
-	//scheduleDatabaseGC(db, 5*time.Minute)
 }
-
-// func scheduleDatabaseGC(db *badger.DB, interval time.Duration) {
-// 	ticker := time.NewTicker(interval)
-// 	defer ticker.Stop()
-
-// 	for range ticker.C {
-// 	retry:
-// 		err := db.RunValueLogGC(0.1)
-// 		switch err {
-// 		case nil:
-// 			goto retry
-// 		case badger.ErrNoRewrite:
-// 		default:
-// 			log.Printf("badger GC error: %v", err)
-// 		}
-// 	}
-// }
 
 func scheduleTask(task func(), runInitial bool, interval time.Duration) {
 	if runInitial {
@@ -146,8 +127,7 @@ func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
 		return nil
 	}
 
-	// map[string]oapi.Entity where string key is "residentlist", "townlesslist" etc
-	entityStore, err := store.GetStore[map[string]oapi.Entity](db, "entities")
+	entityStore, err := store.GetStore[oapi.EntityList](db, "entities")
 	if err != nil {
 		return nil
 	}
@@ -169,22 +149,19 @@ func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
 	}
 
 	//region ============ GATHER DATA USING TOWNS ============
-	residentlist = make(map[string]oapi.Entity)
-	nationlist := make(map[string]oapi.Entity)
+	residentlist = make(oapi.EntityList)
+	nationlist := make(oapi.EntityList)
 	for _, t := range towns {
 		for _, r := range t.Residents {
-			residentlist[r.UUID] = r
+			residentlist[r.UUID] = r.Name
 		}
 
 		if t.Nation.UUID != nil {
-			nationlist[*t.Nation.UUID] = oapi.Entity{
-				Name: *t.Nation.Name,
-				UUID: *t.Nation.UUID,
-			}
+			nationlist[*t.Nation.UUID] = *t.Nation.Name
 		}
 	}
 
-	SetKeyFunc(entityStore, "residentlist", func() (entities map[string]oapi.Entity, err error) {
+	SetKeyFunc(entityStore, "residentlist", func() (entities oapi.EntityList, err error) {
 		return residentlist, nil
 	})
 
@@ -202,15 +179,15 @@ func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
 		return staleTowns
 	}
 
-	townlesslist, _ = SetKeyFunc(entityStore, "townlesslist", func() (map[string]oapi.Entity, error) {
+	townlesslist, _ = SetKeyFunc(entityStore, "townlesslist", func() (oapi.EntityList, error) {
 		entities := lo.FilterMap(playerlist, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
 			_, ok := residentlist[p.UUID]
 			return p, !ok
 		})
 
 		// Convert slice to map using UUID as key.
-		return lo.Associate(entities, func(p oapi.Entity) (string, oapi.Entity) {
-			return p.UUID, p
+		return lo.Associate(entities, func(p oapi.Entity) (string, string) {
+			return p.UUID, p.Name
 		}), nil
 	})
 	//endregion

@@ -15,7 +15,7 @@ type TestAlliance struct {
 func setupMapDB(t *testing.T) *store.MapDB {
 	os.RemoveAll("../db/testmap")
 
-	mdb, err := store.NewMapDB("../db/", "testmap", []string{"alliances"})
+	mdb, err := store.NewMapDB("./db/", "testmap")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestStorePersistence(t *testing.T) {
 	dbDir := "../db/testpersist"
 	os.RemoveAll(dbDir) // clean up old data
 
-	mdb, err := store.NewMapDB("../db/", "testpersist", []string{"alliances"})
+	mdb, err := store.NewMapDB("./db/", "testpersist")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,8 +87,9 @@ func TestSetGetAlliance(t *testing.T) {
 }
 
 func setupStoreForBenchmark[T any](key string) *store.Store[T] {
-	mdb, _ := store.NewMapDB("../db/", "testmap", []string{key})
-	s, _ := store.GetStore[T](mdb, key)
+	mdb, _ := store.NewMapDB("./db/", "testmap")
+	s, _ := store.AssignStoreToDB[T](mdb, "alliances")
+
 	return s
 }
 

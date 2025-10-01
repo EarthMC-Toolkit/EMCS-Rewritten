@@ -7,12 +7,8 @@ import (
 	"sync"
 )
 
-var mapDatabases = make(map[string]*MapDB)
+var mapDbs = make(map[string]*MapDB)
 var mut sync.RWMutex // guards access to mapDatabases
-
-type IStore interface {
-	Close() error
-}
 
 type MapDB struct {
 	dir    string
@@ -20,8 +16,7 @@ type MapDB struct {
 	mut    sync.RWMutex      // guards access to stores
 }
 
-// Initializes a MapDB for a given map directory and dataset names.
-// Example datasets: []string{"towns", "nations", "alliances"}
+// Initializes a MapDB for a given map directory.
 func NewMapDB(baseDir string, mapName string) (*MapDB, error) {
 	dir := filepath.Join(baseDir, mapName)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -39,11 +34,16 @@ func NewMapDB(baseDir string, mapName string) (*MapDB, error) {
 	return db, nil
 }
 
-func AddStore[T any](mdb *MapDB, name string) (*Store[T], error) {
+// Creates a new store an adds it to the given MapDB stores. Returns an error if the store already exists.
+func AssignStoreToDB[T any](mdb *MapDB, name string) (*Store[T], error) {
+	if s, ok := mdb.stores[name]; ok {
+		return s.(*Store[T]), fmt.Errorf("store '%s' already defined", name)
+	}
+
 	path := filepath.Join(mdb.dir, name+".json")
 	store, err := NewStore[T](path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create store %q: %w", name, err)
+		return nil, fmt.Errorf("failed to create store '%s': %w", name, err)
 	}
 
 	mdb.mut.Lock()
@@ -56,22 +56,22 @@ func AddStore[T any](mdb *MapDB, name string) (*Store[T], error) {
 func RegisterMapDB(name string, mdb *MapDB) {
 	mut.Lock()
 	defer mut.Unlock()
-	mapDatabases[name] = mdb
+	mapDbs[name] = mdb
 }
 
 func GetMapDB(name string) (*MapDB, error) {
 	mut.RLock()
 	defer mut.RUnlock()
 
-	mdb, ok := mapDatabases[name]
+	mdb, ok := mapDbs[name]
 	if !ok {
-		return nil, fmt.Errorf("failed to get MapDB. no db exists with name: %s", name)
+		return nil, fmt.Errorf("failed to get MapDB. no such db exists: %s", name)
 	}
 
 	return mdb, nil
 }
 
-// Close flushes all stores to disk.
+// Calls Close() method on all stores in this DB, flushing data to their associated file.
 func (mdb *MapDB) Close() error {
 	for _, s := range mdb.stores {
 		if err := s.Close(); err != nil {

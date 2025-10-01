@@ -9,6 +9,14 @@ import (
 	"sync"
 )
 
+// Specifies the basic functionality a Store should have, regardless
+// of how it is interacted with via its other methods.
+type IStore interface {
+	Path() string
+	WriteSnapshot() error
+	Close() error
+}
+
 type StoreKey = string
 
 // Essentially a persistent cache.
@@ -36,12 +44,11 @@ func NewStore[T any](path string) (*Store[T], error) {
 	return s, nil
 }
 
-// Store returns the Store for a specific file/db.
+// Retrieves the Store for a specific file/db.
 func GetStore[T any](db *MapDB, name string) (*Store[T], error) {
 	db.mut.RLock()
 	defer db.mut.RUnlock()
 
-	// store already open
 	s, ok := db.stores[name]
 	if !ok {
 		return nil, fmt.Errorf("could not find store '%s' in db: %s", name, db.dir)
@@ -131,7 +138,6 @@ func (s *Store[T]) WriteSnapshot() error {
 	return os.Rename(tmp, s.filePath)
 }
 
-// Close flushes the store to disk.
 func (s *Store[T]) Close() error {
 	err := s.WriteSnapshot()
 	if err != nil {
