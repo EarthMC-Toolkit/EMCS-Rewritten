@@ -41,6 +41,7 @@ func NewStore[T any](path string) (*Store[T], error) {
 		return nil, fmt.Errorf("failed to load store from file: %w", err)
 	}
 
+	fmt.Printf("\nDEBUG | Loaded store from file at: %s", s.Path())
 	return s, nil
 }
 

@@ -55,10 +55,16 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	// }, true, 20*time.Second)
 
 	scheduleTask(func() {
-		log.Println("[OnReady]: Running main data update task...")
+		log.Println("\n[OnReady]: Running data update task...")
 		start := time.Now()
-		UpdateData(db)
-		log.Printf("\n\nTask complete. Took: %s\n\n", time.Since(start))
+
+		_, err := UpdateData(db)
+		if err != nil {
+			log.Println("\n[OnReady]: Failed data update task.")
+			log.Println(err)
+		}
+
+		log.Println("\n[OnReady]: Completed data update task. Took: " + time.Since(start).String())
 
 		//TrySendLeftJoinedNotif(s, *staleTowns)
 		//TrySendRuinedNotif(s, *staleTowns)
@@ -120,23 +126,24 @@ func SetKeyFunc[T any](store *store.Store[T], key string, task func() (T, error)
 	return res, err
 }
 
-func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
+func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, error) {
 	townStore, err := store.GetStore[oapi.TownInfo](db, "towns")
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	nationStore, err := store.GetStore[oapi.NationInfo](db, "nations")
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	entityStore, err := store.GetStore[oapi.EntityList](db, "entities")
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	staleTowns := townStore.All()
+	fmt.Printf("DEBUG | Stale towns: %d", len(staleTowns))
 
 	townList, err = OverwriteFunc(townStore, func() (map[string]oapi.TownInfo, error) {
 		res, err := api.QueryAllTowns()
@@ -149,7 +156,7 @@ func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
 		}), nil
 	})
 	if err != nil {
-		return staleTowns
+		return staleTowns, err
 	}
 
 	//region ============ GATHER DATA USING TOWNS ============
@@ -180,7 +187,7 @@ func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
 	//region ============ SPLIT RESIDENTS FROM TOWNLESS ============
 	playerlist, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
 	if err != nil {
-		return staleTowns
+		return staleTowns, err
 	}
 
 	townlessList, _ = SetKeyFunc(entityStore, "townlesslist", func() (oapi.EntityList, error) {
@@ -199,7 +206,7 @@ func UpdateData(db *store.MapDB) map[string]oapi.TownInfo {
 	fmt.Printf("\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(playerlist), len(residentList), len(townlessList))
 	fmt.Printf("\nDEBUG | Nations: %d, Towns: %d", len(nationList), len(townList))
 
-	return staleTowns
+	return staleTowns, err
 }
 
 // func CalcLeftJoined(staleTowns []oapi.TownInfo) (left, joined []string) {
