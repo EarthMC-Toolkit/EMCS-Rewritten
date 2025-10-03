@@ -4,96 +4,119 @@ import (
 	"emcsrw/bot/store"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
-	"time"
 )
 
-type TestAlliance struct {
-	Name string `json:"name"`
+const testDB = "testdb"
+const testPersistDB = "testpersist"
+const testStore = "teststore"
+
+type TestData struct {
+	Names []string `json:"names"`
+	Name  string   `json:"name"`
 }
 
-func setupMapDB(t *testing.T) *store.MapDB {
-	os.RemoveAll("../db/testmap")
+func setupDB(dbName string) (*store.MapDB, string, error) {
+	dir := "./db/" + dbName
+	os.RemoveAll(dir)
 
-	mdb, err := store.NewMapDB("./db/", "testmap")
+	mdb, err := store.NewMapDB("./db/", dbName)
+	if err != nil {
+		return nil, dir, err
+	}
+
+	return mdb, dir, err
+}
+
+func setupTest(t *testing.T, dbName string) (*store.MapDB, string) {
+	mdb, dir, err := setupDB(dbName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	return mdb
+	// Ensure cleanup after the whole test completes
+	t.Cleanup(func() {
+		os.RemoveAll(dir)
+	})
+
+	return mdb, dir
+}
+
+func setupBench(b *testing.B) (*store.MapDB, *store.Store[TestData], string) {
+	mdb, dir, err := setupDB(testDB)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	s := store.AssignStoreToDB[TestData](mdb, testStore)
+
+	// Ensure cleanup after the whole benchmark completes
+	b.Cleanup(func() {
+		os.RemoveAll(dir)
+	})
+
+	return mdb, s, dir
 }
 
 func TestStorePersistence(t *testing.T) {
-	// Setup MapDB folder for test
-	dbDir := "./db/testpersist"
-	os.RemoveAll(dbDir) // clean up old data
+	mdb, dbDir := setupTest(t, testPersistDB)
+	s := store.AssignStoreToDB[TestData](mdb, testStore)
 
-	mdb, err := store.NewMapDB("./db/", "testpersist")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dbDir)
-
-	// Get typed store
-	alliances, err := store.GetStore[TestAlliance](mdb, "alliances")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Set a value and write snapshot
-	alliances.SetKey("alliance1", TestAlliance{Name: "PersistentAlliance"})
-	if err := alliances.WriteSnapshot(); err != nil {
+	s.SetKey("key1", TestData{Name: "PersistentKey", Names: []string{"Persist1", "Persist2"}})
+	if err := s.WriteSnapshot(); err != nil {
 		t.Fatal(err)
 	}
 
 	// Reload a new store from the same path
-	reloadedStore, err := store.NewStore[TestAlliance](fmt.Sprintf("%s/alliances.json", dbDir))
+	rs, err := store.NewStore[TestData](fmt.Sprintf("%s.json", filepath.Join(dbDir, testStore)))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	a, _ := reloadedStore.GetKey("alliance1")
-	if a == nil {
-		t.Fatalf("expected alliance1 to exist after reload")
+	v, _ := rs.GetKey("key1")
+	if v == nil {
+		t.Fatalf("expected key1 to exist after reload")
 	}
 
-	if a.Name != "PersistentAlliance" {
-		t.Errorf("expected Name=PersistentAlliance, got %s", a.Name)
-	}
-}
-
-func TestSetGetAlliance(t *testing.T) {
-	start := time.Now()
-
-	mdb := setupMapDB(t)
-	defer mdb.Close()
-	fmt.Printf("setupMapDB took %s\n", time.Since(start))
-
-	start = time.Now()
-	alliances, _ := store.GetStore[TestAlliance](mdb, "alliances")
-	fmt.Printf("GetStore took %s\n", time.Since(start))
-
-	start = time.Now()
-	alliances.SetKey("alliance1", TestAlliance{Name: "TestAlliance"})
-	fmt.Printf("Set took %s\n", time.Since(start))
-
-	start = time.Now()
-	a, _ := alliances.GetKey("alliance1")
-	fmt.Printf("Get took %s\n", time.Since(start))
-
-	if a.Name != "TestAlliance" {
-		t.Errorf("expected TestAlliance, got %s", a.Name)
+	if v.Name != "PersistentKey" {
+		t.Errorf("expected Name=PersistentKey, got %s", v.Name)
 	}
 }
 
-func setupStoreForBenchmark[T any](key string) *store.Store[T] {
-	mdb, _ := store.NewMapDB("./db/", "testmap")
-	return store.AssignStoreToDB[T](mdb, key)
+func TestSetGet(t *testing.T) {
+	mdb, _ := setupTest(t, testDB)
+	s := store.AssignStoreToDB[TestData](mdb, testStore)
+
+	s.SetKey("key1", TestData{Name: "Test", Names: []string{"Test1", "Test2"}})
+	v, err := s.GetKey("key1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if v.Name != "Test" {
+		t.Errorf("expected Name=Test, got '%s'", v.Name)
+	}
 }
 
 func BenchmarkAllianceSet(b *testing.B) {
-	allianceStore := setupStoreForBenchmark[TestAlliance]("alliances")
+	_, s, _ := setupBench(b)
 	for i := 0; b.Loop(); i++ {
-		allianceStore.SetKey(fmt.Sprintf("alliance%d", i), TestAlliance{Name: "Benchmark"})
+		s.SetKey(fmt.Sprintf("key%d", i), TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
+	}
+}
+
+func BenchmarkAllianceGet(b *testing.B) {
+	_, s, _ := setupBench(b)
+
+	for i := range 100000 {
+		s.SetKey(fmt.Sprintf("key%d", i), TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
+	}
+
+	for i := 0; b.Loop(); i++ {
+		key := fmt.Sprintf("key%d", i%100000) // cycle through keys
+		if _, err := s.GetKey(key); err != nil {
+			b.Fatal(err)
+		}
 	}
 }

@@ -111,7 +111,7 @@ func scheduleTask(task func(), runInitial bool, interval time.Duration) {
 func OverwriteFunc[T any](store *store.Store[T], task func() (map[string]T, error)) (map[string]T, error) {
 	res, err := task()
 	if err != nil {
-		log.Printf("error overwriting data in db at %s:\n%v", store.Path(), err)
+		log.Printf("error overwriting data in db at %s:\n%v", store.CleanPath(), err)
 		return res, err
 	}
 
@@ -124,7 +124,7 @@ func OverwriteFunc[T any](store *store.Store[T], task func() (map[string]T, erro
 func SetKeyFunc[T any](store *store.Store[T], key string, task func() (T, error)) (T, error) {
 	res, err := task()
 	if err != nil {
-		log.Printf("error putting '%s' into db at %s:\n%v", key, store.Path(), err)
+		log.Printf("error putting '%s' into db at %s:\n%v", key, store.CleanPath(), err)
 		return res, err
 	}
 

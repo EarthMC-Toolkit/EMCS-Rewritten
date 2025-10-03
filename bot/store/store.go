@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
 // Specifies the basic functionality a Store should have, regardless
 // of how it is interacted with via its other methods.
 type IStore interface {
-	Path() string
+	CleanPath() string
 	WriteSnapshot() error
 	Close() error
 }
@@ -41,7 +42,11 @@ func NewStore[T any](path string) (*Store[T], error) {
 		return nil, fmt.Errorf("failed to load store from file: %w", err)
 	}
 
-	fmt.Printf("\nDEBUG | Loaded store from file at: %s", s.Path())
+	if len(s.data) > 0 {
+		fmt.Printf("DEBUG | Loaded store from file at: %s\n", s.CleanPath())
+	}
+
+	//fmt.Printf("\nDEBUG | Loaded store from file at: %s\n", s.CleanPath())
 	return s, nil
 }
 
@@ -58,8 +63,8 @@ func GetStore[T any](db *MapDB, name string) (*Store[T], error) {
 	return s.(*Store[T]), nil
 }
 
-func (s *Store[T]) Path() string {
-	return s.filePath
+func (s *Store[T]) CleanPath() string {
+	return filepath.Clean(s.filePath)
 }
 
 func (s *Store[T]) All() map[StoreKey]T {
@@ -80,12 +85,11 @@ func (s *Store[T]) GetKey(key string) (*T, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	val, ok := s.data[key]
-	if !ok {
-		return nil, fmt.Errorf("could not get value for key '%s' from store: %s. no such key exists", key, s.Path())
+	if v, ok := s.data[key]; ok {
+		return &v, nil
 	}
 
-	return &val, nil
+	return nil, fmt.Errorf("could not get value for key '%s' from store: %s. no such key exists", key, s.CleanPath())
 }
 
 // Create or overwrite the value in the store at the given key.
@@ -107,7 +111,7 @@ func (s *Store[T]) DeleteKey(key string) {
 // This should usually be called when the cache is empty and needs fresh data, for example when the bot starts up or when we are restoring from a backup.
 // This function should never be called during normal operation as to not provide potentially stale data.
 func (s *Store[T]) LoadFromFile() error {
-	data, err := os.ReadFile(s.Path())
+	data, err := os.ReadFile(s.CleanPath())
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
