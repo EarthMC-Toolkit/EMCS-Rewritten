@@ -1,17 +1,18 @@
 package bot
 
 import (
+	"emcsrw/api/oapi"
 	"emcsrw/bot/common"
 	"emcsrw/bot/events"
 	"emcsrw/bot/store"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
 	dgo "github.com/bwmarrin/discordgo"
-	log "github.com/sirupsen/logrus"
 )
 
 //const RED, YELLOW int = 8858420, 15844367
@@ -41,15 +42,25 @@ func Run(botToken string) {
 
 	fmt.Printf("\nInitializing map databases..\n")
 
-	// Create or open badger DB
-	auroraDB, err := store.InitMapDB(common.SUPPORTED_MAPS.AURORA)
+	// Create or open DB
+	auroraDB, err := store.NewMapDB("./db", common.SUPPORTED_MAPS.AURORA)
 	if err != nil {
 		log.Fatalf("Cannot initialize database for map '%s':\n%v", common.SUPPORTED_MAPS.AURORA, err)
 	}
 
-	fmt.Printf("\nEstablishing Discord connection..\n")
+	// Deinfe all stores we want to exist on Aurora database.
+	// If a store does not exist, it is created under ./db/aurora.
+	store.DefineStore[oapi.ServerInfo](auroraDB, "server")
+	store.DefineStore[oapi.TownInfo](auroraDB, "towns")
+	store.DefineStore[oapi.NationInfo](auroraDB, "nations")
+	store.DefineStore[oapi.EntityList](auroraDB, "entities")
+	store.DefineStore[store.Alliance](auroraDB, "alliances")
+	store.DefineStore[store.UserUsage](auroraDB, "usage-users")
+	//store.AssignStoreToDB[map[string]any](auroraDB, "usage-leaderboard")
 
-	// Open WS connection to Discord
+	fmt.Printf("\n\nEstablishing connection to Discord..\n")
+
+	// Open WS connection to Discord.
 	err = s.Open()
 	if err != nil {
 		log.Fatal("Cannot open Discord session: ", err)
@@ -64,7 +75,7 @@ func Run(botToken string) {
 
 	// Since the `defer` keyword only works in successful exits,
 	// closing explicitly here makes sure we always properly cleanup.
-	if err := auroraDB.Close(); err != nil {
+	if err := auroraDB.Flush(); err != nil {
 		log.Printf("Error closing DB: %v", err)
 	}
 	if err := s.Close(); err != nil {

@@ -22,5 +22,6 @@ go.work
 
 .env
 bot/test.go
+tests/db/
 db/
 archive/

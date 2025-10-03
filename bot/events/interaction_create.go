@@ -39,6 +39,7 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 	elapsed := time.Since(start)
 
 	success := false
+	fmt.Println()
 	if err != nil {
 		log.Printf("'%s' failed to execute command /%s:\n%v\n\n", author.Username, cmdName, err)
 	} else {
@@ -46,31 +47,24 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 		success = true
 	}
 
-	// TODO: Maybe combine get/put into single update transaction. Rn this is View&Get + Update&Set
-	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	// usage, err := database.GetUserUsage(db, author.ID)
-	// if err != nil {
-	// 	fmt.Printf("\ndb error occurred. could not get usage for user: %s (%s)\n%v", author.Username, author.ID, err)
-	// 	return
-	// }
-
-	// Add a new command usage entry to history.
-	// usage.CommandHistory[cmdName] = append(usage.CommandHistory[cmdName], database.CommandEntry{
-	// 	Type:      uint8(cmdType),
-	// 	Timestamp: time.Now().Unix(),
-	// 	Success:   success,
-	// })
-
 	if cmdName != "usage" {
-		err = store.UpdateUserUsage(db, author.ID, cmdName, store.UsageCommandEntry{
+		mdb, err := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+		if err != nil {
+			fmt.Println()
+			log.Printf("error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)
+			return
+		}
+
+		e := store.UsageCommandEntry{
 			Type:      uint8(cmdType),
 			Timestamp: time.Now().Unix(),
 			Success:   success,
-		})
-	}
+		}
 
-	if err != nil {
-		log.Printf("\ndb error occurred. could not update usage for user: %s (%s)\n%v", author.Username, author.ID, err)
+		if err := store.UpdateUsageForUser(mdb, author, cmdName, e); err != nil {
+			fmt.Println()
+			log.Printf("error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)
+		}
 	}
 }
 

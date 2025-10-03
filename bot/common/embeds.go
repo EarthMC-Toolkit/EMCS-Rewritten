@@ -108,15 +108,17 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
 
 	affiliation := "None (Townless)"
 	if townName != "No Town" {
-		db := store.GetMapDB(SUPPORTED_MAPS.AURORA)
-		towns, _ := store.GetInsensitive[[]oapi.TownInfo](db, "towns")
+		db, _ := store.GetMapDB(SUPPORTED_MAPS.AURORA)
+		townsStore, _ := store.GetStore[oapi.TownInfo](db, "towns")
 
-		town, ok := lo.Find(*towns, func(t oapi.TownInfo) bool {
-			return t.UUID == *player.Town.UUID
-		})
+		town, err := townsStore.GetKey(*player.Town.UUID)
+
+		// town, ok := lo.Find(towns, func(t oapi.TownInfo) bool {
+		// 	return t.UUID == *player.Town.UUID
+		// })
 
 		// Should never rly be false bc we established they aren't townless.
-		if ok {
+		if err == nil {
 			spawn := town.Coordinates.Spawn
 			affiliation = fmt.Sprintf("[%s](https://map.earthmc.net?x=%f&z=%f&zoom=3) (%s)", townName, spawn.X, spawn.Z, nationName)
 		}

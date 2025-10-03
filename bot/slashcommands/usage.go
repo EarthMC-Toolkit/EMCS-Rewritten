@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/dgraph-io/badger/v4"
 )
 
 type UsageCommand struct{}
@@ -48,18 +47,26 @@ func (cmd UsageCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 }
 
 func ExecuteSelf(s *discordgo.Session, i *discordgo.Interaction) error {
-	author := discordutil.UserFromInteraction(i)
-
-	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	usage, err := store.GetUserUsage(db, author.ID)
-	if err != nil && err != badger.ErrKeyNotFound {
-		fmt.Printf("failed to get user usage for %s (%s):\n%v", author.Username, author.ID, err)
-		discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
-			Content: "Error occurred getting usage statistics from db.",
-		})
+	mdb, err := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	if err != nil {
+		return err
 	}
 
-	if len(usage.CommandHistory) < 1 {
+	usageStore, err := store.GetStore[store.UserUsage](mdb, "usage-users")
+	if err != nil {
+		return err
+	}
+
+	author := discordutil.UserFromInteraction(i)
+	usage, _ := usageStore.GetKey(author.ID)
+	// if err != nil {
+	// 	log.Printf("failed to get user usage for %s (%s):\n%v", author.Username, author.ID, err)
+	// 	discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
+	// 		Content: "Error occurred getting usage statistics from db.",
+	// 	})
+	// }
+
+	if usage == nil {
 		return discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
 			Content: "No usage recorded.",
 		})

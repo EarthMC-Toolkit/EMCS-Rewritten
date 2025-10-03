@@ -6,6 +6,7 @@ import (
 	"emcsrw/bot/store"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"fmt"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -22,10 +23,23 @@ func (cmd VotePartyCommand) Options() AppCommandOpts {
 }
 
 func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	info, err := store.GetInsensitive[oapi.ServerInfo](db, "serverinfo")
+	db, err := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
 	if err != nil {
-		// TODO: Respond to interaction with appropriate err msg
+		return err
+	}
+
+	serverStore, err := store.GetStore[oapi.ServerInfo](db, "server")
+	if err != nil {
+		return err
+	}
+
+	info, err := serverStore.GetKey("info")
+	if err != nil {
+		err := fmt.Errorf("failed to execute /serverinfo. could not find 'info' key in 'server' store")
+		discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+			Content: err.Error(),
+		})
+
 		return err
 	}
 

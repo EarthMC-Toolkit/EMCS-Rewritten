@@ -1,86 +1,89 @@
 package store
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
-
-	"github.com/dgraph-io/badger/v4"
+	"sync"
 )
 
-var MAP_DATABASES = make(map[string]*badger.DB)
+var mapDbs = make(map[string]*MapDB)
+var mut sync.RWMutex // guards access to mapDatabases
 
-func InitMapDB(mapName string) (*badger.DB, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
+type MapDB struct {
+	dir    string
+	stores map[string]IStore // store file name → typed Store
+	mut    sync.RWMutex      // guards access to stores
+}
+
+// Initializes a MapDB for a given map directory.
+func NewMapDB(baseDir string, mapName string) (*MapDB, error) {
+	dir := filepath.Join(baseDir, mapName)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
 	}
 
-	// Absolute path to the db for the input map.
-	dbDir := filepath.Join(cwd, "db", mapName)
-
-	opts := badger.DefaultOptions(dbDir)
-	opts.ZSTDCompressionLevel = 3
-	opts.CompactL0OnClose = true
-	opts.MemTableSize = 64 << 20 // 64 MB per LSM table
-	opts.NumMemtables = 5        // Num of memtables in memory
-	opts.NumLevelZeroTables = 5  // L0 flush frequency
-	opts.NumLevelZeroTablesStall = 10
-
-	db, err := badger.Open(opts)
-	if err != nil {
-		return nil, err
+	db := &MapDB{
+		dir:    dir,
+		stores: make(map[string]IStore),
 	}
 
-	MAP_DATABASES[mapName] = db
+	// put into mapDatabases
+	RegisterMapDB(mapName, db)
+
 	return db, nil
 }
 
-func GetMapDB(mapName string) *badger.DB {
-	return MAP_DATABASES[mapName]
-}
+// Creates a new store an adds it to the given MapDB stores. Returns an error if the store already exists.
+func DefineStore[T any](mdb *MapDB, name string) *Store[T] {
+	mdb.mut.Lock()
+	defer mdb.mut.Unlock()
 
-func GetInsensitiveTxn[T any](txn *badger.Txn, key string) (out *T, err error) {
-	out = new(T)
-
-	item, err := txn.Get([]byte(strings.ToLower(key)))
-	if err != nil {
-		return
+	if s, ok := mdb.stores[name]; ok {
+		fmt.Printf("\nstore '%s' already defined", name)
+		return s.(*Store[T])
 	}
 
-	val, _ := item.ValueCopy(nil)
-	err = json.Unmarshal(val, out)
+	path := filepath.Join(mdb.dir, name+".json")
+	store, err := NewStore[T](path)
+	if err != nil {
+		fmt.Printf("\nfailed to create store '%s': %v", name, err)
+		return nil
+	}
 
-	return
+	mdb.stores[name] = store
+	return store
 }
 
-func GetInsensitive[T any](db *badger.DB, key string) (out *T, err error) {
-	err = db.View(func(txn *badger.Txn) error {
-		start := time.Now()
-		out, err = GetInsensitiveTxn[T](txn, key)
-		fmt.Printf("DEBUG | time to get key '%s' from db: %s\n", key, time.Since(start))
-		return err
-	})
-
-	return
+func RegisterMapDB(name string, mdb *MapDB) {
+	mut.Lock()
+	defer mut.Unlock()
+	mapDbs[name] = mdb
 }
 
-// Puts data into the DB at the specified key which is automatically lowercased.
-//
-// This func is a very simple wrapper around db.Update() and txn.Set().
-// If any get call or data manipulation is required prior to txn.Set(), prefer a single transaction via db.Update().
-func PutInsensitive(db *badger.DB, key string, data []byte) error {
-	return db.Update(func(txn *badger.Txn) error {
-		return txn.Set([]byte(strings.ToLower(key)), data)
-	})
+func GetMapDB(name string) (*MapDB, error) {
+	mut.RLock()
+	defer mut.RUnlock()
+
+	mdb, ok := mapDbs[name]
+	if !ok {
+		return nil, fmt.Errorf("failed to get MapDB. no such db exists: %s", name)
+	}
+
+	return mdb, nil
 }
 
-func PutInsensitiveTTL(db *badger.DB, key string, data []byte, ttl time.Duration) error {
-	return db.Update(func(txn *badger.Txn) error {
-		e := badger.NewEntry([]byte(strings.ToLower(key)), data).WithTTL(ttl)
-		return txn.SetEntry(e)
-	})
+func (mdb *MapDB) Dir() string {
+	return filepath.Clean(mdb.dir)
+}
+
+// Calls appropriate method on all stores in this DB that flushes data to their associated file.
+func (mdb *MapDB) Flush() error {
+	for _, s := range mdb.stores {
+		if err := s.WriteSnapshot(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

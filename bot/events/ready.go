@@ -8,7 +8,6 @@ import (
 	"emcsrw/bot/store"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
-	"encoding/json"
 	"fmt"
 	"log"
 	"sort"
@@ -16,15 +15,15 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/dgraph-io/badger/v4"
 	"github.com/samber/lo"
 	lop "github.com/samber/lo/parallel"
 )
 
-var nations []oapi.NationInfo
-var towns []oapi.TownInfo
-var townlesslist map[string]oapi.Entity
-var residentlist map[string]oapi.Entity
+var townlessList oapi.EntityList
+var residentList oapi.EntityList
+
+var townList map[string]oapi.TownInfo
+var nationList map[string]oapi.NationInfo
 
 // VoteParty notification tracking.
 var vpThresholds = []int{500, 300, 150, 50}
@@ -41,11 +40,13 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	fmt.Printf("Logged in as: %s\n\n", s.State.User.Username)
 	slashcommands.SyncWithRemote(s)
 
-	db := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
-	if db == nil {
-		fmt.Println("[OnReady]: wtf happened? db is nil")
+	db, err := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	if err != nil {
+		fmt.Printf("\n[OnReady]: wtf happened? error fetching db:\n%v", err)
 		return
 	}
+
+	serverStore, _ := store.GetStore[oapi.ServerInfo](db, "server")
 
 	// scheduleTask(func() {
 	// 	PutFunc(db, "playerlist", func() ([]oapi.Entity, error) {
@@ -54,19 +55,33 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	// }, true, 20*time.Second)
 
 	scheduleTask(func() {
-		log.Println("[OnReady]: Running main data update task...")
-		start := time.Now()
-		staleTowns := UpdateData(db)
-		log.Printf("\n\nTask complete. Took: %s\n\n", time.Since(start))
+		fmt.Println()
+		log.Println("[OnReady]: Running data update task...")
 
-		TrySendLeftJoinedNotif(s, *staleTowns)
-		TrySendRuinedNotif(s, *staleTowns)
-		TrySendFallenNotif(s, *staleTowns)
+		start := time.Now()
+		staleTownsList, err := UpdateData(db)
+		elapsed := time.Since(start)
+
+		fmt.Println()
+		if err != nil {
+			log.Println("[OnReady]: Failed data update task.")
+			log.Println(err)
+		}
+
+		log.Println("[OnReady]: Completed data update task. Took: " + elapsed.String())
+
+		staleTowns := lo.MapToSlice(staleTownsList, func(_ string, t oapi.TownInfo) oapi.TownInfo {
+			return t
+		})
+
+		//TrySendLeftJoinedNotif(s, *staleTowns)
+		TrySendRuinedNotif(s, staleTowns)
+		TrySendFallenNotif(s, staleTowns)
 	}, true, 30*time.Second)
 
 	// Updating every min should be fine. doubt people care about having /vp and /serverinfo be realtime.
 	scheduleTask(func() {
-		info, err := PutFunc(db, "serverinfo", 120*time.Second, func() (oapi.ServerInfo, error) {
+		info, err := SetKeyFunc(serverStore, "info", func() (oapi.ServerInfo, error) {
 			return oapi.QueryServer()
 		})
 		if err != nil {
@@ -74,27 +89,13 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		}
 
 		TrySendVotePartyNotif(s, info.VoteParty)
-	}, true, 60*time.Second)
 
-	// Clean up stale DB entries
-	scheduleDatabaseGC(db, 5*time.Minute)
-}
-
-func scheduleDatabaseGC(db *badger.DB, interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	for range ticker.C {
-	retry:
-		err := db.RunValueLogGC(0.1)
-		switch err {
-		case nil:
-			goto retry
-		case badger.ErrNoRewrite:
-		default:
-			log.Printf("badger GC error: %v", err)
+		err = db.Flush()
+		if err != nil {
+			fmt.Println()
+			log.Printf("error occurred flushing stores in db: %s", db.Dir())
 		}
-	}
+	}, true, 60*time.Second)
 }
 
 func scheduleTask(task func(), runInitial bool, interval time.Duration) {
@@ -113,166 +114,189 @@ func scheduleTask(task func(), runInitial bool, interval time.Duration) {
 
 // Runs a task that returns a value, said value is then marshalled and stored in the given badger DB under the given key.
 // If an error occurs during the task, the error is logged and returned, and the DB write will not occur.
-func PutFunc[T any](mapDB *badger.DB, key string, ttl time.Duration, task func() (T, error)) (T, error) {
-	dbDir := mapDB.Opts().Dir
-
+func OverwriteFunc[T any](store *store.Store[T], task func() (map[string]T, error)) (map[string]T, error) {
 	res, err := task()
 	if err != nil {
-		log.Printf("error putting '%s' into db at %s:\n%v", key, dbDir, err)
+		log.Printf("error overwriting data in db at %s:\n%v", store.CleanPath(), err)
 		return res, err
 	}
 
-	data, err := json.Marshal(res)
-	if err != nil {
-		log.Printf("error putting '%s' into db at %s:\n%v", key, dbDir, err)
-		return res, err
-	}
-
-	store.PutInsensitiveTTL(mapDB, key, data, ttl)
+	store.Overwrite(res)
 	//log.Printf("put '%s' into db at %s\n", key, dbDir)
 
 	return res, err
 }
 
-func UpdateData(db *badger.DB) *[]oapi.TownInfo {
-	staleTowns, err := store.GetInsensitive[[]oapi.TownInfo](db, "towns")
+func SetKeyFunc[T any](store *store.Store[T], key string, task func() (T, error)) (T, error) {
+	res, err := task()
 	if err != nil {
-		staleTowns = &[]oapi.TownInfo{}
+		log.Printf("error putting '%s' into db at %s:\n%v", key, store.CleanPath(), err)
+		return res, err
 	}
 
-	towns, err = PutFunc(db, "towns", 60*time.Second, func() ([]oapi.TownInfo, error) {
-		return api.QueryAllTowns()
+	store.SetKey(key, res)
+	//log.Printf("put '%s' into db at %s\n", key, dbDir)
+
+	return res, err
+}
+
+func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, error) {
+	townStore, err := store.GetStore[oapi.TownInfo](db, "towns")
+	if err != nil {
+		return nil, err
+	}
+
+	nationStore, err := store.GetStore[oapi.NationInfo](db, "nations")
+	if err != nil {
+		return nil, err
+	}
+
+	entityStore, err := store.GetStore[oapi.EntityList](db, "entities")
+	if err != nil {
+		return nil, err
+	}
+
+	staleTowns := townStore.All()
+	fmt.Printf("DEBUG | Stale towns: %d", len(staleTowns))
+
+	townList, err = OverwriteFunc(townStore, func() (map[string]oapi.TownInfo, error) {
+		res, err := api.QueryAllTowns()
+		if err != nil {
+			return nil, err
+		}
+
+		return lo.SliceToMap(res, func(t oapi.TownInfo) (string, oapi.TownInfo) {
+			return t.UUID, t
+		}), nil
 	})
 	if err != nil {
-		return staleTowns
+		return staleTowns, err
 	}
 
 	//region ============ GATHER DATA USING TOWNS ============
-	residentlist = make(map[string]oapi.Entity)
-	nationlist := make(map[string]oapi.Entity)
-	for _, t := range towns {
+	residentList = make(oapi.EntityList)
+	nlist := make(oapi.EntityList)
+	for _, t := range townList {
 		for _, r := range t.Residents {
-			residentlist[r.UUID] = r
+			residentList[r.UUID] = r.Name
 		}
 
 		if t.Nation.UUID != nil {
-			nationlist[*t.Nation.UUID] = oapi.Entity{
-				Name: *t.Nation.Name,
-				UUID: *t.Nation.UUID,
-			}
+			nlist[*t.Nation.UUID] = *t.Nation.Name
 		}
 	}
 
-	PutFunc(db, "residentlist", 60*time.Second, func() (entities map[string]oapi.Entity, err error) {
-		return residentlist, nil
+	SetKeyFunc(entityStore, "residentlist", func() (entities oapi.EntityList, err error) {
+		return residentList, nil
 	})
 
-	nations, _ = PutFunc(db, "nations", 60*time.Second, func() ([]oapi.NationInfo, error) {
-		res, _, _ := oapi.QueryConcurrent(lo.Keys(nationlist), oapi.QueryNations)
-		return res, nil
-	})
-	//endregion
-
-	//region ============ SPLIT RESIDENTS FROM TOWNLESS ============
-	playerlist, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
-	if err != nil {
-		return staleTowns
-	}
-
-	townlesslist, _ = PutFunc(db, "townlesslist", 60*time.Second, func() (map[string]oapi.Entity, error) {
-		entities := lo.FilterMap(playerlist, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
-			_, ok := residentlist[p.UUID]
-			return p, !ok
-		})
-
-		// Convert slice to map using UUID as key.
-		return lo.Associate(entities, func(p oapi.Entity) (string, oapi.Entity) {
-			return p.UUID, p
+	nationList, _ = OverwriteFunc(nationStore, func() (map[string]oapi.NationInfo, error) {
+		res, _, _ := oapi.QueryConcurrent(lo.Keys(nlist), oapi.QueryNations)
+		return lo.SliceToMap(res, func(n oapi.NationInfo) (string, oapi.NationInfo) {
+			return n.UUID, n
 		}), nil
 	})
 	//endregion
 
-	fmt.Printf("\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(playerlist), len(residentlist), len(townlesslist))
-	fmt.Printf("\nDEBUG | Nations List: %d, Nations: %d, Towns: %d", len(nationlist), len(nations), len(towns))
-
-	return staleTowns
-}
-
-func CalcLeftJoined(staleTowns []oapi.TownInfo) (left, joined []string) {
-	// build lookup maps
-	staleResidents := make(map[string]oapi.TownInfo)
-	for _, t := range staleTowns {
-		for _, r := range t.Residents {
-			staleResidents[r.UUID] = t
-		}
+	//region ============ SPLIT RESIDENTS FROM TOWNLESS ============
+	players, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
+	if err != nil {
+		return staleTowns, err
 	}
 
-	currentResidents := make(map[string]oapi.TownInfo)
-	for _, t := range towns {
-		for _, r := range t.Residents {
-			currentResidents[r.UUID] = t
-		}
-	}
-
-	// who left
-	for uuid, oldTown := range staleResidents {
-		if _, ok := currentResidents[uuid]; !ok {
-			name := townlesslist[uuid].Name
-			nation := "No Nation"
-			if oldTown.Nation != nil && oldTown.Nation.Name != nil {
-				nation = *oldTown.Nation.Name
-			}
-
-			left = append(left, fmt.Sprintf("`%s` left %s (**%s**)", name, oldTown.Name, nation))
-		}
-	}
-
-	// who joined
-	for uuid, newTown := range currentResidents {
-		if _, ok := staleResidents[uuid]; !ok {
-			name := residentlist[uuid].Name
-			nation := "No Nation"
-			if newTown.Nation != nil && newTown.Nation.Name != nil {
-				nation = *newTown.Nation.Name
-			}
-
-			joined = append(joined, fmt.Sprintf("`%s` joined %s (**%s**)", name, newTown.Name, nation))
-		}
-	}
-
-	return
-}
-
-func TrySendLeftJoinedNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
-	left, joined := CalcLeftJoined(staleTowns)
-
-	leftCount := len(left)
-	joinedCount := len(joined)
-	if (leftCount + joinedCount) > 0 {
-		s.ChannelMessageSendEmbed("1420108251437207682", &discordgo.MessageEmbed{
-			Title: "Player Flow | Town Join/Leave Events",
-			Fields: []*discordgo.MessageEmbedField{
-				{
-					Name:   fmt.Sprintf("Became townless [%d]", leftCount),
-					Value:  strings.Join(left, "\n"),
-					Inline: true,
-				},
-				{
-					Name:   fmt.Sprintf("Became a resident [%d]", joinedCount),
-					Value:  strings.Join(joined, "\n"),
-					Inline: true,
-				},
-			},
+	townlessList, _ = SetKeyFunc(entityStore, "townlesslist", func() (oapi.EntityList, error) {
+		entities := lo.FilterMap(players, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
+			_, ok := residentList[p.UUID]
+			return p, !ok
 		})
-	}
+
+		return lo.SliceToMap(entities, func(p oapi.Entity) (string, string) {
+			return p.UUID, p.Name
+		}), nil
+	})
+	//endregion
+
+	fmt.Printf("\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
+	fmt.Printf("\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))
+
+	return staleTowns, err
 }
+
+// func CalcLeftJoined(staleTowns []oapi.TownInfo) (left, joined []string) {
+// 	// build lookup maps
+// 	staleResidents := make(map[string]oapi.TownInfo)
+// 	for _, t := range staleTowns {
+// 		for _, r := range t.Residents {
+// 			staleResidents[r.UUID] = t
+// 		}
+// 	}
+
+// 	currentResidents := make(map[string]oapi.TownInfo)
+// 	for _, t := range towns {
+// 		for _, r := range t.Residents {
+// 			currentResidents[r.UUID] = t
+// 		}
+// 	}
+
+// 	// who left
+// 	for uuid, oldTown := range staleResidents {
+// 		if _, ok := currentResidents[uuid]; !ok {
+// 			name := townlesslist[uuid].Name
+// 			nation := "No Nation"
+// 			if oldTown.Nation != nil && oldTown.Nation.Name != nil {
+// 				nation = *oldTown.Nation.Name
+// 			}
+
+// 			left = append(left, fmt.Sprintf("`%s` left %s (**%s**)", name, oldTown.Name, nation))
+// 		}
+// 	}
+
+// 	// who joined
+// 	for uuid, newTown := range currentResidents {
+// 		if _, ok := staleResidents[uuid]; !ok {
+// 			name := residentlist[uuid].Name
+// 			nation := "No Nation"
+// 			if newTown.Nation != nil && newTown.Nation.Name != nil {
+// 				nation = *newTown.Nation.Name
+// 			}
+
+// 			joined = append(joined, fmt.Sprintf("`%s` joined %s (**%s**)", name, newTown.Name, nation))
+// 		}
+// 	}
+
+// 	return
+// }
+
+// func TrySendLeftJoinedNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
+// 	left, joined := CalcLeftJoined(staleTowns)
+
+// 	leftCount := len(left)
+// 	joinedCount := len(joined)
+// 	if (leftCount + joinedCount) > 0 {
+// 		s.ChannelMessageSendEmbed("1420108251437207682", &discordgo.MessageEmbed{
+// 			Title: "Player Flow | Town Join/Leave Events",
+// 			Fields: []*discordgo.MessageEmbedField{
+// 				{
+// 					Name:   fmt.Sprintf("Became townless [%d]", leftCount),
+// 					Value:  strings.Join(left, "\n"),
+// 					Inline: true,
+// 				},
+// 				{
+// 					Name:   fmt.Sprintf("Became a resident [%d]", joinedCount),
+// 					Value:  strings.Join(joined, "\n"),
+// 					Inline: true,
+// 				},
+// 			},
+// 		})
+// 	}
+// }
 
 func TrySendRuinedNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
 	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
 		return t.UUID, t, t.Status.Ruined
 	})
 
-	ruined := lo.FilterMap(towns, func(t oapi.TownInfo, _ int) (oapi.TownInfo, bool) {
+	ruined := lo.FilterMapToSlice(townList, func(_ string, t oapi.TownInfo) (oapi.TownInfo, bool) {
 		_, wasRuined := staleRuined[t.UUID]
 		return t, !wasRuined && t.Status.Ruined
 	})
@@ -304,6 +328,10 @@ func TrySendRuinedNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
 }
 
 func TrySendFallenNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
+	towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo {
+		return t
+	})
+
 	diff, _ := utils.DifferenceBy(staleTowns, towns, func(t oapi.TownInfo) string {
 		return t.UUID
 	})
