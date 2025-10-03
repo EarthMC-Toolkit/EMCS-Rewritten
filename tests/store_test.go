@@ -53,6 +53,11 @@ func setupBench(b *testing.B) (*store.MapDB, *store.Store[TestData], string) {
 
 	// Ensure cleanup after the whole benchmark completes
 	b.Cleanup(func() {
+		perOp := float64(b.Elapsed().Milliseconds()) / float64(b.N)
+		if perOp > 0.1 {
+			fmt.Printf("\nms/op: %.2f\n", perOp)
+		}
+
 		os.RemoveAll(dir)
 	})
 
@@ -99,23 +104,61 @@ func TestSetGet(t *testing.T) {
 	}
 }
 
-func BenchmarkAllianceSet(b *testing.B) {
+func BenchmarkSet(b *testing.B) {
 	_, s, _ := setupBench(b)
 	for i := 0; b.Loop(); i++ {
 		s.SetKey(fmt.Sprintf("key%d", i), TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
 	}
 }
 
-func BenchmarkAllianceGet(b *testing.B) {
+func BenchmarkGet(b *testing.B) {
 	_, s, _ := setupBench(b)
 
-	for i := range 100000 {
+	total := 100_000
+	for i := range total {
 		s.SetKey(fmt.Sprintf("key%d", i), TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
 	}
 
 	for i := 0; b.Loop(); i++ {
-		key := fmt.Sprintf("key%d", i%100000) // cycle through keys
+		if _, err := s.GetKey(fmt.Sprintf("key%d", i%total)); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkSetSingle(b *testing.B) {
+	_, s, _ := setupBench(b)
+
+	key := "key1"
+	for b.Loop() {
+		s.SetKey(key, TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
+	}
+}
+
+func BenchmarkGetSingle(b *testing.B) {
+	_, s, _ := setupBench(b)
+
+	key := "key1"
+	s.SetKey(key, TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
+
+	for b.Loop() {
 		if _, err := s.GetKey(key); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkWriteSnapshot(b *testing.B) {
+	_, s, _ := setupBench(b)
+
+	// Fill the store with some data
+	total := 20_000
+	for i := range total {
+		s.SetKey(fmt.Sprintf("key%d", i), TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
+	}
+
+	for b.Loop() {
+		if err := s.WriteSnapshot(); err != nil {
 			b.Fatal(err)
 		}
 	}
