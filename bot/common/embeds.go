@@ -271,8 +271,12 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 	towns := lop.Map(nation.Towns, func(e oapi.Entity, _ int) string {
 		return e.Name
 	})
-
 	slices.Sort(towns)
+
+	townsStr := strings.Join(towns, ", ")
+	if len(townsStr) > discordutil.EMBED_FIELD_VALUE_LIMIT {
+		townsStr = "Too many towns to display!\nClick the **View All Towns** button to see the full list."
+	}
 
 	embed := &dgo.MessageEmbed{
 		Type:        dgo.EmbedTypeRich,
@@ -290,7 +294,7 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 			NewEmbedField("Allies/Enemies", fmt.Sprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies), true),
 			NewEmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
 			NewEmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),
-			NewEmbedField(fmt.Sprintf("Towns [%d]", stats.NumTowns), fmt.Sprintf("```%s```", strings.Join(towns, ", ")), false),
+			NewEmbedField(fmt.Sprintf("Towns [%d]", stats.NumTowns), fmt.Sprintf("```%s```", townsStr), false),
 			NewEmbedField("Founded", dateFounded, true),
 		},
 	}

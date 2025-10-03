@@ -4,6 +4,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+const EMBED_FIELD_VALUE_LIMIT = 1024
+
 const (
 	DEFAULT     = 0x000000
 	WHITE       = 0xffffff
