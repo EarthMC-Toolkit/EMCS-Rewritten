@@ -49,19 +49,6 @@ func NewStore[T any](path string) (*Store[T], error) {
 	return s, nil
 }
 
-// Retrieves the Store for a specific file/db.
-func GetStore[T any](db *MapDB, name string) (*Store[T], error) {
-	db.mut.RLock()
-	defer db.mut.RUnlock()
-
-	s, ok := db.stores[name]
-	if !ok {
-		return nil, fmt.Errorf("could not find store '%s' in db: %s", name, db.dir)
-	}
-
-	return s.(*Store[T]), nil
-}
-
 func (s *Store[T]) CleanPath() string {
 	return filepath.Clean(s.filePath)
 }
@@ -142,10 +129,10 @@ func (s *Store[T]) WriteSnapshot() error {
 	// yankee wit no brim
 	err = os.Rename(tmp, s.filePath)
 	if err != nil {
-		return fmt.Errorf("error closing store at %s: %w", s.filePath, err)
+		return fmt.Errorf("error writing store snapshot to %s: %w", s.filePath, err)
 	}
 
-	fmt.Printf("Successfully closed store and wrote snapshot at: %s\n", s.filePath)
+	//fmt.Printf("Successfully closed store and wrote snapshot at: %s\n", s.filePath)
 	return nil
 }
 
