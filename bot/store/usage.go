@@ -1,14 +1,12 @@
 package store
 
 import (
-	"encoding/json"
 	"maps"
 	"slices"
 	"sort"
-	"strings"
 	"time"
 
-	"github.com/dgraph-io/badger/v4"
+	"github.com/bwmarrin/discordgo"
 )
 
 type UsageCommandStat struct {
@@ -83,42 +81,22 @@ func (u *UserUsage) GetCommandStatsSince(t time.Time) []UsageCommandStat {
 }
 
 // ================================== DATABASE INTERACTION ==================================
-const USER_USAGE_KEY_PREFIX = "usage/users/"
 
-// func GetUserUsage(mapDB *badger.DB, discordID string) (*UserUsage, error) {
-// 	return GetInsensitive[UserUsage](mapDB, USER_USAGE_KEY_PREFIX+discordID)
-// }
+func UpdateUsageForUser(mdb *MapDB, user *discordgo.User, cmdName string, entry UsageCommandEntry) error {
+	usageStore, err := GetStore[UserUsage](mdb, "usage-users")
+	if err != nil {
+		return err
+	}
 
-// Updates the user's usage using discordID as the key, adding entry to the history slice associated with the cmdName.
-//
-// All of this is done in a single transaction as opposed to two transactions (View-Get + Update-Set).
-func UpdateUserUsage(mapDB *badger.DB, discordID, cmdName string, entry UsageCommandEntry) error {
-	return mapDB.Update(func(txn *badger.Txn) error {
-		key := []byte(strings.ToLower(USER_USAGE_KEY_PREFIX + discordID))
-
-		item, err := txn.Get(key)
-		if err != nil && err != badger.ErrKeyNotFound {
-			return err
+	usage, _ := usageStore.GetKey(user.ID)
+	if usage == nil {
+		usage = &UserUsage{
+			CommandHistory: make(map[string][]UsageCommandEntry),
 		}
+	}
 
-		usage := UserUsage{}
-		if err == nil {
-			val, _ := item.ValueCopy(nil)
-			if err := json.Unmarshal(val, &usage); err != nil {
-				return err
-			}
-		} else {
-			usage.CommandHistory = make(map[string][]UsageCommandEntry)
-		}
+	usage.CommandHistory[cmdName] = append(usage.CommandHistory[cmdName], entry)
+	usageStore.SetKey(user.ID, *usage)
 
-		usage.CommandHistory[cmdName] = append(usage.CommandHistory[cmdName], entry)
-
-		// marshal and set
-		data, err := json.Marshal(&usage)
-		if err != nil {
-			return err
-		}
-
-		return txn.Set(key, data)
-	})
+	return nil
 }

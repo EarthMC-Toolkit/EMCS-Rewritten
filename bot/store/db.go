@@ -73,10 +73,14 @@ func GetMapDB(name string) (*MapDB, error) {
 	return mdb, nil
 }
 
-// Calls Close() method on all stores in this DB, flushing data to their associated file.
-func (mdb *MapDB) Close() error {
+func (mdb *MapDB) Dir() string {
+	return filepath.Clean(mdb.dir)
+}
+
+// Calls appropriate method on all stores in this DB that flushes data to their associated file.
+func (mdb *MapDB) Flush() error {
 	for _, s := range mdb.stores {
-		if err := s.Close(); err != nil {
+		if err := s.WriteSnapshot(); err != nil {
 			return err
 		}
 	}

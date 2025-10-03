@@ -6,13 +6,13 @@ import (
 	"emcsrw/bot/events"
 	"emcsrw/bot/store"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
 	dgo "github.com/bwmarrin/discordgo"
-	log "github.com/sirupsen/logrus"
 )
 
 //const RED, YELLOW int = 8858420, 15844367
@@ -75,7 +75,7 @@ func Run(botToken string) {
 
 	// Since the `defer` keyword only works in successful exits,
 	// closing explicitly here makes sure we always properly cleanup.
-	if err := auroraDB.Close(); err != nil {
+	if err := auroraDB.Flush(); err != nil {
 		log.Printf("Error closing DB: %v", err)
 	}
 	if err := s.Close(); err != nil {

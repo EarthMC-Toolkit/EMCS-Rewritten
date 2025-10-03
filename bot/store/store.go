@@ -15,7 +15,6 @@ import (
 type IStore interface {
 	CleanPath() string
 	WriteSnapshot() error
-	Close() error
 }
 
 type StoreKey = string
@@ -141,11 +140,7 @@ func (s *Store[T]) WriteSnapshot() error {
 	}
 
 	// yankee wit no brim
-	return os.Rename(tmp, s.filePath)
-}
-
-func (s *Store[T]) Close() error {
-	err := s.WriteSnapshot()
+	err = os.Rename(tmp, s.filePath)
 	if err != nil {
 		return fmt.Errorf("error closing store at %s: %w", s.filePath, err)
 	}

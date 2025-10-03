@@ -76,7 +76,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 		//TrySendLeftJoinedNotif(s, *staleTowns)
 		TrySendRuinedNotif(s, staleTowns)
-		//TrySendFallenNotif(s, *staleTowns)
+		TrySendFallenNotif(s, staleTowns)
 	}, true, 30*time.Second)
 
 	// Updating every min should be fine. doubt people care about having /vp and /serverinfo be realtime.
@@ -89,6 +89,12 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		}
 
 		TrySendVotePartyNotif(s, info.VoteParty)
+
+		err = db.Flush()
+		if err != nil {
+			fmt.Println()
+			log.Printf("error occurred flushing stores in db: %s", db.Dir())
+		}
 	}, true, 60*time.Second)
 }
 
