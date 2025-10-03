@@ -14,7 +14,7 @@ type MapDB struct {
 	dir     string            // Path (relative to cwd) to the dir where this db lives.
 	stores  map[string]IStore // Store file name → typed Store.
 	storeMu sync.RWMutex      // Guards access to `stores`.
-	//flushing atomic.Bool
+	flushMu sync.Mutex        // Ensures multiple flushes cannot happen simultaneously.
 }
 
 // Initializes a MapDB for a given map directory.
@@ -35,6 +35,25 @@ func NewMapDB(baseDir string, mapName string) (*MapDB, error) {
 	return db, nil
 }
 
+func (mdb *MapDB) Dir() string {
+	return filepath.Clean(mdb.dir)
+}
+
+// Calls WriteSnapshot on every store in this DB, flushing its current state to its associated file.
+// A mutex lock is acquired before the loop, ensuring no two flushes can run simultaneously.
+func (mdb *MapDB) Flush() error {
+	mdb.flushMu.Lock()
+	defer mdb.flushMu.Unlock()
+
+	for _, s := range mdb.stores {
+		if err := s.WriteSnapshot(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func RegisterMapDB(name string, mdb *MapDB) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -51,23 +70,6 @@ func GetMapDB(name string) (*MapDB, error) {
 	}
 
 	return mdb, nil
-}
-
-func (mdb *MapDB) Dir() string {
-	return filepath.Clean(mdb.dir)
-}
-
-// Calls appropriate method on all stores in this DB that flushes data to their associated file.
-func (mdb *MapDB) Flush() error {
-	// TODO: WE NEED TO MAKE SURE FLUSHES DONT OVERLAP.
-
-	for _, s := range mdb.stores {
-		if err := s.WriteSnapshot(); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // Creates a new store an adds it to the given MapDB stores. Returns an error if the store already exists.
