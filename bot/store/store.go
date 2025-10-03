@@ -126,11 +126,11 @@ func (s *Store[T]) LoadFromFile() error {
 // Creates a snapshot of the current cache state and writes it to the
 // database (JSON file) at the path we provided when the store was initialized.
 func (s *Store[T]) WriteSnapshot() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	cpy := utils.CopyMap(s.data)
+	s.mu.RUnlock()
 
-	// yankee wit no brim
-	data, err := json.MarshalIndent(s.data, "", "  ")
+	data, err := json.Marshal(cpy)
 	if err != nil {
 		return err
 	}
@@ -140,6 +140,7 @@ func (s *Store[T]) WriteSnapshot() error {
 		return err
 	}
 
+	// yankee wit no brim
 	return os.Rename(tmp, s.filePath)
 }
 

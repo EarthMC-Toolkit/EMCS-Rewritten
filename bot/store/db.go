@@ -35,7 +35,7 @@ func NewMapDB(baseDir string, mapName string) (*MapDB, error) {
 }
 
 // Creates a new store an adds it to the given MapDB stores. Returns an error if the store already exists.
-func AssignStoreToDB[T any](mdb *MapDB, name string) *Store[T] {
+func DefineStore[T any](mdb *MapDB, name string) *Store[T] {
 	mdb.mut.Lock()
 	defer mdb.mut.Unlock()
 

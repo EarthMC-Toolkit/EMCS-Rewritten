@@ -48,17 +48,19 @@ func Run(botToken string) {
 		log.Fatalf("Cannot initialize database for map '%s':\n%v", common.SUPPORTED_MAPS.AURORA, err)
 	}
 
-	// Define all stores the Aurora DB should have.
-	store.AssignStoreToDB[oapi.ServerInfo](auroraDB, "server")
-	store.AssignStoreToDB[oapi.TownInfo](auroraDB, "towns")
-	store.AssignStoreToDB[oapi.NationInfo](auroraDB, "nations")
-	store.AssignStoreToDB[oapi.EntityList](auroraDB, "entities")
-	store.AssignStoreToDB[store.Alliance](auroraDB, "alliances")
-	store.AssignStoreToDB[store.UserUsage](auroraDB, "usage")
+	// Deinfe all stores we want to exist on Aurora database.
+	// If a store does not exist, it is created under ./db/aurora.
+	store.DefineStore[oapi.ServerInfo](auroraDB, "server")
+	store.DefineStore[oapi.TownInfo](auroraDB, "towns")
+	store.DefineStore[oapi.NationInfo](auroraDB, "nations")
+	store.DefineStore[oapi.EntityList](auroraDB, "entities")
+	store.DefineStore[store.Alliance](auroraDB, "alliances")
+	store.DefineStore[store.UserUsage](auroraDB, "usage-users")
+	//store.AssignStoreToDB[map[string]any](auroraDB, "usage-leaderboard")
 
-	fmt.Printf("\n\nEstablishing Discord connection..\n")
+	fmt.Printf("\n\nEstablishing connection to Discord..\n")
 
-	// Open WS connection to Discord
+	// Open WS connection to Discord.
 	err = s.Open()
 	if err != nil {
 		log.Fatal("Cannot open Discord session: ", err)

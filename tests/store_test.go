@@ -49,7 +49,7 @@ func setupBench(b *testing.B) (*store.MapDB, *store.Store[TestData], string) {
 		b.Fatal(err)
 	}
 
-	s := store.AssignStoreToDB[TestData](mdb, testStore)
+	s := store.DefineStore[TestData](mdb, testStore)
 
 	// Ensure cleanup after the whole benchmark completes
 	b.Cleanup(func() {
@@ -66,7 +66,7 @@ func setupBench(b *testing.B) (*store.MapDB, *store.Store[TestData], string) {
 
 func TestStorePersistence(t *testing.T) {
 	mdb, dbDir := setupTest(t, testPersistDB)
-	s := store.AssignStoreToDB[TestData](mdb, testStore)
+	s := store.DefineStore[TestData](mdb, testStore)
 
 	s.SetKey("key1", TestData{Name: "PersistentKey", Names: []string{"Persist1", "Persist2"}})
 	if err := s.WriteSnapshot(); err != nil {
@@ -91,7 +91,7 @@ func TestStorePersistence(t *testing.T) {
 
 func TestSetGet(t *testing.T) {
 	mdb, _ := setupTest(t, testDB)
-	s := store.AssignStoreToDB[TestData](mdb, testStore)
+	s := store.DefineStore[TestData](mdb, testStore)
 
 	s.SetKey("key1", TestData{Name: "Test", Names: []string{"Test1", "Test2"}})
 	v, err := s.GetKey("key1")
