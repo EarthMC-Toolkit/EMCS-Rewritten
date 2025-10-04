@@ -19,15 +19,24 @@ type IStore interface {
 }
 
 type StoreKey = string
+type StoreData[T any] map[StoreKey]T
+
+func (sd StoreData[T]) ShallowCopy() StoreData[T] {
+	return utils.CopyMap(sd)
+}
+
+func (s *Store[T]) IsEmpty() bool {
+	return len(s.data) <= 0
+}
 
 // Essentially a persistent cache.
 // Each 'store' is backed by a JSON file aka database which the cache will be populated from when it is initialized (if the file exists).
 //
 // A Store has the ability to Get/Set values or create snapshots of the cache which can be written to the database.
 type Store[T any] struct {
-	filePath string         // Path to the file/dataset for this store.
-	data     map[StoreKey]T // The actual data within the file.
-	mu       sync.RWMutex   // Mutex lock to stop read & write collisions.
+	filePath string       // Path to the file/dataset for this store.
+	data     StoreData[T] // The actual data within the file.
+	mu       sync.RWMutex // Mutex lock to stop read & write collisions.
 }
 
 // Creates a new store backed by a JSON file at `path` for persistence.
@@ -42,7 +51,7 @@ func NewStore[T any](path string) (*Store[T], error) {
 		return nil, fmt.Errorf("failed to load store from file: %w", err)
 	}
 
-	if len(s.data) > 0 {
+	if !s.IsEmpty() {
 		fmt.Printf("DEBUG | Loaded store from file at: %s\n", s.CleanPath())
 	}
 
@@ -58,7 +67,7 @@ func (s *Store[T]) All() map[StoreKey]T {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return utils.CopyMap(s.data)
+	return s.data.ShallowCopy()
 }
 
 func (s *Store[T]) Overwrite(value map[StoreKey]T) {
@@ -94,6 +103,15 @@ func (s *Store[T]) DeleteKey(key string) {
 	delete(s.data, key)
 }
 
+func (s *Store[T]) Clear() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for k := range s.data {
+		delete(s.data, k)
+	}
+}
+
 // Overwrite the current store cache state with data from the associated JSON file/database located at path.
 // This should usually be called when the cache is empty and needs fresh data, for example when the bot starts up or when we are restoring from a backup.
 // This function should never be called during normal operation as to not provide potentially stale data.
@@ -120,7 +138,7 @@ func (s *Store[T]) LoadFromFile() error {
 // database (JSON file) at the path we provided when the store was initialized.
 func (s *Store[T]) WriteSnapshot() error {
 	s.mu.RLock()
-	cpy := utils.CopyMap(s.data)
+	cpy := s.data.ShallowCopy()
 	s.mu.RUnlock()
 
 	data, err := json.Marshal(cpy)
