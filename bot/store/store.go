@@ -107,7 +107,13 @@ func (s *Store[T]) LoadFromFile() error {
 		return err
 	}
 
-	return safeOverwrite(s, data)
+	var v map[StoreKey]T
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+
+	s.Overwrite(v)
+	return nil
 }
 
 // Creates a snapshot of the current cache state and writes it to the
@@ -134,18 +140,5 @@ func (s *Store[T]) WriteSnapshot() error {
 	}
 
 	//fmt.Printf("Successfully closed store and wrote snapshot at: %s\n", s.filePath)
-	return nil
-}
-
-func safeOverwrite[T any](s *Store[T], data []byte) error {
-	var tmp map[StoreKey]T
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-
-	s.mu.Lock()
-	s.data = tmp
-	s.mu.Unlock()
-
 	return nil
 }
