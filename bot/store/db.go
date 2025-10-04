@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -43,13 +44,19 @@ func (mdb *MapDB) Dir() string {
 // Calls WriteSnapshot on every store in this DB, flushing its current state to its associated file.
 // A mutex lock is acquired before the loop, ensuring no two flushes can run simultaneously.
 func (mdb *MapDB) Flush() error {
+	errs := []error{}
+
 	mdb.flushMu.Lock()
 	defer mdb.flushMu.Unlock()
 
-	for _, s := range mdb.stores {
+	for name, s := range mdb.stores {
 		if err := s.WriteSnapshot(); err != nil {
-			return err
+			errs = append(errs, fmt.Errorf("store %s: %w", name, err))
 		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil

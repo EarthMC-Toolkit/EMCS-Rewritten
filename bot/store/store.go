@@ -15,6 +15,7 @@ import (
 type IStore interface {
 	CleanPath() string
 	WriteSnapshot() error
+	LoadFromFile() error
 }
 
 type StoreKey = string
