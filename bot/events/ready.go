@@ -84,8 +84,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 		TrySendVotePartyNotif(s, info.VoteParty)
 
-		err = db.Flush()
-		if err != nil {
+		if err := db.Flush(); err != nil {
 			fmt.Println()
 			log.Printf("error occurred flushing stores in db: %s", db.Dir())
 		}

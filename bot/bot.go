@@ -76,9 +76,9 @@ func Run(botToken string) {
 	// Since the `defer` keyword only works in successful exits,
 	// closing explicitly here makes sure we always properly cleanup.
 	if err := auroraDB.Flush(); err != nil {
-		log.Printf("Error closing DB: %v", err)
+		log.Printf("error closing DB: %v", err)
 	}
 	if err := s.Close(); err != nil {
-		log.Printf("Error closing Discord session: %v", err)
+		log.Printf("error closing Discord session: %v", err)
 	}
 }
