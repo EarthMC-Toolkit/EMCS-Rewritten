@@ -151,7 +151,7 @@ func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, map[string]oapi.Town
 		return nil, nil, err
 	}
 
-	staleTowns := townStore.All()
+	staleTowns := townStore.Entries()
 	fmt.Printf("DEBUG | Stale towns: %d", len(staleTowns))
 
 	townList, err := OverwriteFunc(townStore, func() (map[string]oapi.TownInfo, error) {

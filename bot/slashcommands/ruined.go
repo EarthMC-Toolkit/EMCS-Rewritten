@@ -43,7 +43,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	towns := townsStore.All()
+	towns := townsStore.Entries()
 	ruined := lo.FilterMapToSlice(towns, func(_ string, t oapi.TownInfo) (oapi.TownInfo, bool) {
 		return t, t.Status.Ruined
 	})

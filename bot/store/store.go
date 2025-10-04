@@ -63,14 +63,25 @@ func (s *Store[T]) CleanPath() string {
 	return filepath.Clean(s.filePath)
 }
 
-func (s *Store[T]) All() map[StoreKey]T {
+func (s *Store[T]) Entries() StoreData[T] {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	return s.data.ShallowCopy()
 }
 
-func (s *Store[T]) Overwrite(value map[StoreKey]T) {
+func (s *Store[T]) Values() (values []T) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, v := range s.data {
+		values = append(values, v)
+	}
+
+	return
+}
+
+func (s *Store[T]) Overwrite(value StoreData[T]) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
