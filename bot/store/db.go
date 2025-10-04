@@ -35,6 +35,7 @@ func NewMapDB(baseDir string, mapName string) (*MapDB, error) {
 	return db, nil
 }
 
+// The clean path to the dir of this MapDB which all store files live under.
 func (mdb *MapDB) Dir() string {
 	return filepath.Clean(mdb.dir)
 }

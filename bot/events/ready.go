@@ -19,12 +19,6 @@ import (
 	lop "github.com/samber/lo/parallel"
 )
 
-var townlessList oapi.EntityList
-var residentList oapi.EntityList
-
-var townList map[string]oapi.TownInfo
-var nationList map[string]oapi.NationInfo
-
 // VoteParty notification tracking.
 var vpThresholds = []int{500, 300, 150, 50}
 var vpNotified = make(map[int]bool) // Key is each threshold, value is whether notified or not.
@@ -59,7 +53,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		log.Println("[OnReady]: Running data update task...")
 
 		start := time.Now()
-		staleTownsList, err := UpdateData(db)
+		townList, staleTownList, err := UpdateData(db)
 		elapsed := time.Since(start)
 
 		fmt.Println()
@@ -70,13 +64,13 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 		log.Println("[OnReady]: Completed data update task. Took: " + elapsed.String())
 
-		staleTowns := lo.MapToSlice(staleTownsList, func(_ string, t oapi.TownInfo) oapi.TownInfo {
+		staleTowns := lo.MapToSlice(staleTownList, func(_ string, t oapi.TownInfo) oapi.TownInfo {
 			return t
 		})
 
 		//TrySendLeftJoinedNotif(s, *staleTowns)
-		TrySendRuinedNotif(s, staleTowns)
-		TrySendFallenNotif(s, staleTowns)
+		TrySendRuinedNotif(s, townList, staleTowns)
+		TrySendFallenNotif(s, townList, staleTowns)
 	}, true, 30*time.Second)
 
 	// Updating every min should be fine. doubt people care about having /vp and /serverinfo be realtime.
@@ -142,26 +136,26 @@ func SetKeyFunc[T any](store *store.Store[T], key string, task func() (T, error)
 	return res, err
 }
 
-func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, error) {
+func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, map[string]oapi.TownInfo, error) {
 	townStore, err := store.GetStore[oapi.TownInfo](db, "towns")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	nationStore, err := store.GetStore[oapi.NationInfo](db, "nations")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	entityStore, err := store.GetStore[oapi.EntityList](db, "entities")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	staleTowns := townStore.All()
 	fmt.Printf("DEBUG | Stale towns: %d", len(staleTowns))
 
-	townList, err = OverwriteFunc(townStore, func() (map[string]oapi.TownInfo, error) {
+	townList, err := OverwriteFunc(townStore, func() (map[string]oapi.TownInfo, error) {
 		res, err := api.QueryAllTowns()
 		if err != nil {
 			return nil, err
@@ -172,11 +166,11 @@ func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, error) {
 		}), nil
 	})
 	if err != nil {
-		return staleTowns, err
+		return townList, staleTowns, err
 	}
 
 	//region ============ GATHER DATA USING TOWNS ============
-	residentList = make(oapi.EntityList)
+	residentList := make(oapi.EntityList)
 	nlist := make(oapi.EntityList)
 	for _, t := range townList {
 		for _, r := range t.Residents {
@@ -192,7 +186,7 @@ func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, error) {
 		return residentList, nil
 	})
 
-	nationList, _ = OverwriteFunc(nationStore, func() (map[string]oapi.NationInfo, error) {
+	nationList, _ := OverwriteFunc(nationStore, func() (map[string]oapi.NationInfo, error) {
 		res, _, _ := oapi.QueryConcurrent(lo.Keys(nlist), oapi.QueryNations)
 		return lo.SliceToMap(res, func(n oapi.NationInfo) (string, oapi.NationInfo) {
 			return n.UUID, n
@@ -203,10 +197,10 @@ func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, error) {
 	//region ============ SPLIT RESIDENTS FROM TOWNLESS ============
 	players, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
 	if err != nil {
-		return staleTowns, err
+		return staleTowns, townList, err
 	}
 
-	townlessList, _ = SetKeyFunc(entityStore, "townlesslist", func() (oapi.EntityList, error) {
+	townlessList, _ := SetKeyFunc(entityStore, "townlesslist", func() (oapi.EntityList, error) {
 		entities := lo.FilterMap(players, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
 			_, ok := residentList[p.UUID]
 			return p, !ok
@@ -221,7 +215,7 @@ func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, error) {
 	fmt.Printf("\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
 	fmt.Printf("\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))
 
-	return staleTowns, err
+	return townList, staleTowns, err
 }
 
 // func CalcLeftJoined(staleTowns []oapi.TownInfo) (left, joined []string) {
@@ -293,12 +287,12 @@ func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, error) {
 // 	}
 // }
 
-func TrySendRuinedNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
+func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
 	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
 		return t.UUID, t, t.Status.Ruined
 	})
 
-	ruined := lo.FilterMapToSlice(townList, func(_ string, t oapi.TownInfo) (oapi.TownInfo, bool) {
+	ruined := lo.FilterMapToSlice(towns, func(_ string, t oapi.TownInfo) (oapi.TownInfo, bool) {
 		_, wasRuined := staleRuined[t.UUID]
 		return t, !wasRuined && t.Status.Ruined
 	})
@@ -329,12 +323,12 @@ func TrySendRuinedNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
 	}
 }
 
-func TrySendFallenNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
-	towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo {
+func TrySendFallenNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
+	tslice := lo.MapToSlice(towns, func(_ string, t oapi.TownInfo) oapi.TownInfo {
 		return t
 	})
 
-	diff, _ := utils.DifferenceBy(staleTowns, towns, func(t oapi.TownInfo) string {
+	diff, _ := utils.DifferenceBy(staleTowns, tslice, func(t oapi.TownInfo) string {
 		return t.UUID
 	})
 
