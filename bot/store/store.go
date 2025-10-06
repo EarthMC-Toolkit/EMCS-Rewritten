@@ -21,7 +21,7 @@ type IStore interface {
 type StoreKey = string
 type StoreData[T any] map[StoreKey]T
 
-func (sd StoreData[T]) ShallowCopy() StoreData[T] {
+func (sd StoreData[T]) shallowCopy() StoreData[T] {
 	return utils.CopyMap(sd)
 }
 
@@ -67,7 +67,7 @@ func (s *Store[T]) Entries() StoreData[T] {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return s.data.ShallowCopy()
+	return s.data.shallowCopy()
 }
 
 func (s *Store[T]) Values() (values []T) {
@@ -97,6 +97,19 @@ func (s *Store[T]) GetKey(key string) (*T, error) {
 	}
 
 	return nil, fmt.Errorf("could not get value for key '%s' from store: %s. no such key exists", key, s.CleanPath())
+}
+
+func (s *Store[T]) Find(predicate func(value T) bool) (*T, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, v := range s.data {
+		if predicate(v) {
+			return &v, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no matching value found in store: %s", s.CleanPath())
 }
 
 // Create or overwrite the value in the store at the given key.
@@ -149,7 +162,7 @@ func (s *Store[T]) LoadFromFile() error {
 // database (JSON file) at the path we provided when the store was initialized.
 func (s *Store[T]) WriteSnapshot() error {
 	s.mu.RLock()
-	cpy := s.data.ShallowCopy()
+	cpy := s.data.shallowCopy()
 	s.mu.RUnlock()
 
 	data, err := json.Marshal(cpy)

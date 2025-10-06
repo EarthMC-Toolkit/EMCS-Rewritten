@@ -19,8 +19,8 @@ func init() {
 type Request func()
 type Token struct{}
 
-// Stores "tokens" where we can launch one request per token.
-// The bucket is responsible for refilling tokens until the max amount (RATE_LIMIT).
+// A bucket of "tokens" where each token can allow a request to be sent.
+// The bucket is responsible for refilling its tokens until the max amount (RATE_LIMIT).
 type RequestBucket struct {
 	tokens chan Token
 }
@@ -69,7 +69,9 @@ func (b *RequestBucket) TryAcquireToken() bool {
 	}
 }
 
-// Reads from the queue and launches requests if the bucket allows.
+// A dispatcher is responsible for queuing and sending requests.
+// It does this by waiting for a "token" from its internal bucket.
+// If a token is available, a request is immediately sent.
 type RequestDispatcher struct {
 	reqBucket *RequestBucket
 }
@@ -90,17 +92,20 @@ func (d *RequestDispatcher) Queue(req Request) {
 	}()
 }
 
-// Burst executes req as fast as this dispatcher bucket allows, skipping the queue.
-// func (d *RequestDispatcher) Burst(req Request) {
-// 	for {
-// 		select {
-// 		case <-d.reqBucket.tokens:
-// 			req()
-// 		default:
-// 			return
-// 		}
-// 	}
-// }
+// Burst executes requests as fast as this dispatcher's bucket allows, skipping the queue.
+//
+// If too little tokens were available to complete all requests with the initial burst, Queue() is called for every remaining request.
+func (d *RequestDispatcher) Burst(reqs []Request) {
+	for _, req := range reqs {
+		select {
+		case <-d.reqBucket.tokens:
+			req()
+		default:
+			// No more tokens available, queue remaining requests
+			go func(r Request) { d.Queue(r) }(req)
+		}
+	}
+}
 
 func (d *RequestDispatcher) GetBucketTokens() chan Token {
 	return d.reqBucket.tokens

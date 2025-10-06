@@ -86,7 +86,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			Color:       discordutil.DARK_GOLD,
 		}
 
-		data.Embeds = append(data.Embeds, embed)
+		data.Embeds = []*discordgo.MessageEmbed{embed}
 		data.Components = []discordgo.MessageComponent{
 			paginator.NewNavigationButtonRow(),
 		}

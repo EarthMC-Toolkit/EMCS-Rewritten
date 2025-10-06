@@ -28,15 +28,14 @@ func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
 		return nil, err
 	}
 
-	names := lop.Map(visible, func(p mapi.MapPlayer, _ int) string {
-		return p.Name
+	ids := lop.Map(visible, func(p mapi.MapPlayer, _ int) string {
+		return p.UUID
 	})
 
-	players, errs, _ := oapi.QueryConcurrent(names, oapi.QueryPlayers)
+	players, errs, _ := oapi.QueryConcurrent(oapi.QueryPlayers, ids)
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
-
 	if len(players) == 0 {
 		return nil, errors.New("failed to query all players, received 0 players from QueryConcurrent")
 	}
@@ -53,15 +52,14 @@ func QueryAllTowns() ([]oapi.TownInfo, error) {
 		return nil, fmt.Errorf("failed to query all towns, could not get initial list\n%v", err)
 	}
 
-	identifiers := lop.Map(tlist, func(e oapi.Entity, _ int) string {
+	ids := lop.Map(tlist, func(e oapi.Entity, _ int) string {
 		return e.UUID
 	})
 
-	towns, errs, _ := oapi.QueryConcurrent(identifiers, oapi.QueryTowns)
+	towns, errs, _ := oapi.QueryConcurrent(oapi.QueryTowns, ids)
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
-
 	if len(towns) == 0 {
 		return nil, errors.New("failed to query all towns, received 0 towns from QueryConcurrent")
 	}

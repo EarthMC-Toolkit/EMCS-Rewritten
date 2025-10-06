@@ -81,18 +81,17 @@ func TestQueryPlayersList(t *testing.T) {
 	//t.SkipNow()
 
 	plist, _ := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
-	names := lop.Map(plist, func(p oapi.Entity, _ int) string {
-		return p.Name
+	ids := lop.Map(plist, func(p oapi.Entity, _ int) string {
+		return p.UUID
 	})
-
-	if len(names) < 1 {
+	if len(ids) < 1 {
 		t.Fatal("invalid array len for player list")
 	}
 
 	t.Logf("Starting QueryConcurrent. Expect %d players. Tokens: %d", len(plist), len(oapi.Dispatcher.GetBucketTokens()))
 
 	start := time.Now()
-	players, _, reqAmt := oapi.QueryConcurrent(names, oapi.QueryPlayers)
+	players, _, reqAmt := oapi.QueryConcurrent(oapi.QueryPlayers, ids)
 
 	t.Logf("Sent %d requests for %d players. Took %s", reqAmt, len(players), time.Since(start))
 
@@ -113,26 +112,20 @@ func TestQueryPlayersList(t *testing.T) {
 func TestQueryPlayersConcurrent(t *testing.T) {
 	//t.SkipNow()
 
-	// ops, err := mapi.GetOnlinePlayers()
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
-	// names := lop.Map(ops, func(op mapi.OnlinePlayer, _ int) string {
-	// 	return op.Name
-	// })
-
-	nations, err := oapi.QueryNations("Venice")
+	ops, err := mapi.GetVisiblePlayers()
 	if err != nil {
-		t.Fatal("error getting nation: Venice", err)
+		t.Fatal(err)
 	}
 
-	names := lop.Map(nations[0].Residents, func(p oapi.Entity, _ int) string {
-		return p.Name
+	ids := lop.Map(ops, func(p mapi.MapPlayer, _ int) string {
+		return p.UUID
 	})
+	if len(ids) < 1 {
+		t.Fatal("invalid array len for player list")
+	}
 
 	start := time.Now()
-	players, errs, reqAmt := oapi.QueryConcurrent(names, oapi.QueryPlayers)
+	players, errs, reqAmt := oapi.QueryConcurrent(oapi.QueryPlayers, ids)
 
 	errCount := len(errs)
 	if errCount > 0 {

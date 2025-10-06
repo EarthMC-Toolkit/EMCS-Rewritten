@@ -26,18 +26,17 @@ func SendReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.I
 }
 
 func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
-	msg, err := s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+	if err := SendReply(s, i, data); err == nil {
+		return nil, nil
+	}
+
+	return s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
 		Content:         &data.Content,
 		Embeds:          &data.Embeds,
 		Files:           data.Files,
 		Components:      &data.Components,
 		AllowedMentions: data.AllowedMentions,
 	})
-	if err == nil {
-		return msg, nil
-	}
-
-	return nil, SendReply(s, i, data)
 }
 
 // Creates a follow-up message for a previously deferred interaction response.
@@ -46,21 +45,21 @@ func FollowUp(s *discordgo.Session, i *discordgo.Interaction, params *discordgo.
 	return s.FollowupMessageCreate(i, true, params)
 }
 
-// Calls [FollowUp] with the supplied embeds.
+// Calls FollowUp with the supplied embeds.
 func FollowUpEmbeds(s *discordgo.Session, i *discordgo.Interaction, embeds ...*discordgo.MessageEmbed) (*discordgo.Message, error) {
 	return FollowUp(s, i, &discordgo.WebhookParams{
 		Embeds: embeds,
 	})
 }
 
-// Calls [FollowUp] with the supplied content.
+// Calls FollowUp with the supplied content.
 func FollowUpContent(s *discordgo.Session, i *discordgo.Interaction, content string) (*discordgo.Message, error) {
 	return FollowUp(s, i, &discordgo.WebhookParams{
 		Content: content,
 	})
 }
 
-// Calls [FollowUp] with the supplied content which will only be visible to the interaction author.
+// Calls FollowUp with the supplied content which will only be visible to the interaction author.
 func FollowUpContentEphemeral(s *discordgo.Session, i *discordgo.Interaction, content string) (*discordgo.Message, error) {
 	return FollowUp(s, i, &discordgo.WebhookParams{
 		Content: content,

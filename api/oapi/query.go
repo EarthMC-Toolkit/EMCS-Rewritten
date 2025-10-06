@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/samber/lo"
+	lop "github.com/samber/lo/parallel"
 )
 
 type Endpoint = string
@@ -90,8 +91,8 @@ func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
 //
 // This func has slight overhead and calling queryFunc directly where possible is always preferred!
 func QueryConcurrent[T Identifiable](
-	identifiers []string,
 	queryFunc func(ids ...string) ([]T, error),
+	identifiers []string,
 ) ([]T, []error, int) {
 	chunks := lo.Chunk(identifiers, QUERY_LIMIT)
 	chunkLen := len(chunks)
@@ -128,4 +129,15 @@ func QueryConcurrent[T Identifiable](
 	}
 
 	return all, errs, chunkLen
+}
+
+func QueryConcurrentEntities[T Identifiable](
+	queryFunc func(ids ...string) ([]T, error),
+	entities []Entity,
+) ([]T, []error, int) {
+	ids := lop.Map(entities, func(e Entity, _ int) string {
+		return e.UUID
+	})
+
+	return QueryConcurrent(queryFunc, ids)
 }

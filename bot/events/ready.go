@@ -186,7 +186,7 @@ func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, map[string]oapi.Town
 	})
 
 	nationList, _ := OverwriteFunc(nationStore, func() (map[string]oapi.NationInfo, error) {
-		res, _, _ := oapi.QueryConcurrent(lo.Keys(nlist), oapi.QueryNations)
+		res, _, _ := oapi.QueryConcurrent(oapi.QueryNations, lo.Keys(nlist))
 		return lo.SliceToMap(res, func(n oapi.NationInfo) (string, oapi.NationInfo) {
 			return n.UUID, n
 		}), nil

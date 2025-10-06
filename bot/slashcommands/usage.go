@@ -35,15 +35,19 @@ func (cmd UsageCommand) Options() AppCommandOpts {
 }
 
 func (cmd UsageCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	data := i.ApplicationCommandData()
-	if self := data.GetOption("self"); self != nil {
+	cdata := i.ApplicationCommandData()
+	if opt := cdata.GetOption("self"); opt != nil {
 		return ExecuteSelf(s, i.Interaction)
 	}
-	if leaderboard := data.GetOption("leaderboard"); leaderboard != nil {
+	if opt := cdata.GetOption("leaderboard"); opt != nil {
 		return ExecuteLeaderboard(s, i.Interaction)
 	}
 
-	return nil
+	_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+		Content: "Error occurred getting sub command option. Somehow you sent none of them?",
+	})
+
+	return err
 }
 
 func ExecuteSelf(s *discordgo.Session, i *discordgo.Interaction) error {

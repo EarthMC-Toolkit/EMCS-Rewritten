@@ -44,3 +44,14 @@ type PlayerInfo struct {
 func (p PlayerInfo) GetUUID() string {
 	return p.UUID
 }
+
+func (p PlayerInfo) GetRank() string {
+	if p.Status.IsKing {
+		return "Nation Leader"
+	}
+	if p.Status.IsMayor {
+		return "Mayor"
+	}
+
+	return "Resident"
+}
