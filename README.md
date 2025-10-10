@@ -2,12 +2,12 @@
 A rewritten version of the [EarthMC Stats](https://github.com/EarthMC-Toolkit/EarthMC-Stats) Discord bot in Go.
 
 ## Why the rewrite?
-I started this bot in hopes that it will be more powerful than **EMCS** with massive improvements to performance and stability.\
+I started this bot in hopes that it will be more powerful than **EMCS** with massive improvements to performance and stability.
 The database will be local, so you are responsible for upkeep of data. For 24/7 uptime, use a VPS or self-host with a Raspberry Pi etc.
 
 With this being a fresh project, it allows me to be develop without introducing downtime or potential bugs to the current **EMCS** bot.
 
-**EMCSRW** should be much easier to maintain and has been designed around the Official API mainly, rather than outdated map data.\
+**EMCSRW** should be much easier to maintain and has been designed around the Official API mainly, rather than outdated map data.
 While map data may still be used in certain cases or if the OAPI goes down, I believe this rewrite was necessary as the previous bot had too much
 technical debt to make it worth the time and effort of updating, as well as the Firestore DB being severely limited with it being so popular as read/writes were almost always maxed out.
 
