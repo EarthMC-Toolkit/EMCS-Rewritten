@@ -309,7 +309,10 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			ruinedTs := *t.Timestamps.RuinedAt
 			deleteTs := time.UnixMilli(int64(ruinedTs)).Add(74 * time.Hour) // 72 UTC but EMC goes on UTC+2 (i think?)
 
-			return fmt.Sprintf("`%s` fell into ruin <t:%d:R>. Deletion in <t:%d:R>.", t.Name, ruinedTs/1000, deleteTs.Unix())
+			spawn := t.Coordinates.Spawn
+			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
+
+			return fmt.Sprintf("`%s` fell into ruin <t:%d:R>. Located at %s\nDeletion in <t:%d:R>.", t.Name, ruinedTs/1000, locationLink, deleteTs.Unix())
 		})
 
 		s.ChannelMessageSendEmbed("1420855039357878469", &discordgo.MessageEmbed{

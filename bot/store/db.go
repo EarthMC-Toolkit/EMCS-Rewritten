@@ -61,7 +61,7 @@ func (mdb *MapDB) Flush() error {
 		return errors.Join(errs...)
 	}
 
-	fmt.Printf("\nDEBUG | Successfully flushed all stores to disk.")
+	fmt.Printf("\nDEBUG | Successfully flushed all stores to disk.\n")
 	return nil
 }
 

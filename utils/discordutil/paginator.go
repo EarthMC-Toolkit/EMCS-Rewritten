@@ -42,7 +42,7 @@ type InteractionPaginator struct {
 }
 
 func NewInteractionPaginator(s *discordgo.Session, i *discordgo.Interaction, totalItems, perPage int) *InteractionPaginator {
-	author := UserFromInteraction(i)
+	author := GetInteractionAuthor(i)
 
 	initPage := 0
 	totalPages := (totalItems + perPage - 1) / perPage // round to next largest int (ceil)

@@ -49,10 +49,9 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 
 		return QueryAlliance(s, i.Interaction, cmdData)
 	}
-
-	// if create := cmdData.GetOption("create"); create != nil {
-	// 	return CreateAlliance(s, i.Interaction, cmdData)
-	// }
+	if create := cmdData.GetOption("create"); create != nil {
+		return CreateAlliance(s, i.Interaction, cmdData)
+	}
 
 	return nil
 }
@@ -85,6 +84,15 @@ func QueryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordg
 }
 
 func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
+	if !discordutil.IsDev(i) {
+		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: "Stop trying.",
+			Flags:   discordgo.MessageFlagsEphemeral,
+		})
+
+		return err
+	}
+
 	err := discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
 		CustomID: "alliance_creator_modal",
 		Title:    "Alliance Creator",

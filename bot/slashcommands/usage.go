@@ -61,7 +61,7 @@ func ExecuteSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 		return err
 	}
 
-	author := discordutil.UserFromInteraction(i)
+	author := discordutil.GetInteractionAuthor(i)
 	usage, _ := usageStore.GetKey(author.ID)
 	// if err != nil {
 	// 	log.Printf("failed to get user usage for %s (%s):\n%v", author.Username, author.ID, err)

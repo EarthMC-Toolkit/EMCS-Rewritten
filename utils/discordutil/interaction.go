@@ -2,6 +2,8 @@ package discordutil
 
 import "github.com/bwmarrin/discordgo"
 
+const DEV_ID = "263377802647175170"
+
 func OpenModal(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) error {
 	return s.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseModal,
@@ -70,10 +72,15 @@ func FollowUpContentEphemeral(s *discordgo.Session, i *discordgo.Interaction, co
 // Attempts to get the username from an interaction.
 //
 // Regular `User` is only filled for a DM, so this func uses guild-specific `Member.User` otherwise.
-func UserFromInteraction(i *discordgo.Interaction) *discordgo.User {
+func GetInteractionAuthor(i *discordgo.Interaction) *discordgo.User {
 	if i.User != nil {
 		return i.User
 	}
 
 	return i.Member.User
+}
+
+func IsDev(i *discordgo.Interaction) bool {
+	author := GetInteractionAuthor(i)
+	return author.ID == DEV_ID
 }
