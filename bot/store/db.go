@@ -18,7 +18,9 @@ type MapDB struct {
 	flushMu sync.Mutex        // Ensures multiple flushes cannot happen simultaneously.
 }
 
-// Initializes a MapDB for a given map directory.
+// Initializes a MapDB by reading the dir at baseDir+mapName (created if it does not exist) and registers it into global map.
+//
+// Once complete, we can add a store to the DB by calling DefineStore with the appropriate type which the store file can be unmarshaled into.
 func NewMapDB(baseDir string, mapName string) (*MapDB, error) {
 	dir := filepath.Join(baseDir, mapName)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -59,6 +61,7 @@ func (mdb *MapDB) Flush() error {
 		return errors.Join(errs...)
 	}
 
+	fmt.Printf("\nDEBUG | Successfully flushed all stores to disk.")
 	return nil
 }
 

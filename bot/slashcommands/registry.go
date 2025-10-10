@@ -46,8 +46,8 @@ func ToApplicationCommand(cmd SlashCommand) *discordgo.ApplicationCommand {
 	}
 }
 
-// Syncs the local slash command map with the Discord remote by creating them if
-// they do not exist, or overwriting them if they do.
+// Syncs the local slash command map with the Discord remote by creating
+// them if they do not exist, or overwriting them if they do.
 func SyncWithRemote(s *discordgo.Session) (local []*discordgo.ApplicationCommand, created []*discordgo.ApplicationCommand) {
 	for _, cmd := range commands {
 		local = append(local, ToApplicationCommand(cmd))

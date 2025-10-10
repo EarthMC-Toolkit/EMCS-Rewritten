@@ -268,12 +268,12 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 	public := fmt.Sprintf("%s Public", lo.Ternary(nation.Status.Public, ":green_circle:", ":red_circle:"))
 	neutral := fmt.Sprintf("%s Neutral", lo.Ternary(nation.Status.Neutral, ":green_circle:", ":red_circle:"))
 
-	towns := lop.Map(nation.Towns, func(e oapi.Entity, _ int) string {
+	townNames := lop.Map(nation.Towns, func(e oapi.Entity, _ int) string {
 		return e.Name
 	})
-	slices.Sort(towns)
+	slices.Sort(townNames)
 
-	townsStr := strings.Join(towns, ", ")
+	townsStr := strings.Join(townNames, ", ")
 	if len(townsStr) > discordutil.EMBED_FIELD_VALUE_LIMIT {
 		townsStr = "Too many towns to display!\nClick the **View All Towns** button to see the full list."
 	} else {

@@ -42,14 +42,13 @@ func Run(botToken string) {
 
 	fmt.Printf("\nInitializing map databases..\n")
 
-	// Create or open DB
 	auroraDB, err := store.NewMapDB("./db", common.SUPPORTED_MAPS.AURORA)
 	if err != nil {
 		log.Fatalf("Cannot initialize database for map '%s':\n%v", common.SUPPORTED_MAPS.AURORA, err)
 	}
 
-	// Deinfe all stores we want to exist on Aurora database.
-	// If a store does not exist, it is created under ./db/aurora.
+	// Define all stores we want to exist on Aurora database.
+	// If a store does not exist, it is created under the ./db/aurora dir.
 	store.DefineStore[oapi.ServerInfo](auroraDB, "server")
 	store.DefineStore[oapi.TownInfo](auroraDB, "towns")
 	store.DefineStore[oapi.NationInfo](auroraDB, "nations")

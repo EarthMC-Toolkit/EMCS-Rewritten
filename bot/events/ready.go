@@ -88,8 +88,6 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 			fmt.Println()
 			log.Printf("error occurred flushing stores in db: %s", db.Dir())
 		}
-
-		log.Println("Successfully flushed all stores to disk.")
 	}, true, 60*time.Second)
 }
 
