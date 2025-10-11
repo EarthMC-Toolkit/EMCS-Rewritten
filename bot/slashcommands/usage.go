@@ -51,7 +51,7 @@ func (cmd UsageCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 }
 
 func ExecuteSelf(s *discordgo.Session, i *discordgo.Interaction) error {
-	mdb, err := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	mdb, err := store.GetMapDB(common.ACTIVE_MAP)
 	if err != nil {
 		return err
 	}

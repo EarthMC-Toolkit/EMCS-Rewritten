@@ -38,17 +38,17 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 	err := cmd.Execute(s, i)
 	elapsed := time.Since(start)
 
-	success := false
+	success := err == nil
 	fmt.Println()
-	if err != nil {
-		log.Printf("'%s' failed to execute command /%s:\n%v\n\n", author.Username, cmdName, err)
-	} else {
+	if success {
 		log.Printf("'%s' successfully executed command /%s (took: %s)\n", author.Username, cmdName, elapsed)
-		success = true
+	} else {
+		log.Printf("'%s' failed to execute command /%s:\n%v\n\n", author.Username, cmdName, err)
+		// TODO: Maybe send error message here like we do with panic
 	}
 
 	if cmdName != "usage" {
-		mdb, err := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+		mdb, err := store.GetMapDB(common.ACTIVE_MAP)
 		if err != nil {
 			fmt.Println()
 			log.Printf("error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)

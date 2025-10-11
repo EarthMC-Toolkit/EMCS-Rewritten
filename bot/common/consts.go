@@ -5,8 +5,11 @@ const NAMEMC_URL = "https://namemc.com/profile/"
 const DEFAULT_TOWN_BOARD = "/town set board [msg]"
 const DEFAULT_ABOUT = "/res set about [msg]"
 
+type EMCMap = string
+
+var ACTIVE_MAP = SUPPORTED_MAPS.AURORA
 var SUPPORTED_MAPS = struct {
-	AURORA string
+	AURORA EMCMap
 }{
 	AURORA: "aurora",
 }

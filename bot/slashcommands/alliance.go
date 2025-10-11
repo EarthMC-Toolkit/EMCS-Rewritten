@@ -61,7 +61,7 @@ func QueryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordg
 	ident := opt.GetOption("identifier").StringValue()
 
 	// Try find alliance in DB
-	db, err := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	db, err := store.GetMapDB(common.ACTIVE_MAP)
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction, data discord
 // 		Label:      label,
 // 	}
 
-// 	db := database.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+// 	db := database.GetMapDB(common.ACTIVE_MAP)
 // 	err := database.PutAlliance(db, createdAlliance)
 // 	if err != nil {
 // 		fmt.Printf("failed to put alliance %s into db:\n%v", ident, err)

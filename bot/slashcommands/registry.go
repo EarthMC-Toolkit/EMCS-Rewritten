@@ -98,6 +98,7 @@ func init() {
 	Register(ServerInfoCommand{})
 	Register(VotePartyCommand{})
 	Register(UsageCommand{})
+	Register(QuartersCommand{})
 }
 
 // ======================================= COMMAND TEMPLATE =======================================

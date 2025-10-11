@@ -25,7 +25,7 @@ func (cmd ServerInfoCommand) Options() AppCommandOpts {
 }
 
 func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	db, err := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	db, err := store.GetMapDB(common.ACTIVE_MAP)
 	if err != nil {
 		return err
 	}

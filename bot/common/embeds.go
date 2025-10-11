@@ -108,7 +108,7 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
 
 	affiliation := "None (Townless)"
 	if townName != "No Town" {
-		db, _ := store.GetMapDB(SUPPORTED_MAPS.AURORA)
+		db, _ := store.GetMapDB(ACTIVE_MAP)
 		townsStore, _ := store.GetStore[oapi.TownInfo](db, "towns")
 		town, err := townsStore.GetKey(*player.Town.UUID)
 

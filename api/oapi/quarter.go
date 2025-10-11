@@ -53,3 +53,7 @@ type Quarter struct {
 	Trusted    []Entity              `json:"trusted"`
 	Cuboids    []QuarterCuboid
 }
+
+func (q Quarter) GetUUID() string {
+	return q.UUID
+}

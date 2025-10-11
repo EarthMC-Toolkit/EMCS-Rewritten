@@ -19,6 +19,7 @@ const (
 	ENDPOINT_LOCATION       Endpoint = ENDPOINT_BASE + "/location"
 	ENDPOINT_DISCORD        Endpoint = ENDPOINT_BASE + "/discord"
 	ENDPOINT_QUARTERS       Endpoint = ENDPOINT_BASE + "/quarters"
+	ENDPOINT_PLAYER_STATS   Endpoint = ENDPOINT_BASE + "player-stats"
 )
 
 // Identifiable is a constraint for things with a UUID such as an Entity.
@@ -78,6 +79,11 @@ func QueryNations(identifiers ...string) ([]NationInfo, error) {
 // Queries the Official API with a POST request providing all valid player identifier (name/uuid) strings to the body "query" key.
 func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
 	return utils.JsonPostRequest[[]PlayerInfo](ENDPOINT_PLAYERS, NewPostQuery(identifiers...))
+}
+
+// Queries the Official API with a POST request providing all valid quarter identifier (name/uuid) strings to the body "query" key.
+func QueryQuarters(identifiers ...string) ([]Quarter, error) {
+	return utils.JsonPostRequest[[]Quarter](ENDPOINT_QUARTERS, NewPostQuery(identifiers...))
 }
 
 // Queries entities of type T in chunks concurrently where each chunk (request) query may only have up to QUERY_LIMIT identifiers.

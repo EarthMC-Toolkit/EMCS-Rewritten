@@ -34,7 +34,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	fmt.Printf("Logged in as: %s\n\n", s.State.User.Username)
 	slashcommands.SyncWithRemote(s)
 
-	db, err := store.GetMapDB(common.SUPPORTED_MAPS.AURORA)
+	db, err := store.GetMapDB(common.ACTIVE_MAP)
 	if err != nil {
 		fmt.Printf("\n[OnReady]: wtf happened? error fetching db:\n%v", err)
 		return

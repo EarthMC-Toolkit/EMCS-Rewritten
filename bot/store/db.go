@@ -116,3 +116,12 @@ func GetStore[T any](db *MapDB, name string) (*Store[T], error) {
 
 	return s.(*Store[T]), nil
 }
+
+func GetStoreForMap[T any](mapName, storeName string) (*Store[T], error) {
+	mdb, err := GetMapDB(mapName)
+	if err != nil {
+		return nil, err
+	}
+
+	return GetStore[T](mdb, storeName)
+}
