@@ -63,15 +63,15 @@ func NewInteractionPaginator(s *discordgo.Session, i *discordgo.Interaction, tot
 	}
 }
 
-func (p *InteractionPaginator) Start() (err error) {
+func (p *InteractionPaginator) Start() error {
 	data := p.getPageData(*p.currentPage)
 
-	_, err = EditOrSendReply(p.session, p.interaction, data)
+	_, err := EditOrSendReply(p.session, p.interaction, data)
 	if err == nil {
 		go p.beginButtonListener()
 	}
 
-	return
+	return err
 }
 
 func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionResponseData {

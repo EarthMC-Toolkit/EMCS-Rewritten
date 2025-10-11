@@ -1,5 +1,10 @@
 package oapi
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 type QuarterType string
 
 const (
@@ -8,8 +13,28 @@ const (
 	QuarterTypeStation   QuarterType = "STATION"
 )
 
-func (t QuarterType) Valid() bool {
-	switch t {
+func (qt *QuarterType) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	switch s {
+	case
+		string(QuarterTypeApartment),
+		string(QuarterTypeInn),
+		string(QuarterTypeStation):
+
+		*qt = QuarterType(s)
+
+		return nil
+	default:
+		return fmt.Errorf("invalid quarter type: %s", s)
+	}
+}
+
+func (qt QuarterType) Valid() bool {
+	switch qt {
 	case QuarterTypeApartment, QuarterTypeInn, QuarterTypeStation:
 		return true
 	default:

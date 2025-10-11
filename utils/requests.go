@@ -23,7 +23,7 @@ func JsonPostRequest[T any](url string, body any) (T, error) {
 
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
-		fmt.Printf("Failed to Serialize to JSON from native Go struct type: %v", err)
+		fmt.Printf("\nfailed to marshal query body into byte arr:\n%v\n", err)
 	}
 
 	res, err := PostRequest(url, "application/json", bytes.NewBuffer(bodyBytes))
@@ -33,7 +33,7 @@ func JsonPostRequest[T any](url string, body any) (T, error) {
 
 	err = json.Unmarshal(res, &data)
 	if err != nil {
-		fmt.Println(string(res))
+		fmt.Printf("\n[POST] failed to unmarshal response body into struct:\n%v\n", err)
 	}
 
 	return data, err
@@ -49,7 +49,7 @@ func JsonGetRequest[T any](url string) (T, error) {
 
 	err = json.Unmarshal(res, &data)
 	if err != nil {
-		fmt.Println(string(res))
+		fmt.Printf("\n[GET] failed to unmarshal response body into struct:\n%v\n", err)
 	}
 
 	return data, err

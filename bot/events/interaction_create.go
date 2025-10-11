@@ -141,7 +141,7 @@ func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err any) {
 	content := "Bot attempted to panic during this command. Please report the following error.\n" + errStr
 
 	// Not already deferred, reply.
-	err = discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
+	_, err = discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Flags:   discordgo.MessageFlagsEphemeral,
 		Content: content,
 	})
