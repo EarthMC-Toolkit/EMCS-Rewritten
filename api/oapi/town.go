@@ -28,7 +28,7 @@ type TownStats struct {
 	NumTrusted    uint16  `json:"numTrusted"`
 	NumOutlaws    uint16  `json:"numOutlaws"`
 	Balance       float32 `json:"balance"`
-	ForSalePrice  float32 `json:"forSalePrice"`
+	ForSalePrice  *uint32 `json:"forSalePrice"`
 }
 
 type TownCoords struct {
@@ -54,21 +54,21 @@ type TownTimestamps struct {
 
 type TownInfo struct {
 	Entity
-	Board       string                `json:"board"`
-	Founder     string                `json:"founder"`
-	Wiki        *string               `json:"wiki"`
-	Mayor       Entity                `json:"mayor"`
-	Nation      *EntityNullableValues `json:"nation"`
-	Residents   []Entity              `json:"residents"`
-	Timestamps  TownTimestamps        `json:"timestamps"`
-	Status      TownStatus            `json:"status"`
-	Stats       TownStats             `json:"stats"`
-	Coordinates TownCoords            `json:"coordinates"`
-	Ranks       TownRanks             `json:"ranks"`
-	Trusted     []Entity              `json:"trusted"`
-	Outlaws     []Entity              `json:"outlaws"`
-	Perms       Perms                 `json:"perms"`
-	Quarters    []Entity              `json:"quarters"`
+	Board       string               `json:"board"` // Could be nil, but we want it to default to zero value anyway.
+	Wiki        string               `json:"wiki"`  // Could be nil, but we want it to default to zero value anyway.
+	Founder     string               `json:"founder"`
+	Mayor       Entity               `json:"mayor"`
+	Nation      EntityNullableValues `json:"nation"`
+	Residents   []Entity             `json:"residents"`
+	Timestamps  TownTimestamps       `json:"timestamps"`
+	Status      TownStatus           `json:"status"`
+	Stats       TownStats            `json:"stats"`
+	Coordinates TownCoords           `json:"coordinates"`
+	Ranks       TownRanks            `json:"ranks"`
+	Trusted     []Entity             `json:"trusted"`
+	Outlaws     []Entity             `json:"outlaws"`
+	Perms       Perms                `json:"perms"`
+	Quarters    []Entity             `json:"quarters"`
 }
 
 func (t TownInfo) GetUUID() string {

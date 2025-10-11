@@ -110,12 +110,7 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
 	if townName != "No Town" {
 		db, _ := store.GetMapDB(SUPPORTED_MAPS.AURORA)
 		townsStore, _ := store.GetStore[oapi.TownInfo](db, "towns")
-
 		town, err := townsStore.GetKey(*player.Town.UUID)
-
-		// town, ok := lo.Find(towns, func(t oapi.TownInfo) bool {
-		// 	return t.UUID == *player.Town.UUID
-		// })
 
 		// Should never rly be false bc we established they aren't townless.
 		if err == nil {
@@ -301,8 +296,8 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 		},
 	}
 
-	if nation.Wiki != nil {
-		AddField(embed, "Wiki", fmt.Sprintf("[Visit wiki page](%s)", *nation.Wiki), true)
+	if nation.Wiki != "" {
+		AddField(embed, "Wiki", fmt.Sprintf("[Visit wiki page](%s)", nation.Wiki), true)
 	}
 
 	return embed
