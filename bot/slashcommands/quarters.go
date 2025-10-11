@@ -6,6 +6,7 @@ import (
 	"emcsrw/bot/store"
 	"emcsrw/utils/discordutil"
 	"fmt"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
@@ -50,7 +51,7 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	town, err := townStore.Find(func(t oapi.TownInfo) bool {
-		return t.Name == townOpt.StringValue()
+		return strings.EqualFold(t.Name, townOpt.StringValue())
 	})
 	if err != nil {
 		return err
