@@ -1,5 +1,22 @@
 package oapi
 
+type QuarterType string
+
+const (
+	QuarterTypeApartment QuarterType = "APARTMENT"
+	QuarterTypeInn       QuarterType = "INN"
+	QuarterTypeStation   QuarterType = "STATION"
+)
+
+func (t QuarterType) Valid() bool {
+	switch t {
+	case QuarterTypeApartment, QuarterTypeInn, QuarterTypeStation:
+		return true
+	default:
+		return false
+	}
+}
+
 type QuarterTimestamps struct {
 	Registered uint64  `json:"registered"`
 	ClaimedAt  *uint64 `json:"claimedAt"`
@@ -24,6 +41,8 @@ type QuarterCuboid struct {
 
 type Quarter struct {
 	Entity
+	Type       QuarterType           `json:"type"`
+	Creator    EntityNullableValues  `json:"creator"`
 	Owner      EntityNullableValues  `json:"owner"`
 	Town       *EntityNullableValues `json:"town"`
 	Nation     *EntityNullableValues `json:"nation"`
