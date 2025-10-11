@@ -108,16 +108,20 @@ func scheduleTask(task func(), runInitial bool, interval time.Duration) {
 // Runs a task that returns a value, said value is then marshalled and stored in the given badger DB under the given key.
 // If an error occurs during the task, the error is logged and returned, and the DB write will not occur.
 func OverwriteFunc[T any](store *store.Store[T], task func() (map[string]T, error)) (map[string]T, error) {
-	res, err := task()
+	v, err := task()
 	if err != nil {
 		log.Printf("error overwriting data in db at %s:\n%v", store.CleanPath(), err)
-		return res, err
+		return v, err
 	}
 
-	store.Overwrite(res)
+	if len(v) < 1 {
+		return nil, fmt.Errorf("error overwriting data in db at %s:\nretrieved value is empty", store.CleanPath())
+	}
+
+	store.Overwrite(v)
 	//log.Printf("put '%s' into db at %s\n", key, dbDir)
 
-	return res, err
+	return v, err
 }
 
 func SetKeyFunc[T any](store *store.Store[T], key string, task func() (T, error)) (T, error) {
