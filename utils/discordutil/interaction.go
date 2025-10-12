@@ -41,6 +41,34 @@ func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *disco
 	})
 }
 
+func EditOrSendReplyFetch(s *discordgo.Session, i *discordgo.Interaction, fetch bool, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
+	if err := SendReply(s, i, data); err == nil {
+		if !fetch {
+			return nil, nil
+		}
+
+		msg, err := s.InteractionResponse(i)
+		if err != nil {
+			return nil, err
+		}
+
+		return msg, nil
+	}
+
+	msg, err := s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+		Content:         &data.Content,
+		Embeds:          &data.Embeds,
+		Files:           data.Files,
+		Components:      &data.Components,
+		AllowedMentions: data.AllowedMentions,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return msg, nil
+}
+
 // Creates a follow-up message for a previously deferred interaction response.
 // This func waits for server confirmation of message send and ensures that the return struct is populated.
 func FollowUp(s *discordgo.Session, i *discordgo.Interaction, params *discordgo.WebhookParams) (*discordgo.Message, error) {

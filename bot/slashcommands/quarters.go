@@ -6,7 +6,9 @@ import (
 	"emcsrw/bot/store"
 	"emcsrw/utils/discordutil"
 	"fmt"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
@@ -64,6 +66,11 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return q.Status.IsForSale
 	})
 
+	// Highest -> Lowest
+	sort.Slice(qfs, func(i, j int) bool {
+		return *qfs[i].Stats.Price > *qfs[j].Stats.Price
+	})
+
 	count := len(qfs)
 	if count < 1 {
 		_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
@@ -75,7 +82,7 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 
 	perPage := 1
 
-	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, count, perPage)
+	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, count, perPage).WithTimeout(10 * time.Minute)
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(count)
 
@@ -95,22 +102,29 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 			price = *q.Stats.Price
 		}
 
-		var creator = "No Creator?"
-		if q.Creator != nil {
-			creator = *q.Creator
+		// var creator = "No Creator?"
+		// if q.Creator != nil {
+		// 	creator = *q.Creator
+		// }
+
+		affiliation := *q.Town.Name
+		if q.Nation.Name != nil {
+			affiliation += fmt.Sprintf(" (%s)", *q.Nation.Name)
 		}
 
-		pageStr := fmt.Sprintf("Quarter %d/%d", curPage+1, paginator.TotalPages())
+		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
+
 		embed := &discordgo.MessageEmbed{
-			Title:  pageStr + fmt.Sprintf(" | `%s`", q.Name),
+			Title:  fmt.Sprintf("Quarters For Sale | `%s` | %s", affiliation, pageStr),
 			Footer: common.DEFAULT_FOOTER,
 			Color:  discordutil.BLURPLE,
 			Fields: []*discordgo.MessageEmbedField{
-				common.NewEmbedField("Registered", registeredStr, true),
-				common.NewEmbedField("Creator", fmt.Sprintf("`%s`", creator), true),
-				common.NewEmbedField("Owner", fmt.Sprintf("`%s`", owner), true),
+				common.NewEmbedField("Name", fmt.Sprintf("`%s`", q.Name), true),
+				common.NewEmbedField("Current Owner", fmt.Sprintf("`%s`", owner), true),
+				common.NewEmbedField("Created", registeredStr, true),
+				//common.NewEmbedField("Creator", fmt.Sprintf("`%s`", creator), true),
 				common.NewEmbedField("Type", fmt.Sprintf("`%s`", q.Type), true),
-				common.NewEmbedField("Is Embassy?", fmt.Sprintf("`%t`", q.Status.IsEmbassy), true),
+				common.NewEmbedField("Embassy", fmt.Sprintf("`%t`", q.Status.IsEmbassy), true),
 				common.NewEmbedField("Price", fmt.Sprintf("`%.0f`G %s", price, common.EMOJIS.GOLD_INGOT), true),
 			},
 		}

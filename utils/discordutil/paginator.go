@@ -6,17 +6,16 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-const fiveMin = 5 * time.Minute
+const PAGINATOR_TIMEOUT = 5 * time.Minute
 
 type Paginator struct {
 	session     *discordgo.Session
-	channelID   string
-	userID      string
+	messageID   string
+	authorID    string
 	currentPage *int
 	totalPages  int
 	perPage     int
 	timeout     time.Duration
-	stopChan    chan struct{}
 }
 
 func (p *Paginator) TotalPages() int {
@@ -28,14 +27,10 @@ func (p *Paginator) TotalPages() int {
 //	perPage = 50
 //	totalItems = 100
 //
-// If currentPage is 0: output is (0, 50). If currentPage is 1: output is (50, 100).
+// If currentPage is 0: output is (0, 50). If currentPage is 1: output is (51, 100).
 func (p *Paginator) CurrentPageBounds(totalItems int) (int, int) {
 	start := *p.currentPage * p.perPage
 	return start, min(start+p.perPage, totalItems)
-}
-
-func (p *Paginator) Stop() {
-	close(p.stopChan)
 }
 
 type InteractionPageFunc func(curPage int, data *discordgo.InteractionResponseData)
@@ -47,6 +42,8 @@ type InteractionPaginator struct {
 	PageFunc    InteractionPageFunc
 }
 
+// Creates a new InteractionPaginator which is a Paginator with extended functionality to work with InteractionResponseData.
+// Default timeout is specified by PAGINATOR_TIMEOUT. To customise it, chain .WithTimeout() and pass a valid [time.Duration].
 func NewInteractionPaginator(s *discordgo.Session, i *discordgo.Interaction, totalItems, perPage int) *InteractionPaginator {
 	author := GetInteractionAuthor(i)
 
@@ -57,53 +54,69 @@ func NewInteractionPaginator(s *discordgo.Session, i *discordgo.Interaction, tot
 		interaction: i,
 		cache:       make(map[int]*discordgo.InteractionResponseData),
 		Paginator: &Paginator{
-			session:     s,
-			channelID:   i.ChannelID,
-			userID:      author.ID,
+			session: s,
+			//channelID:   i.ChannelID,
+			authorID:    author.ID,
 			currentPage: &initPage,
 			totalPages:  totalPages,
 			perPage:     perPage,
-			timeout:     fiveMin,
-			stopChan:    make(chan struct{}),
+			timeout:     PAGINATOR_TIMEOUT,
 		},
 	}
+}
+
+func (p *InteractionPaginator) WithTimeout(timeout time.Duration) *InteractionPaginator {
+	p.timeout = timeout
+	return p
 }
 
 func (p *InteractionPaginator) Start() error {
 	data := p.getPageData(*p.currentPage)
 
-	_, err := EditOrSendReply(p.session, p.interaction, data)
-	if err == nil {
-		go p.beginButtonListener()
+	msg, err := EditOrSendReply(p.session, p.interaction, data)
+	if err != nil {
+		return err
 	}
 
-	return err
+	if msg == nil {
+		msg, err = p.session.InteractionResponse(p.interaction)
+		if err != nil {
+			return err
+		}
+	}
+
+	p.messageID = msg.ID
+
+	// TODO: This could overlap with the global button handler we setup in bot.Run()
+	go p.startButtonListener()
+
+	return nil
 }
 
 func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionResponseData {
-	// Use the cached data for this page if available.
-	if data, ok := p.cache[page]; ok {
-		return data
+	data, ok := p.cache[page]
+	if !ok {
+		data = &discordgo.InteractionResponseData{}
+		p.PageFunc(page, data)
+		p.cache[page] = data
 	}
 
-	data := &discordgo.InteractionResponseData{}
-	p.PageFunc(page, data)
-
-	// We use a deep copy here instead of sharing the original pointer. Shallow copy likely won't be enough.
-	// This prevents data of paginator instances from colliding and potentially showing data from an irrelevent command.
-	p.cache[page] = data
-
-	return data
+	cpy := *data
+	return &cpy
 }
 
-func (p *InteractionPaginator) beginButtonListener() {
-	handler := func(s *discordgo.Session, ic *discordgo.InteractionCreate) {
+func (p *InteractionPaginator) startButtonListener() {
+	btnHandler := func(s *discordgo.Session, ic *discordgo.InteractionCreate) {
 		if ic.Type != discordgo.InteractionMessageComponent {
 			return
 		}
 
-		// Only handle interactions for this paginator’s message
-		if ic.Message == nil || ic.Message.ID != p.interaction.Message.ID {
+		if ic.Message == nil || ic.Message.ID != p.messageID {
+			return
+		}
+
+		author := GetInteractionAuthor(ic.Interaction)
+		if author.ID != p.authorID {
 			return
 		}
 
@@ -135,14 +148,10 @@ func (p *InteractionPaginator) beginButtonListener() {
 		})
 	}
 
-	p.session.AddHandler(handler)
+	removeHandler := p.session.AddHandler(btnHandler)
 	go func() {
-		select {
-		case <-time.After(p.timeout):
-			p.Stop()
-		case <-p.stopChan:
-			return
-		}
+		time.Sleep(p.timeout)
+		removeHandler()
 	}()
 }
 
@@ -179,6 +188,8 @@ func (p *InteractionPaginator) NewNavigationButtonRow() discordgo.ActionsRow {
 	}
 }
 
+// Unlike a shallow copy or sharing the original pointer, a deep copy will prevent data of
+// paginator instances from colliding and potentially showing/editing data of an irrelevent command.
 // func deepCopyInteractionData(data *discordgo.InteractionResponseData) *discordgo.InteractionResponseData {
 // 	b, err := json.Marshal(data)
 // 	if err != nil {

@@ -93,7 +93,7 @@ func init() {
 	Register(VisibleCommand{})
 	Register(OnlineCommand{})
 	Register(RuinedCommand{})
-	Register(FallingCommand{})
+	//Register(FallingCommand{})
 	Register(MysteryMasterCommand{})
 	Register(ServerInfoCommand{})
 	Register(VotePartyCommand{})
