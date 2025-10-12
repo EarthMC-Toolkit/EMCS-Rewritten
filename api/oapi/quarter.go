@@ -60,8 +60,8 @@ type QuarterStats struct {
 }
 
 type QuarterCuboid struct {
-	Pos1 []int32 `json:"pos1"`
-	Pos2 []int32 `json:"pos2"`
+	CornerOne []int32 `json:"cornerOne"`
+	CornerTwo []int32 `json:"cornerTwo"`
 }
 
 type Quarter struct {
@@ -76,7 +76,7 @@ type Quarter struct {
 	Stats      QuarterStats          `json:"stats"`
 	Colour     []uint8               `json:"colour"` // [0]R [1]G [2]B [3]A
 	Trusted    []Entity              `json:"trusted"`
-	Cuboids    []QuarterCuboid
+	Cuboids    []QuarterCuboid       `json:"cuboids"`
 }
 
 func (q Quarter) GetUUID() string {
