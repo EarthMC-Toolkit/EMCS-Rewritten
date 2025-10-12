@@ -23,6 +23,12 @@ func (p *Paginator) TotalPages() int {
 	return p.totalPages
 }
 
+// Gets the start and end indexes for the items that should be on the current page. For example:
+//
+//	perPage = 50
+//	totalItems = 100
+//
+// If currentPage is 0: output is (0, 50). If currentPage is 1: output is (50, 100).
 func (p *Paginator) CurrentPageBounds(totalItems int) (int, int) {
 	start := *p.currentPage * p.perPage
 	return start, min(start+p.perPage, totalItems)
@@ -82,6 +88,9 @@ func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionRespo
 
 	data := &discordgo.InteractionResponseData{}
 	p.PageFunc(page, data)
+
+	// We use a deep copy here instead of sharing the original pointer. Shallow copy likely won't be enough.
+	// This prevents data of paginator instances from colliding and potentially showing data from an irrelevent command.
 	p.cache[page] = data
 
 	return data
@@ -90,6 +99,11 @@ func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionRespo
 func (p *InteractionPaginator) beginButtonListener() {
 	handler := func(s *discordgo.Session, ic *discordgo.InteractionCreate) {
 		if ic.Type != discordgo.InteractionMessageComponent {
+			return
+		}
+
+		// Only handle interactions for this paginator’s message
+		if ic.Message == nil || ic.Message.ID != p.interaction.Message.ID {
 			return
 		}
 
@@ -122,11 +136,14 @@ func (p *InteractionPaginator) beginButtonListener() {
 	}
 
 	p.session.AddHandler(handler)
-	select {
-	case <-time.After(p.timeout):
-		p.Stop()
-	case <-p.stopChan:
-	}
+	go func() {
+		select {
+		case <-time.After(p.timeout):
+			p.Stop()
+		case <-p.stopChan:
+			return
+		}
+	}()
 }
 
 func (p *InteractionPaginator) NewNavigationButtonRow() discordgo.ActionsRow {
@@ -161,3 +178,17 @@ func (p *InteractionPaginator) NewNavigationButtonRow() discordgo.ActionsRow {
 		},
 	}
 }
+
+// func deepCopyInteractionData(data *discordgo.InteractionResponseData) *discordgo.InteractionResponseData {
+// 	b, err := json.Marshal(data)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	var cpy discordgo.InteractionResponseData
+// 	if err := json.Unmarshal(b, &cpy); err != nil {
+// 		panic(err)
+// 	}
+
+// 	return &cpy
+// }

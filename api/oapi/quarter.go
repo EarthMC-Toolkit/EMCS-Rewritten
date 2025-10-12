@@ -53,10 +53,10 @@ type QuarterStatus struct {
 }
 
 type QuarterStats struct {
-	Price        *int32  `json:"price"`
-	Volume       uint64  `json:"volume"`
-	NumCuboids   uint64  `json:"numCuboids"`
-	ParticleSize *uint32 `json:"particleSize"`
+	Price        *float32 `json:"price"`
+	Volume       uint64   `json:"volume"`
+	NumCuboids   uint64   `json:"numCuboids"`
+	ParticleSize *float32 `json:"particleSize"`
 }
 
 type QuarterCuboid struct {
@@ -67,7 +67,7 @@ type QuarterCuboid struct {
 type Quarter struct {
 	Entity
 	Type       QuarterType           `json:"type"`
-	Creator    EntityNullableValues  `json:"creator"`
+	Creator    *string               `json:"creator"` // Just a UUID. Should be entity but whatever, OAPI is weird.
 	Owner      EntityNullableValues  `json:"owner"`
 	Town       *EntityNullableValues `json:"town"`
 	Nation     *EntityNullableValues `json:"nation"`

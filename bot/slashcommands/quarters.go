@@ -33,6 +33,8 @@ func (cmd QuartersCommand) Options() AppCommandOpts {
 }
 
 func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	discordutil.DeferReply(s, i.Interaction)
+
 	data := i.ApplicationCommandData()
 
 	subCmd := data.GetOption("forsale")
@@ -83,16 +85,33 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		registeredTs := q.Timestamps.Registered / 1000 // Seconds
 		registeredStr := fmt.Sprintf("<t:%d:R>", registeredTs)
 
+		var owner = "No Owner"
+		if q.Owner.Name != nil {
+			owner = *q.Owner.Name
+		}
+
+		var price float32
+		if q.Stats.Price != nil {
+			price = *q.Stats.Price
+		}
+
+		var creator = "No Creator?"
+		if q.Creator != nil {
+			creator = *q.Creator
+		}
+
 		pageStr := fmt.Sprintf("Quarter %d/%d", curPage+1, paginator.TotalPages())
 		embed := &discordgo.MessageEmbed{
 			Title:  pageStr + fmt.Sprintf(" | `%s`", q.Name),
 			Footer: common.DEFAULT_FOOTER,
-			Color:  discordutil.DARK_GOLD,
+			Color:  discordutil.BLURPLE,
 			Fields: []*discordgo.MessageEmbedField{
-				common.NewEmbedField("Owner", fmt.Sprintf("`%s`", *q.Owner.Name), true),
-				common.NewEmbedField("Type", fmt.Sprintf("`%s`", string(q.Type)), true),
-				common.NewEmbedField("Price", fmt.Sprintf("`%d`", *q.Stats.Price), true),
-				common.NewEmbedField("Registered", registeredStr, false),
+				common.NewEmbedField("Registered", registeredStr, true),
+				common.NewEmbedField("Creator", fmt.Sprintf("`%s`", creator), true),
+				common.NewEmbedField("Owner", fmt.Sprintf("`%s`", owner), true),
+				common.NewEmbedField("Type", fmt.Sprintf("`%s`", q.Type), true),
+				common.NewEmbedField("Is Embassy?", fmt.Sprintf("`%t`", q.Status.IsEmbassy), true),
+				common.NewEmbedField("Price", fmt.Sprintf("`%.0f`G %s", price, common.EMOJIS.GOLD_INGOT), true),
 			},
 		}
 
