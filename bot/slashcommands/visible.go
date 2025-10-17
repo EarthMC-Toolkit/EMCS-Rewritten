@@ -5,6 +5,7 @@ import (
 	"emcsrw/bot/common"
 	"emcsrw/utils/discordutil"
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -45,7 +46,8 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 	}
 
 	perPage := 20
-	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, count, perPage)
+	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, count, perPage).
+		WithTimeout(30 * time.Second)
 
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(count)
@@ -63,9 +65,6 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		}
 
 		data.Embeds = append(data.Embeds, embed)
-		data.Components = []discordgo.MessageComponent{
-			paginator.NewNavigationButtonRow(),
-		}
 	}
 
 	return paginator.Start()

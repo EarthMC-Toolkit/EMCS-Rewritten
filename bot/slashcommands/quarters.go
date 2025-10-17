@@ -58,6 +58,11 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return strings.EqualFold(t.Name, townOpt.StringValue())
 	})
 	if err != nil {
+		discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("Failed to get quarters. Town `%s` does not exist.", townOpt.StringValue()),
+			Flags:   discordgo.MessageFlagsEphemeral,
+		})
+
 		return err
 	}
 
@@ -82,7 +87,9 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 
 	perPage := 1
 
-	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, count, perPage).WithTimeout(10 * time.Minute)
+	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, count, perPage).
+		WithTimeout(10 * time.Minute)
+
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(count)
 
@@ -130,9 +137,6 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		}
 
 		data.Embeds = []*discordgo.MessageEmbed{embed}
-		data.Components = []discordgo.MessageComponent{
-			paginator.NewNavigationButtonRow(),
-		}
 	}
 
 	return paginator.Start()

@@ -55,7 +55,9 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	count := len(ruined)
 	perPage := 10
 
-	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, len(ruined), perPage)
+	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, len(ruined), perPage).
+		WithTimeout(10 * time.Minute)
+
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(count)
 
@@ -87,9 +89,6 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		}
 
 		data.Embeds = []*discordgo.MessageEmbed{embed}
-		data.Components = []discordgo.MessageComponent{
-			paginator.NewNavigationButtonRow(),
-		}
 	}
 
 	return paginator.Start()

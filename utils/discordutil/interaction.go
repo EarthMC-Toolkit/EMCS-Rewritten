@@ -27,11 +27,7 @@ func SendReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.I
 	})
 }
 
-func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
-	if err := SendReply(s, i, data); err == nil {
-		return nil, nil
-	}
-
+func EditReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
 	return s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
 		Content:         &data.Content,
 		Embeds:          &data.Embeds,
@@ -41,33 +37,42 @@ func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *disco
 	})
 }
 
-func EditOrSendReplyFetch(s *discordgo.Session, i *discordgo.Interaction, fetch bool, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
+func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
 	if err := SendReply(s, i, data); err == nil {
-		if !fetch {
-			return nil, nil
-		}
-
-		msg, err := s.InteractionResponse(i)
-		if err != nil {
-			return nil, err
-		}
-
-		return msg, nil
+		return nil, nil
 	}
 
-	msg, err := s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
-		Content:         &data.Content,
-		Embeds:          &data.Embeds,
-		Files:           data.Files,
-		Components:      &data.Components,
-		AllowedMentions: data.AllowedMentions,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return msg, nil
+	return EditReply(s, i, data)
 }
+
+func RespondToComponent(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) error {
+	return s.InteractionRespond(i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseUpdateMessage,
+		Data: data,
+	})
+}
+
+// func EditOrSendReplyFetch(s *discordgo.Session, i *discordgo.Interaction, fetch bool, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
+// 	if err := SendReply(s, i, data); err == nil {
+// 		if !fetch {
+// 			return nil, nil
+// 		}
+
+// 		msg, err := s.InteractionResponse(i)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+
+// 		return msg, nil
+// 	}
+
+// 	msg, err := EditReply(s, i, data)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return msg, nil
+// }
 
 // Creates a follow-up message for a previously deferred interaction response.
 // This func waits for server confirmation of message send and ensures that the return struct is populated.

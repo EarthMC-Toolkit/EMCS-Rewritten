@@ -6,7 +6,14 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-const PAGINATOR_TIMEOUT = 5 * time.Minute
+type CustomNavigationButtonRow struct {
+	First discordgo.Button
+	Prev  discordgo.Button
+	Next  discordgo.Button
+	Last  discordgo.Button
+}
+
+const PAGINATOR_TIMEOUT = 3 * time.Minute
 
 type Paginator struct {
 	session     *discordgo.Session
@@ -33,13 +40,47 @@ func (p *Paginator) CurrentPageBounds(totalItems int) (int, int) {
 	return start, min(start+p.perPage, totalItems)
 }
 
+func (p *Paginator) NewNavigationButtonRow() *discordgo.ActionsRow {
+	curPage := *p.currentPage
+
+	return &discordgo.ActionsRow{
+		Components: []discordgo.MessageComponent{
+			discordgo.Button{
+				Label:    "<<",
+				CustomID: "first",
+				Style:    discordgo.PrimaryButton,
+				Disabled: curPage == 0,
+			},
+			discordgo.Button{
+				Label:    "<",
+				CustomID: "prev",
+				Style:    discordgo.SuccessButton,
+				Disabled: curPage == 0,
+			},
+			discordgo.Button{
+				Label:    ">",
+				CustomID: "next",
+				Style:    discordgo.SuccessButton,
+				Disabled: curPage == p.totalPages-1,
+			},
+			discordgo.Button{
+				Label:    ">>",
+				CustomID: "last",
+				Style:    discordgo.PrimaryButton,
+				Disabled: curPage == p.totalPages-1,
+			},
+		},
+	}
+}
+
 type InteractionPageFunc func(curPage int, data *discordgo.InteractionResponseData)
 
 type InteractionPaginator struct {
 	*Paginator
-	interaction *discordgo.Interaction
-	cache       map[int]*discordgo.InteractionResponseData
-	PageFunc    InteractionPageFunc
+	interaction  *discordgo.Interaction
+	cache        map[int]*discordgo.InteractionResponseData
+	PageFunc     InteractionPageFunc
+	customNavRow *discordgo.ActionsRow // Must be a set of buttons with ids "first", "prev", "next" and "last"
 }
 
 // Creates a new InteractionPaginator which is a Paginator with extended functionality to work with InteractionResponseData.
@@ -54,8 +95,7 @@ func NewInteractionPaginator(s *discordgo.Session, i *discordgo.Interaction, tot
 		interaction: i,
 		cache:       make(map[int]*discordgo.InteractionResponseData),
 		Paginator: &Paginator{
-			session: s,
-			//channelID:   i.ChannelID,
+			session:     s,
 			authorID:    author.ID,
 			currentPage: &initPage,
 			totalPages:  totalPages,
@@ -63,6 +103,24 @@ func NewInteractionPaginator(s *discordgo.Session, i *discordgo.Interaction, tot
 			timeout:     PAGINATOR_TIMEOUT,
 		},
 	}
+}
+
+func (p *InteractionPaginator) WithCustomNavigationRow(row CustomNavigationButtonRow) *InteractionPaginator {
+	row.First.CustomID = "first"
+	row.Prev.CustomID = "prev"
+	row.Next.CustomID = "next"
+	row.Last.CustomID = "last"
+
+	p.customNavRow = &discordgo.ActionsRow{
+		Components: []discordgo.MessageComponent{
+			row.First,
+			row.Prev,
+			row.Next,
+			row.Last,
+		},
+	}
+
+	return p
 }
 
 func (p *InteractionPaginator) WithTimeout(timeout time.Duration) *InteractionPaginator {
@@ -99,6 +157,16 @@ func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionRespo
 		data = &discordgo.InteractionResponseData{}
 		p.PageFunc(page, data)
 		p.cache[page] = data
+	}
+
+	if p.totalPages > 1 {
+		row := p.customNavRow
+		if row == nil {
+			row = p.NewNavigationButtonRow()
+		}
+
+		// Always make navigation row the first row.
+		data.Components = append([]discordgo.MessageComponent{row}, data.Components...)
 	}
 
 	cpy := *data
@@ -142,10 +210,11 @@ func (p *InteractionPaginator) startButtonListener() {
 		}
 
 		data := p.getPageData(*p.currentPage)
-		s.InteractionRespond(ic.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseUpdateMessage,
-			Data: data,
-		})
+
+		err := RespondToComponent(s, ic.Interaction, data)
+		if err != nil {
+			EditReply(s, ic.Interaction, data)
+		}
 	}
 
 	removeHandler := p.session.AddHandler(btnHandler)
@@ -153,39 +222,6 @@ func (p *InteractionPaginator) startButtonListener() {
 		time.Sleep(p.timeout)
 		removeHandler()
 	}()
-}
-
-func (p *InteractionPaginator) NewNavigationButtonRow() discordgo.ActionsRow {
-	curPage := *p.currentPage
-
-	return discordgo.ActionsRow{
-		Components: []discordgo.MessageComponent{
-			discordgo.Button{
-				Label:    "<<",
-				CustomID: "first",
-				Style:    discordgo.PrimaryButton,
-				Disabled: curPage == 0,
-			},
-			discordgo.Button{
-				Label:    "<",
-				CustomID: "prev",
-				Style:    discordgo.SuccessButton,
-				Disabled: curPage == 0,
-			},
-			discordgo.Button{
-				Label:    ">",
-				CustomID: "next",
-				Style:    discordgo.SuccessButton,
-				Disabled: curPage == p.totalPages-1,
-			},
-			discordgo.Button{
-				Label:    ">>",
-				CustomID: "last",
-				Style:    discordgo.PrimaryButton,
-				Disabled: curPage == p.totalPages-1,
-			},
-		},
-	}
 }
 
 // Unlike a shallow copy or sharing the original pointer, a deep copy will prevent data of

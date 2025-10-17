@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
@@ -81,6 +82,7 @@ func ExecuteOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 	if err != nil {
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Failed to get online players. Town `%s` does not exist.", townName),
+			Flags:   discordgo.MessageFlagsEphemeral,
 		})
 
 		return err
@@ -96,7 +98,8 @@ func ExecuteOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 	}
 
 	return sendPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
-		return fmt.Sprintf("`%s` (%s) %s `%0.f`G\n", p.Name, p.GetRank(), common.EMOJIS.GOLD_INGOT, p.Stats.Balance)
+		balStr := fmt.Sprintf("%s `%0.f`G", common.EMOJIS.GOLD_INGOT, p.Stats.Balance)
+		return fmt.Sprintf("`%s` (%s) %s\n", p.Name, p.GetRank(), balStr)
 	})
 }
 
@@ -134,7 +137,8 @@ func ExecuteOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationN
 	}
 
 	return sendPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
-		return fmt.Sprintf("`%s` of **%s** (%s) %s `%0.f`G\n", p.Name, *p.Town.Name, p.GetRank(), common.EMOJIS.GOLD_INGOT, p.Stats.Balance)
+		balStr := fmt.Sprintf("%s `%0.f`G", common.EMOJIS.GOLD_INGOT, p.Stats.Balance)
+		return fmt.Sprintf("`%s` of **%s** (%s) %s\n", p.Name, *p.Town.Name, p.GetRank(), balStr)
 	})
 }
 
@@ -147,7 +151,11 @@ func getOnlineResidents(entities ...oapi.Entity) ([]oapi.PlayerInfo, error) {
 	return online, errors.Join(errs...)
 }
 
-func sendPaginator(s *discordgo.Session, i *discordgo.Interaction, players []oapi.PlayerInfo, perPage int, contentFunc func(p oapi.PlayerInfo) string) error {
+func sendPaginator(
+	s *discordgo.Session, i *discordgo.Interaction,
+	players []oapi.PlayerInfo, perPage int,
+	contentFunc func(p oapi.PlayerInfo) string,
+) error {
 	count := len(players)
 
 	// Alphabet sort by player name
@@ -159,7 +167,9 @@ func sendPaginator(s *discordgo.Session, i *discordgo.Interaction, players []oap
 		return -1
 	})
 
-	paginator := discordutil.NewInteractionPaginator(s, i, count, perPage)
+	paginator := discordutil.NewInteractionPaginator(s, i, count, perPage).
+		WithTimeout(5 * time.Minute)
+
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(count)
 
@@ -171,9 +181,6 @@ func sendPaginator(s *discordgo.Session, i *discordgo.Interaction, players []oap
 		data.Content = content
 		if paginator.TotalPages() > 1 {
 			data.Content += fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
-			data.Components = []discordgo.MessageComponent{
-				paginator.NewNavigationButtonRow(),
-			}
 		}
 	}
 
