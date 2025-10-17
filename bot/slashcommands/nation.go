@@ -36,11 +36,17 @@ func (cmd NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	_, err = QueryNation(s, i.Interaction)
-	return err
+	cdata := i.ApplicationCommandData()
+	if opt := cdata.GetOption("query"); opt != nil {
+		nationNameArg := opt.GetOption("name").StringValue()
+		_, err := executeQueryNation(s, i.Interaction, nationNameArg)
+		return err
+	}
+
+	return nil
 }
 
-func QueryNation(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.Message, error) {
+func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) (*discordgo.Message, error) {
 	data := i.ApplicationCommandData()
 	nationNameArg := data.GetOption("query").GetOption("name").StringValue()
 

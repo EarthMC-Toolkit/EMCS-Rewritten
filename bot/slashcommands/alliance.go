@@ -57,8 +57,7 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 }
 
 func QueryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
-	opt := data.GetOption("query")
-	ident := opt.GetOption("identifier").StringValue()
+	ident := data.GetOption("query").GetOption("identifier").StringValue()
 
 	// Try find alliance in DB
 	db, err := store.GetMapDB(common.ACTIVE_MAP)

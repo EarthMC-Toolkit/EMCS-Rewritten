@@ -58,12 +58,12 @@ func JsonGetRequest[T any](url string) (T, error) {
 func PostRequest(url string, contentType string, reqBody io.Reader) ([]byte, error) {
 	response, err := client.Post(url, contentType, reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("error during POST request:\n%v", err)
+		return nil, fmt.Errorf("error during POST request to %s:\n  %v", url, err)
 	}
 
 	resBody, err := ReadResponseBody(response, url)
 	if err != nil {
-		err = fmt.Errorf("error during POST request:\n%v", err)
+		err = fmt.Errorf("error during POST request to %s:\n  %v", url, err)
 	}
 
 	return resBody, err
@@ -72,12 +72,12 @@ func PostRequest(url string, contentType string, reqBody io.Reader) ([]byte, err
 func GetRequest(url string) ([]byte, error) {
 	response, err := client.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("error during GET request:\n%v", err)
+		return nil, fmt.Errorf("error during GET request to %s:\n  %v", url, err)
 	}
 
 	resBody, err := ReadResponseBody(response, url)
 	if err != nil {
-		err = fmt.Errorf("error during GET request:\n%v", err)
+		err = fmt.Errorf("error during GET request to %s:\n  %v", url, err)
 	}
 
 	return resBody, err

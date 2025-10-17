@@ -45,21 +45,24 @@ func (cmd PlayerCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	_, err = SendSinglePlayer(s, i.Interaction)
-	return err
+	cdata := i.ApplicationCommandData()
+	if opt := cdata.GetOption("query"); opt != nil {
+		playerNameArg := opt.GetOption("name").StringValue()
+		_, err = executeQueryPlayer(s, i.Interaction, playerNameArg)
+		return err
+	}
+
+	return nil
 }
 
-func SendSinglePlayer(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.Message, error) {
-	data := i.ApplicationCommandData()
-	playerNameArg := data.GetOption("query").GetOption("name").StringValue()
-
-	players, err := oapi.QueryPlayers(strings.ToLower(playerNameArg))
+func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerName string) (*discordgo.Message, error) {
+	players, err := oapi.QueryPlayers(strings.ToLower(playerName))
 	if err != nil {
 		return discordutil.FollowUpContent(s, i, "An error occurred retrieving player information :(")
 	}
 
 	if len(players) == 0 {
-		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No players retrieved. Player `%s` does not seem to exist.", playerNameArg))
+		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No players retrieved. Player `%s` does not seem to exist.", playerName))
 	}
 
 	embed := common.NewPlayerEmbed(players[0])

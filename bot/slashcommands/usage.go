@@ -37,10 +37,10 @@ func (cmd UsageCommand) Options() AppCommandOpts {
 func (cmd UsageCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	cdata := i.ApplicationCommandData()
 	if opt := cdata.GetOption("self"); opt != nil {
-		return ExecuteSelf(s, i.Interaction)
+		return executeSelf(s, i.Interaction)
 	}
 	if opt := cdata.GetOption("leaderboard"); opt != nil {
-		return ExecuteLeaderboard(s, i.Interaction)
+		return executeLeaderboard(s, i.Interaction)
 	}
 
 	_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
@@ -50,7 +50,7 @@ func (cmd UsageCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 	return err
 }
 
-func ExecuteSelf(s *discordgo.Session, i *discordgo.Interaction) error {
+func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 	mdb, err := store.GetMapDB(common.ACTIVE_MAP)
 	if err != nil {
 		return err
@@ -110,6 +110,6 @@ func ExecuteSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 	})
 }
 
-func ExecuteLeaderboard(s *discordgo.Session, i *discordgo.Interaction) error {
+func executeLeaderboard(s *discordgo.Session, i *discordgo.Interaction) error {
 	return nil
 }

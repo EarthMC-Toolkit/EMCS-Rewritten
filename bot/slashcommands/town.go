@@ -36,21 +36,24 @@ func (cmd TownCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCre
 		return err
 	}
 
-	_, err = QueryTown(s, i.Interaction)
-	return err
+	cdata := i.ApplicationCommandData()
+	if opt := cdata.GetOption("query"); opt != nil {
+		townNameArg := opt.GetOption("name").StringValue()
+		_, err := executeQueryTown(s, i.Interaction, townNameArg)
+		return err
+	}
+
+	return nil
 }
 
-func QueryTown(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.Message, error) {
-	data := i.ApplicationCommandData()
-	townNameArg := data.GetOption("query").GetOption("name").StringValue()
-
-	towns, err := oapi.QueryTowns(strings.ToLower(townNameArg))
+func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName string) (*discordgo.Message, error) {
+	towns, err := oapi.QueryTowns(strings.ToLower(townName))
 	if err != nil {
 		return discordutil.FollowUpContent(s, i, "An error occurred retrieving town information :(")
 	}
 
 	if len(towns) == 0 {
-		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No towns retrieved. Town `%s` does not seem to exist.", townNameArg))
+		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No towns retrieved. Town `%s` does not seem to exist.", townName))
 	}
 
 	embed := common.NewTownEmbed(towns[0])

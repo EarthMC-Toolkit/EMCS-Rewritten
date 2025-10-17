@@ -48,12 +48,12 @@ func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 
 	opt := cdata.GetOption("town")
 	if opt != nil {
-		return ExecuteOnlineTown(s, i.Interaction, opt.GetOption("name").StringValue())
+		return executeOnlineTown(s, i.Interaction, opt.GetOption("name").StringValue())
 	}
 
 	opt = cdata.GetOption("nation")
 	if opt != nil {
-		return ExecuteOnlineNation(s, i.Interaction, opt.GetOption("name").StringValue())
+		return executeOnlineNation(s, i.Interaction, opt.GetOption("name").StringValue())
 	}
 
 	_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
@@ -63,7 +63,7 @@ func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	return err
 }
 
-func ExecuteOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName string) error {
+func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName string) error {
 	discordutil.DeferReply(s, i)
 
 	db, err := store.GetMapDB(common.ACTIVE_MAP)
@@ -103,7 +103,7 @@ func ExecuteOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 	})
 }
 
-func ExecuteOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) error {
+func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) error {
 	discordutil.DeferReply(s, i)
 
 	db, err := store.GetMapDB(common.ACTIVE_MAP)
