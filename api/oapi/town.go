@@ -21,14 +21,14 @@ type TownStatus struct {
 }
 
 type TownStats struct {
-	NumTownBlocks uint32  `json:"numTownBlocks"`
-	MaxTownBlocks uint32  `json:"maxTownBlocks"`
-	BonusBlocks   uint16  `json:"bonusBlocks"`
-	NumResidents  uint32  `json:"numResidents"`
-	NumTrusted    uint16  `json:"numTrusted"`
-	NumOutlaws    uint16  `json:"numOutlaws"`
-	Balance       float32 `json:"balance"`
-	ForSalePrice  *uint32 `json:"forSalePrice"`
+	NumTownBlocks uint32   `json:"numTownBlocks"`
+	MaxTownBlocks uint32   `json:"maxTownBlocks"`
+	BonusBlocks   uint16   `json:"bonusBlocks"`
+	NumResidents  uint32   `json:"numResidents"`
+	NumTrusted    uint16   `json:"numTrusted"`
+	NumOutlaws    uint16   `json:"numOutlaws"`
+	Balance       float32  `json:"balance"`
+	ForSalePrice  *float32 `json:"forSalePrice"`
 }
 
 type TownCoords struct {

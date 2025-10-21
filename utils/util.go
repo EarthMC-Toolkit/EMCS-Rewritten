@@ -38,6 +38,24 @@ func HumanizeDuration(minutes float64) (float64, string) {
 	return minutes * 60, "sec"
 }
 
+// Takes an amount of seconds and converts it to a string with any
+// combination of hr/min/sec depending how long it takes.
+// func FormatDuration(seconds int64) string {
+// 	hours := seconds / 3600
+// 	minutes := (seconds % 3600) / 60
+// 	secs := seconds % 60
+
+// 	if hours > 0 {
+// 		return fmt.Sprintf("%dhrs, %dm and %ds", hours, minutes, secs)
+// 	}
+
+// 	if minutes > 0 {
+// 		return fmt.Sprintf("%dm and %ds", minutes, secs)
+// 	}
+
+// 	return fmt.Sprintf("%ds", secs)
+// }
+
 func PrettyPrint(v any) (int, error) {
 	return printer.Print(Prettify(v))
 }

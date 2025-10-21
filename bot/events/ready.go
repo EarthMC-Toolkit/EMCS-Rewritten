@@ -53,7 +53,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		log.Println("[OnReady]: Running data update task...")
 
 		start := time.Now()
-		townList, staleTownList, err := UpdateData(db)
+		townList, staleTownList, townless, residents, err := UpdateData(db)
 		elapsed := time.Since(start)
 
 		fmt.Println()
@@ -64,11 +64,15 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 		log.Println("[OnReady]: Completed data update task. Took: " + elapsed.String())
 
+		towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo {
+			return t
+		})
+
 		staleTowns := lo.MapToSlice(staleTownList, func(_ string, t oapi.TownInfo) oapi.TownInfo {
 			return t
 		})
 
-		//TrySendLeftJoinedNotif(s, *staleTowns)
+		TrySendLeftJoinedNotif(s, towns, staleTowns, townless, residents)
 		TrySendRuinedNotif(s, townList, staleTowns)
 		TrySendFallenNotif(s, townList, staleTowns)
 	}, true, 30*time.Second)
@@ -137,23 +141,26 @@ func SetKeyFunc[T any](store *store.Store[T], key string, task func() (T, error)
 	return res, err
 }
 
-func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, map[string]oapi.TownInfo, error) {
+func UpdateData(db *store.MapDB) (
+	towns map[string]oapi.TownInfo, staleTowns map[string]oapi.TownInfo,
+	townless, residents oapi.EntityList, err error,
+) {
 	townStore, err := store.GetStore[oapi.TownInfo](db, "towns")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	nationStore, err := store.GetStore[oapi.NationInfo](db, "nations")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	entityStore, err := store.GetStore[oapi.EntityList](db, "entities")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	staleTowns := townStore.Entries()
+	staleTowns = townStore.Entries()
 	fmt.Printf("DEBUG | Stale towns: %d", len(staleTowns))
 
 	townList, err := OverwriteFunc(townStore, func() (map[string]oapi.TownInfo, error) {
@@ -167,7 +174,7 @@ func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, map[string]oapi.Town
 		}), nil
 	})
 	if err != nil {
-		return townList, staleTowns, err
+		return townList, staleTowns, nil, nil, err
 	}
 
 	//region ============ GATHER DATA USING TOWNS ============
@@ -198,7 +205,7 @@ func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, map[string]oapi.Town
 	//region ============ SPLIT RESIDENTS FROM TOWNLESS ============
 	players, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
 	if err != nil {
-		return staleTowns, townList, err
+		return townList, staleTowns, nil, residentList, err
 	}
 
 	townlessList, _ := SetKeyFunc(entityStore, "townlesslist", func() (oapi.EntityList, error) {
@@ -216,77 +223,80 @@ func UpdateData(db *store.MapDB) (map[string]oapi.TownInfo, map[string]oapi.Town
 	fmt.Printf("\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
 	fmt.Printf("\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))
 
-	return townList, staleTowns, err
+	return townList, staleTowns, townlessList, residentList, err
 }
 
-// func CalcLeftJoined(staleTowns []oapi.TownInfo) (left, joined []string) {
-// 	// build lookup maps
-// 	staleResidents := make(map[string]oapi.TownInfo)
-// 	for _, t := range staleTowns {
-// 		for _, r := range t.Residents {
-// 			staleResidents[r.UUID] = t
-// 		}
-// 	}
+func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.EntityList) (left, joined []string) {
+	// resident -> town mapping for stale/outdated residents
+	staleResidents := make(map[string]oapi.TownInfo)
+	for _, t := range staleTowns {
+		for _, r := range t.Residents {
+			staleResidents[r.UUID] = t
+		}
+	}
 
-// 	currentResidents := make(map[string]oapi.TownInfo)
-// 	for _, t := range towns {
-// 		for _, r := range t.Residents {
-// 			currentResidents[r.UUID] = t
-// 		}
-// 	}
+	// resident -> town mapping for fresh resident list
+	resMap := make(map[string]oapi.TownInfo)
+	for _, t := range towns {
+		for _, r := range t.Residents {
+			resMap[r.UUID] = t
+		}
+	}
 
-// 	// who left
-// 	for uuid, oldTown := range staleResidents {
-// 		if _, ok := currentResidents[uuid]; !ok {
-// 			name := townlesslist[uuid].Name
-// 			nation := "No Nation"
-// 			if oldTown.Nation != nil && oldTown.Nation.Name != nil {
-// 				nation = *oldTown.Nation.Name
-// 			}
+	// who left
+	for uuid, oldTown := range staleResidents {
+		if _, ok := resMap[uuid]; !ok {
+			name := townless[uuid]
 
-// 			left = append(left, fmt.Sprintf("`%s` left %s (**%s**)", name, oldTown.Name, nation))
-// 		}
-// 	}
+			nation := "No Nation"
+			if oldTown.Nation.Name != nil {
+				nation = *oldTown.Nation.Name
+			}
 
-// 	// who joined
-// 	for uuid, newTown := range currentResidents {
-// 		if _, ok := staleResidents[uuid]; !ok {
-// 			name := residentlist[uuid].Name
-// 			nation := "No Nation"
-// 			if newTown.Nation != nil && newTown.Nation.Name != nil {
-// 				nation = *newTown.Nation.Name
-// 			}
+			left = append(left, fmt.Sprintf("`%s` left %s (**%s**)", name, oldTown.Name, nation))
+		}
+	}
 
-// 			joined = append(joined, fmt.Sprintf("`%s` joined %s (**%s**)", name, newTown.Name, nation))
-// 		}
-// 	}
+	// who joined
+	for uuid, newTown := range resMap {
+		if _, ok := staleResidents[uuid]; !ok {
+			name := residents[uuid]
 
-// 	return
-// }
+			nation := "No Nation"
+			if newTown.Nation.Name != nil {
+				nation = *newTown.Nation.Name
+			}
 
-// func TrySendLeftJoinedNotif(s *discordgo.Session, staleTowns []oapi.TownInfo) {
-// 	left, joined := CalcLeftJoined(staleTowns)
+			joined = append(joined, fmt.Sprintf("`%s` joined %s (**%s**)", name, newTown.Name, nation))
+		}
+	}
 
-// 	leftCount := len(left)
-// 	joinedCount := len(joined)
-// 	if (leftCount + joinedCount) > 0 {
-// 		s.ChannelMessageSendEmbed("1420108251437207682", &discordgo.MessageEmbed{
-// 			Title: "Player Flow | Town Join/Leave Events",
-// 			Fields: []*discordgo.MessageEmbedField{
-// 				{
-// 					Name:   fmt.Sprintf("Became townless [%d]", leftCount),
-// 					Value:  strings.Join(left, "\n"),
-// 					Inline: true,
-// 				},
-// 				{
-// 					Name:   fmt.Sprintf("Became a resident [%d]", joinedCount),
-// 					Value:  strings.Join(joined, "\n"),
-// 					Inline: true,
-// 				},
-// 			},
-// 		})
-// 	}
-// }
+	return
+}
+
+func TrySendLeftJoinedNotif(s *discordgo.Session, towns, staleTowns []oapi.TownInfo, townless, residents oapi.EntityList) {
+	left, joined := CalcLeftJoined(towns, staleTowns, townless, residents)
+
+	leftCount := len(left)
+	joinedCount := len(joined)
+	if (leftCount + joinedCount) > 0 {
+		s.ChannelMessageSendEmbed("1420108251437207682", &discordgo.MessageEmbed{
+			Title: "Player Flow | Town Join/Leave Events",
+			Fields: []*discordgo.MessageEmbedField{
+				{
+					Name:   fmt.Sprintf("Became townless [%d]", leftCount),
+					Value:  strings.Join(left, "\n"),
+					Inline: true,
+				},
+				{
+					Name:   fmt.Sprintf("Became a resident [%d]", joinedCount),
+					Value:  strings.Join(joined, "\n"),
+					Inline: true,
+				},
+			},
+		})
+	}
+}
 
 func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
 	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
@@ -383,7 +393,7 @@ func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
 		}
 	}
 
-	// reset when it finishes
+	// finished, reset notification statuses by emptying map.
 	if remaining == 0 {
 		vpNotified = make(map[int]bool)
 	}

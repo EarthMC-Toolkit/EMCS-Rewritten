@@ -47,16 +47,16 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 			return err
 		}
 
-		return QueryAlliance(s, i.Interaction, cmdData)
+		return queryAlliance(s, i.Interaction, cmdData)
 	}
 	if create := cmdData.GetOption("create"); create != nil {
-		return CreateAlliance(s, i.Interaction, cmdData)
+		return createAlliance(s, i.Interaction, cmdData)
 	}
 
 	return nil
 }
 
-func QueryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
+func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
 	ident := data.GetOption("query").GetOption("identifier").StringValue()
 
 	// Try find alliance in DB
@@ -82,7 +82,7 @@ func QueryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordg
 	return err
 }
 
-func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
+func createAlliance(s *discordgo.Session, i *discordgo.Interaction, _ discordgo.ApplicationCommandInteractionData) error {
 	if !discordutil.IsDev(i) {
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 			Content: "Stop trying.",
