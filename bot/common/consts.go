@@ -17,6 +17,8 @@ var SUPPORTED_MAPS = struct {
 type Emoji = string
 
 var EMOJIS = struct {
+	ENTRY          Emoji
+	EXIT           Emoji
 	ARROW_DOWN_RED Emoji
 	ARROW_UP_GREEN Emoji
 	SHIELD_RED     Emoji
@@ -24,6 +26,8 @@ var EMOJIS = struct {
 	GOLD_INGOT     Emoji
 	CHUNK          Emoji
 }{
+	ENTRY:          "<:entry:1430368475309936721>",
+	EXIT:           "<:exit:1430368497996791901>",
 	ARROW_DOWN_RED: "<:arrow_down_red:1413371841170374766>",
 	ARROW_UP_GREEN: "<:arrow_up_green:1413371794076991680>",
 	SHIELD_RED:     "<:shield_red:1407578605134807113>",

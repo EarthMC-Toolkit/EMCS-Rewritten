@@ -226,78 +226,6 @@ func UpdateData(db *store.MapDB) (
 	return townList, staleTowns, townlessList, residentList, err
 }
 
-func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.EntityList) (left, joined []string) {
-	// resident -> town mapping for stale/outdated residents
-	staleResidents := make(map[string]oapi.TownInfo)
-	for _, t := range staleTowns {
-		for _, r := range t.Residents {
-			staleResidents[r.UUID] = t
-		}
-	}
-
-	// resident -> town mapping for fresh resident list
-	resMap := make(map[string]oapi.TownInfo)
-	for _, t := range towns {
-		for _, r := range t.Residents {
-			resMap[r.UUID] = t
-		}
-	}
-
-	// who left
-	for uuid, oldTown := range staleResidents {
-		if _, ok := resMap[uuid]; !ok {
-			name := townless[uuid]
-
-			nation := "No Nation"
-			if oldTown.Nation.Name != nil {
-				nation = *oldTown.Nation.Name
-			}
-
-			left = append(left, fmt.Sprintf("`%s` left %s (**%s**)", name, oldTown.Name, nation))
-		}
-	}
-
-	// who joined
-	for uuid, newTown := range resMap {
-		if _, ok := staleResidents[uuid]; !ok {
-			name := residents[uuid]
-
-			nation := "No Nation"
-			if newTown.Nation.Name != nil {
-				nation = *newTown.Nation.Name
-			}
-
-			joined = append(joined, fmt.Sprintf("`%s` joined %s (**%s**)", name, newTown.Name, nation))
-		}
-	}
-
-	return
-}
-
-func TrySendLeftJoinedNotif(s *discordgo.Session, towns, staleTowns []oapi.TownInfo, townless, residents oapi.EntityList) {
-	left, joined := CalcLeftJoined(towns, staleTowns, townless, residents)
-
-	leftCount := len(left)
-	joinedCount := len(joined)
-	if (leftCount + joinedCount) > 0 {
-		s.ChannelMessageSendEmbed("1420108251437207682", &discordgo.MessageEmbed{
-			Title: "Player Flow | Town Join/Leave Events",
-			Fields: []*discordgo.MessageEmbedField{
-				{
-					Name:   fmt.Sprintf("Became townless [%d]", leftCount),
-					Value:  strings.Join(left, "\n"),
-					Inline: true,
-				},
-				{
-					Name:   fmt.Sprintf("Became a resident [%d]", joinedCount),
-					Value:  strings.Join(joined, "\n"),
-					Inline: true,
-				},
-			},
-		})
-	}
-}
-
 func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
 	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
 		return t.UUID, t, t.Status.Ruined
@@ -400,4 +328,99 @@ func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
 
 	vpLastRemaining = remaining
 	vpLastCheck = time.Now()
+}
+
+func TrySendLeftJoinedNotif(s *discordgo.Session, towns, staleTowns []oapi.TownInfo, townless, residents oapi.EntityList) {
+	left, joined := CalcLeftJoined(towns, staleTowns, townless, residents)
+
+	leftCount := len(left)
+	joinedCount := len(joined)
+	if (leftCount + joinedCount) > 0 {
+		s.ChannelMessageSendEmbed("1420108251437207682", &discordgo.MessageEmbed{
+			Color: discordutil.DARK_GREEN,
+			Title: "Player Flow | Town Join/Leave Events",
+			Fields: []*discordgo.MessageEmbedField{
+				{
+					Name:   fmt.Sprintf("%s Became townless [%d]", common.EMOJIS.EXIT, leftCount),
+					Value:  strings.Join(left, "\n\n"),
+					Inline: true,
+				},
+				{
+					Name:   fmt.Sprintf("%s Became a resident [%d]", common.EMOJIS.ENTRY, joinedCount),
+					Value:  strings.Join(joined, "\n\n"),
+					Inline: true,
+				},
+			},
+		})
+	}
+}
+
+func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.EntityList) (left, joined []string) {
+	// resident -> town mapping for stale/outdated residents
+	staleResidents := make(map[string]oapi.TownInfo)
+	for _, t := range staleTowns {
+		for _, r := range t.Residents {
+			staleResidents[r.UUID] = t
+		}
+	}
+
+	// resident -> town mapping for fresh resident list
+	resMap := make(map[string]oapi.TownInfo)
+	for _, t := range towns {
+		for _, r := range t.Residents {
+			resMap[r.UUID] = t
+		}
+	}
+
+	// who left
+	for uuid, town := range staleResidents {
+		if _, ok := resMap[uuid]; !ok {
+			name := townless[uuid]
+
+			nation := "No Nation"
+			if town.Nation.Name != nil {
+				nation = *town.Nation.Name
+			}
+
+			//left = append(left, fmt.Sprintf("`%s` left %s (**%s**)", name, oldTown.Name, nation))
+
+			ruined := lo.Ternary(town.Status.Ruined, ":white_check_mark:", ":x:")
+			overclaimable := lo.Ternary(
+				town.Status.Overclaimed && !town.Status.HasOverclaimShield,
+				":white_check_mark:", ":x:",
+			)
+
+			left = append(joined, utils.HumanizedSprintf(
+				"`%s` left %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s\nRuined %s Overclaimable %s",
+				name, town.Name, nation,
+				town.Mayor.Name, town.Bal(), common.EMOJIS.GOLD_INGOT, ruined, overclaimable,
+			))
+		}
+	}
+
+	// who joined
+	for uuid, town := range resMap {
+		if _, ok := staleResidents[uuid]; !ok {
+			name := residents[uuid]
+
+			nation := "No Nation"
+			if town.Nation.Name != nil {
+				nation = *town.Nation.Name
+			}
+
+			ruined := lo.Ternary(town.Status.Ruined, ":white_check_mark:", ":x:")
+			overclaimable := lo.Ternary(
+				town.Status.Overclaimed && !town.Status.HasOverclaimShield,
+				":white_check_mark:", ":x:",
+			)
+
+			joined = append(joined, utils.HumanizedSprintf(
+				"`%s` joined %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s\nRuined %s Overclaimable %s",
+				name, town.Name, nation,
+				town.Mayor.Name, town.Bal(), common.EMOJIS.GOLD_INGOT, ruined, overclaimable,
+			))
+		}
+	}
+
+	return
 }
