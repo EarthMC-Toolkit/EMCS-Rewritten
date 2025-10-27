@@ -11,6 +11,12 @@ func OpenModal(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.I
 	})
 }
 
+func DeferComponent(s *discordgo.Session, i *discordgo.Interaction) error {
+	return s.InteractionRespond(i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredMessageUpdate,
+	})
+}
+
 // Responds to an interaction with a deferred response, allowing more time to process before sending a follow-up message.
 //
 // Deferred interactions cannot carry data and can only be edited or followed up.
@@ -43,13 +49,6 @@ func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *disco
 	}
 
 	return EditReply(s, i, data)
-}
-
-func RespondToComponent(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) error {
-	return s.InteractionRespond(i, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseUpdateMessage,
-		Data: data,
-	})
 }
 
 // func EditOrSendReplyFetch(s *discordgo.Session, i *discordgo.Interaction, fetch bool, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {

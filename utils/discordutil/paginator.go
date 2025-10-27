@@ -159,6 +159,7 @@ func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionRespo
 		p.cache[page] = data
 	}
 
+	cpy := *data // Work with shallow copy of the cached page
 	if p.totalPages > 1 {
 		row := p.customNavRow
 		if row == nil {
@@ -166,10 +167,9 @@ func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionRespo
 		}
 
 		// Always make navigation row the first row.
-		data.Components = append([]discordgo.MessageComponent{row}, data.Components...)
+		cpy.Components = append([]discordgo.MessageComponent{row}, cpy.Components...)
 	}
 
-	cpy := *data
 	return &cpy
 }
 
@@ -205,11 +205,10 @@ func (p *InteractionPaginator) startButtonListener() {
 			return
 		}
 
+		DeferComponent(s, ic.Interaction)
+
 		data := p.getPageData(*p.currentPage)
-		err := RespondToComponent(s, ic.Interaction, data)
-		if err != nil {
-			EditReply(s, ic.Interaction, data)
-		}
+		EditReply(s, ic.Interaction, data)
 	}
 
 	removeHandler := p.session.AddHandler(btnHandler)
