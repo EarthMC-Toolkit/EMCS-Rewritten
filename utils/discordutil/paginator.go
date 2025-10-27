@@ -192,25 +192,20 @@ func (p *InteractionPaginator) startButtonListener() {
 		case "first":
 			*p.currentPage = 0
 		case "prev":
-			*p.currentPage--
+			if *p.currentPage > 0 {
+				*p.currentPage--
+			}
 		case "next":
-			*p.currentPage++
+			if *p.currentPage < p.totalPages-1 {
+				*p.currentPage++
+			}
 		case "last":
 			*p.currentPage = p.totalPages - 1
 		default:
 			return
 		}
 
-		// clamp to valid range
-		if *p.currentPage < 0 {
-			*p.currentPage = 0
-		}
-		if *p.currentPage >= p.totalPages {
-			*p.currentPage = p.totalPages - 1
-		}
-
 		data := p.getPageData(*p.currentPage)
-
 		err := RespondToComponent(s, ic.Interaction, data)
 		if err != nil {
 			EditReply(s, ic.Interaction, data)
