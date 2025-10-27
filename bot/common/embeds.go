@@ -7,7 +7,6 @@ import (
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/samber/lo"
@@ -44,9 +43,9 @@ func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
 	// Representative field logic
 	representativeValue := "None"
 	if a.RepresentativeID != nil {
-		u, err := s.User(strconv.FormatUint(*a.RepresentativeID, 10))
-		if err != nil {
-			representativeValue = u.Mention()
+		u, err := s.User(*a.RepresentativeID)
+		if err == nil {
+			representativeValue = u.String()
 		}
 	}
 
@@ -59,20 +58,22 @@ func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
 	nationsKey := fmt.Sprintf("Nations [%d]", nationsLen)
 	nationsValue := fmt.Sprintf("```%s```", strings.Join(a.OwnNations, ", "))
 
+	founded := a.CreatedTimestamp() / 1000
+
 	embed := &dgo.MessageEmbed{
 		Color:  embedColour,
 		Footer: DEFAULT_FOOTER,
-		Title:  fmt.Sprintf("Alliance Info | `%s` (%s)", a.Label, a.Identifier),
+		Title:  fmt.Sprintf("Alliance Info | `%s` | `%s`", a.Identifier, a.Label),
 		Fields: []*dgo.MessageEmbedField{
 			NewEmbedField("Leader(s)", leadersValue, false),
 			NewEmbedField("Representative", representativeValue, true),
 			NewEmbedField(nationsKey, nationsValue, false),
-			NewEmbedField("Created At", fmt.Sprintf("<t:%d:f>", a.CreatedTimestamp()/1000), true),
+			NewEmbedField("Founded", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", founded, founded), true),
 		},
 	}
 
 	if a.UpdatedTimestamp != nil {
-		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:R>", *a.UpdatedTimestamp), true)
+		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", *a.UpdatedTimestamp, *a.UpdatedTimestamp), true)
 	}
 
 	return embed

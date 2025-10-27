@@ -5,6 +5,7 @@ import (
 	"emcsrw/bot/store"
 	"emcsrw/utils/discordutil"
 	"fmt"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -70,9 +71,9 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordg
 		return err
 	}
 
-	alliance, err := allianceStore.GetKey(ident)
+	alliance, err := allianceStore.GetKey(strings.ToLower(ident))
 	if err != nil {
-		fmt.Printf("failed to get alliance '%s' from db: %v", ident, err)
+		fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
 
 		_, err := discordutil.FollowUpContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 		return err
@@ -108,16 +109,25 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction, _ discordgo.
 			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "label",
 				Label:       "Alliance Name (4-36 chars)",
-				Placeholder: "Enter the full alliance name...",
+				Placeholder: "Enter the alliance's full name...",
 				Required:    true,
 				Style:       discordgo.TextInputShort,
 				MinLength:   4,
 				MaxLength:   36,
 			}),
 			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "representative",
+				Label:       "Alliance Representative (3-16 chars)",
+				Placeholder: "Enter the Discord ID of the representative...",
+				Required:    true,
+				Style:       discordgo.TextInputShort,
+				MinLength:   17,
+				MaxLength:   19,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "nations",
-				Label:       "Nations",
-				Placeholder: "Nation1, Nation2, Nation3...",
+				Label:       "Own Nations",
+				Placeholder: "Enter a comma-seperated list of nations in this alliance (excluding nations in child alliances).",
 				Required:    true,
 				MinLength:   3,
 				Style:       discordgo.TextInputParagraph,

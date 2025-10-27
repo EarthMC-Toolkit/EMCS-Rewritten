@@ -36,6 +36,7 @@ type LabelledValue struct {
 }
 
 // TODO: Maybe create a CustomEmbed that wraps MessageEmbed and adds these methods?
+
 func NewEmbedField(name string, value string, inline bool) *discordgo.MessageEmbedField {
 	return &discordgo.MessageEmbedField{
 		Name:   name,

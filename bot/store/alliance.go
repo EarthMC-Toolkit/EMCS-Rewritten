@@ -12,18 +12,19 @@ type AllianceOptionals struct {
 	Colours    *AllianceColours `json:"colours,omitempty"`
 }
 
+// type AllianceID = string
 type Alliance struct {
-	UUID             uint64            `json:"id"` // First 48bits = ms timestamp. Extra 16bits = randomness.
-	Identifier       string            `json:"identifier"`
-	Label            string            `json:"label"`
-	RepresentativeID *uint64           `json:"representativeID"`
-	Children         []string          `json:"children"`
-	OwnNations       []string          `json:"ownNations"`
-	UpdatedTimestamp *uint64           `json:"updatedTimestamp"`
-	Optional         AllianceOptionals `json:"optional"`
+	UUID             uint64            `json:"uuid"`             // First 48bits = ms timestamp. Extra 16bits = randomness.
+	Identifier       string            `json:"identifier"`       // Case-insensitive colloquial short name for lookup.
+	Label            string            `json:"label"`            // Full name for display purposes.
+	RepresentativeID *string           `json:"representativeID"` // Discord ID of the user representing this alliance.
+	Children         []string          `json:"children"`         // UUIDs of child alliances (sub-alliances, meganations under a pact, etc).
+	OwnNations       []string          `json:"ownNations"`       // UUIDs of nations in this alliance, EXCLUDING ones in child alliances.
+	UpdatedTimestamp *uint64           `json:"updatedTimestamp"` // Unix timestamp (ms) at which the last update was made to this alliance.
+	Optional         AllianceOptionals `json:"optional"`         // Extra properties that are not required for basic alliance functionality.
 }
 
-func (a *Alliance) CreatedTimestamp() uint64 {
+func (a Alliance) CreatedTimestamp() uint64 {
 	return a.UUID >> 16
 }
 

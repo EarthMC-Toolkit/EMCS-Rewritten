@@ -248,13 +248,22 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			// 	nation = *t.Nation.Name
 			// }
 
-			ruinedTs := *t.Timestamps.RuinedAt
-			deleteTs := time.UnixMilli(int64(ruinedTs)).Add(74 * time.Hour) // 72 UTC but EMC goes on UTC+2 (i think?)
-
 			spawn := t.Coordinates.Spawn
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
-			return fmt.Sprintf("`%s` fell into ruin <t:%d:R>. Located at %s\nDeletion in <t:%d:R>.", t.Name, ruinedTs/1000, locationLink, deleteTs.Unix())
+			ruinedTs := *t.Timestamps.RuinedAt
+			ruinedTime := time.UnixMilli(int64(*t.Timestamps.RuinedAt))
+			after72h := ruinedTime.Add(72 * time.Hour)
+
+			nextNewDay := time.Date(after72h.Year(), after72h.Month(), after72h.Day(), 11, 0, 0, 0, time.UTC)
+			if !nextNewDay.After(after72h) {
+				nextNewDay = nextNewDay.Add(24 * time.Hour)
+			}
+
+			return fmt.Sprintf(
+				"`%s` fell into ruin <t:%d:R>. Located at %s\nThe next Towny new day is on %s (<t:%d:R>).",
+				t.Name, ruinedTs/1000, locationLink, nextNewDay.Format(time.RFC1123), nextNewDay.Unix(),
+			)
 		})
 
 		s.ChannelMessageSendEmbed("1420855039357878469", &discordgo.MessageEmbed{
