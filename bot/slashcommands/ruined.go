@@ -67,7 +67,13 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 
 		for idx, t := range items {
 			ruinedTs := *t.Timestamps.RuinedAt
-			deleteTs := time.UnixMilli(int64(ruinedTs)).Add(74 * time.Hour) // 72 UTC but EMC goes on UTC+2 (i think?)
+			ruinedTime := time.UnixMilli(int64(*t.Timestamps.RuinedAt))
+			after72h := ruinedTime.Add(72 * time.Hour)
+
+			nextNewDay := time.Date(after72h.Year(), after72h.Month(), after72h.Day(), 11, 0, 0, 0, time.UTC)
+			if !nextNewDay.After(after72h) {
+				nextNewDay = nextNewDay.Add(24 * time.Hour)
+			}
 
 			chunks := utils.HumanizedSprintf("%s `%d`", common.EMOJIS.CHUNK, t.Stats.NumTownBlocks)
 			balance := utils.HumanizedSprintf("%s `%0.0f`", common.EMOJIS.GOLD_INGOT, t.Stats.Balance)
@@ -76,8 +82,8 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
 			desc += fmt.Sprintf(
-				"%d. **%s** fell into ruin <t:%d:R> | %s Chunks %sG\nScheduled for deletion in <t:%d:R>. Located at %s\n\n",
-				start+idx+1, t.Name, ruinedTs/1000, chunks, balance, deleteTs.Unix(), locationLink,
+				"%d. **%s** fell into ruin <t:%d:R>. %s Chunks %sG\nLocated at %s. Will be deleted at the New Day on %s (<t:%d:R>).\n\n",
+				start+idx+1, t.Name, ruinedTs/1000, chunks, balance, locationLink, nextNewDay.Format(time.RFC1123), nextNewDay.Unix(),
 			)
 		}
 
