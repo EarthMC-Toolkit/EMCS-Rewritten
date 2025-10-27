@@ -232,7 +232,7 @@ func NewTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 			NewEmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
 			NewEmbedField("Nation", fmt.Sprintf("`%s`", nationName), true),
 			NewEmbedField("Location", fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=3)", locX, locY, locZ, locX, locZ), true),
-			NewEmbedField("Area", utils.HumanizedSprintf("`%d`/`%d` Chunks", town.Stats.NumTownBlocks, town.Stats.MaxTownBlocks), true),
+			NewEmbedField("Area", utils.HumanizedSprintf("`%d`/`%d` Chunks", town.Size(), town.MaxSize()), true),
 			NewEmbedField("Balance", utils.HumanizedSprintf("`%0.0f`G %s", town.Bal(), EMOJIS.GOLD_INGOT), true),
 			NewEmbedField("Residents", utils.HumanizedSprintf("`%d`", town.Stats.NumResidents), true),
 		},

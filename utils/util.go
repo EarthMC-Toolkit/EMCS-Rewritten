@@ -19,6 +19,10 @@ import (
 // dis printer is bri ish
 var printer = message.NewPrinter(language.BritishEnglish)
 
+func PrettyPrint(v any) (int, error) {
+	return printer.Print(Prettify(v))
+}
+
 // Calls Sprintf like usual, but in a humanized way. For example:
 //
 //	utils.HumanizedSprintf("Number is: %d\n", 10000)
@@ -56,12 +60,10 @@ func FormatTime(t time.Time) string {
 		suffix = "rd"
 	}
 
-	return fmt.Sprintf("%s, %s %d%s %dPM UTC",
-		t.Weekday().String()[:3], // Mon, Tue, etc.
-		t.Month().String()[:3],   // Jan, Feb, etc.
-		day,
-		suffix,
-		t.Hour()%12,
+	return fmt.Sprintf("%s, %s %d%s %dAM UTC",
+		t.Weekday().String()[:3], // First three letters of the weekday word.
+		t.Month().String()[:3],   // First three letters of the month word.
+		day, suffix, t.Hour()%12,
 	)
 }
 
@@ -82,10 +84,6 @@ func FormatTime(t time.Time) string {
 
 // 	return fmt.Sprintf("%ds", secs)
 // }
-
-func PrettyPrint(v any) (int, error) {
-	return printer.Print(Prettify(v))
-}
 
 func Prettify(v any) string {
 	litter.Config.StripPackageNames = true

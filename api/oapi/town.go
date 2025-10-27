@@ -79,7 +79,11 @@ func (t TownInfo) Bal() float32 {
 	return t.Stats.Balance
 }
 
-func (t TownInfo) Area() uint32 {
+func (t TownInfo) Size() uint32 {
+	return t.Stats.NumTownBlocks
+}
+
+func (t TownInfo) MaxSize() uint32 {
 	return t.Stats.MaxTownBlocks
 }
 

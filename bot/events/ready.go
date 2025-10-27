@@ -243,8 +243,8 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 	count := len(ruined)
 	if count > 0 {
 		desc := lop.Map(ruined, func(t oapi.TownInfo, _ int) string {
-			chunks := utils.HumanizedSprintf("%s `%d`", common.EMOJIS.CHUNK, t.Stats.NumTownBlocks)
-			balance := utils.HumanizedSprintf("%s `%0.0f`", common.EMOJIS.GOLD_INGOT, t.Stats.Balance)
+			chunks := utils.HumanizedSprintf("%s `%d`", common.EMOJIS.CHUNK, t.Size())
+			balance := utils.HumanizedSprintf("%s `%0.0f`", common.EMOJIS.GOLD_INGOT, t.Bal())
 
 			spawn := t.Coordinates.Spawn
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
@@ -287,7 +287,13 @@ func TrySendFallenNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			spawn := t.Coordinates.Spawn
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
-			return fmt.Sprintf("`%s` was deleted. Located at %s", t.Name, locationLink)
+			chunks := utils.HumanizedSprintf("%s `%d`", common.EMOJIS.CHUNK, t.Size())
+			balance := utils.HumanizedSprintf("%s `%0.0f`", common.EMOJIS.GOLD_INGOT, t.Bal())
+
+			return fmt.Sprintf(
+				"`%s` was deleted. Located at %s.\nFounder: `%s` %sG %s Chunks",
+				t.Name, locationLink, t.Founder, balance, chunks,
+			)
 		})
 
 		s.ChannelMessageSendEmbed("1420855039357878469", &discordgo.MessageEmbed{
