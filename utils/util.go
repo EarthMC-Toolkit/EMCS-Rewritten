@@ -12,6 +12,8 @@ import (
 	"golang.org/x/text/message"
 )
 
+const DateTimeFormat = "Monday, January 2 3PM MST"
+
 // dis printer is bri ish
 var printer = message.NewPrinter(language.BritishEnglish)
 

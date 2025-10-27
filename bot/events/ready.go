@@ -243,10 +243,8 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 	count := len(ruined)
 	if count > 0 {
 		desc := lop.Map(ruined, func(t oapi.TownInfo, _ int) string {
-			// nation := "No Nation"
-			// if t.Nation.Name != nil {
-			// 	nation = *t.Nation.Name
-			// }
+			chunks := utils.HumanizedSprintf("%s `%d`", common.EMOJIS.CHUNK, t.Stats.NumTownBlocks)
+			balance := utils.HumanizedSprintf("%s `%0.0f`", common.EMOJIS.GOLD_INGOT, t.Stats.Balance)
 
 			spawn := t.Coordinates.Spawn
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
@@ -261,8 +259,8 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			}
 
 			return fmt.Sprintf(
-				"`%s` fell into ruin <t:%d:R>. Located at %s\nWill be deleted at the New Day on %s (<t:%d:R>).",
-				t.Name, ruinedTs/1000, locationLink, nextNewDay.Format(time.RFC1123), nextNewDay.Unix(),
+				"`%s` fell into ruin <t:%d:R> at %s. %s Chunks %sG\nWill be deleted on `%s` (<t:%d:R>).",
+				t.Name, ruinedTs/1000, locationLink, chunks, balance, nextNewDay.Format(utils.DateTimeFormat), nextNewDay.Unix(),
 			)
 		})
 
