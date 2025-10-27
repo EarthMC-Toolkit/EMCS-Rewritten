@@ -259,8 +259,8 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			}
 
 			return fmt.Sprintf(
-				"`%s` fell into ruin <t:%d:R> at %s. %s Chunks %sG\nWill be deleted on `%s` (<t:%d:R>).",
-				t.Name, ruinedTs/1000, locationLink, chunks, balance, nextNewDay.Format(utils.DateTimeFormat), nextNewDay.Unix(),
+				"`%s` fell into ruin <t:%d:R> at %s. %sG %s\nDeletion on `%s` (<t:%d:R>).",
+				t.Name, ruinedTs/1000, locationLink, balance, chunks, utils.FormatTime(nextNewDay), nextNewDay.Unix(),
 			)
 		})
 

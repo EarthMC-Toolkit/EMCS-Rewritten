@@ -1,10 +1,12 @@
 package utils
 
 import (
+	"fmt"
 	"maps"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/sanity-io/litter"
@@ -12,7 +14,7 @@ import (
 	"golang.org/x/text/message"
 )
 
-const DateTimeFormat = "Monday, January 2 3PM MST"
+//const DateTimeFormat = "Jan 2 3PM MST"
 
 // dis printer is bri ish
 var printer = message.NewPrinter(language.BritishEnglish)
@@ -38,6 +40,29 @@ func HumanizeDuration(minutes float64) (float64, string) {
 	}
 
 	return minutes * 60, "sec"
+}
+
+// Formats a time.Time to a string in the format "Wed, Jan 2nd 3PM UTC".
+func FormatTime(t time.Time) string {
+	t = t.UTC() // ensure UTC
+
+	day := t.Day()
+	suffix := "th"
+	if day%10 == 1 && day != 11 {
+		suffix = "st"
+	} else if day%10 == 2 && day != 12 {
+		suffix = "nd"
+	} else if day%10 == 3 && day != 13 {
+		suffix = "rd"
+	}
+
+	return fmt.Sprintf("%s, %s %d%s %dPM UTC",
+		t.Weekday().String()[:3], // Mon, Tue, etc.
+		t.Month().String()[:3],   // Jan, Feb, etc.
+		day,
+		suffix,
+		t.Hour()%12,
+	)
 }
 
 // Takes an amount of seconds and converts it to a string with any

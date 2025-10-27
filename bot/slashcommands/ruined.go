@@ -82,8 +82,8 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
 			desc += fmt.Sprintf(
-				"%d. **%s** fell into ruin <t:%d:R> at %s. %s Chunks %sG\nWill be deleted on `%s` (<t:%d:R>).\n\n",
-				start+idx+1, t.Name, ruinedTs/1000, locationLink, chunks, balance, nextNewDay.Format(utils.DateTimeFormat), nextNewDay.Unix(),
+				"%d. **%s** fell into ruin <t:%d:R> at %s. %sG %s\nDeletion on `%s` (<t:%d:R>).\n\n",
+				start+idx+1, t.Name, ruinedTs/1000, locationLink, balance, chunks, utils.FormatTime(nextNewDay), nextNewDay.Unix(),
 			)
 		}
 
