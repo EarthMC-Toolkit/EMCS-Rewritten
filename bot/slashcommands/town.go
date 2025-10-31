@@ -2,7 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
+	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"strings"
@@ -56,6 +56,6 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No towns retrieved. Town `%s` does not seem to exist.", townName))
 	}
 
-	embed := common.NewTownEmbed(towns[0])
+	embed := shared.NewTownEmbed(towns[0])
 	return discordutil.FollowUpEmbeds(s, i, embed)
 }

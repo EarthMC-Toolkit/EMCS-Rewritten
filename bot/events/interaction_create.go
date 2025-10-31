@@ -1,9 +1,9 @@
 package events
 
 import (
-	"emcsrw/bot/common"
 	"emcsrw/bot/slashcommands"
 	"emcsrw/bot/store"
+	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"log"
@@ -47,7 +47,7 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 	}
 
 	if cmdName != "usage" {
-		mdb, err := store.GetMapDB(common.ACTIVE_MAP)
+		mdb, err := store.GetMapDB(shared.ACTIVE_MAP)
 		if err != nil {
 			fmt.Println()
 			log.Printf("error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)
@@ -99,7 +99,7 @@ func OnInteractionCreateModalSubmit(s *discordgo.Session, i *discordgo.Interacti
 
 // Handles the submission of the modal for creating an alliance.
 func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction, _ discordgo.ModalSubmitInteractionData) error {
-	allianceStore, err := store.GetStoreForMap[store.Alliance](common.ACTIVE_MAP, "alliances")
+	allianceStore, err := store.GetStoreForMap[store.Alliance](shared.ACTIVE_MAP, "alliances")
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction, 
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully created alliance:",
 		Embeds: []*discordgo.MessageEmbed{
-			common.NewAllianceEmbed(s, &alliance),
+			shared.NewAllianceEmbed(s, &alliance),
 		},
 	})
 

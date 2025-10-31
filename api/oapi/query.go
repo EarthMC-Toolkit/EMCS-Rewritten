@@ -1,7 +1,7 @@
 package oapi
 
 import (
-	"emcsrw/utils"
+	"emcsrw/utils/requests"
 	"sync"
 
 	"github.com/samber/lo"
@@ -54,36 +54,36 @@ func NewPostQueryTemplate[T any](identifiers []string, template T) *PostBodyTemp
 //
 // Do not call this function if you do not expect an [Entity] slice back. For example QueryList(oapi.SERVER_ENDPOINT) will fail.
 func QueryList(endpoint Endpoint) ([]Entity, error) {
-	return utils.JsonGetRequest[[]Entity](endpoint)
+	return requests.JsonGetRequest[[]Entity](endpoint)
 }
 
 // Queries the Official API with a GET request to the server endpoint.
 func QueryServer() (ServerInfo, error) {
-	return utils.JsonGetRequest[ServerInfo](ENDPOINT_BASE)
+	return requests.JsonGetRequest[ServerInfo](ENDPOINT_BASE)
 }
 
 func QueryMysteryMaster() ([]MysteryMaster, error) {
-	return utils.JsonGetRequest[[]MysteryMaster](ENDPOINT_MYSTERY_MASTER)
+	return requests.JsonGetRequest[[]MysteryMaster](ENDPOINT_MYSTERY_MASTER)
 }
 
 // Queries the Official API with a POST request providing all valid town identifier (name/uuid) strings to the body "query" key.
 func QueryTowns(identifiers ...string) ([]TownInfo, error) {
-	return utils.JsonPostRequest[[]TownInfo](ENDPOINT_TOWNS, NewPostQuery(identifiers...))
+	return requests.JsonPostRequest[[]TownInfo](ENDPOINT_TOWNS, NewPostQuery(identifiers...))
 }
 
 // Queries the Official API with a POST request providing all valid nation identifier (name/uuid) strings to the body "query" key.
 func QueryNations(identifiers ...string) ([]NationInfo, error) {
-	return utils.JsonPostRequest[[]NationInfo](ENDPOINT_NATIONS, NewPostQuery(identifiers...))
+	return requests.JsonPostRequest[[]NationInfo](ENDPOINT_NATIONS, NewPostQuery(identifiers...))
 }
 
 // Queries the Official API with a POST request providing all valid player identifier (name/uuid) strings to the body "query" key.
 func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
-	return utils.JsonPostRequest[[]PlayerInfo](ENDPOINT_PLAYERS, NewPostQuery(identifiers...))
+	return requests.JsonPostRequest[[]PlayerInfo](ENDPOINT_PLAYERS, NewPostQuery(identifiers...))
 }
 
 // Queries the Official API with a POST request providing all valid quarter identifier (name/uuid) strings to the body "query" key.
 func QueryQuarters(identifiers ...string) ([]Quarter, error) {
-	return utils.JsonPostRequest[[]Quarter](ENDPOINT_QUARTERS, NewPostQuery(identifiers...))
+	return requests.JsonPostRequest[[]Quarter](ENDPOINT_QUARTERS, NewPostQuery(identifiers...))
 }
 
 // Queries entities of type T in chunks concurrently where each chunk (request) query may only have up to QUERY_LIMIT identifiers.

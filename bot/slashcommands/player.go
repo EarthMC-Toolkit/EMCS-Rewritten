@@ -2,7 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
+	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"strings"
@@ -65,6 +65,6 @@ func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerNa
 		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No players retrieved. Player `%s` does not seem to exist.", playerName))
 	}
 
-	embed := common.NewPlayerEmbed(players[0])
+	embed := shared.NewPlayerEmbed(players[0])
 	return discordutil.FollowUpEmbeds(s, i, embed)
 }

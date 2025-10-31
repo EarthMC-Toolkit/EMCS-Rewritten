@@ -1,8 +1,8 @@
 package slashcommands
 
 import (
-	"emcsrw/bot/common"
 	"emcsrw/bot/store"
+	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"strings"
@@ -61,7 +61,7 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordg
 	ident := data.GetOption("query").GetOption("identifier").StringValue()
 
 	// Try find alliance in DB
-	db, err := store.GetMapDB(common.ACTIVE_MAP)
+	db, err := store.GetMapDB(shared.ACTIVE_MAP)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordg
 		return err
 	}
 
-	_, err = discordutil.FollowUpEmbeds(s, i, common.NewAllianceEmbed(s, alliance))
+	_, err = discordutil.FollowUpEmbeds(s, i, shared.NewAllianceEmbed(s, alliance))
 	return err
 }
 

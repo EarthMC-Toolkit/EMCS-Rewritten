@@ -1,18 +1,6 @@
-package utils
+package geometry
 
 import "math"
-
-var ACTION_SPEEDS = struct {
-	SNEAK  float32
-	WALK   float32
-	SPRINT float32
-	BOAT   float32
-}{
-	SNEAK:  1.295,
-	WALK:   4.317,
-	SPRINT: 5.612,
-	BOAT:   8.0,
-}
 
 // Calculates the "taxi-cab" distance, which is the distance between two points using the shortest path in a grid like manner.
 // As opposed to Euclidean distance, Manhattan avoids diagonal intersections and is generally used for fast measurements where precision isn't required.

@@ -2,8 +2,8 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
 	"emcsrw/bot/store"
+	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"sort"
@@ -13,6 +13,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
 )
+
+var NewEmbedField = discordutil.NewEmbedField
 
 type QuartersCommand struct{}
 
@@ -49,7 +51,7 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return fmt.Errorf("no name input for /quarters forsale sub cmd. wtf?")
 	}
 
-	townStore, err := store.GetStoreForMap[oapi.TownInfo](common.ACTIVE_MAP, "towns")
+	townStore, err := store.GetStoreForMap[oapi.TownInfo](shared.ACTIVE_MAP, "towns")
 	if err != nil {
 		return err
 	}
@@ -123,16 +125,16 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 
 		embed := &discordgo.MessageEmbed{
 			Title:  fmt.Sprintf("Quarters For Sale | `%s` | %s", affiliation, pageStr),
-			Footer: common.DEFAULT_FOOTER,
+			Footer: shared.DEFAULT_FOOTER,
 			Color:  discordutil.BLURPLE,
 			Fields: []*discordgo.MessageEmbedField{
-				common.NewEmbedField("Name", fmt.Sprintf("`%s`", q.Name), true),
-				common.NewEmbedField("Current Owner", fmt.Sprintf("`%s`", owner), true),
-				common.NewEmbedField("Created", registeredStr, true),
-				//common.NewEmbedField("Creator", fmt.Sprintf("`%s`", creator), true),
-				common.NewEmbedField("Type", fmt.Sprintf("`%s`", q.Type), true),
-				common.NewEmbedField("Embassy", fmt.Sprintf("`%t`", q.Status.IsEmbassy), true),
-				common.NewEmbedField("Price", fmt.Sprintf("`%.0f`G %s", price, common.EMOJIS.GOLD_INGOT), true),
+				NewEmbedField("Name", fmt.Sprintf("`%s`", q.Name), true),
+				NewEmbedField("Current Owner", fmt.Sprintf("`%s`", owner), true),
+				NewEmbedField("Created", registeredStr, true),
+				//NewEmbedField("Creator", fmt.Sprintf("`%s`", creator), true),
+				NewEmbedField("Type", fmt.Sprintf("`%s`", q.Type), true),
+				NewEmbedField("Embassy", fmt.Sprintf("`%t`", q.Status.IsEmbassy), true),
+				NewEmbedField("Price", fmt.Sprintf("`%.0f`G %s", price, shared.EMOJIS.GOLD_INGOT), true),
 			},
 		}
 

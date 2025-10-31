@@ -2,8 +2,8 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
 	"emcsrw/bot/store"
+	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"log"
@@ -42,7 +42,7 @@ func (cmd NewDayCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 
 func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 	// grab new day time
-	db, err := store.GetMapDB(common.ACTIVE_MAP)
+	db, err := store.GetMapDB(shared.ACTIVE_MAP)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 			"The next Towny new day occurs in <t:%d:R>.\nExactly %s from now.",
 			sec, formatDuration(secUntilNewDay),
 		),
-		Footer: common.DEFAULT_FOOTER,
+		Footer: shared.DEFAULT_FOOTER,
 		Color:  discordutil.DARK_PURPLE,
 	}
 

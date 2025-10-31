@@ -12,15 +12,15 @@ type AllianceOptionals struct {
 	Colours    *AllianceColours `json:"colours,omitempty"`
 }
 
-// type AllianceID = string
 type Alliance struct {
 	UUID             uint64            `json:"uuid"`             // First 48bits = ms timestamp. Extra 16bits = randomness.
 	Identifier       string            `json:"identifier"`       // Case-insensitive colloquial short name for lookup.
 	Label            string            `json:"label"`            // Full name for display purposes.
 	RepresentativeID *string           `json:"representativeID"` // Discord ID of the user representing this alliance.
-	Children         []string          `json:"children"`         // UUIDs of child alliances (sub-alliances, meganations under a pact, etc).
+	Children         []string          `json:"children"`         // UUIDs of child alliances.
 	OwnNations       []string          `json:"ownNations"`       // UUIDs of nations in this alliance, EXCLUDING ones in child alliances.
 	UpdatedTimestamp *uint64           `json:"updatedTimestamp"` // Unix timestamp (ms) at which the last update was made to this alliance.
+	// Type          string      	   `json:"type"`          	 // Type of alliance (sub, mega, pact). 
 	Optional         AllianceOptionals `json:"optional"`         // Extra properties that are not required for basic alliance functionality.
 }
 

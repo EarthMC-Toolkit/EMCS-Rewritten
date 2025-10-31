@@ -2,8 +2,8 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
 	"emcsrw/bot/store"
+	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"errors"
 	"fmt"
@@ -66,7 +66,7 @@ func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName string) error {
 	discordutil.DeferReply(s, i)
 
-	db, err := store.GetMapDB(common.ACTIVE_MAP)
+	db, err := store.GetMapDB(shared.ACTIVE_MAP)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 	}
 
 	return sendPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
-		balStr := fmt.Sprintf("%s `%0.f`G", common.EMOJIS.GOLD_INGOT, p.Stats.Balance)
+		balStr := fmt.Sprintf("%s `%0.f`G", shared.EMOJIS.GOLD_INGOT, p.Stats.Balance)
 		return fmt.Sprintf("`%s` (%s) %s\n", p.Name, p.GetRank(), balStr)
 	})
 }
@@ -106,7 +106,7 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) error {
 	discordutil.DeferReply(s, i)
 
-	db, err := store.GetMapDB(common.ACTIVE_MAP)
+	db, err := store.GetMapDB(shared.ACTIVE_MAP)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationN
 	}
 
 	return sendPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
-		balStr := fmt.Sprintf("%s `%0.f`G", common.EMOJIS.GOLD_INGOT, p.Stats.Balance)
+		balStr := fmt.Sprintf("%s `%0.f`G", shared.EMOJIS.GOLD_INGOT, p.Stats.Balance)
 		return fmt.Sprintf("`%s` of **%s** (%s) %s\n", p.Name, *p.Town.Name, p.GetRank(), balStr)
 	})
 }

@@ -1,8 +1,8 @@
 package slashcommands
 
 import (
-	"emcsrw/bot/common"
 	"emcsrw/bot/store"
+	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -51,7 +51,7 @@ func (cmd UsageCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 }
 
 func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
-	mdb, err := store.GetMapDB(common.ACTIVE_MAP)
+	mdb, err := store.GetMapDB(shared.ACTIVE_MAP)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 
 	embed := &discordgo.MessageEmbed{
 		Title:  fmt.Sprintf("Bot Usage Statistics | `%s`", author.Username),
-		Footer: common.DEFAULT_FOOTER,
+		Footer: shared.DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
 			discordutil.NewEmbedField("Total Commands Executed", utils.HumanizedSprintf("`%d`", usage.TotalCommandsExecuted()), false),
 			discordutil.NewEmbedField("Top Commands (All Time)", mostUsedStr, true),

@@ -2,7 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
+	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
 
@@ -54,7 +54,7 @@ func SendMysteryMasterList(s *discordgo.Session, i *discordgo.Interaction) (*dis
 
 		content := ""
 		for idx, item := range mmList[start:end] {
-			changeEmoji := lo.Ternary(*item.Change == "UP", common.EMOJIS.ARROW_UP_GREEN, common.EMOJIS.ARROW_DOWN_RED)
+			changeEmoji := lo.Ternary(*item.Change == "UP", shared.EMOJIS.ARROW_UP_GREEN, shared.EMOJIS.ARROW_DOWN_RED)
 			content += fmt.Sprintf("%d. %s %s\n", start+idx+1, changeEmoji, item.Name) // add start to keep index across pages. just idx+1 shows 1-perPage every time.
 		}
 
