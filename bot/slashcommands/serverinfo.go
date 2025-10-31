@@ -2,8 +2,8 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
 	"emcsrw/bot/store"
+	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -25,7 +25,7 @@ func (cmd ServerInfoCommand) Options() AppCommandOpts {
 }
 
 func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	db, err := store.GetMapDB(common.ACTIVE_MAP)
+	db, err := store.GetMapDB(shared.ACTIVE_MAP)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.Interact
 		Title:  "Server Info",
 		Fields: []*discordgo.MessageEmbedField{timestampsField, vpField, statsField},
 		Color:  discordutil.BLURPLE,
-		Footer: common.DEFAULT_FOOTER,
+		Footer: shared.DEFAULT_FOOTER,
 	}
 
 	// Should generally respond in 3 seconds. May need to defer in future?

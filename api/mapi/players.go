@@ -1,6 +1,6 @@
 package mapi
 
-import "emcsrw/utils"
+import "emcsrw/utils/requests"
 
 const PLAYERS_URL = "https://map.earthmc.net/tiles/players.json"
 
@@ -24,8 +24,9 @@ type PlayersResponse struct {
 	Players []MapPlayer `json:"players"`
 }
 
+// TODO: Maybe return map instead. Use UUID as key for faster lookup?
 func GetVisiblePlayers() ([]MapPlayer, error) {
-	res, err := utils.JsonGetRequest[PlayersResponse](PLAYERS_URL)
+	res, err := requests.JsonGetRequest[PlayersResponse](PLAYERS_URL)
 	if err != nil {
 		return nil, err
 	}

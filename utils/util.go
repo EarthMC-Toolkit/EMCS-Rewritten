@@ -130,6 +130,22 @@ func HexToInt(hex string) int {
 	return int(output)
 }
 
+// Uses the built-in copy function and outputs a shallow copy of the input slice.
+//
+// Elements are copied into a new slice, but if T is a reference type (e.g. pointer, map, slice),
+// the references themselves are copied, not the underlying data.
+func CopySlice[T any](value []T) []T {
+	cpy := make([]T, len(value))
+	copy(cpy, value)
+	return cpy
+}
+
+func CopyMap[K comparable, V any](value map[K]V) map[K]V {
+	cpy := make(map[K]V, len(value))
+	maps.Copy(cpy, value)
+	return cpy
+}
+
 // Returns items in listA but not in listB based on keyFunc.
 func DifferenceBy[T any, K comparable](listA []T, listB []T, keyFn func(T) K) ([]T, map[K]struct{}) {
 	seen := make(map[K]struct{}, len(listB))
@@ -147,32 +163,16 @@ func DifferenceBy[T any, K comparable](listA []T, listB []T, keyFn func(T) K) ([
 	return result, seen
 }
 
-func DifferenceByReverse[T any, K comparable](listB []T, seenA map[K]struct{}, keyFn func(T) K) []T {
-	onlyB := make([]T, 0)
-	for _, v := range listB {
-		if _, ok := seenA[keyFn(v)]; !ok {
-			onlyB = append(onlyB, v)
-		}
-	}
+// func DifferenceByReverse[T any, K comparable](listB []T, seenA map[K]struct{}, keyFn func(T) K) []T {
+// 	onlyB := make([]T, 0)
+// 	for _, v := range listB {
+// 		if _, ok := seenA[keyFn(v)]; !ok {
+// 			onlyB = append(onlyB, v)
+// 		}
+// 	}
 
-	return onlyB
-}
-
-// Uses the built-in copy function and outputs a shallow copy of the input slice.
-//
-// Elements are copied into a new slice, but if T is a reference type (e.g. pointer, map, slice),
-// the references themselves are copied, not the underlying data.
-func CopySlice[T any](value []T) []T {
-	cpy := make([]T, len(value))
-	copy(cpy, value)
-	return cpy
-}
-
-func CopyMap[K comparable, V any](value map[K]V) map[K]V {
-	cpy := make(map[K]V, len(value))
-	maps.Copy(cpy, value)
-	return cpy
-}
+// 	return onlyB
+// }
 
 // type UUID4 uuid.UUID
 

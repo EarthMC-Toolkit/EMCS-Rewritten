@@ -1,4 +1,4 @@
-package common
+package shared
 
 import (
 	"emcsrw/api/oapi"
@@ -15,6 +15,7 @@ import (
 	dgo "github.com/bwmarrin/discordgo"
 )
 
+// NOTE: Potential import cycle. Consider just duplicating necessary funcs rather than importing discordutil.
 var NewEmbedField = discordutil.NewEmbedField
 var PrependField = discordutil.PrependField
 var AddField = discordutil.AddField

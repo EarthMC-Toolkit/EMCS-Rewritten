@@ -2,8 +2,8 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
 	"emcsrw/bot/store"
+	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -32,7 +32,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	db, _ := store.GetMapDB(common.ACTIVE_MAP)
+	db, _ := store.GetMapDB(shared.ACTIVE_MAP)
 	townsStore, err := store.GetStore[oapi.TownInfo](db, "towns")
 	if err != nil {
 		log.Printf("failed to get towns from db:\n%v", err)
@@ -75,8 +75,8 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 				nextNewDay = nextNewDay.Add(24 * time.Hour)
 			}
 
-			chunks := utils.HumanizedSprintf("%s `%d`", common.EMOJIS.CHUNK, t.Size())
-			balance := utils.HumanizedSprintf("%s `%0.0f`", common.EMOJIS.GOLD_INGOT, t.Bal())
+			chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
+			balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 
 			spawn := t.Coordinates.Spawn
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
@@ -89,7 +89,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 
 		embed := &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("List of Ruined Towns [%d]", count),
-			Footer:      common.DEFAULT_FOOTER,
+			Footer:      shared.DEFAULT_FOOTER,
 			Description: desc + fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages()),
 			Color:       discordutil.DARK_GOLD,
 		}

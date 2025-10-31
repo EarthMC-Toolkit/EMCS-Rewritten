@@ -2,9 +2,9 @@ package bot
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
 	"emcsrw/bot/events"
 	"emcsrw/bot/store"
+	"emcsrw/shared"
 	"fmt"
 	"log"
 	"os"
@@ -42,9 +42,9 @@ func Run(botToken string) {
 
 	fmt.Printf("\nInitializing map databases..\n")
 
-	auroraDB, err := store.NewMapDB("./db", common.SUPPORTED_MAPS.AURORA)
+	auroraDB, err := store.NewMapDB("./db", shared.SUPPORTED_MAPS.AURORA)
 	if err != nil {
-		log.Fatalf("Cannot initialize database for map '%s':\n%v", common.SUPPORTED_MAPS.AURORA, err)
+		log.Fatalf("Cannot initialize database for map '%s':\n%v", shared.SUPPORTED_MAPS.AURORA, err)
 	}
 
 	// Define all stores we want to exist on Aurora database.

@@ -3,9 +3,9 @@ package events
 import (
 	"emcsrw/api"
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
 	"emcsrw/bot/slashcommands"
 	"emcsrw/bot/store"
+	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -18,6 +18,9 @@ import (
 	"github.com/samber/lo"
 	lop "github.com/samber/lo/parallel"
 )
+
+const TFLOW_CHANNEL_ID = "1420855039357878469"
+const VP_CHANNEL_ID = "1420146203454083144"
 
 // VoteParty notification tracking.
 var vpThresholds = []int{500, 300, 150, 50}
@@ -34,7 +37,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	fmt.Printf("Logged in as: %s\n\n", s.State.User.Username)
 	slashcommands.SyncWithRemote(s)
 
-	db, err := store.GetMapDB(common.ACTIVE_MAP)
+	db, err := store.GetMapDB(shared.ACTIVE_MAP)
 	if err != nil {
 		fmt.Printf("\n[OnReady]: wtf happened? error fetching db:\n%v", err)
 		return
@@ -243,8 +246,8 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 	count := len(ruined)
 	if count > 0 {
 		desc := lop.Map(ruined, func(t oapi.TownInfo, _ int) string {
-			chunks := utils.HumanizedSprintf("%s `%d`", common.EMOJIS.CHUNK, t.Size())
-			balance := utils.HumanizedSprintf("%s `%0.0f`", common.EMOJIS.GOLD_INGOT, t.Bal())
+			chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
+			balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 
 			spawn := t.Coordinates.Spawn
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
@@ -264,9 +267,9 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			)
 		})
 
-		s.ChannelMessageSendEmbed("1420855039357878469", &discordgo.MessageEmbed{
+		s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID, &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Ruin Events [%d]", count),
-			Description: strings.Join(desc, "\n"),
+			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.DARK_GOLD,
 		})
 	}
@@ -287,8 +290,8 @@ func TrySendFallenNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			spawn := t.Coordinates.Spawn
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
-			chunks := utils.HumanizedSprintf("%s `%d`", common.EMOJIS.CHUNK, t.Size())
-			balance := utils.HumanizedSprintf("%s `%0.0f`", common.EMOJIS.GOLD_INGOT, t.Bal())
+			chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
+			balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 
 			return fmt.Sprintf(
 				"`%s` was deleted. Located at %s.\nFounder: `%s` %sG %s Chunks",
@@ -296,9 +299,9 @@ func TrySendFallenNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			)
 		})
 
-		s.ChannelMessageSendEmbed("1420855039357878469", &discordgo.MessageEmbed{
+		s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID, &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Fall Events [%d]", count),
-			Description: strings.Join(desc, "\n"),
+			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.RED,
 		})
 	}
@@ -329,7 +332,7 @@ func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
 				msg += fmt.Sprintf("\n\n:chart_with_upwards_trend: **Rate**: ~%.2f votes/min,\n:timer: **ETA**: %.1f %s", rate, etaValue, etaUnit)
 			}
 
-			s.ChannelMessageSend("1420146203454083144", msg)
+			s.ChannelMessageSend(VP_CHANNEL_ID, msg)
 			vpNotified[threshold] = true
 		}
 	}
@@ -354,12 +357,12 @@ func TrySendLeftJoinedNotif(s *discordgo.Session, towns, staleTowns []oapi.TownI
 			Title: "Player Flow | Town Join/Leave Events",
 			Fields: []*discordgo.MessageEmbedField{
 				{
-					Name:   fmt.Sprintf("%s Became townless [%d]", common.EMOJIS.EXIT, leftCount),
+					Name:   fmt.Sprintf("%s Became townless [%d]", shared.EMOJIS.EXIT, leftCount),
 					Value:  strings.Join(left, "\n\n"),
 					Inline: true,
 				},
 				{
-					Name:   fmt.Sprintf("%s Became a resident [%d]", common.EMOJIS.ENTRY, joinedCount),
+					Name:   fmt.Sprintf("%s Became a resident [%d]", shared.EMOJIS.ENTRY, joinedCount),
 					Value:  strings.Join(joined, "\n\n"),
 					Inline: true,
 				},
@@ -406,7 +409,7 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 			left = append(joined, utils.HumanizedSprintf(
 				"`%s` left %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s\nRuined %s Overclaimable %s",
 				name, town.Name, nation,
-				town.Mayor.Name, town.Bal(), common.EMOJIS.GOLD_INGOT, ruined, overclaimable,
+				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT, ruined, overclaimable,
 			))
 		}
 	}
@@ -430,7 +433,7 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 			joined = append(joined, utils.HumanizedSprintf(
 				"`%s` joined %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s\nRuined %s Overclaimable %s",
 				name, town.Name, nation,
-				town.Mayor.Name, town.Bal(), common.EMOJIS.GOLD_INGOT, ruined, overclaimable,
+				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT, ruined, overclaimable,
 			))
 		}
 	}

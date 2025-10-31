@@ -2,7 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
+	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"strings"
@@ -59,6 +59,6 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No nations retrieved. Nation `%s` does not seem to exist.", nationNameArg))
 	}
 
-	embed := common.NewNationEmbed(nations[0])
+	embed := shared.NewNationEmbed(nations[0])
 	return discordutil.FollowUpEmbeds(s, i, embed)
 }

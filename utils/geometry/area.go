@@ -1,4 +1,4 @@
-package utils
+package geometry
 
 import "math"
 
@@ -40,8 +40,4 @@ func CalcPolygonArea2D(X, Z []float64, numPoints int) float64 {
 	}
 
 	return math.Abs(area / 2)
-}
-
-func RoundToNearest16(num float64) float64 {
-	return math.Round(num/16) * 16
 }

@@ -2,8 +2,8 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/common"
 	"emcsrw/bot/store"
+	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -23,12 +23,7 @@ func (cmd VotePartyCommand) Options() AppCommandOpts {
 }
 
 func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	db, err := store.GetMapDB(common.ACTIVE_MAP)
-	if err != nil {
-		return err
-	}
-
-	serverStore, err := store.GetStore[oapi.ServerInfo](db, "server")
+	serverStore, err := store.GetStoreForMap[oapi.ServerInfo](shared.ACTIVE_MAP, "server")
 	if err != nil {
 		return err
 	}
@@ -49,7 +44,7 @@ func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.Interacti
 		Title:       "VoteParty Status",
 		Description: utils.HumanizedSprintf("Votes Completed/Target: `%d`/`%d`\nVotes Left: `%d`", vpTarget-vpRemaining, vpTarget, vpRemaining),
 		Color:       discordutil.BLURPLE,
-		Footer:      common.DEFAULT_FOOTER,
+		Footer:      shared.DEFAULT_FOOTER,
 	}
 
 	// Should generally respond in 3 seconds. May need to defer in future?
