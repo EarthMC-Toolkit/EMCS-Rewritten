@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"emcsrw/api/oapi"
 	"emcsrw/bot/store"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo"
 )
 
 const EDITOR_ROLE = "966359842417705020"
@@ -24,50 +26,73 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 	return AppCommandOpts{
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "query",
-			Description: "Query information about an alliance (meganation or pact between nations).",
+			Name:        "create",
+			Description: "Create an alliance. This command is for Editors only.",
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
+			Name:        "edit",
+			Description: "Edit alliance info. This command is for Editors only.",
 			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
+				{
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Name:        "functional",
+					Description: "Edit alliance fields that are required for basic functionality.",
+					Options: AppCommandOpts{
+						discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
+					},
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Name:        "optional",
+					Description: "Edit alliance fields that are not tied to its functionality.",
+					Options: AppCommandOpts{
+						discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
+					},
+				},
 			},
 		},
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "create",
-			Description: "Create an alliance.",
-			// Options: AppCommandOpts{
-			// 	discordutil.RequiredStringOption("identifier", "The short unique name used to query the alliance.", 3, 16),
-			// 	discordutil.RequiredStringOption("label", "The full name for display purposes.", 4, 36),
-			// },
+			Name:        "query",
+			Description: "Query information about an alliance (meganation, organisation or pact).",
+			Options: AppCommandOpts{
+				discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
+			},
 		},
 	}
 }
 
 func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	cmdData := i.ApplicationCommandData()
+	cdata := i.ApplicationCommandData()
 
-	if lookup := cmdData.GetOption("query"); lookup != nil {
+	opt := cdata.GetOption("query")
+	if opt != nil {
 		err := discordutil.DeferReply(s, i.Interaction)
 		if err != nil {
 			return err
 		}
 
-		return queryAlliance(s, i.Interaction, cmdData)
+		return queryAlliance(s, i.Interaction, cdata)
 	}
-	if create := cmdData.GetOption("create"); create != nil {
-		return createAlliance(s, i.Interaction, cmdData)
+
+	if opt = cdata.GetOption("create"); opt != nil {
+		return createAlliance(s, i.Interaction)
+	}
+	if opt = cdata.GetOption("edit"); opt != nil {
+		return editAlliance(s, i.Interaction, cdata)
 	}
 
 	return nil
 }
 
-func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
-	ident := data.GetOption("query").GetOption("identifier").StringValue()
-
+func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
 	allianceStore, err := store.GetStoreForMap[store.Alliance](shared.ACTIVE_MAP, "alliances")
 	if err != nil {
 		return err
 	}
 
+	ident := cdata.GetOption("query").GetOption("identifier").StringValue()
 	alliance, err := allianceStore.GetKey(strings.ToLower(ident))
 	if err != nil {
 		fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
@@ -80,7 +105,7 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordg
 	return err
 }
 
-func createAlliance(s *discordgo.Session, i *discordgo.Interaction, _ discordgo.ApplicationCommandInteractionData) error {
+func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 	isEditor, _ := discordutil.HasRole(i, EDITOR_ROLE)
 	if !isEditor && !discordutil.IsDev(i) {
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
@@ -91,14 +116,16 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction, _ discordgo.
 		return err
 	}
 
-	err := discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
-		CustomID: "alliance_creator_modal",
+	// See handleAllianceCreatorModal() for submission handling,
+	// where the actual creation and saving to the database occurs.
+	return discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
+		CustomID: "alliance_creator",
 		Title:    "Alliance Creator",
 		Components: []discordgo.MessageComponent{
 			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "identifier",
 				Label:       "Query Identifier (3-16 chars)",
-				Placeholder: "Enter a unique short name used to query the alliance...",
+				Placeholder: "Enter a unique short name used to query this alliance.",
 				Required:    true,
 				Style:       discordgo.TextInputShort,
 				MinLength:   3,
@@ -107,7 +134,7 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction, _ discordgo.
 			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "label",
 				Label:       "Alliance Name (4-36 chars)",
-				Placeholder: "Enter the alliance's full name...",
+				Placeholder: "Enter this alliance's full name.",
 				Required:    true,
 				Style:       discordgo.TextInputShort,
 				MinLength:   4,
@@ -115,8 +142,8 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction, _ discordgo.
 			}),
 			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "representative",
-				Label:       "Alliance Representative (3-16 chars)",
-				Placeholder: "Enter the Discord ID of the representative...",
+				Label:       "Representative Discord ID",
+				Placeholder: "Enter the Discord ID of the user representing this alliance.",
 				Required:    true,
 				Style:       discordgo.TextInputShort,
 				MinLength:   17,
@@ -138,55 +165,180 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction, _ discordgo.
 				MinLength:   3,
 				Style:       discordgo.TextInputParagraph,
 			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "leaders",
-				Label:       "(Optional) Leaders(s)",
-				Placeholder: "Enter a comma-seperated list of leader IGNs. Defaults to 'None'.",
-				Required:    false,
-				MinLength:   3,
-				Style:       discordgo.TextInputParagraph,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "discord",
-				Label:       "(Optional) Discord Server Code",
-				Placeholder: "Enter a permanent invite code to the alliance's discord. Ex: 'aQCpGDANX' or 'earthmcnet'",
-				Required:    false,
-				MinLength:   8,
-				Style:       discordgo.TextInputShort,
-			}),
 		},
 	})
+}
+
+func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
+	isEditor, _ := discordutil.HasRole(i, EDITOR_ROLE)
+	if !isEditor && !discordutil.IsDev(i) {
+		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: "Stop trying.",
+			Flags:   discordgo.MessageFlagsEphemeral,
+		})
+
+		return err
+	}
+
+	allianceStore, err := store.GetStoreForMap[store.Alliance](shared.ACTIVE_MAP, "alliances")
 	if err != nil {
 		return err
 	}
 
-	// Saving the alliance to DB is handled in the modal handler.
-	// See handleAllianceCreatorModal()
+	opt := cdata.GetOption("edit")
+	functional := opt.GetOption("functional")
+	optional := opt.GetOption("optional")
+	if functional != nil {
+		opt = functional
+	} else {
+		opt = optional
+	}
 
-	return nil
+	ident := opt.GetOption("identifier").StringValue()
+	alliance, err := allianceStore.GetKey(strings.ToLower(ident))
+	if err != nil {
+		fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
+
+		_, err := discordutil.FollowUpContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
+		return err
+	}
+
+	if functional != nil {
+		return openEditorModalFunctional(s, i, alliance)
+	}
+
+	return openEditorModalOptional(s, i, alliance)
 }
 
-// func CreateAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
-// 	opt := data.GetOption("create")
+func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, alliance *store.Alliance) error {
+	nationStore, _ := store.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
+	nations := alliance.GetNations(nationStore)
+	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
+		return n.Name
+	})
 
-// 	ident := opt.GetOption("identifier").StringValue()
-// 	label := opt.GetOption("label").StringValue()
+	return discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
+		CustomID: "alliance_editor_functional@" + alliance.Identifier,
+		Title:    "Alliance Editor - Functional Fields",
+		Components: []discordgo.MessageComponent{
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "identifier",
+				Label:       "Query Identifier (3-16 chars)",
+				Placeholder: alliance.Identifier,
+				Style:       discordgo.TextInputShort,
+				MinLength:   3,
+				MaxLength:   16,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "label",
+				Label:       "Alliance Name (4-36 chars)",
+				Placeholder: alliance.Label,
+				Style:       discordgo.TextInputShort,
+				MinLength:   4,
+				MaxLength:   36,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "representative",
+				Label:       "Representative Discord ID",
+				Placeholder: *alliance.RepresentativeID,
+				Style:       discordgo.TextInputShort,
+				MinLength:   17,
+				MaxLength:   19,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "nations",
+				Label:       "Own Nations",
+				Placeholder: strings.Join(nationNames, ", "),
+				MinLength:   3,
+				Style:       discordgo.TextInputParagraph,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "parents",
+				Label:       "Parent Alliance(s)",
+				Placeholder: strings.Join(alliance.Parents, ", "),
+				MinLength:   3,
+				Style:       discordgo.TextInputParagraph,
+			}),
+		},
+	})
+}
 
-// 	createdAlliance := &database.Alliance{
-// 		ID:         generateAllianceID(),
-// 		Identifier: ident,
-// 		Label:      label,
-// 	}
+func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, alliance *store.Alliance) error {
+	discordPlaceholder := "Enter an invite link or code to the alliance's Discord."
+	if alliance.Optional.DiscordURL != nil {
+		discordPlaceholder = *alliance.Optional.DiscordURL
+	}
 
-// 	db := database.GetMapDB(common.ACTIVE_MAP)
-// 	err := database.PutAlliance(db, createdAlliance)
-// 	if err != nil {
-// 		fmt.Printf("failed to put alliance %s into db:\n%v", ident, err)
+	imagePlaceholder := "Enter the URL of the alliance's image/flag from the flags channel."
+	if alliance.Optional.ImageURL != nil {
+		imagePlaceholder = *alliance.Optional.ImageURL
+	}
 
-// 		_, err := discordutil.FollowUpContentEphemeral(s, i, fmt.Sprintf("Could not create alliance `%s`! Check the console.", ident))
-// 		return err
-// 	}
+	leaderPlaceholder := "Enter the Minecraft IGNs of the alliance leaders, comma-separated."
+	if alliance.Optional.Leaders != nil {
+		leaderNames, err := alliance.GetLeaderNames()
+		if err == nil {
+			leaderPlaceholder = strings.Join(leaderNames, ", ")
+		}
+	}
 
-// 	_, err = discordutil.FollowUpContent(s, i, fmt.Sprintf("Successfully created alliance `%s (%s)`", label, ident))
-// 	return err
-// }
+	coloursPlaceholder := "Enter HEX colour(s) seperated by a space. Fill first, Outline second."
+
+	colours := alliance.Optional.Colours
+	if colours != nil && colours.Fill != nil {
+		fill := strings.TrimPrefix(*colours.Fill, "#")
+		coloursPlaceholder = "#" + fill
+
+		if colours.Outline != nil {
+			coloursPlaceholder += " #" + strings.TrimPrefix(*colours.Outline, "#")
+		} else {
+			coloursPlaceholder += " #" + fill
+		}
+	}
+
+	return discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
+		CustomID: "alliance_editor_optional@" + alliance.Identifier,
+		Title:    "Alliance Editor - Optional Fields",
+		Components: []discordgo.MessageComponent{
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "type",
+				Label:       "Alliance Type (mega/org/pact)",
+				Placeholder: string(alliance.Type),
+				MinLength:   3,
+				MaxLength:   4,
+				Style:       discordgo.TextInputShort,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "discord",
+				Label:       "Permanent Discord Invite",
+				Placeholder: discordPlaceholder,
+				Style:       discordgo.TextInputShort,
+				MinLength:   4,
+				MaxLength:   40,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "image",
+				Label:       "Image/Flag URL",
+				Placeholder: imagePlaceholder,
+				Style:       discordgo.TextInputShort,
+				MinLength:   10,
+				MaxLength:   100,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "colours",
+				Label:       "Colours (Used by bot & extension)",
+				Placeholder: coloursPlaceholder,
+				MinLength:   4,
+				Style:       discordgo.TextInputShort,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "leaders",
+				Label:       "Leader IGNs (comma-separated)",
+				Placeholder: leaderPlaceholder,
+				Style:       discordgo.TextInputParagraph,
+				MinLength:   3,
+				MaxLength:   320, // Minecraft max name length is 16. Should suffice for many leaders.
+			}),
+		},
+	})
+}

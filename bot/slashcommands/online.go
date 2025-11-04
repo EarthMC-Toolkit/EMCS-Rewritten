@@ -66,17 +66,12 @@ func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName string) error {
 	discordutil.DeferReply(s, i)
 
-	db, err := store.GetMapDB(shared.ACTIVE_MAP)
+	townStore, err := store.GetStoreForMap[oapi.TownInfo](shared.ACTIVE_MAP, "towns")
 	if err != nil {
 		return err
 	}
 
-	townStore, err := store.GetStore[oapi.TownInfo](db, "towns")
-	if err != nil {
-		return err
-	}
-
-	town, err := townStore.Find(func(t oapi.TownInfo) bool {
+	town, err := townStore.FindFirst(func(t oapi.TownInfo) bool {
 		return strings.EqualFold(t.Name, townName)
 	})
 	if err != nil {
@@ -106,17 +101,12 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) error {
 	discordutil.DeferReply(s, i)
 
-	db, err := store.GetMapDB(shared.ACTIVE_MAP)
+	nationStore, err := store.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
 	if err != nil {
 		return err
 	}
 
-	nationStore, err := store.GetStore[oapi.NationInfo](db, "nations")
-	if err != nil {
-		return err
-	}
-
-	nation, err := nationStore.Find(func(n oapi.NationInfo) bool {
+	nation, err := nationStore.FindFirst(func(n oapi.NationInfo) bool {
 		return strings.EqualFold(n.Name, nationName)
 	})
 	if err != nil {

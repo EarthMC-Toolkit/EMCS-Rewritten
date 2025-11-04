@@ -56,7 +56,7 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return err
 	}
 
-	town, err := townStore.Find(func(t oapi.TownInfo) bool {
+	town, err := townStore.FindFirst(func(t oapi.TownInfo) bool {
 		return strings.EqualFold(t.Name, townOpt.StringValue())
 	})
 	if err != nil {

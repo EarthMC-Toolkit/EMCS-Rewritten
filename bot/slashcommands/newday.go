@@ -42,12 +42,7 @@ func (cmd NewDayCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 
 func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 	// grab new day time
-	db, err := store.GetMapDB(shared.ACTIVE_MAP)
-	if err != nil {
-		return err
-	}
-
-	serverStore, err := store.GetStore[oapi.ServerInfo](db, "server")
+	serverStore, err := store.GetStoreForMap[oapi.ServerInfo](shared.ACTIVE_MAP, "server")
 	if err != nil {
 		return err
 	}

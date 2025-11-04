@@ -81,3 +81,7 @@ type ServerInfo struct {
 	Stats      ServerStats      `json:"stats"`
 	VoteParty  ServerVoteParty  `json:"voteParty"`
 }
+
+// TODO: Implement this struct using the data from /player-stats endpoint.
+type ServerPlayerStats struct {
+}

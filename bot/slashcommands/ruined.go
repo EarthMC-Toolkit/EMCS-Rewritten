@@ -32,8 +32,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	db, _ := store.GetMapDB(shared.ACTIVE_MAP)
-	townsStore, err := store.GetStore[oapi.TownInfo](db, "towns")
+	townsStore, err := store.GetStoreForMap[oapi.TownInfo](shared.ACTIVE_MAP, "towns")
 	if err != nil {
 		log.Printf("failed to get towns from db:\n%v", err)
 		_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{

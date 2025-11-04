@@ -88,6 +88,30 @@ func (s *Store[T]) Overwrite(value StoreData[T]) {
 	s.data = value
 }
 
+func (s *Store[T]) Clear() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for k := range s.data {
+		delete(s.data, k)
+	}
+}
+
+func (s *Store[T]) DeleteKey(key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.data, key)
+}
+
+// Creates or overwrites the value in the store at the given key in a thread-safe manner.
+func (s *Store[T]) SetKey(key string, value T) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.data[key] = value
+}
+
 func (s *Store[T]) GetKey(key string) (*T, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -99,7 +123,29 @@ func (s *Store[T]) GetKey(key string) (*T, error) {
 	return nil, fmt.Errorf("could not get value for key '%s' from store: %s. no such key exists", key, s.CleanPath())
 }
 
-func (s *Store[T]) Find(predicate func(value T) bool) (*T, error) {
+func (s *Store[T]) HasKey(key string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	_, ok := s.data[key]
+	return ok
+}
+
+func (s *Store[T]) GetMany(keys ...string) []T {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	results := make([]T, 0, len(keys))
+	for _, key := range keys {
+		if v, ok := s.data[key]; ok {
+			results = append(results, v)
+		}
+	}
+
+	return results
+}
+
+func (s *Store[T]) FindFirst(predicate func(value T) bool) (*T, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -112,28 +158,18 @@ func (s *Store[T]) Find(predicate func(value T) bool) (*T, error) {
 	return nil, fmt.Errorf("no matching value found in store: %s", s.CleanPath())
 }
 
-// Creates or overwrites the value in the store at the given key in a thread-safe manner.
-func (s *Store[T]) SetKey(key string, value T) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *Store[T]) FindMany(predicate func(value T) bool) []T {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
-	s.data[key] = value
-}
-
-func (s *Store[T]) DeleteKey(key string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	delete(s.data, key)
-}
-
-func (s *Store[T]) Clear() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for k := range s.data {
-		delete(s.data, k)
+	var results []T
+	for _, v := range s.data {
+		if predicate(v) {
+			results = append(results, v)
+		}
 	}
+
+	return results
 }
 
 // Overwrite the current store cache state with data from the associated JSON file/database located at path.

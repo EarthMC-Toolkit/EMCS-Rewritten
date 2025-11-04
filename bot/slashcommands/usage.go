@@ -51,12 +51,7 @@ func (cmd UsageCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 }
 
 func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
-	mdb, err := store.GetMapDB(shared.ACTIVE_MAP)
-	if err != nil {
-		return err
-	}
-
-	usageStore, err := store.GetStore[store.UserUsage](mdb, "usage-users")
+	usageStore, err := store.GetStoreForMap[store.UserUsage](shared.ACTIVE_MAP, "usage-users")
 	if err != nil {
 		return err
 	}

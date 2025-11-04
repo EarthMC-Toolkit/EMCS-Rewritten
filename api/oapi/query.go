@@ -19,7 +19,7 @@ const (
 	ENDPOINT_LOCATION       Endpoint = ENDPOINT_BASE + "/location"
 	ENDPOINT_DISCORD        Endpoint = ENDPOINT_BASE + "/discord"
 	ENDPOINT_QUARTERS       Endpoint = ENDPOINT_BASE + "/quarters"
-	ENDPOINT_PLAYER_STATS   Endpoint = ENDPOINT_BASE + "player-stats"
+	ENDPOINT_PLAYER_STATS   Endpoint = ENDPOINT_BASE + "/player-stats"
 )
 
 // Identifiable is a constraint for things with a UUID such as an Entity.
@@ -60,6 +60,10 @@ func QueryList(endpoint Endpoint) ([]Entity, error) {
 // Queries the Official API with a GET request to the server endpoint.
 func QueryServer() (ServerInfo, error) {
 	return requests.JsonGetRequest[ServerInfo](ENDPOINT_BASE)
+}
+
+func QueryServerPlayerStats() (ServerPlayerStats, error) {
+	return requests.JsonGetRequest[ServerPlayerStats](ENDPOINT_PLAYER_STATS)
 }
 
 func QueryMysteryMaster() ([]MysteryMaster, error) {

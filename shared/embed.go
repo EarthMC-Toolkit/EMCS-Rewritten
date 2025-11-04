@@ -36,9 +36,22 @@ func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
 
 	// Leader field logic
 	leadersValue := "None"
-	leaders := a.Optional.Leaders
-	if leaders != nil {
-		leadersValue = strings.Join(*leaders, "\n")
+	leaders, err := a.GetLeaders()
+	if err != nil {
+		leaderLines := []string{}
+		for _, p := range leaders {
+			line := fmt.Sprintf("`%s`", p.Name)
+			if p.Town.Name != nil {
+				line += fmt.Sprintf(" of %s", *p.Town.Name)
+				if p.Nation.Name != nil {
+					line += fmt.Sprintf(" (**%s**)", *p.Nation.Name)
+				}
+			}
+
+			leaderLines = append(leaderLines, line)
+		}
+
+		leadersValue = strings.Join(leaderLines, "\n")
 	}
 
 	// Representative field logic
@@ -51,13 +64,19 @@ func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
 	}
 
 	// Nation field logic
-	nationsLen := len(a.OwnNations)
+	nationStore, _ := store.GetStoreForMap[oapi.NationInfo](ACTIVE_MAP, "nations")
+	nations := a.GetNations(nationStore)
+	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
+		return n.Name
+	})
+
+	nationsLen := len(nationNames)
 	if nationsLen > 0 {
-		slices.Sort(a.OwnNations) // Alphabet sort
+		slices.Sort(nationNames) // Alphabet sort
 	}
 
 	nationsKey := fmt.Sprintf("Nations [%d]", nationsLen)
-	nationsValue := fmt.Sprintf("```%s```", strings.Join(a.OwnNations, ", "))
+	nationsValue := fmt.Sprintf("```%s```", strings.Join(nationNames, ", "))
 
 	founded := a.CreatedTimestamp() / 1000
 
@@ -66,8 +85,11 @@ func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
 		Footer: DEFAULT_FOOTER,
 		Title:  fmt.Sprintf("Alliance Info | `%s` | `%s`", a.Identifier, a.Label),
 		Fields: []*dgo.MessageEmbedField{
-			NewEmbedField("Leader(s)", leadersValue, false),
+			NewEmbedField("Leader(s)", leadersValue, true),
 			NewEmbedField("Representative", representativeValue, true),
+			NewEmbedField("Type", fmt.Sprintf("`%s`", a.Type.Colloquial()), true),
+			NewEmbedField("Stats", "Placeholder", true),
+			NewEmbedField("Colours", "Placeholder", true),
 			NewEmbedField(nationsKey, nationsValue, false),
 			NewEmbedField("Founded", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", founded, founded), true),
 		},
