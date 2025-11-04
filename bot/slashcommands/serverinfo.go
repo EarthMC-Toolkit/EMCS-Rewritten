@@ -61,7 +61,7 @@ func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.Interact
 	vpRemaining := info.VoteParty.NumRemaining
 	vpField := &discordgo.MessageEmbedField{
 		Name:   "Vote Party",
-		Value:  utils.HumanizedSprintf("Votes Completed/Target: `%d`/`%d`\nVotes Left: `%d`", vpTarget-vpRemaining, vpTarget, vpRemaining),
+		Value:  utils.HumanizedSprintf("Votes Completed/Target: `%d`/`%d`\nVotes Remaining: `%d`", vpTarget-vpRemaining, vpTarget, vpRemaining),
 		Inline: true,
 	}
 

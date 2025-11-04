@@ -10,6 +10,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+const EDITOR_ROLE = "966359842417705020"
+const SR_EDITOR_ROLE = "1143253762039873646"
+
 type AllianceCommand struct{}
 
 func (cmd AllianceCommand) Name() string { return "alliance" }
@@ -60,13 +63,7 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordgo.ApplicationCommandInteractionData) error {
 	ident := data.GetOption("query").GetOption("identifier").StringValue()
 
-	// Try find alliance in DB
-	db, err := store.GetMapDB(shared.ACTIVE_MAP)
-	if err != nil {
-		return err
-	}
-
-	allianceStore, err := store.GetStore[store.Alliance](db, "alliances")
+	allianceStore, err := store.GetStoreForMap[store.Alliance](shared.ACTIVE_MAP, "alliances")
 	if err != nil {
 		return err
 	}
@@ -84,7 +81,8 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, data discordg
 }
 
 func createAlliance(s *discordgo.Session, i *discordgo.Interaction, _ discordgo.ApplicationCommandInteractionData) error {
-	if !discordutil.IsDev(i) {
+	isEditor, _ := discordutil.HasRole(i, EDITOR_ROLE)
+	if !isEditor && !discordutil.IsDev(i) {
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 			Content: "Stop trying.",
 			Flags:   discordgo.MessageFlagsEphemeral,
@@ -127,16 +125,43 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction, _ discordgo.
 			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "nations",
 				Label:       "Own Nations",
-				Placeholder: "Enter a comma-seperated list of nations in this alliance (excluding nations in child alliances).",
+				Placeholder: "Enter a comma-seperated list of nations in THIS alliance only.",
 				Required:    true,
 				MinLength:   3,
 				Style:       discordgo.TextInputParagraph,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "parents",
+				Label:       "Parent Alliance(s)",
+				Placeholder: "(Optional) Enter a comma-seperated list of alliance *identifiers* which this alliance is a child of.",
+				Required:    false,
+				MinLength:   3,
+				Style:       discordgo.TextInputParagraph,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "leaders",
+				Label:       "(Optional) Leaders(s)",
+				Placeholder: "Enter a comma-seperated list of leader IGNs. Defaults to 'None'.",
+				Required:    false,
+				MinLength:   3,
+				Style:       discordgo.TextInputParagraph,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "discord",
+				Label:       "(Optional) Discord Server Code",
+				Placeholder: "Enter a permanent invite code to the alliance's discord. Ex: 'aQCpGDANX' or 'earthmcnet'",
+				Required:    false,
+				MinLength:   8,
+				Style:       discordgo.TextInputShort,
 			}),
 		},
 	})
 	if err != nil {
 		return err
 	}
+
+	// Saving the alliance to DB is handled in the modal handler.
+	// See handleAllianceCreatorModal()
 
 	return nil
 }

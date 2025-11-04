@@ -112,7 +112,7 @@ func (s *Store[T]) Find(predicate func(value T) bool) (*T, error) {
 	return nil, fmt.Errorf("no matching value found in store: %s", s.CleanPath())
 }
 
-// Create or overwrite the value in the store at the given key.
+// Creates or overwrites the value in the store at the given key in a thread-safe manner.
 func (s *Store[T]) SetKey(key string, value T) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -140,7 +140,7 @@ func (s *Store[T]) Clear() {
 // This should usually be called when the cache is empty and needs fresh data, for example when the bot starts up or when we are restoring from a backup.
 // This function should never be called during normal operation as to not provide potentially stale data.
 func (s *Store[T]) LoadFromFile() error {
-	data, err := os.ReadFile(s.CleanPath())
+	contents, err := os.ReadFile(s.CleanPath())
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
@@ -149,12 +149,12 @@ func (s *Store[T]) LoadFromFile() error {
 		return err
 	}
 
-	var v map[StoreKey]T
-	if err := json.Unmarshal(data, &v); err != nil {
+	var data map[StoreKey]T
+	if err := json.Unmarshal(contents, &data); err != nil {
 		return err
 	}
 
-	s.Overwrite(v)
+	s.Overwrite(data)
 	return nil
 }
 

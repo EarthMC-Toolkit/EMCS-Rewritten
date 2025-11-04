@@ -1,6 +1,11 @@
 package discordutil
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"fmt"
+	"slices"
+
+	"github.com/bwmarrin/discordgo"
+)
 
 const DEV_ID = "263377802647175170"
 
@@ -73,6 +78,38 @@ func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *disco
 // 	return msg, nil
 // }
 
+func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err any) {
+	errStr := fmt.Sprintf("```%v```", err) // NOTE: This could panic itself. Maybe handle it or just send generic text.
+	content := "Bot encountered a non-fatal error during this command.\n" + errStr
+
+	// Not already deferred, reply.
+	_, err = EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		Flags:   discordgo.MessageFlagsEphemeral,
+		Content: content,
+	})
+
+	if err != nil {
+		// Must be deferred, send follow up.
+		FollowUpContentEphemeral(s, i, content)
+	}
+}
+
+func ReplyWithPanicError(s *discordgo.Session, i *discordgo.Interaction, err any) {
+	errStr := fmt.Sprintf("```%v```", err) // NOTE: This could panic itself. Maybe handle it or just send generic text.
+	content := "Bot attempted to fatally crash during this command! Please report the following error.\n" + errStr
+
+	// Not already deferred, reply.
+	_, err = EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		Flags:   discordgo.MessageFlagsEphemeral,
+		Content: content,
+	})
+
+	if err != nil {
+		// Must be deferred, send follow up.
+		FollowUpContentEphemeral(s, i, content)
+	}
+}
+
 // Creates a follow-up message for a previously deferred interaction response.
 // This func waits for server confirmation of message send and ensures that the return struct is populated.
 func FollowUp(s *discordgo.Session, i *discordgo.Interaction, params *discordgo.WebhookParams) (*discordgo.Message, error) {
@@ -115,4 +152,12 @@ func GetInteractionAuthor(i *discordgo.Interaction) *discordgo.User {
 func IsDev(i *discordgo.Interaction) bool {
 	author := GetInteractionAuthor(i)
 	return author.ID == DEV_ID
+}
+
+func HasRole(i *discordgo.Interaction, roleID string) (bool, error) {
+	if i.Member == nil {
+		return false, fmt.Errorf("cannot get roles from interaction: Member is nil")
+	}
+
+	return slices.Contains(i.Member.Roles, roleID), nil
 }

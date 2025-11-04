@@ -41,10 +41,13 @@ func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.Interacti
 	vpTarget := info.VoteParty.Target
 	vpRemaining := info.VoteParty.NumRemaining
 	embed := &discordgo.MessageEmbed{
-		Title:       "VoteParty Status",
-		Description: utils.HumanizedSprintf("Votes Completed/Target: `%d`/`%d`\nVotes Left: `%d`", vpTarget-vpRemaining, vpTarget, vpRemaining),
-		Color:       discordutil.BLURPLE,
-		Footer:      shared.DEFAULT_FOOTER,
+		Title: "VoteParty Status",
+		Description: utils.HumanizedSprintf(
+			"Votes Completed/Target: `%d`/`%d`\n\nThere are `%d` votes remaining until the next VoteParty occurs.",
+			vpTarget-vpRemaining, vpTarget, vpRemaining,
+		),
+		Color:  discordutil.BLURPLE,
+		Footer: shared.DEFAULT_FOOTER,
 	}
 
 	// Should generally respond in 3 seconds. May need to defer in future?
