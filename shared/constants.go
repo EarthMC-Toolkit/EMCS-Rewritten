@@ -5,6 +5,8 @@ const NAMEMC_URL = "https://namemc.com/profile/"
 const DEFAULT_TOWN_BOARD = "/town set board [msg]"
 const DEFAULT_ABOUT = "/res set about [msg]"
 
+const FLAGS_CHANNEL_ID = "966372674236481606"
+
 type EMCMap = string
 
 var ACTIVE_MAP = SUPPORTED_MAPS.AURORA

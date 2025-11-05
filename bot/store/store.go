@@ -19,7 +19,7 @@ type IStore interface {
 }
 
 type StoreKey = string
-type StoreData[T any] map[StoreKey]T
+type StoreData[T any] map[StoreKey]T // Stores value not pointer. Use SetKey etc. to mutate data safely.
 
 func (sd StoreData[T]) shallowCopy() StoreData[T] {
 	return utils.CopyMap(sd)

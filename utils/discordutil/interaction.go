@@ -2,12 +2,9 @@ package discordutil
 
 import (
 	"fmt"
-	"slices"
 
 	"github.com/bwmarrin/discordgo"
 )
-
-const DEV_ID = "263377802647175170"
 
 func OpenModal(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) error {
 	return s.InteractionRespond(i, &discordgo.InteractionResponse{
@@ -147,17 +144,4 @@ func GetInteractionAuthor(i *discordgo.Interaction) *discordgo.User {
 	}
 
 	return i.Member.User
-}
-
-func IsDev(i *discordgo.Interaction) bool {
-	author := GetInteractionAuthor(i)
-	return author.ID == DEV_ID
-}
-
-func HasRole(i *discordgo.Interaction, roleID string) (bool, error) {
-	if i.Member == nil {
-		return false, fmt.Errorf("cannot get roles from interaction: Member is nil")
-	}
-
-	return slices.Contains(i.Member.Roles, roleID), nil
 }

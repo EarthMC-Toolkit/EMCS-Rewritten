@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/samber/lo"
@@ -19,22 +20,31 @@ type AllianceColours struct {
 }
 
 type AllianceOptionals struct {
-	Leaders    []string         `json:"leaders,omitempty"` // Minecraft UUIDs of alliance leaders.
-	ImageURL   *string          `json:"imageURL,omitempty"`
-	DiscordURL *string          `json:"discordURL,omitempty"`
-	Colours    *AllianceColours `json:"colours,omitempty"`
+	Leaders     []string         `json:"leaders,omitempty"` // Minecraft UUIDs of alliance leaders.
+	ImageURL    *string          `json:"imageURL,omitempty"`
+	DiscordCode *string          `json:"discordURL,omitempty"`
+	Colours     *AllianceColours `json:"colours,omitempty"`
 }
 
 type AllianceType string
 
-// Make sure when an alliance is marshalled (like when saved to a file), the type defaults to pact.
-// This way, we avoid the issue where the type can be its zero-value (empty string) when querying.
-func (t AllianceType) MarshalJSON() ([]byte, error) {
-	if t == "" {
-		t = AllianceTypePact
-	}
+const (
+	AllianceTypeMeganation   AllianceType = "mega"
+	AllianceTypeOrganisation AllianceType = "org"
+	AllianceTypePact         AllianceType = "pact"
+)
 
-	return json.Marshal(string(t))
+func NewAllianceType(s string) AllianceType {
+	s = strings.TrimSpace(strings.ToLower(s))
+
+	switch s {
+	case "mega", "meganation":
+		return AllianceTypeMeganation
+	case "org", "organisation", "organization":
+		return AllianceTypeOrganisation
+	default:
+		return AllianceTypePact
+	}
 }
 
 func (t AllianceType) Colloquial() string {
@@ -48,11 +58,24 @@ func (t AllianceType) Colloquial() string {
 	}
 }
 
-const (
-	AllianceTypeMeganation   AllianceType = "mega"
-	AllianceTypeOrganisation AllianceType = "org"
-	AllianceTypePact         AllianceType = "pact"
-)
+func (t AllianceType) Valid() bool {
+	switch t {
+	case AllianceTypeMeganation, AllianceTypeOrganisation, AllianceTypePact:
+		return true
+	default:
+		return false
+	}
+}
+
+// Make sure when an alliance is marshalled (like when saved to a file), the type defaults to pact.
+// This way, we avoid the issue where the type can be its zero-value (empty string) when querying.
+func (t AllianceType) MarshalJSON() ([]byte, error) {
+	if t == "" {
+		t = AllianceTypePact
+	}
+
+	return json.Marshal(string(t))
+}
 
 type Alliance struct {
 	UUID             uint64            `json:"uuid"`             // First 48bits = ms timestamp. Extra 16bits = randomness.
@@ -102,6 +125,10 @@ func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
 
 // Returns a map of leaders where key is the leader's UUID and value is their player data.
 func (a Alliance) GetLeaders() (map[string]oapi.PlayerInfo, error) {
+	if len(a.Optional.Leaders) < 1 {
+		return nil, nil
+	}
+
 	// I doubt we'll ever have an alliance with more players than the
 	// query limit, so there shouldn't be a need to send more than one request.
 	leaders, err := oapi.QueryPlayers(a.Optional.Leaders...) // TODO: Should store import oapi?

@@ -5,9 +5,12 @@ import (
 	"emcsrw/bot/store"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
+	"net/url"
+	"path"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -46,7 +49,7 @@ func OnInteractionCreateModalSubmit(s *discordgo.Session, i *discordgo.Interacti
 		ident := strings.Split(data.CustomID, "@")[1]
 		alliance, err := allianceStore.GetKey(strings.ToLower(ident))
 		if err != nil {
-			fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
+			//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
 
 			discordutil.FollowUpContentEphemeral(s, i.Interaction, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 			return
@@ -74,7 +77,7 @@ func handleAllianceEditorModalFunctional(
 	s *discordgo.Session, i *discordgo.Interaction,
 	alliance *store.Alliance, allianceStore *store.Store[store.Alliance],
 ) error {
-	inputs := ModalInputsToMap(i)
+	inputs := modalInputsToMap(i)
 
 	oldIdent := alliance.Identifier
 
@@ -155,7 +158,83 @@ func handleAllianceEditorModalOptional(
 	s *discordgo.Session, i *discordgo.Interaction,
 	alliance *store.Alliance, allianceStore *store.Store[store.Alliance],
 ) error {
-	//inputs := ModalInputsToMap(i)
+	inputs := modalInputsToMap(i)
+
+	image := inputs["image"]
+	if image != "" {
+		parsedUrl, err := validateAllianceImage(image)
+		if err != nil {
+			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("Input for field **Image/Flag URL** could not be parsed correctly. Reason:\n```%s```", err.Error()),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+
+			return nil
+		}
+
+		// Ensure we always use the original cdn link.
+		image = parsedUrl
+	}
+
+	var discordCode string
+	if alliance.Optional.DiscordCode != nil {
+		discordCode = *alliance.Optional.DiscordCode
+	}
+
+	if input := inputs["discord"]; input != "" {
+		code, err := discordutil.ExtractInviteCode(inputs["discord"])
+		if err != nil {
+			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+				Content: "Input for field **Discord Invite** could not be parsed correctly. Provide a link or code.",
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+
+			return nil
+		}
+
+		_, err = discordutil.ValidateInviteCode(code, s)
+		if err != nil {
+			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("Input for field **Discord Invite** was parsed correctly but could not be used. Reason:\n```%s```", err.Error()),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+
+			return nil
+		}
+
+		discordCode = code
+	}
+
+	//leaders := strings.Split(strings.ReplaceAll(inputs["leaders"], " ", ""), ",")
+	// validate leaders exist
+
+	//colours := inputs["colours"]
+	// validate hex
+
+	allianceType := store.NewAllianceType(inputs["type"]) // invalid input will default to pact
+
+	// Update alliance fields after all validation/transformations complete.
+	alliance.Type = allianceType
+	alliance.Optional.DiscordCode = &discordCode
+	alliance.Optional.ImageURL = &image
+
+	// Update alliance in store
+	allianceStore.SetKey(strings.ToLower(alliance.Identifier), *alliance)
+
+	// We instantly write the data to the db to make sure the changes stick without waiting for graceful shutdown,
+	// since the bot could panic and not recover at any moment and all changes would be lost.
+	err := allianceStore.WriteSnapshot()
+	if err != nil {
+		return fmt.Errorf("error saving edited alliance '%s'. WriteSnapshot failed", alliance.Identifier)
+	}
+
+	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		Content: "Successfully edited alliance:",
+		Embeds: []*discordgo.MessageEmbed{
+			shared.NewAllianceEmbed(s, alliance),
+		},
+	})
+
 	return nil
 }
 
@@ -166,7 +245,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return err
 	}
 
-	inputs := ModalInputsToMap(i)
+	inputs := modalInputsToMap(i)
 
 	ident := inputs["identifier"]
 	if allianceStore.HasKey(strings.ToLower(ident)) {
@@ -229,7 +308,13 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	return nil
 }
 
-func ModalInputsToMap(i *discordgo.Interaction) map[string]string {
+func generateAllianceID() uint64 {
+	createdTs := uint64(time.Now().UnixMilli()) // Shouldn't ever be negative after 1970 :P
+	suffix := uint64(rand.Intn(1 << 16))        // Safe to cast to uint since Intn returns 0-n anyway.
+	return (createdTs << 16) | suffix
+}
+
+func modalInputsToMap(i *discordgo.Interaction) map[string]string {
 	inputs := make(map[string]string)
 	for _, row := range i.ModalSubmitData().Components {
 		actionRow, ok := row.(*discordgo.ActionsRow)
@@ -256,8 +341,40 @@ func defaultIfEmpty(value, fallback string) string {
 	return value
 }
 
-func generateAllianceID() uint64 {
-	createdTs := uint64(time.Now().UnixMilli()) // Shouldn't ever be negative after 1970 :P
-	suffix := uint64(rand.Intn(1 << 16))        // Safe to cast to uint since Intn returns 0-n anyway.
-	return (createdTs << 16) | suffix
+func validateAllianceImage(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", errors.New("not even close to being a URL")
+	}
+
+	if u.Scheme != "https" {
+		return "", errors.New("must use https")
+	}
+
+	switch u.Host {
+	case "cdn.discordapp.com":
+	case "media.discordapp.net":
+		u.Host = "cdn.discordapp.com"
+		u.RawQuery = "" // remove resize/compression params
+	default:
+		return "", errors.New("url must point to Discord's CDN or media domain")
+	}
+
+	parts := strings.Split(u.Path, "/")
+	if len(parts) < 5 || parts[1] != "attachments" {
+		return "", errors.New("invalid discord image attachment path")
+	}
+
+	if parts[2] != shared.FLAGS_CHANNEL_ID {
+		return "", fmt.Errorf("wrong channel. use image from flags channel")
+	}
+
+	ext := strings.ToLower(path.Ext(u.Path))
+	switch ext {
+	case ".png", ".jpg", ".jpeg", ".webp":
+	default:
+		return "", errors.New("url does not point to an image type")
+	}
+
+	return u.String(), nil
 }

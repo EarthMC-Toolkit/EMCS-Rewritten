@@ -95,7 +95,7 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 	ident := cdata.GetOption("query").GetOption("identifier").StringValue()
 	alliance, err := allianceStore.GetKey(strings.ToLower(ident))
 	if err != nil {
-		fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
+		//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
 
 		_, err := discordutil.FollowUpContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 		return err
@@ -106,7 +106,7 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 }
 
 func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
-	isEditor, _ := discordutil.HasRole(i, EDITOR_ROLE)
+	isEditor, _ := discordutil.HasRole(i.Member, EDITOR_ROLE)
 	if !isEditor && !discordutil.IsDev(i) {
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 			Content: "Stop trying.",
@@ -170,7 +170,7 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 }
 
 func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
-	isEditor, _ := discordutil.HasRole(i, EDITOR_ROLE)
+	isEditor, _ := discordutil.HasRole(i.Member, EDITOR_ROLE)
 	if !isEditor && !discordutil.IsDev(i) {
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 			Content: "Stop trying.",
@@ -197,9 +197,12 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordg
 	ident := opt.GetOption("identifier").StringValue()
 	alliance, err := allianceStore.GetKey(strings.ToLower(ident))
 	if err != nil {
-		fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
+		//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
+		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident),
+			Flags:   discordgo.MessageFlagsEphemeral,
+		})
 
-		_, err := discordutil.FollowUpContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 		return err
 	}
 
@@ -265,8 +268,8 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 
 func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, alliance *store.Alliance) error {
 	discordPlaceholder := "Enter an invite link or code to the alliance's Discord."
-	if alliance.Optional.DiscordURL != nil {
-		discordPlaceholder = *alliance.Optional.DiscordURL
+	if alliance.Optional.DiscordCode != nil {
+		discordPlaceholder = fmt.Sprintf("https://discord.gg/%s", *alliance.Optional.DiscordCode)
 	}
 
 	imagePlaceholder := "Enter the URL of the alliance's image/flag from the flags channel."

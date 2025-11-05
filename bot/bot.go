@@ -52,7 +52,7 @@ func Run(botToken string) {
 	store.DefineStore[oapi.ServerInfo](auroraDB, "server")
 	store.DefineStore[oapi.TownInfo](auroraDB, "towns")
 	store.DefineStore[oapi.NationInfo](auroraDB, "nations")
-	store.DefineStore[oapi.EntityList](auroraDB, "entities")
+	store.DefineStore[oapi.EntityList](auroraDB, "entities") // Store keys: residentlist, townlesslist
 	store.DefineStore[store.Alliance](auroraDB, "alliances")
 	store.DefineStore[store.UserUsage](auroraDB, "usage-users")
 	//store.AssignStoreToDB[map[string]any](auroraDB, "usage-leaderboard")

@@ -25,7 +25,7 @@ var DEFAULT_FOOTER = &dgo.MessageEmbedFooter{
 	Text:    "Maintained by Owen3H • Open Source on GitHub 💛", // unless you maintain your own fork, pls keep this as is :)
 }
 
-// Creates a single embed given alliance data. This is the output from `/alliance lookup`.
+// Creates a single embed showing info from the given Alliance.
 func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
 	// Resort to dark blue unless alliance has optional fill colour specified.
 	embedColour := discordutil.DARK_AQUA
@@ -36,8 +36,8 @@ func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
 
 	// Leader field logic
 	leadersValue := "None"
-	leaders, err := a.GetLeaders()
-	if err != nil {
+	leaders, err := a.GetLeaders() // TODO: Do we want to send an OAPI req for leaders every time?
+	if err != nil && leaders != nil {
 		leaderLines := []string{}
 		for _, p := range leaders {
 			line := fmt.Sprintf("`%s`", p.Name)
@@ -46,6 +46,8 @@ func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
 				if p.Nation.Name != nil {
 					line += fmt.Sprintf(" (**%s**)", *p.Nation.Name)
 				}
+			} else {
+				line += " (Townless)"
 			}
 
 			leaderLines = append(leaderLines, line)
