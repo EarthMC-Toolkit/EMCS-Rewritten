@@ -4,7 +4,8 @@ import (
 	"emcsrw/api"
 	"emcsrw/api/oapi"
 	"emcsrw/bot/slashcommands"
-	"emcsrw/bot/store"
+	"emcsrw/database"
+	"emcsrw/database/store"
 	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
@@ -37,13 +38,13 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	fmt.Printf("Logged in as: %s\n\n", s.State.User.Username)
 	slashcommands.SyncWithRemote(s)
 
-	db, err := store.GetMapDB(shared.ACTIVE_MAP)
+	db, err := database.Get(shared.ACTIVE_MAP)
 	if err != nil {
 		fmt.Printf("\n[OnReady]: wtf happened? error fetching db:\n%v", err)
 		return
 	}
 
-	serverStore, _ := store.GetStore[oapi.ServerInfo](db, "server")
+	serverStore, _ := database.GetStore[oapi.ServerInfo](db, "server")
 
 	// scheduleTask(func() {
 	// 	PutFunc(db, "playerlist", func() ([]oapi.Entity, error) {
@@ -144,21 +145,21 @@ func SetKeyFunc[T any](store *store.Store[T], key string, task func() (T, error)
 	return res, err
 }
 
-func UpdateData(db *store.MapDB) (
+func UpdateData(db *database.Database) (
 	towns map[string]oapi.TownInfo, staleTowns map[string]oapi.TownInfo,
 	townless, residents oapi.EntityList, err error,
 ) {
-	townStore, err := store.GetStore[oapi.TownInfo](db, "towns")
+	townStore, err := database.GetStore[oapi.TownInfo](db, "towns")
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	nationStore, err := store.GetStore[oapi.NationInfo](db, "nations")
+	nationStore, err := database.GetStore[oapi.NationInfo](db, "nations")
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	entityStore, err := store.GetStore[oapi.EntityList](db, "entities")
+	entityStore, err := database.GetStore[oapi.EntityList](db, "entities")
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

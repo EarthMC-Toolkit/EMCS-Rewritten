@@ -3,7 +3,7 @@ package bot
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/events"
-	"emcsrw/bot/store"
+	"emcsrw/database"
 	"emcsrw/shared"
 	"fmt"
 	"log"
@@ -42,19 +42,19 @@ func Run(botToken string) {
 
 	fmt.Printf("\nInitializing map databases..\n")
 
-	auroraDB, err := store.NewMapDB("./db", shared.SUPPORTED_MAPS.AURORA)
+	auroraDB, err := database.New("./db", shared.SUPPORTED_MAPS.AURORA)
 	if err != nil {
 		log.Fatalf("Cannot initialize database for map '%s':\n%v", shared.SUPPORTED_MAPS.AURORA, err)
 	}
 
 	// Define all stores we want to exist on Aurora database.
 	// If a store does not exist, it is created under the ./db/aurora dir.
-	store.DefineStore[oapi.ServerInfo](auroraDB, "server")
-	store.DefineStore[oapi.TownInfo](auroraDB, "towns")
-	store.DefineStore[oapi.NationInfo](auroraDB, "nations")
-	store.DefineStore[oapi.EntityList](auroraDB, "entities") // Store keys: residentlist, townlesslist
-	store.DefineStore[store.Alliance](auroraDB, "alliances")
-	store.DefineStore[store.UserUsage](auroraDB, "usage-users")
+	database.AssignStore[oapi.ServerInfo](auroraDB, "server")
+	database.AssignStore[oapi.TownInfo](auroraDB, "towns")
+	database.AssignStore[oapi.NationInfo](auroraDB, "nations")
+	database.AssignStore[oapi.EntityList](auroraDB, "entities") // Store keys: residentlist, townlesslist
+	database.AssignStore[database.Alliance](auroraDB, "alliances")
+	database.AssignStore[database.UserUsage](auroraDB, "usage-users")
 	//store.AssignStoreToDB[map[string]any](auroraDB, "usage-leaderboard")
 
 	fmt.Printf("\n\nEstablishing connection to Discord..\n")

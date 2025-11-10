@@ -2,7 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/store"
+	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -51,7 +51,7 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return fmt.Errorf("no name input for /quarters forsale sub cmd. wtf?")
 	}
 
-	townStore, err := store.GetStoreForMap[oapi.TownInfo](shared.ACTIVE_MAP, "towns")
+	townStore, err := database.GetStoreForMap[oapi.TownInfo](shared.ACTIVE_MAP, "towns")
 	if err != nil {
 		return err
 	}

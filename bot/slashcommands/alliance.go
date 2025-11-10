@@ -2,7 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/store"
+	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -87,7 +87,7 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 }
 
 func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
-	allianceStore, err := store.GetStoreForMap[store.Alliance](shared.ACTIVE_MAP, "alliances")
+	allianceStore, err := database.GetStoreForMap[database.Alliance](shared.ACTIVE_MAP, "alliances")
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordg
 		return err
 	}
 
-	allianceStore, err := store.GetStoreForMap[store.Alliance](shared.ACTIVE_MAP, "alliances")
+	allianceStore, err := database.GetStoreForMap[database.Alliance](shared.ACTIVE_MAP, "alliances")
 	if err != nil {
 		return err
 	}
@@ -213,8 +213,8 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordg
 	return openEditorModalOptional(s, i, alliance)
 }
 
-func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, alliance *store.Alliance) error {
-	nationStore, _ := store.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
+func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance) error {
+	nationStore, _ := database.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
 	nations := alliance.GetNations(nationStore)
 	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
@@ -266,7 +266,7 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 	})
 }
 
-func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, alliance *store.Alliance) error {
+func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance) error {
 	discordPlaceholder := "Enter an invite link or code to the alliance's Discord."
 	if alliance.Optional.DiscordCode != nil {
 		discordPlaceholder = fmt.Sprintf("https://discord.gg/%s", *alliance.Optional.DiscordCode)
@@ -324,8 +324,8 @@ func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, all
 				Label:       "Image/Flag URL",
 				Placeholder: imagePlaceholder,
 				Style:       discordgo.TextInputShort,
-				MinLength:   10,
-				MaxLength:   100,
+				MinLength:   20,
+				MaxLength:   500,
 			}),
 			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "colours",

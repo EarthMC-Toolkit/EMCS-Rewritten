@@ -1,7 +1,8 @@
 package tests
 
 import (
-	"emcsrw/bot/store"
+	"emcsrw/database"
+	"emcsrw/database/store"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,11 +18,11 @@ type TestData struct {
 	Name  string   `json:"name"`
 }
 
-func setupDB(dbName string) (*store.MapDB, string, error) {
+func setupDB(dbName string) (*database.Database, string, error) {
 	dir := "./db/" + dbName
 	os.RemoveAll(dir)
 
-	mdb, err := store.NewMapDB("./db/", dbName)
+	mdb, err := database.New("./db/", dbName)
 	if err != nil {
 		return nil, dir, err
 	}
@@ -29,7 +30,7 @@ func setupDB(dbName string) (*store.MapDB, string, error) {
 	return mdb, dir, err
 }
 
-func setupTest(t *testing.T, dbName string) (*store.MapDB, string) {
+func setupTest(t *testing.T, dbName string) (*database.Database, string) {
 	mdb, dir, err := setupDB(dbName)
 	if err != nil {
 		t.Fatal(err)
@@ -43,13 +44,13 @@ func setupTest(t *testing.T, dbName string) (*store.MapDB, string) {
 	return mdb, dir
 }
 
-func setupBench(b *testing.B) (*store.MapDB, *store.Store[TestData], string) {
+func setupBench(b *testing.B) (*database.Database, *store.Store[TestData], string) {
 	mdb, dir, err := setupDB(testDB)
 	if err != nil {
 		b.Fatal(err)
 	}
 
-	s := store.DefineStore[TestData](mdb, testStore)
+	s := database.AssignStore[TestData](mdb, testStore)
 
 	// Ensure cleanup after the whole benchmark completes
 	b.Cleanup(func() {
@@ -66,7 +67,7 @@ func setupBench(b *testing.B) (*store.MapDB, *store.Store[TestData], string) {
 
 func TestStorePersistence(t *testing.T) {
 	mdb, dbDir := setupTest(t, testPersistDB)
-	s := store.DefineStore[TestData](mdb, testStore)
+	s := database.AssignStore[TestData](mdb, testStore)
 
 	s.SetKey("key1", TestData{Name: "PersistentKey", Names: []string{"Persist1", "Persist2"}})
 	if err := s.WriteSnapshot(); err != nil {
@@ -74,7 +75,7 @@ func TestStorePersistence(t *testing.T) {
 	}
 
 	// Reload a new store from the same path
-	rs, err := store.NewStore[TestData](fmt.Sprintf("%s.json", filepath.Join(dbDir, testStore)))
+	rs, err := store.New[TestData](fmt.Sprintf("%s.json", filepath.Join(dbDir, testStore)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +92,7 @@ func TestStorePersistence(t *testing.T) {
 
 func TestSetGet(t *testing.T) {
 	mdb, _ := setupTest(t, testDB)
-	s := store.DefineStore[TestData](mdb, testStore)
+	s := database.AssignStore[TestData](mdb, testStore)
 
 	s.SetKey("key1", TestData{Name: "Test", Names: []string{"Test1", "Test2"}})
 	v, err := s.GetKey("key1")

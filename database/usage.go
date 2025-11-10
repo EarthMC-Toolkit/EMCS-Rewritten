@@ -1,4 +1,4 @@
-package store
+package database
 
 import (
 	"maps"
@@ -82,8 +82,8 @@ func (u *UserUsage) GetCommandStatsSince(t time.Time) []UsageCommandStat {
 
 // ================================== DATABASE INTERACTION ==================================
 
-func UpdateUsageForUser(mdb *MapDB, user *discordgo.User, cmdName string, entry UsageCommandEntry) error {
-	usageStore, err := GetStore[UserUsage](mdb, "usage-users")
+func UpdateUsageForUser(db *Database, user *discordgo.User, cmdName string, entry UsageCommandEntry) error {
+	usageStore, err := GetStore[UserUsage](db, "usage-users")
 	if err != nil {
 		return err
 	}

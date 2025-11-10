@@ -1,7 +1,8 @@
-package store
+package database
 
 import (
 	"emcsrw/api/oapi"
+	"emcsrw/database/store"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -93,7 +94,7 @@ func (a Alliance) CreatedTimestamp() uint64 {
 	return a.UUID >> 16
 }
 
-func (a *Alliance) GetNations(nationStore *Store[oapi.NationInfo]) []oapi.NationInfo {
+func (a *Alliance) GetNations(nationStore *store.Store[oapi.NationInfo]) []oapi.NationInfo {
 	return nationStore.GetMany(a.OwnNations...)
 }
 

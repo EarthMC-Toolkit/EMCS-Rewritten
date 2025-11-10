@@ -2,7 +2,7 @@ package events
 
 import (
 	"emcsrw/bot/slashcommands"
-	"emcsrw/bot/store"
+	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -45,20 +45,20 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 	}
 
 	if cmdName != "usage" {
-		mdb, err := store.GetMapDB(shared.ACTIVE_MAP)
+		mdb, err := database.Get(shared.ACTIVE_MAP)
 		if err != nil {
 			fmt.Println()
 			log.Printf("error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)
 			return
 		}
 
-		e := store.UsageCommandEntry{
+		e := database.UsageCommandEntry{
 			Type:      uint8(cmdType),
 			Timestamp: time.Now().Unix(),
 			Success:   success,
 		}
 
-		if err := store.UpdateUsageForUser(mdb, author, cmdName, e); err != nil {
+		if err := database.UpdateUsageForUser(mdb, author, cmdName, e); err != nil {
 			fmt.Println()
 			log.Printf("error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)
 			return

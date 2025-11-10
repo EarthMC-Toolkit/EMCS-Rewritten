@@ -2,7 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/store"
+	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"errors"
@@ -66,7 +66,7 @@ func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName string) error {
 	discordutil.DeferReply(s, i)
 
-	townStore, err := store.GetStoreForMap[oapi.TownInfo](shared.ACTIVE_MAP, "towns")
+	townStore, err := database.GetStoreForMap[oapi.TownInfo](shared.ACTIVE_MAP, "towns")
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) error {
 	discordutil.DeferReply(s, i)
 
-	nationStore, err := store.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
+	nationStore, err := database.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
 	if err != nil {
 		return err
 	}
