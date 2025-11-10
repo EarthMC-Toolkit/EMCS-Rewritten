@@ -41,7 +41,7 @@ type Store[T any] struct {
 
 // Creates a new store backed by a JSON file at `path` for persistence.
 // The path should be relative to the current working dir, i.e. "./db/map/alliances.json"
-func NewStore[T any](path string) (*Store[T], error) {
+func New[T any](path string) (*Store[T], error) {
 	s := &Store[T]{
 		filePath: path,
 		data:     make(map[StoreKey]T),

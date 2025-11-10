@@ -2,7 +2,7 @@ package shared
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/store"
+	"emcsrw/database"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -26,7 +26,7 @@ var DEFAULT_FOOTER = &dgo.MessageEmbedFooter{
 }
 
 // Creates a single embed showing info from the given Alliance.
-func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
+func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 	// Resort to dark blue unless alliance has optional fill colour specified.
 	embedColour := discordutil.DARK_AQUA
 	colours := a.Optional.Colours
@@ -66,7 +66,7 @@ func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
 	}
 
 	// Nation field logic
-	nationStore, _ := store.GetStoreForMap[oapi.NationInfo](ACTIVE_MAP, "nations")
+	nationStore, _ := database.GetStoreForMap[oapi.NationInfo](ACTIVE_MAP, "nations")
 	nations := a.GetNations(nationStore)
 	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
@@ -99,6 +99,15 @@ func NewAllianceEmbed(s *dgo.Session, a *store.Alliance) *dgo.MessageEmbed {
 
 	if a.UpdatedTimestamp != nil {
 		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", *a.UpdatedTimestamp, *a.UpdatedTimestamp), true)
+	}
+
+	flag := a.Optional.ImageURL
+	if flag != nil {
+		if *flag != "" {
+			embed.Thumbnail = &dgo.MessageEmbedThumbnail{
+				URL: *flag,
+			}
+		}
 	}
 
 	return embed
@@ -134,8 +143,8 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
 
 	affiliation := "None (Townless)"
 	if townName != "No Town" {
-		db, _ := store.GetMapDB(ACTIVE_MAP)
-		townsStore, _ := store.GetStore[oapi.TownInfo](db, "towns")
+		mdb, _ := database.Get(ACTIVE_MAP)
+		townsStore, _ := database.GetStore[oapi.TownInfo](mdb, "towns")
 		town, err := townsStore.GetKey(*player.Town.UUID)
 
 		// Should never rly be false bc we established they aren't townless.

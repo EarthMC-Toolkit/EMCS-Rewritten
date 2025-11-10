@@ -1,7 +1,7 @@
 package slashcommands
 
 import (
-	"emcsrw/bot/store"
+	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
@@ -51,7 +51,7 @@ func (cmd UsageCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 }
 
 func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
-	usageStore, err := store.GetStoreForMap[store.UserUsage](shared.ACTIVE_MAP, "usage-users")
+	usageStore, err := database.GetStoreForMap[database.UserUsage](shared.ACTIVE_MAP, "usage-users")
 	if err != nil {
 		return err
 	}

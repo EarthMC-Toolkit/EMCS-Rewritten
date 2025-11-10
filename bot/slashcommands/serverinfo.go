@@ -2,7 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/store"
+	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
@@ -25,12 +25,7 @@ func (cmd ServerInfoCommand) Options() AppCommandOpts {
 }
 
 func (cmd ServerInfoCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	db, err := store.GetMapDB(shared.ACTIVE_MAP)
-	if err != nil {
-		return err
-	}
-
-	serverStore, err := store.GetStore[oapi.ServerInfo](db, "server")
+	serverStore, err := database.GetStoreForMap[oapi.ServerInfo](shared.ACTIVE_MAP, "server")
 	if err != nil {
 		return err
 	}

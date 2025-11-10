@@ -2,7 +2,8 @@ package events
 
 import (
 	"emcsrw/api/oapi"
-	"emcsrw/bot/store"
+	"emcsrw/database"
+	"emcsrw/database/store"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"errors"
@@ -41,7 +42,7 @@ func OnInteractionCreateModalSubmit(s *discordgo.Session, i *discordgo.Interacti
 	}
 
 	if strings.HasPrefix(data.CustomID, "alliance_editor") {
-		allianceStore, err := store.GetStoreForMap[store.Alliance](shared.ACTIVE_MAP, "alliances")
+		allianceStore, err := database.GetStoreForMap[database.Alliance](shared.ACTIVE_MAP, "alliances")
 		if err != nil {
 			return
 		}
@@ -75,7 +76,7 @@ func OnInteractionCreateModalSubmit(s *discordgo.Session, i *discordgo.Interacti
 
 func handleAllianceEditorModalFunctional(
 	s *discordgo.Session, i *discordgo.Interaction,
-	alliance *store.Alliance, allianceStore *store.Store[store.Alliance],
+	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
 ) error {
 	inputs := modalInputsToMap(i)
 
@@ -107,12 +108,12 @@ func handleAllianceEditorModalFunctional(
 		nationsInput := strings.Split(strings.ReplaceAll(inputs["nations"], " ", ""), ",")
 
 		//#region Get UUIDs from nation names
-		nameSet := make(store.ExistenceMap, len(nationsInput))
+		nameSet := make(database.ExistenceMap, len(nationsInput))
 		for _, name := range nationsInput {
 			nameSet[strings.ToLower(name)] = struct{}{}
 		}
 
-		nationStore, _ := store.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
+		nationStore, _ := database.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
 		nations := nationStore.FindMany(func(n oapi.NationInfo) bool {
 			_, ok := nameSet[strings.ToLower(n.Name)]
 			return ok
@@ -133,7 +134,7 @@ func handleAllianceEditorModalFunctional(
 
 	// Update store
 	allianceStore.SetKey(strings.ToLower(ident), *alliance)
-	if !strings.EqualFold(oldIdent, alliance.Identifier) {
+	if !strings.EqualFold(oldIdent, ident) {
 		allianceStore.DeleteKey(strings.ToLower(oldIdent)) // remove old key if identifier changed
 	}
 
@@ -156,7 +157,7 @@ func handleAllianceEditorModalFunctional(
 
 func handleAllianceEditorModalOptional(
 	s *discordgo.Session, i *discordgo.Interaction,
-	alliance *store.Alliance, allianceStore *store.Store[store.Alliance],
+	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
 ) error {
 	inputs := modalInputsToMap(i)
 
@@ -211,7 +212,7 @@ func handleAllianceEditorModalOptional(
 	//colours := inputs["colours"]
 	// validate hex
 
-	allianceType := store.NewAllianceType(inputs["type"]) // invalid input will default to pact
+	allianceType := database.NewAllianceType(inputs["type"]) // invalid input will default to pact
 
 	// Update alliance fields after all validation/transformations complete.
 	alliance.Type = allianceType
@@ -240,7 +241,7 @@ func handleAllianceEditorModalOptional(
 
 // Handles the submission of the modal for creating an alliance.
 func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) error {
-	allianceStore, err := store.GetStoreForMap[store.Alliance](shared.ACTIVE_MAP, "alliances")
+	allianceStore, err := database.GetStoreForMap[database.Alliance](shared.ACTIVE_MAP, "alliances")
 	if err != nil {
 		return err
 	}
@@ -271,12 +272,12 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	}
 
 	//#region Get UUIDs from nation names
-	nameSet := make(store.ExistenceMap, len(nationsInput))
+	nameSet := make(database.ExistenceMap, len(nationsInput))
 	for _, name := range nationsInput {
 		nameSet[strings.ToLower(name)] = struct{}{}
 	}
 
-	nationStore, _ := store.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
+	nationStore, _ := database.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
 	nations := nationStore.FindMany(func(n oapi.NationInfo) bool {
 		_, ok := nameSet[strings.ToLower(n.Name)]
 		return ok
@@ -287,7 +288,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	})
 	//#endregion
 
-	alliance := store.Alliance{
+	alliance := database.Alliance{
 		UUID:             generateAllianceID(),
 		Identifier:       ident,
 		Label:            label,
@@ -369,7 +370,7 @@ func validateAllianceImage(rawURL string) (string, error) {
 		return "", fmt.Errorf("wrong channel. use image from flags channel")
 	}
 
-	ext := strings.ToLower(path.Ext(u.Path))
+	ext := strings.ToLower(path.Ext(strings.TrimRight(u.Path, "/")))
 	switch ext {
 	case ".png", ".jpg", ".jpeg", ".webp":
 	default:
