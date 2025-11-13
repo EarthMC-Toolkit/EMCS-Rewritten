@@ -647,7 +647,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	}
 
 	inputNations := strings.Split(strings.ReplaceAll(inputs["nations"], " ", ""), ",")
-	if len(inputNations) < 1 {
+	if len(inputNations) < 2 {
 		discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Could not create alliance `%s`.\nOnly one nation input specified, minimum two required.\n", ident),
 			Flags:   discordgo.MessageFlagsEphemeral,
@@ -672,6 +672,11 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return n.UUID
 	})
 	//#endregion
+
+	// TODO: Report any nations in input that are missing in UUIDs, then send a
+	// 		 reply asking the editor to resolve those nations and re-run the command.
+	//
+	// 		 OR: just add the existing ones and let them know which weren't included.
 
 	label := strings.TrimSpace(inputs["label"])
 
