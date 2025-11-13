@@ -400,7 +400,7 @@ func handleAllianceEditorModalFunctional(
 	s *discordgo.Session, i *discordgo.Interaction,
 	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
 ) error {
-	inputs := modalInputsToMap(i)
+	inputs := discordutil.GetModalInputs(i)
 
 	oldIdent := alliance.Identifier
 
@@ -481,7 +481,7 @@ func handleAllianceEditorModalOptional(
 	s *discordgo.Session, i *discordgo.Interaction,
 	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
 ) error {
-	inputs := modalInputsToMap(i)
+	inputs := discordutil.GetModalInputs(i)
 
 	image := inputs["image"]
 	if image != "" {
@@ -568,7 +568,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return err
 	}
 
-	inputs := modalInputsToMap(i)
+	inputs := discordutil.GetModalInputs(i)
 
 	ident := inputs["identifier"]
 	if allianceStore.HasKey(strings.ToLower(ident)) {
@@ -637,33 +637,6 @@ func generateAllianceID() uint64 {
 	return (createdTs << 16) | suffix
 }
 
-func modalInputsToMap(i *discordgo.Interaction) map[string]string {
-	inputs := make(map[string]string)
-	for _, row := range i.ModalSubmitData().Components {
-		actionRow, ok := row.(*discordgo.ActionsRow)
-		if !ok {
-			continue // Must not be an action row, we don't care.
-		}
-
-		// Gather values of all text input components in this row.
-		for _, comp := range actionRow.Components {
-			if input, ok := comp.(*discordgo.TextInput); ok {
-				inputs[input.CustomID] = input.Value
-			}
-		}
-	}
-
-	return inputs
-}
-
-func defaultIfEmpty(value, fallback string) string {
-	if strings.TrimSpace(value) == "" {
-		return fallback
-	}
-
-	return value
-}
-
 func validateAllianceImage(rawURL string) (string, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -700,4 +673,12 @@ func validateAllianceImage(rawURL string) (string, error) {
 	}
 
 	return u.String(), nil
+}
+
+func defaultIfEmpty(value, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+
+	return value
 }
