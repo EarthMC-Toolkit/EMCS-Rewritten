@@ -36,6 +36,15 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 			Description: "Create an alliance. This command is for Editors only.",
 		},
 		{
+			// TODO: Maybe turn into modal with text inputs "Identifier" and "Disband Reason".
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "disband",
+			Description: "Disband an alliance. This command is for Editors only.",
+			Options: AppCommandOpts{
+				discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
+			},
+		},
+		{
 			Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
 			Name:        "edit",
 			Description: "Edit alliance info. This command is for Editors only.",
@@ -84,6 +93,9 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 
 	if opt = cdata.GetOption("create"); opt != nil {
 		return createAlliance(s, i.Interaction)
+	}
+	if opt = cdata.GetOption("disband"); opt != nil {
+		return disbandAlliance(s, i.Interaction, cdata)
 	}
 	if opt = cdata.GetOption("edit"); opt != nil {
 		return editAlliance(s, i.Interaction, cdata)
@@ -217,6 +229,50 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 			}),
 		},
 	})
+}
+
+func disbandAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
+	isSrEditor, _ := discordutil.HasRole(i.Member, SR_EDITOR_ROLE)
+	if !isSrEditor && !discordutil.IsDev(i) {
+		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: "Only senior editors can disband alliances.",
+			Flags:   discordgo.MessageFlagsEphemeral,
+		})
+
+		return err
+	}
+
+	opt := cdata.GetOption("disband")
+	ident := opt.GetOption("identifier").StringValue()
+
+	allianceStore, err := database.GetStoreForMap[database.Alliance](shared.ACTIVE_MAP, "alliances")
+	if err != nil {
+		return err
+	}
+
+	a, _ := allianceStore.FindFirst(func(a database.Alliance) bool {
+		return strings.EqualFold(a.Identifier, ident)
+	})
+	if a == nil {
+		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("Cannot disband alliance `%s` as it does not exist.", ident),
+			Flags:   discordgo.MessageFlagsEphemeral,
+		})
+
+		return err
+	}
+
+	// TODO: Send disband notif and json backup to backup channel.
+
+	allianceStore.DeleteKey(a.Identifier)
+
+	// TODO: maybe write snapshot
+
+	_, err = discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		Content: fmt.Sprintf("Successfully disbanded alliance `%s` aka `%s`.", a.Label, a.Identifier),
+	})
+
+	return err
 }
 
 func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
@@ -580,22 +636,29 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return nil
 	}
 
-	label := inputs["label"]
-	nationsInput := strings.Split(strings.ReplaceAll(inputs["nations"], " ", ""), ",")
-
 	representativeUser, err := s.User(inputs["representative"])
 	if err != nil {
 		discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
-			Content: "Representative ID does point to a valid Discord user.",
+			Content: fmt.Sprintf("Could not create alliance `%s`.\nRepresentative ID does point to a valid Discord user.", ident),
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
 
 		return nil
 	}
 
-	//#region Get UUIDs from nation names
-	nameSet := make(database.ExistenceMap, len(nationsInput))
-	for _, name := range nationsInput {
+	inputNations := strings.Split(strings.ReplaceAll(inputs["nations"], " ", ""), ",")
+	if len(inputNations) < 1 {
+		discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("Could not create alliance `%s`.\nOnly one nation input specified, minimum two required.\n", ident),
+			Flags:   discordgo.MessageFlagsEphemeral,
+		})
+
+		return nil
+	}
+
+	//#region Nation name inputs -> UUIDs
+	nameSet := make(database.ExistenceMap, len(inputNations))
+	for _, name := range inputNations {
 		nameSet[strings.ToLower(name)] = struct{}{}
 	}
 
@@ -610,6 +673,8 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	})
 	//#endregion
 
+	label := strings.TrimSpace(inputs["label"])
+
 	alliance := database.Alliance{
 		UUID:             generateAllianceID(),
 		Identifier:       ident,
@@ -619,6 +684,8 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	}
 
 	allianceStore.SetKey(strings.ToLower(ident), alliance)
+
+	// TODO: maybe write snapshot
 
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully created alliance:",
