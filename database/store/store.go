@@ -97,6 +97,10 @@ func (s *Store[T]) Clear() {
 	}
 }
 
+// Deletes a value in this store that is associated with the key.
+//
+// This operation is case-sensitive. If you are storing keys insensitively,
+// make sure the key is lowered before inputting to this func.
 func (s *Store[T]) DeleteKey(key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -112,6 +116,10 @@ func (s *Store[T]) SetKey(key string, value T) {
 	s.data[key] = value
 }
 
+// Retrieves a value from this store that is associated with the key.
+//
+// This operation is case-sensitive. If you are storing keys insensitively,
+// make sure the key is lowered before inputting to this func.
 func (s *Store[T]) GetKey(key string) (*T, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

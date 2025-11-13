@@ -1,11 +1,13 @@
 package slashcommands
 
 import (
+	"bytes"
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/database/store"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -20,6 +22,7 @@ import (
 
 const EDITOR_ROLE = "966359842417705020"
 const SR_EDITOR_ROLE = "1143253762039873646"
+const ALLIANCE_BACKUP_CHANNEL = "1438592337335947314"
 
 type AllianceCommand struct{}
 
@@ -262,11 +265,17 @@ func disbandAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata disco
 		return err
 	}
 
-	// TODO: Send disband notif and json backup to backup channel.
+	// Send disband notif and the alliance's json data to backup channel.
+	sendAllianceBackup(s, i, a, "disbanded")
 
-	allianceStore.DeleteKey(a.Identifier)
+	allianceStore.DeleteKey(strings.ToLower(a.Identifier))
 
-	// TODO: maybe write snapshot
+	// We instantly write the data to the db to make sure the changes stick without waiting for graceful shutdown,
+	// since the bot could panic and not recover at any moment and all changes would be lost.
+	err = allianceStore.WriteSnapshot()
+	if err != nil {
+		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", a.Identifier, err)
+	}
 
 	_, err = discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Content: fmt.Sprintf("Successfully disbanded alliance `%s` aka `%s`.", a.Label, a.Identifier),
@@ -520,7 +529,7 @@ func handleAllianceEditorModalFunctional(
 	// since the bot could panic and not recover at any moment and all changes would be lost.
 	err := allianceStore.WriteSnapshot()
 	if err != nil {
-		return fmt.Errorf("error saving edited alliance '%s'. WriteSnapshot failed", ident)
+		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
@@ -604,7 +613,7 @@ func handleAllianceEditorModalOptional(
 	// since the bot could panic and not recover at any moment and all changes would be lost.
 	err := allianceStore.WriteSnapshot()
 	if err != nil {
-		return fmt.Errorf("error saving edited alliance '%s'. WriteSnapshot failed", alliance.Identifier)
+		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
@@ -690,7 +699,12 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 
 	allianceStore.SetKey(strings.ToLower(ident), alliance)
 
-	// TODO: maybe write snapshot
+	// We instantly write the data to the db to make sure the changes stick without waiting for graceful shutdown,
+	// since the bot could panic and not recover at any moment and all changes would be lost.
+	err = allianceStore.WriteSnapshot()
+	if err != nil {
+		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
+	}
 
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully created alliance:",
@@ -753,4 +767,19 @@ func defaultIfEmpty(value, fallback string) string {
 	}
 
 	return value
+}
+
+func sendAllianceBackup(s *discordgo.Session, i *discordgo.Interaction, a *database.Alliance, reason string) {
+	allianceJSON, err := json.MarshalIndent(a, "", "  ")
+	if err != nil {
+		fmt.Printf("could not send backup of alliance '%s'. failed to marshal\n%v", a.Identifier, err)
+	}
+
+	content := fmt.Sprintf("Alliance `%s` was %s by **%s**. A backup has been created:", a.Identifier, reason, i.Member.User)
+	embedName := fmt.Sprintf("%s_%d.json", a.Identifier, time.Now().UnixMilli())
+
+	_, err = s.ChannelFileSendWithMessage(ALLIANCE_BACKUP_CHANNEL, content, embedName, bytes.NewReader(allianceJSON))
+	if err != nil {
+		fmt.Printf("could not send backup of alliance '%s'. channel send message failed\n%v", a.Identifier, err)
+	}
 }
