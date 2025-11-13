@@ -35,6 +35,11 @@ type SlashCommand interface {
 	Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error
 }
 
+type ModalCommand interface {
+	SlashCommand
+	HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error
+}
+
 func ToApplicationCommand(cmd SlashCommand) *discordgo.ApplicationCommand {
 	return &discordgo.ApplicationCommand{
 		Name:             cmd.Name(),
