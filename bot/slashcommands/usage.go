@@ -105,6 +105,6 @@ func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 	})
 }
 
-func executeLeaderboard(s *discordgo.Session, i *discordgo.Interaction) error {
+func executeLeaderboard(_ *discordgo.Session, _ *discordgo.Interaction) error {
 	return nil
 }
