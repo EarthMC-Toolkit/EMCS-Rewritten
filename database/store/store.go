@@ -206,14 +206,17 @@ func (s *Store[T]) WriteSnapshot() error {
 		return err
 	}
 
+	// yankee wit no brim
 	tmp := s.filePath + ".tmp"
 	if err := os.WriteFile(tmp, data, 0o644); err != nil {
 		return err
 	}
 
-	// yankee wit no brim
+	// replace real file once temp file is fully written
 	err = os.Rename(tmp, s.filePath)
 	if err != nil {
+		// TODO: if this occurs, the temp file could be left behind
+		// we should check this file exists and either recover or delete it
 		return fmt.Errorf("error writing store snapshot to %s: %w", s.filePath, err)
 	}
 

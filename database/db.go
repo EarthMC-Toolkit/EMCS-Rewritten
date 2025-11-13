@@ -23,7 +23,7 @@ type Database struct {
 	flushMu sync.Mutex              // Ensures multiple flushes cannot happen simultaneously.
 }
 
-// Creates an instance of [Database], then reads the dir at baseDir+mapName (created if it does not exist) and registers it into global map.
+// Creates an instance of [Database] with the dir at baseDir+mapName (created if it does not exist) and registers it into global map.
 //
 // NOTE: To add a store to this DB, call [AssignStore] with the appropriate type which the store file can be unmarshaled into.
 func New(baseDir string, mapName string) (*Database, error) {
