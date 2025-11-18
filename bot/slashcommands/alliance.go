@@ -825,7 +825,7 @@ func sendAllianceBackup(s *discordgo.Session, i *discordgo.Interaction, a *datab
 	}
 
 	content := fmt.Sprintf("Alliance `%s` was %s by **%s**. A backup has been created:", a.Identifier, reason, i.Member.User)
-	embedName := fmt.Sprintf("%s_%d.json", a.Identifier, time.Now().UnixMilli())
+	embedName := fmt.Sprintf("%s_%d.json", a.Identifier, a.CreatedTimestamp())
 
 	_, err = s.ChannelFileSendWithMessage(ALLIANCE_BACKUP_CHANNEL, content, embedName, bytes.NewReader(allianceJSON))
 	if err != nil {
