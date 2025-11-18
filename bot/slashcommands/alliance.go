@@ -10,9 +10,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math/rand"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -465,6 +467,11 @@ func handleAllianceEditorModalFunctional(
 	s *discordgo.Session, i *discordgo.Interaction,
 	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
 ) error {
+	nationStore, err := database.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
+	if err != nil {
+		return err
+	}
+
 	inputs := discordutil.GetModalInputs(i)
 
 	oldIdent := alliance.Identifier
@@ -490,23 +497,26 @@ func handleAllianceEditorModalFunctional(
 		representativeID = &representativeUser.ID
 	}
 
-	ownNations := alliance.OwnNations
-	if inputs["nations"] != "" {
-		nationsInput := strings.Split(strings.ReplaceAll(inputs["nations"], " ", ""), ",")
+	nationUUIDs := alliance.OwnNations
+	missingNations := []string{}
 
-		//#region Get UUIDs from nation names
-		nameSet := make(database.ExistenceMap, len(nationsInput))
-		for _, name := range nationsInput {
-			nameSet[strings.ToLower(name)] = struct{}{}
+	// We have some input, meaning nations are being edited, not staying as previous value.
+	if inputs["nations"] != "" {
+		inputNations := strings.Split(strings.ReplaceAll(inputs["nations"], " ", ""), ",")
+
+		//#region Nation name inputs -> UUIDs
+		validNations, missing := validateNations(nationStore, inputNations)
+		if len(validNations) < 1 {
+			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("Could not edit alliance `%s`.\nNone of the input nation names were valid nations.\n", oldIdent),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+
+			return nil
 		}
 
-		nationStore, _ := database.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
-		nations := nationStore.FindMany(func(n oapi.NationInfo) bool {
-			_, ok := nameSet[strings.ToLower(n.Name)]
-			return ok
-		})
-
-		ownNations = lo.Map(nations, func(n oapi.NationInfo, _ int) string {
+		missingNations = missing
+		nationUUIDs = lo.Map(validNations, func(n oapi.NationInfo, _ int) string {
 			return n.UUID
 		})
 		//#endregion
@@ -516,7 +526,7 @@ func handleAllianceEditorModalFunctional(
 	alliance.Identifier = ident
 	alliance.Label = label
 	alliance.RepresentativeID = representativeID
-	alliance.OwnNations = ownNations
+	alliance.OwnNations = nationUUIDs
 	alliance.Parents = strings.Split(strings.ReplaceAll(parents, " ", ""), ",")
 
 	// Update store
@@ -527,16 +537,24 @@ func handleAllianceEditorModalFunctional(
 
 	// We instantly write the data to the db to make sure the changes stick without waiting for graceful shutdown,
 	// since the bot could panic and not recover at any moment and all changes would be lost.
-	err := allianceStore.WriteSnapshot()
+	err = allianceStore.WriteSnapshot()
 	if err != nil {
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
+	embed := shared.NewAllianceEmbed(s, alliance)
+	content := "Successfully edited alliance:"
+	if len(missingNations) > 0 {
+		embed.Color = discordutil.GOLD
+		content = fmt.Sprintf(
+			"Partially edited alliance, the following nations were invalid:```%s```",
+			strings.Join(missingNations, ", "),
+		)
+	}
+
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
-		Content: "Successfully edited alliance:",
-		Embeds: []*discordgo.MessageEmbed{
-			shared.NewAllianceEmbed(s, alliance),
-		},
+		Content: content,
+		Embeds:  []*discordgo.MessageEmbed{embed},
 	})
 
 	return nil
@@ -628,7 +646,17 @@ func handleAllianceEditorModalOptional(
 
 // Handles the submission of the modal for creating an alliance.
 func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) error {
-	allianceStore, err := database.GetStoreForMap[database.Alliance](shared.ACTIVE_MAP, "alliances")
+	mdb, err := database.Get(shared.ACTIVE_MAP)
+	if err != nil {
+		return err
+	}
+
+	allianceStore, err := database.GetStore[database.Alliance](mdb, "alliances")
+	if err != nil {
+		return err
+	}
+
+	nationStore, err := database.GetStore[oapi.NationInfo](mdb, "nations")
 	if err != nil {
 		return err
 	}
@@ -666,26 +694,20 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	}
 
 	//#region Nation name inputs -> UUIDs
-	nameSet := make(database.ExistenceMap, len(inputNations))
-	for _, name := range inputNations {
-		nameSet[strings.ToLower(name)] = struct{}{}
+	validNations, missingNations := validateNations(nationStore, inputNations)
+	if len(validNations) < 1 {
+		discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("Could not create alliance `%s`.\nNone of the input nation names were valid nations.\n", ident),
+			Flags:   discordgo.MessageFlagsEphemeral,
+		})
+
+		return nil
 	}
 
-	nationStore, _ := database.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
-	nations := nationStore.FindMany(func(n oapi.NationInfo) bool {
-		_, ok := nameSet[strings.ToLower(n.Name)]
-		return ok
-	})
-
-	nationUUIDs := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
+	nationUUIDs := lo.Map(validNations, func(n oapi.NationInfo, _ int) string {
 		return n.UUID
 	})
 	//#endregion
-
-	// TODO: Report any nations in input that are missing in UUIDs, then send a
-	// 		 reply asking the editor to resolve those nations and re-run the command.
-	//
-	// 		 OR: just add the existing ones and let them know which weren't included.
 
 	label := strings.TrimSpace(inputs["label"])
 
@@ -706,15 +728,31 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
+	embed := shared.NewAllianceEmbed(s, &alliance)
+	content := "Successfully created alliance:"
+	if len(missingNations) > 0 {
+		embed.Color = discordutil.GOLD
+		content = fmt.Sprintf(
+			"Partially created alliance, the following nations were invalid:```%s```",
+			strings.Join(missingNations, ", "),
+		)
+	}
+
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
-		Content: "Successfully created alliance:",
-		Embeds: []*discordgo.MessageEmbed{
-			shared.NewAllianceEmbed(s, &alliance),
-		},
+		Content: content,
+		Embeds:  []*discordgo.MessageEmbed{embed},
 	})
 
 	//fmt.Print(utils.Prettify(alliance))
 	return nil
+}
+
+func defaultIfEmpty(value, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+
+	return value
 }
 
 func generateAllianceID() uint64 {
@@ -761,12 +799,23 @@ func validateAllianceImage(rawURL string) (string, error) {
 	return u.String(), nil
 }
 
-func defaultIfEmpty(value, fallback string) string {
-	if strings.TrimSpace(value) == "" {
-		return fallback
+func validateNations(nationStore *store.Store[oapi.NationInfo], input []string) (valid []oapi.NationInfo, missing []string) {
+	inputNations := make(map[string]struct{}, len(input))
+	for _, name := range input {
+		inputNations[strings.ToLower(name)] = struct{}{}
 	}
 
-	return value
+	valid = nationStore.FindMany(func(n oapi.NationInfo) bool {
+		_, ok := inputNations[strings.ToLower(n.Name)]
+		return ok
+	})
+
+	// filter out all the valid and now unneeded ones.
+	for _, n := range valid {
+		delete(inputNations, strings.ToLower(n.Name))
+	}
+
+	return valid, slices.Collect(maps.Keys(inputNations))
 }
 
 func sendAllianceBackup(s *discordgo.Session, i *discordgo.Interaction, a *database.Alliance, reason string) {
