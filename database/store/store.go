@@ -66,6 +66,17 @@ func (s *Store[T]) Entries() StoreData[T] {
 	return s.data.shallowCopy()
 }
 
+func (s *Store[T]) Keys() (keys []StoreKey) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for k := range s.data {
+		keys = append(keys, k)
+	}
+
+	return
+}
+
 func (s *Store[T]) Values() (values []T) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
