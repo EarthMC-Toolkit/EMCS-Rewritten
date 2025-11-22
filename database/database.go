@@ -133,7 +133,10 @@ func GetStore[T any](db *Database, storeDef StoreDefinition[T]) (*store.Store[T]
 
 	s, ok := si.(*store.Store[T])
 	if !ok {
-		return nil, fmt.Errorf("store '%s' exists but with a different type", storeDef.Name)
+		return nil, fmt.Errorf(
+			"store '%s' exists but with a different type: expected *Store[%T], got %T",
+			storeDef.Name, (*store.Store[T])(nil), si,
+		)
 	}
 
 	return s, nil
