@@ -6,6 +6,7 @@ import (
 	"emcsrw/database"
 	"emcsrw/database/store"
 	"emcsrw/shared"
+	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"encoding/json"
 	"errors"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
+	"github.com/samber/lo/parallel"
 )
 
 const EDITOR_ROLE = "966359842417705020"
@@ -35,6 +37,19 @@ func (cmd AllianceCommand) Description() string {
 
 func (cmd AllianceCommand) Options() AppCommandOpts {
 	return AppCommandOpts{
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "query",
+			Description: "Query information about an alliance (meganation, organisation or pact).",
+			Options: AppCommandOpts{
+				discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
+			},
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "list",
+			Description: "Sends a paginator enabling navigation through all registered alliances.",
+		},
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "create",
@@ -72,14 +87,6 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 				},
 			},
 		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "query",
-			Description: "Query information about an alliance (meganation, organisation or pact).",
-			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
-			},
-		},
 	}
 }
 
@@ -94,6 +101,10 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		}
 
 		return queryAlliance(s, i.Interaction, cdata)
+	}
+
+	if opt = cdata.GetOption("list"); opt != nil {
+		return listAlliances(s, i.Interaction)
 	}
 
 	if opt = cdata.GetOption("create"); opt != nil {
@@ -170,6 +181,95 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 
 	_, err = discordutil.FollowUpEmbeds(s, i, shared.NewAllianceEmbed(s, alliance))
 	return err
+}
+
+func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
+	allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
+	if err != nil {
+		return err
+	}
+
+	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
+	if err != nil {
+		return err
+	}
+
+	alliances := allianceStore.Values()
+
+	count := len(alliances)
+	if count == 0 {
+		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: "No alliances seem to exist? Something may have gone wrong with the database or alliance store.",
+		})
+
+		return err
+	}
+
+	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
+	perPage := 10
+	paginator := discordutil.NewInteractionPaginator(s, i, count, perPage)
+	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
+		start, end := paginator.CurrentPageBounds(count)
+
+		content := ""
+		for idx, item := range alliances[start:end] {
+			allianceName := item.Identifier
+			if item.Optional.DiscordCode == nil {
+				allianceName += fmt.Sprintf(" / %s", item.Label)
+			} else {
+				allianceName = fmt.Sprintf(
+					"[%s / %s](https://discord.gg/%s)",
+					item.Identifier,
+					item.Label,
+					*item.Optional.DiscordCode,
+				)
+			}
+
+			leaderStr := "`Unknown/Error`"
+			leaders, err := item.GetLeaderNames()
+			if err != nil {
+				fmt.Printf("%s an error occurred getting leaders for alliance %s:\n%v", time.Now().Format(time.Stamp), item.Identifier, err)
+			} else {
+				leaderStr = strings.Join(lo.Map(leaders, func(leader string, _ int) string {
+					return fmt.Sprintf("`%s`", leader)
+				}), ", ")
+			}
+			representativeName := "`Unknown/Error`"
+			repUser, err := s.User(*item.RepresentativeID)
+			if err == nil {
+				representativeName = repUser.Username
+			}
+
+			nations := item.GetNations(nationStore)
+			// towns := lo.FlatMap(nations, func(n oapi.NationInfo, _ int) []oapi.Entity {
+			// 	return n.Towns // TODO: If we never use info, maybe just accumulate n.Stats.NumTowns
+			// })
+			// residents := lo.FlatMap(nations, func(n oapi.NationInfo, _ int) []oapi.Entity {
+			// 	return n.Residents // TODO: If we never use info, maybe just accumulate n.Stats.NumResidents
+			// })
+
+			towns := 0
+			residents := 0
+			area := 0
+			parallel.ForEach(nations, func(n oapi.NationInfo, _ int) {
+				towns += n.Stats.NumTowns
+				residents += n.Stats.NumResidents
+				area += n.Stats.NumTownBlocks
+			})
+
+			content += fmt.Sprintf(
+				"%d. %s (%s)\nLeader(s): %s\nRepresentative: `%s`\nNations: %s\nTowns: %s\nResidents: %s\n", start+idx+1,
+				allianceName, item.Type.Colloquial(), leaderStr, representativeName,
+				utils.HumanizedSprintf("`%d`", len(nations)),
+				utils.HumanizedSprintf("`%d`", towns),
+				utils.HumanizedSprintf("`%d`", residents),
+			)
+		}
+
+		data.Content = content + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
+	}
+
+	return paginator.Start()
 }
 
 func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {

@@ -60,7 +60,9 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 
 		town = t
 	} else {
-		t, err := townStore.GetKey(townName)
+		t, err := townStore.FindFirst(func(townInfo oapi.TownInfo) bool {
+			return strings.EqualFold(townName, townInfo.Name) || townName == townInfo.UUID
+		})
 		if err == nil {
 			town = t // db success
 		} else {

@@ -59,9 +59,6 @@ func SendMysteryMasterList(s *discordgo.Session, i *discordgo.Interaction) (*dis
 		}
 
 		data.Content = content + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
-		data.Components = []discordgo.MessageComponent{
-			paginator.NewNavigationButtonRow(),
-		}
 	}
 
 	return nil, paginator.Start()

@@ -48,6 +48,7 @@ func NewAllianceType(s string) AllianceType {
 	}
 }
 
+// The colloquial, long name of the alliance type. Eg: "mega" becomes "Meganation".
 func (t AllianceType) Colloquial() string {
 	switch t {
 	case AllianceTypeMeganation:
