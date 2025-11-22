@@ -2,6 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
+	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -47,15 +48,51 @@ func (cmd TownCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCre
 }
 
 func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName string) (*discordgo.Message, error) {
+	var town *oapi.TownInfo
+
+	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+	if err != nil || len(townStore.Keys()) < 1 {
+		// fallback to oapi
+		t, wasErr := getTownFromOAPI(townName)
+		if wasErr {
+			return discordutil.FollowUpContent(s, i, "DB error occurred and OAPI error also occurred during fallback!?!")
+		}
+
+		town = t
+	} else {
+		t, err := townStore.GetKey(townName)
+		if err == nil {
+			town = t // db success
+		} else {
+			// fallback to oapi
+			oapiTown, wasErr := getTownFromOAPI(townName)
+			if wasErr {
+				return discordutil.FollowUpContent(s, i, "Town does not exist in the database and the OAPI failed!")
+			}
+
+			town = oapiTown
+		}
+	}
+
+	// DB and OAPI are working normally but town wasn't found in either.
+	if town == nil {
+		return discordutil.FollowUpContent(s, i, fmt.Sprintf("Town `%s` does not seem to exist.", townName))
+	}
+
+	embed := shared.NewTownEmbed(*town)
+	return discordutil.FollowUpEmbeds(s, i, embed)
+}
+
+func getTownFromOAPI(townName string) (*oapi.TownInfo, bool) {
 	towns, err := oapi.QueryTowns(strings.ToLower(townName))
 	if err != nil {
-		return discordutil.FollowUpContent(s, i, "An error occurred retrieving town information :(")
+		return nil, true
 	}
 
 	if len(towns) == 0 {
-		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No towns retrieved. Town `%s` does not seem to exist.", townName))
+		return nil, false
 	}
 
-	embed := shared.NewTownEmbed(towns[0])
-	return discordutil.FollowUpEmbeds(s, i, embed)
+	t := towns[0]
+	return &t, false
 }
