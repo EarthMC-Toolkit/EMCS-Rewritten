@@ -119,7 +119,7 @@ func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Intera
 	}
 
 	if strings.HasPrefix(customID, "alliance_editor") {
-		allianceStore, err := database.GetStoreForMap[database.Alliance](shared.ACTIVE_MAP, database.ALLIANCES_STORE)
+		allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
 		if err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Intera
 }
 
 func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
-	allianceStore, err := database.GetStoreForMap[database.Alliance](shared.ACTIVE_MAP, database.ALLIANCES_STORE)
+	allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func disbandAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata disco
 	opt := cdata.GetOption("disband")
 	ident := opt.GetOption("identifier").StringValue()
 
-	allianceStore, err := database.GetStoreForMap[database.Alliance](shared.ACTIVE_MAP, database.ALLIANCES_STORE)
+	allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
 	if err != nil {
 		return err
 	}
@@ -297,7 +297,7 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordg
 		return err
 	}
 
-	allianceStore, err := database.GetStoreForMap[database.Alliance](shared.ACTIVE_MAP, database.ALLIANCES_STORE)
+	allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
 	if err != nil {
 		return err
 	}
@@ -331,7 +331,7 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordg
 }
 
 func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance) error {
-	nationStore, _ := database.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, database.NATIONS_STORE)
+	nationStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 	nations := alliance.GetNations(nationStore)
 	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
@@ -467,7 +467,7 @@ func handleAllianceEditorModalFunctional(
 	s *discordgo.Session, i *discordgo.Interaction,
 	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
 ) error {
-	nationStore, err := database.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, database.NATIONS_STORE)
+	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 	if err != nil {
 		return err
 	}
@@ -651,12 +651,12 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return err
 	}
 
-	allianceStore, err := database.GetStore[database.Alliance](mdb, database.ALLIANCES_STORE)
+	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
 	if err != nil {
 		return err
 	}
 
-	nationStore, err := database.GetStore[oapi.NationInfo](mdb, database.NATIONS_STORE)
+	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
 	if err != nil {
 		return err
 	}

@@ -44,7 +44,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		return
 	}
 
-	serverStore, _ := database.GetStore[oapi.ServerInfo](db, database.SERVER_STORE)
+	serverStore, _ := database.GetStore(db, database.SERVER_STORE)
 
 	// scheduleTask(func() {
 	// 	PutFunc(db, "playerlist", func() ([]oapi.Entity, error) {
@@ -149,17 +149,17 @@ func UpdateData(db *database.Database) (
 	towns map[string]oapi.TownInfo, staleTowns map[string]oapi.TownInfo,
 	townless, residents oapi.EntityList, err error,
 ) {
-	townStore, err := database.GetStore[oapi.TownInfo](db, database.TOWNS_STORE)
+	townStore, err := database.GetStore(db, database.TOWNS_STORE)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	nationStore, err := database.GetStore[oapi.NationInfo](db, database.NATIONS_STORE)
+	nationStore, err := database.GetStore(db, database.NATIONS_STORE)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	entityStore, err := database.GetStore[oapi.EntityList](db, database.ENTITIES_STORE)
+	entityStore, err := database.GetStore(db, database.ENTITIES_STORE)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

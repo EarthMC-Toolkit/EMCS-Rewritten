@@ -83,7 +83,7 @@ func (u *UserUsage) GetCommandStatsSince(t time.Time) []UsageCommandStat {
 // ================================== DATABASE INTERACTION ==================================
 
 func UpdateUsageForUser(db *Database, user *discordgo.User, cmdName string, entry UsageCommandEntry) error {
-	usageStore, err := GetStore[UserUsage](db, USAGE_USERS_STORE)
+	usageStore, err := GetStore(db, USAGE_USERS_STORE)
 	if err != nil {
 		return err
 	}
