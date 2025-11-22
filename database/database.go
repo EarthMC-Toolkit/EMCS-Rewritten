@@ -21,8 +21,8 @@ var ENTITIES_STORE = StoreDefinition[oapi.EntityList]{Name: "entities"}
 var ALLIANCES_STORE = StoreDefinition[Alliance]{Name: "alliances"}
 var USAGE_USERS_STORE = StoreDefinition[UserUsage]{Name: "usage-users"}
 
-var mapDbs = make(map[string]*Database)
-var mu sync.RWMutex // Guards access to mapDatabases
+var databases = make(map[string]*Database)
+var mu sync.RWMutex // Guards access to databases
 
 // A database that is responsible for multiple persistent caches aka "stores"
 // which can be assigned to this database and then retrieved for use again later.
@@ -85,14 +85,14 @@ func (db *Database) Flush() error {
 func Register(name string, mdb *Database) {
 	mu.Lock()
 	defer mu.Unlock()
-	mapDbs[name] = mdb
+	databases[name] = mdb
 }
 
 func Get(name string) (*Database, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	mdb, ok := mapDbs[name]
+	mdb, ok := databases[name]
 	if !ok {
 		return nil, fmt.Errorf("failed to get MapDB. no such db exists: %s", name)
 	}
