@@ -1,7 +1,6 @@
 package slashcommands
 
 import (
-	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
@@ -42,7 +41,7 @@ func (cmd NewDayCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 
 func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 	// grab new day time
-	serverStore, err := database.GetStoreForMap[oapi.ServerInfo](shared.ACTIVE_MAP, database.SERVER_STORE)
+	serverStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.SERVER_STORE)
 	if err != nil {
 		return err
 	}
