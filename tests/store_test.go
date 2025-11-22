@@ -11,7 +11,8 @@ import (
 
 const testDB = "testdb"
 const testPersistDB = "testpersist"
-const testStore = "teststore"
+
+var testStore = database.StoreDefinition[TestData]{Name: "teststore"}
 
 type TestData struct {
 	Names []string `json:"names"`
@@ -75,7 +76,7 @@ func TestStorePersistence(t *testing.T) {
 	}
 
 	// Reload a new store from the same path
-	rs, err := store.New[TestData](fmt.Sprintf("%s.json", filepath.Join(dbDir, testStore)))
+	rs, err := store.New[TestData](fmt.Sprintf("%s.json", filepath.Join(dbDir, testStore.Name)))
 	if err != nil {
 		t.Fatal(err)
 	}

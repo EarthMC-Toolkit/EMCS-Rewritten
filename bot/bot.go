@@ -49,13 +49,13 @@ func Run(botToken string) {
 
 	// Define all stores we want to exist on Aurora database.
 	// If a store does not exist, it is created under the ./db/aurora dir.
-	database.AssignStore[oapi.ServerInfo](auroraDB, "server")
-	database.AssignStore[oapi.TownInfo](auroraDB, "towns")
-	database.AssignStore[oapi.NationInfo](auroraDB, "nations")
-	database.AssignStore[oapi.EntityList](auroraDB, "entities") // Store keys: residentlist, townlesslist
-	database.AssignStore[database.Alliance](auroraDB, "alliances")
-	database.AssignStore[database.UserUsage](auroraDB, "usage-users")
-	//store.AssignStoreToDB[map[string]any](auroraDB, "usage-leaderboard")
+	database.AssignStore[oapi.ServerInfo](auroraDB, database.SERVER_STORE)
+	database.AssignStore[oapi.TownInfo](auroraDB, database.TOWNS_STORE)
+	database.AssignStore[oapi.NationInfo](auroraDB, database.NATIONS_STORE)
+	database.AssignStore[oapi.EntityList](auroraDB, database.ENTITIES_STORE) // Store keys: residentlist, townlesslist
+	database.AssignStore[database.Alliance](auroraDB, database.ALLIANCES_STORE)
+	database.AssignStore[database.UserUsage](auroraDB, database.USAGE_USERS_STORE)
+	//database.AssignStoreToDB[map[string]any](auroraDB, database.USAGE_LEADERBOARD_STORE)
 
 	fmt.Printf("\n\nEstablishing connection to Discord..\n")
 

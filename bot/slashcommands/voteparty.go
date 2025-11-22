@@ -23,7 +23,7 @@ func (cmd VotePartyCommand) Options() AppCommandOpts {
 }
 
 func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	serverStore, err := database.GetStoreForMap[oapi.ServerInfo](shared.ACTIVE_MAP, "server")
+	serverStore, err := database.GetStoreForMap[oapi.ServerInfo](shared.ACTIVE_MAP, database.SERVER_STORE)
 	if err != nil {
 		return err
 	}

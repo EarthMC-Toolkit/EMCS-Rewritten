@@ -1,6 +1,7 @@
 package database
 
 import (
+	"emcsrw/api/oapi"
 	"emcsrw/database/store"
 	"errors"
 	"fmt"
@@ -9,23 +10,34 @@ import (
 	"sync"
 )
 
+type StoreDefinition[T any] struct {
+	Name string
+}
+
+var SERVER_STORE = StoreDefinition[oapi.ServerInfo]{Name: "server"}
+var TOWNS_STORE = StoreDefinition[oapi.TownInfo]{Name: "towns"}
+var NATIONS_STORE = StoreDefinition[oapi.NationInfo]{Name: "nations"}
+var ENTITIES_STORE = StoreDefinition[oapi.EntityList]{Name: "entities"}
+var ALLIANCES_STORE = StoreDefinition[Alliance]{Name: "alliances"}
+var USAGE_USERS_STORE = StoreDefinition[UserUsage]{Name: "usage-users"}
+
 var mapDbs = make(map[string]*Database)
 var mu sync.RWMutex // Guards access to mapDatabases
 
 // A database that is responsible for multiple persistent caches aka "stores"
 // which can be assigned to this database and then retrieved for use again later.
 // In addition, it handles read/write conflicts via mutexes to prevent data being lost or scrambled
-// between stores and ensures old entries cannot overwrite new ones as they enter their JSON file
+// between stores and ensures old entries cannot overwrite new ones as they enter their JSON file.
 type Database struct {
 	dirPath string                  // Path (relative to cwd) to the dir where this db lives.
-	stores  map[string]store.IStore // Store file name → typed Store.
+	stores  map[string]store.IStore // Mapping from file name → generic Store instance.
 	storeMu sync.RWMutex            // Guards access to `stores`.
 	flushMu sync.Mutex              // Ensures multiple flushes cannot happen simultaneously.
 }
 
 // Creates an instance of [Database] with the dir at baseDir+mapName (created if it does not exist) and registers it into global map.
 //
-// NOTE: To add a store to this DB, call [AssignStore] with the appropriate type which the store file can be unmarshaled into.
+// NOTE: To add a store to this DB, call [AssignStore] with the appropriate type which the store file can be unmarshalled into.
 func New(baseDir string, mapName string) (*Database, error) {
 	dir := filepath.Join(baseDir, mapName)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -89,44 +101,49 @@ func Get(name string) (*Database, error) {
 }
 
 // Creates a new store an adds it to the given MapDB stores. Returns an error if the store already exists.
-func AssignStore[T any](mdb *Database, name string) *store.Store[T] {
-	mdb.storeMu.Lock()
-	defer mdb.storeMu.Unlock()
+func AssignStore[T any](db *Database, storeDef StoreDefinition[T]) *store.Store[T] {
+	db.storeMu.Lock()
+	defer db.storeMu.Unlock()
 
-	if s, ok := mdb.stores[name]; ok {
-		fmt.Printf("\nstore '%s' already defined", name)
+	if s, ok := db.stores[storeDef.Name]; ok {
+		fmt.Printf("\nstore '%s' already defined", storeDef.Name)
 		return s.(*store.Store[T])
 	}
 
-	fpath := filepath.Join(mdb.dirPath, name+".json")
+	fpath := filepath.Join(db.dirPath, storeDef.Name+".json")
 	store, err := store.New[T](fpath)
 	if err != nil {
-		fmt.Printf("\nfailed to create store '%s': %v", name, err)
+		fmt.Printf("\nfailed to create store '%s': %v", storeDef.Name, err)
 		return nil
 	}
 
-	mdb.stores[name] = store
+	db.stores[storeDef.Name] = store
 	return store
 }
 
 // Retrieves the Store for a specific file/db.
-func GetStore[T any](db *Database, name string) (*store.Store[T], error) {
+func GetStore[T any](db *Database, storeDef StoreDefinition[T]) (*store.Store[T], error) {
 	db.storeMu.RLock()
 	defer db.storeMu.RUnlock()
 
-	s, ok := db.stores[name]
+	si, ok := db.stores[storeDef.Name]
 	if !ok {
-		return nil, fmt.Errorf("could not find store '%s' in db: %s", name, db.dirPath)
+		return nil, fmt.Errorf("could not find store '%s' in db: %s", storeDef.Name, db.dirPath)
 	}
 
-	return s.(*store.Store[T]), nil
+	s, ok := si.(*store.Store[T])
+	if !ok {
+		return nil, fmt.Errorf("store '%s' exists but with a different type", storeDef.Name)
+	}
+
+	return s, nil
 }
 
-func GetStoreForMap[T any](mapName, storeName string) (*store.Store[T], error) {
+func GetStoreForMap[T any](mapName string, store StoreDefinition[T]) (*store.Store[T], error) {
 	mdb, err := Get(mapName)
 	if err != nil {
 		return nil, err
 	}
 
-	return GetStore[T](mdb, storeName)
+	return GetStore(mdb, store)
 }

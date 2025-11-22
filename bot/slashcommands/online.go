@@ -66,7 +66,7 @@ func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName string) error {
 	discordutil.DeferReply(s, i)
 
-	townStore, err := database.GetStoreForMap[oapi.TownInfo](shared.ACTIVE_MAP, "towns")
+	townStore, err := database.GetStoreForMap[oapi.TownInfo](shared.ACTIVE_MAP, database.TOWNS_STORE)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) error {
 	discordutil.DeferReply(s, i)
 
-	nationStore, err := database.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, "nations")
+	nationStore, err := database.GetStoreForMap[oapi.NationInfo](shared.ACTIVE_MAP, database.NATIONS_STORE)
 	if err != nil {
 		return err
 	}

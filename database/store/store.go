@@ -10,23 +10,32 @@ import (
 	"sync"
 )
 
-// Specifies the basic functionality a Store should have, regardless
-// of how it is interacted with via its other methods.
+// The interface that a generic store must implement to retain basic functionality that is common across all stores.
+// Once converted to a concrete store type, further type-specific operations may become available.
 type IStore interface {
 	CleanPath() string
 	WriteSnapshot() error
 	LoadFromFile() error
 }
 
+// The bridge between a generic store and concrete store. This way, we get both type-safe access
+// to the underlying store, while retaining the ability to perform common operations that all stores implement.
+//
+// NOTE: This preserves the type so we can safely type-assert back to Store[T] since Go erases
+// generic type parameters when storing a generic in an interface or map.
+type WrappedStore[T any] struct {
+	Store *Store[T]
+}
+
+func (w *WrappedStore[T]) CleanPath() string    { return w.Store.CleanPath() }
+func (w *WrappedStore[T]) WriteSnapshot() error { return w.Store.WriteSnapshot() }
+func (w *WrappedStore[T]) LoadFromFile() error  { return w.Store.LoadFromFile() }
+
 type StoreKey = string
 type StoreData[T any] map[StoreKey]T // Stores value not pointer. Use SetKey etc. to mutate data safely.
 
 func (sd StoreData[T]) shallowCopy() StoreData[T] {
 	return utils.CopyMap(sd)
-}
-
-func (s *Store[T]) IsEmpty() bool {
-	return len(s.data) <= 0
 }
 
 // Essentially a persistent cache.
@@ -95,6 +104,10 @@ func (s *Store[T]) Clear() {
 	for k := range s.data {
 		delete(s.data, k)
 	}
+}
+
+func (s *Store[T]) IsEmpty() bool {
+	return len(s.data) <= 0
 }
 
 // Deletes a value in this store that is associated with the key.

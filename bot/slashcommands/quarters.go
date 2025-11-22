@@ -51,7 +51,7 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return fmt.Errorf("no name input for /quarters forsale sub cmd. wtf?")
 	}
 
-	townStore, err := database.GetStoreForMap[oapi.TownInfo](shared.ACTIVE_MAP, "towns")
+	townStore, err := database.GetStoreForMap[oapi.TownInfo](shared.ACTIVE_MAP, database.TOWNS_STORE)
 	if err != nil {
 		return err
 	}

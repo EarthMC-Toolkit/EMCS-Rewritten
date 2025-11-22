@@ -66,7 +66,7 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 	}
 
 	// Nation field logic
-	nationStore, _ := database.GetStoreForMap[oapi.NationInfo](ACTIVE_MAP, "nations")
+	nationStore, _ := database.GetStoreForMap[oapi.NationInfo](ACTIVE_MAP, database.NATIONS_STORE)
 	nations := a.GetNations(nationStore)
 	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
@@ -144,7 +144,7 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
 	affiliation := "None (Townless)"
 	if townName != "No Town" {
 		mdb, _ := database.Get(ACTIVE_MAP)
-		townsStore, _ := database.GetStore[oapi.TownInfo](mdb, "towns")
+		townsStore, _ := database.GetStore[oapi.TownInfo](mdb, database.TOWNS_STORE)
 		town, err := townsStore.GetKey(*player.Town.UUID)
 
 		// Should never rly be false bc we established they aren't townless.
