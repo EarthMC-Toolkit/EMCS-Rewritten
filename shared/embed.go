@@ -85,7 +85,7 @@ func NewAllianceEmbed(s *discordgo.Session, a *database.Alliance, allianceStore 
 
 	// Nation field logic
 	nationStore, _ := database.GetStoreForMap(ACTIVE_MAP, database.NATIONS_STORE)
-	nations, towns, residents, area, wealth := a.GetStats(nationStore)
+	nations, towns, residents, area, wealth := a.GetStats(nationStore, allianceStore)
 	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
 	})
@@ -142,7 +142,7 @@ func NewAllianceEmbed(s *discordgo.Session, a *database.Alliance, allianceStore 
 	if a.Parent != nil {
 		parentAlliance, err := allianceStore.GetKey(strings.ToLower(*a.Parent))
 		if err == nil {
-			embed.Description = fmt.Sprintf("**This alliance is puppet of `%s` / `%s`**.", parentAlliance.Identifier, parentAlliance.Label)
+			embed.Description = fmt.Sprintf("*This alliance is a puppet of `%s` / `%s`*.", parentAlliance.Identifier, parentAlliance.Label)
 		}
 	}
 

@@ -27,6 +27,8 @@ const EDITOR_ROLE = "966359842417705020"
 const SR_EDITOR_ROLE = "1143253762039873646"
 const ALLIANCE_BACKUP_CHANNEL = "1438592337335947314"
 
+var REMOVE_KEYWORDS = []string{"null", "none", "remove", "delete"}
+
 type AllianceCommand struct{}
 
 func (cmd AllianceCommand) Name() string { return "alliance" }
@@ -239,7 +241,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 				representativeName = repUser.Username
 			}
 
-			nations, towns, residents, area, wealth := item.GetStats(nationStore)
+			nations, towns, residents, area, wealth := item.GetStats(nationStore, allianceStore)
 			allianceStrings = append(allianceStrings, fmt.Sprintf(
 				"%d. %s (%s)\nLeader(s): %s\nRepresentative: `%s`\nNations: %s\nTowns: %s\nResidents: %s\nSize: %s", start+idx+1,
 				allianceName, item.Type.Colloquial(), leaderStr, representativeName,
@@ -423,7 +425,7 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordg
 
 func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance) error {
 	nationStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
-	nations := alliance.GetNations(nationStore)
+	nations := alliance.GetOwnNations(nationStore)
 	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
 	})
@@ -583,8 +585,12 @@ func handleAllianceEditorModalFunctional(
 
 	parent := alliance.Parent
 	parentInput := strings.ReplaceAll(inputs["parent"], " ", "")
-	if parentInput != "" {
-		pa, err := allianceStore.GetKey(strings.ToLower(parentInput))
+	parentInputLower := strings.ToLower(parentInput)
+
+	if slices.Contains(REMOVE_KEYWORDS, parentInputLower) {
+		parent = nil
+	} else if parentInput != "" {
+		pa, err := allianceStore.GetKey(parentInputLower)
 		if err != nil {
 			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Parent alliance `%s` does not exist.", parentInput),

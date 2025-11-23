@@ -3,13 +3,12 @@ package database
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/database/store"
+	"emcsrw/utils"
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/samber/lo"
-	"github.com/samber/lo/parallel"
 )
 
 type ExistenceMap = map[string]struct{}
@@ -83,7 +82,7 @@ type Alliance struct {
 	Identifier       string            `json:"identifier"`       // Case-insensitive colloquial short name for lookup.
 	Label            string            `json:"label"`            // Full name for display purposes.
 	RepresentativeID *string           `json:"representativeID"` // Discord ID of the user representing this alliance.
-	Parent           *string           `json:"parent"`           // The Identifier (not UUID) of the alliance this alliance is puppeted by.
+	Parent           *string           `json:"parent"`           // The Identifier (not UUID) of the parent alliance this alliance is a child of.
 	OwnNations       []string          `json:"ownNations"`       // UUIDs of nations in THIS alliance only.
 	UpdatedTimestamp *uint64           `json:"updatedTimestamp"` // Unix timestamp (ms) at which the last update was made to this alliance.
 	Optional         AllianceOptionals `json:"optional"`         // Extra properties that are not required for basic alliance functionality.
@@ -94,8 +93,35 @@ func (a Alliance) CreatedTimestamp() uint64 {
 	return a.UUID >> 16
 }
 
-func (a *Alliance) GetNations(nationStore *store.Store[oapi.NationInfo]) []oapi.NationInfo {
+func (a *Alliance) GetOwnNations(nationStore *store.Store[oapi.NationInfo]) []oapi.NationInfo {
 	return nationStore.GetMany(a.OwnNations...)
+}
+
+// Returns all nations in this alliance and its child alliances.
+//
+// If we know beforehand there are no child alliances, prefer GetOwnNations() instead for better performance.
+func (a Alliance) GetAllNations(nationStore *store.Store[oapi.NationInfo], allianceStore *store.Store[Alliance]) []oapi.NationInfo {
+	allNations := utils.CopySlice(a.OwnNations) // with value receiver, slice is still a reference so a copy is required
+	seen := make(ExistenceMap, len(a.OwnNations))
+	for _, id := range a.OwnNations {
+		seen[id] = struct{}{}
+	}
+
+	childAlliances, count := a.GetChildAlliances(allianceStore)
+	if count > 0 {
+		for _, child := range childAlliances {
+			for _, uuid := range child.OwnNations {
+				if _, exists := seen[uuid]; exists {
+					continue
+				}
+
+				seen[uuid] = struct{}{}
+				allNations = append(allNations, uuid)
+			}
+		}
+	}
+
+	return nationStore.GetMany(allNations...)
 }
 
 // Attempts to set the alliance leaders given their IGNs by querying the Official API.
@@ -133,8 +159,8 @@ func (a Alliance) GetLeaders() (map[string]oapi.PlayerInfo, error) {
 		return nil, nil
 	}
 
-	// I doubt we'll ever have an alliance with more players than the
-	// query limit, so there shouldn't be a need to send more than one request.
+	// I doubt we'll ever have an alliance with more leaders than the player query limit,
+	// so there shouldn't be a need to send more than one request.
 	leaders, err := oapi.QueryPlayers(a.Optional.Leaders...) // TODO: Should store import oapi?
 	if err != nil {
 		return nil, fmt.Errorf("error occurred:\n%v", err)
@@ -156,11 +182,14 @@ func (a Alliance) GetLeaderNames() ([]string, error) {
 	}), nil
 }
 
-func (a Alliance) GetStats(nationStore *store.Store[oapi.NationInfo]) (
+func (a Alliance) GetStats(
+	nationStore *store.Store[oapi.NationInfo],
+	allianceStore *store.Store[Alliance],
+) (
 	nations []oapi.NationInfo, towns []oapi.Entity,
 	residents, area int, wealth int,
 ) {
-	nations = a.GetNations(nationStore)
+	nations = a.GetAllNations(nationStore, allianceStore)
 	towns = lo.FlatMap(nations, func(n oapi.NationInfo, _ int) []oapi.Entity {
 		return n.Towns
 	})
@@ -181,24 +210,40 @@ func (a Alliance) GetStats(nationStore *store.Store[oapi.NationInfo]) (
 	return
 }
 
-// Returns a map of parent alliance UUID → slice of child alliances.
-// For correct results, parameter `alliances` should be a map of all known alliances.
-func BuildChildAlliancesMap(alliances map[string]Alliance) map[string][]*Alliance {
-	children := make(map[string][]*Alliance)
-	mu := sync.Mutex{}
-
-	parallel.ForEach(lo.Values(alliances), func(a Alliance, _ int) {
-		if a.Parent == nil {
-			return
+// Returns all alliances that are children of this alliance, if any.
+func (a Alliance) GetChildAlliances(allianceStore *store.Store[Alliance]) (children []Alliance, count int) {
+	parentIdent := a.Identifier
+	for _, alliance := range allianceStore.Values() {
+		if alliance.Identifier == parentIdent {
+			continue // skip self
 		}
 
-		mu.Lock()
-		children[*a.Parent] = append(children[*a.Parent], &a)
-		mu.Unlock()
-	})
+		if alliance.Parent != nil && *alliance.Parent == parentIdent {
+			children = append(children, alliance)
+		}
+	}
 
-	return children
+	return children, len(children)
 }
+
+// Returns a map of parent alliance UUID → slice of child alliances.
+// For correct results, parameter `alliances` should be a map of all known alliances.
+// func BuildChildAlliancesMap(alliances []Alliance) map[string][]Alliance {
+// 	children := make(map[string][]Alliance)
+// 	mu := sync.Mutex{}
+
+// 	parallel.ForEach(alliances, func(a Alliance, _ int) {
+// 		if a.Parent == nil {
+// 			return
+// 		}
+
+// 		mu.Lock()
+// 		children[*a.Parent] = append(children[*a.Parent], a)
+// 		mu.Unlock()
+// 	})
+
+// 	return children
+// }
 
 // A non-parallel version of BuildChildAlliancesMap in case the parallel one has issues.
 // func BuildChildAlliancesMap(alliances map[string]Alliance) map[string][]*Alliance {
