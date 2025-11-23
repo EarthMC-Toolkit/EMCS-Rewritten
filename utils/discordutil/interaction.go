@@ -53,6 +53,26 @@ func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *disco
 	return EditReply(s, i, data)
 }
 
+// func SendOrFollowup(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData, ephemeral bool) (*discordgo.Message, error) {
+// 	// Try sending the initial reply
+// 	err := s.InteractionRespond(i, &discordgo.InteractionResponse{
+// 		Type: discordgo.InteractionResponseChannelMessageWithSource,
+// 		Data: data,
+// 	})
+// 	if err == nil {
+// 		return nil, nil // initial reply sent successfully
+// 	}
+
+// 	// If it failed because a response already exists, send a follow-up
+// 	return s.FollowupMessageCreate(i, ephemeral, &discordgo.WebhookParams{
+// 		Content:         data.Content,
+// 		Embeds:          data.Embeds,
+// 		Files:           data.Files,
+// 		Components:      data.Components,
+// 		AllowedMentions: data.AllowedMentions,
+// 	})
+// }
+
 // func EditOrSendReplyFetch(s *discordgo.Session, i *discordgo.Interaction, fetch bool, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
 // 	if err := SendReply(s, i, data); err == nil {
 // 		if !fetch {
@@ -87,7 +107,7 @@ func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err any) {
 
 	if err != nil {
 		// Must be deferred, send follow up.
-		FollowUpContentEphemeral(s, i, content)
+		FollowupContentEphemeral(s, i, content)
 	}
 }
 
@@ -103,33 +123,33 @@ func ReplyWithPanicError(s *discordgo.Session, i *discordgo.Interaction, err any
 
 	if err != nil {
 		// Must be deferred, send follow up.
-		FollowUpContentEphemeral(s, i, content)
+		FollowupContentEphemeral(s, i, content)
 	}
 }
 
 // Creates a follow-up message for a previously deferred interaction response.
 // This func waits for server confirmation of message send and ensures that the return struct is populated.
-func FollowUp(s *discordgo.Session, i *discordgo.Interaction, params *discordgo.WebhookParams) (*discordgo.Message, error) {
+func Followup(s *discordgo.Session, i *discordgo.Interaction, params *discordgo.WebhookParams) (*discordgo.Message, error) {
 	return s.FollowupMessageCreate(i, true, params)
 }
 
 // Calls FollowUp with the supplied embeds.
-func FollowUpEmbeds(s *discordgo.Session, i *discordgo.Interaction, embeds ...*discordgo.MessageEmbed) (*discordgo.Message, error) {
-	return FollowUp(s, i, &discordgo.WebhookParams{
+func FollowupEmbeds(s *discordgo.Session, i *discordgo.Interaction, embeds ...*discordgo.MessageEmbed) (*discordgo.Message, error) {
+	return Followup(s, i, &discordgo.WebhookParams{
 		Embeds: embeds,
 	})
 }
 
 // Calls FollowUp with the supplied content.
-func FollowUpContent(s *discordgo.Session, i *discordgo.Interaction, content string) (*discordgo.Message, error) {
-	return FollowUp(s, i, &discordgo.WebhookParams{
+func FollowupContent(s *discordgo.Session, i *discordgo.Interaction, content string) (*discordgo.Message, error) {
+	return Followup(s, i, &discordgo.WebhookParams{
 		Content: content,
 	})
 }
 
 // Calls FollowUp with the supplied content which will only be visible to the interaction author.
-func FollowUpContentEphemeral(s *discordgo.Session, i *discordgo.Interaction, content string) (*discordgo.Message, error) {
-	return FollowUp(s, i, &discordgo.WebhookParams{
+func FollowupContentEphemeral(s *discordgo.Session, i *discordgo.Interaction, content string) (*discordgo.Message, error) {
+	return Followup(s, i, &discordgo.WebhookParams{
 		Content: content,
 		Flags:   discordgo.MessageFlagsEphemeral,
 	})

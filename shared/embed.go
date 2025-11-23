@@ -3,6 +3,7 @@ package shared
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
+	"emcsrw/database/store"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -12,7 +13,7 @@ import (
 	"github.com/samber/lo"
 	lop "github.com/samber/lo/parallel"
 
-	dgo "github.com/bwmarrin/discordgo"
+	"github.com/bwmarrin/discordgo"
 )
 
 // NOTE: Potential import cycle. Consider just duplicating necessary funcs rather than importing discordutil.
@@ -20,26 +21,22 @@ var NewEmbedField = discordutil.NewEmbedField
 var PrependField = discordutil.PrependField
 var AddField = discordutil.AddField
 
-var DEFAULT_FOOTER = &dgo.MessageEmbedFooter{
+var DEFAULT_FOOTER = &discordgo.MessageEmbedFooter{
 	IconURL: "https://cdn.discordapp.com/avatars/263377802647175170/a_0cd469f208f88cf98941123eb1b52259.webp?size=512&animated=true",
 	Text:    "Maintained by Owen3H • Open Source on GitHub 💛", // unless you maintain your own fork, pls keep this as is :)
 }
 
-// Creates a single embed showing info from the given Alliance.
-func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
-	// Resort to dark blue unless alliance has optional fill colour specified.
-	embedColour := discordutil.DARK_AQUA
-	colours := a.Optional.Colours
-	if colours != nil && colours.Fill != nil {
-		embedColour = utils.HexToInt(*colours.Fill)
-	}
-
-	// Leader field logic
-	leadersValue := "None"
-	leaders, err := a.GetLeaders() // TODO: Do we want to send an OAPI req for leaders every time?
-	if err != nil && leaders != nil {
-		leaderLines := []string{}
-		for _, p := range leaders {
+// Returns a string listing player names with their affiliations.
+// For example:
+//
+//	`Player1` of Town1 (**Nation1**)
+//	`Player2` of Town2
+//	`Player3` (Townless)
+func GetAffiliationLines(players map[string]oapi.PlayerInfo) string {
+	var str string
+	if players != nil {
+		lines := []string{}
+		for _, p := range players {
 			line := fmt.Sprintf("`%s`", p.Name)
 			if p.Town.Name != nil {
 				line += fmt.Sprintf(" of %s", *p.Town.Name)
@@ -50,10 +47,31 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 				line += " (Townless)"
 			}
 
-			leaderLines = append(leaderLines, line)
+			lines = append(lines, line)
 		}
 
-		leadersValue = strings.Join(leaderLines, "\n")
+		str = strings.Join(lines, "\n")
+	}
+
+	return str
+}
+
+// Creates a single embed showing info from the given Alliance.
+func NewAllianceEmbed(s *discordgo.Session, a *database.Alliance, allianceStore *store.Store[database.Alliance]) *discordgo.MessageEmbed {
+	// Resort to dark blue unless alliance has optional fill colour specified.
+	embedColour := discordutil.DARK_AQUA
+	colours := a.Optional.Colours
+	if colours != nil && colours.Fill != nil {
+		embedColour = utils.HexToInt(*colours.Fill)
+	}
+
+	// Leader field logic
+	leadersValue := "None"
+	leaders, err := a.GetLeaders() // TODO: Do we want to send an OAPI req for leaders every time?
+	if err != nil {
+		fmt.Printf("ERROR | Could not get leaders for alliance %s:\n%v", a.Identifier, err)
+	} else {
+		leadersValue = GetAffiliationLines(leaders)
 	}
 
 	// Representative field logic
@@ -66,8 +84,8 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 	}
 
 	// Nation field logic
-	nationStore, _ := database.GetStoreForMap[oapi.NationInfo](ACTIVE_MAP, database.NATIONS_STORE)
-	nations := a.GetNations(nationStore)
+	nationStore, _ := database.GetStoreForMap(ACTIVE_MAP, database.NATIONS_STORE)
+	nations, towns, residents, area, wealth := a.GetStats(nationStore)
 	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
 	})
@@ -78,24 +96,35 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 	}
 
 	nationsKey := fmt.Sprintf("Nations [%d]", nationsLen)
-	nationsValue := fmt.Sprintf("```%s```", strings.Join(nationNames, ", "))
+	nationsValue := fmt.Sprintf("```%s```", strings.Join(nationNames, ", ")) // TODO: ALSO INCLUDE NATIONS FROM CHILD ALLIANCES
 
 	founded := a.CreatedTimestamp() / 1000
 
-	embed := &dgo.MessageEmbed{
+	stats := fmt.Sprintf("Towns: %s\nResidents: %s\nSize: %s",
+		utils.HumanizedSprintf("`%d`", len(towns)),
+		utils.HumanizedSprintf("`%d`", residents),
+		utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, EMOJIS.CHUNK, wealth, EMOJIS.GOLD_INGOT),
+	)
+
+	embed := &discordgo.MessageEmbed{
 		Color:  embedColour,
 		Footer: DEFAULT_FOOTER,
 		Title:  fmt.Sprintf("Alliance Info | `%s` | `%s`", a.Identifier, a.Label),
-		Fields: []*dgo.MessageEmbedField{
+		Fields: []*discordgo.MessageEmbedField{
 			NewEmbedField("Leader(s)", leadersValue, true),
 			NewEmbedField("Representative", representativeValue, true),
 			NewEmbedField("Type", fmt.Sprintf("`%s`", a.Type.Colloquial()), true),
-			NewEmbedField("Stats", "Placeholder", true),
-			NewEmbedField("Colours", "Placeholder", true),
-			NewEmbedField(nationsKey, nationsValue, false),
-			NewEmbedField("Founded", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", founded, founded), true),
+			NewEmbedField("Stats", stats, true),
 		},
 	}
+
+	if a.Optional.Colours != nil {
+		coloursStr := fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", *a.Optional.Colours.Fill, *a.Optional.Colours.Outline)
+		AddField(embed, "Colours", coloursStr, true)
+	}
+
+	AddField(embed, nationsKey, nationsValue, false)
+	AddField(embed, "Founded", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", founded, founded), true)
 
 	if a.UpdatedTimestamp != nil {
 		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", *a.UpdatedTimestamp, *a.UpdatedTimestamp), true)
@@ -104,16 +133,23 @@ func NewAllianceEmbed(s *dgo.Session, a *database.Alliance) *dgo.MessageEmbed {
 	flag := a.Optional.ImageURL
 	if flag != nil {
 		if *flag != "" {
-			embed.Thumbnail = &dgo.MessageEmbedThumbnail{
+			embed.Thumbnail = &discordgo.MessageEmbedThumbnail{
 				URL: *flag,
 			}
+		}
+	}
+
+	if a.Parent != nil {
+		parentAlliance, err := allianceStore.GetKey(strings.ToLower(*a.Parent))
+		if err == nil {
+			embed.Description = fmt.Sprintf("**This alliance is puppet of `%s` / `%s`**.", parentAlliance.Identifier, parentAlliance.Label)
 		}
 	}
 
 	return embed
 }
 
-func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
+func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 	registeredTs := player.Timestamps.Registered   // ms
 	lastOnlineTs := player.Timestamps.LastOnline   // ms
 	joinedTownTs := player.Timestamps.JoinedTownAt // ms
@@ -179,15 +215,15 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
 		title += fmt.Sprintf(" aka \"%s\"", alias)
 	}
 
-	embed := &dgo.MessageEmbed{
-		Type:   dgo.EmbedTypeRich,
+	embed := &discordgo.MessageEmbed{
+		Type:   discordgo.EmbedTypeRich,
 		Color:  discordutil.DARK_PURPLE,
 		Footer: DEFAULT_FOOTER,
-		Thumbnail: &dgo.MessageEmbedThumbnail{
+		Thumbnail: &discordgo.MessageEmbedThumbnail{
 			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID),
 		},
 		Title: title,
-		Fields: []*dgo.MessageEmbedField{
+		Fields: []*discordgo.MessageEmbedField{
 			// affiliation (prepended)
 			// rank (prepended)
 			NewEmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, EMOJIS.GOLD_INGOT), true),
@@ -221,7 +257,7 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *dgo.MessageEmbed {
 	return embed
 }
 
-func NewTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
+func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	foundedTs := town.Timestamps.Registered / 1000 // Seconds
 
 	townTitle := fmt.Sprintf("Town Information | `%s`", town.Name)
@@ -254,13 +290,13 @@ func NewTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 	locY := town.Coordinates.Spawn.Y
 	locZ := town.Coordinates.Spawn.Z
 
-	embed := &dgo.MessageEmbed{
-		Type:        dgo.EmbedTypeRich,
+	embed := &discordgo.MessageEmbed{
+		Type:        discordgo.EmbedTypeRich,
 		Title:       townTitle,
 		Description: desc,
 		Color:       colour,
 		Footer:      DEFAULT_FOOTER,
-		Fields: []*dgo.MessageEmbedField{
+		Fields: []*discordgo.MessageEmbedField{
 			//NewEmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
 			NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by `%s`", foundedTs, town.Founder), false),
 			NewEmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
@@ -279,7 +315,7 @@ func NewTownEmbed(town oapi.TownInfo) *dgo.MessageEmbed {
 	return embed
 }
 
-func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
+func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 	foundedTs := nation.Timestamps.Registered / 1000 // Seconds
 	dateFounded := fmt.Sprintf("<t:%d:R>", foundedTs)
 
@@ -310,13 +346,13 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 		townsStr = fmt.Sprintf("```%s```", townsStr)
 	}
 
-	embed := &dgo.MessageEmbed{
-		Type:        dgo.EmbedTypeRich,
+	embed := &discordgo.MessageEmbed{
+		Type:        discordgo.EmbedTypeRich,
 		Title:       fmt.Sprintf("Nation Information | `%s`", nation.Name),
 		Description: board,
 		Color:       nation.FillColourInt(),
 		Footer:      DEFAULT_FOOTER,
-		Fields: []*dgo.MessageEmbedField{
+		Fields: []*discordgo.MessageEmbedField{
 			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
 			NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
 			NewEmbedField("Location", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", spawn.X, spawn.Z, spawn.X, spawn.Y, spawn.Z), true),
@@ -338,9 +374,9 @@ func NewNationEmbed(nation oapi.NationInfo) *dgo.MessageEmbed {
 	return embed
 }
 
-func NewTownlessPageEmbed(names []string) (*dgo.MessageEmbed, error) {
-	embed := &dgo.MessageEmbed{
-		Type:        dgo.EmbedTypeRich,
+func NewTownlessPageEmbed(names []string) (*discordgo.MessageEmbed, error) {
+	embed := &discordgo.MessageEmbed{
+		Type:        discordgo.EmbedTypeRich,
 		Title:       fmt.Sprintf("[%d] Townless Players", len(names)),
 		Description: fmt.Sprintf("```%s```", strings.Join(names, "\n")),
 	}
@@ -348,7 +384,7 @@ func NewTownlessPageEmbed(names []string) (*dgo.MessageEmbed, error) {
 	return embed, nil
 }
 
-func NewStaffEmbed() (*dgo.MessageEmbed, error) {
+func NewStaffEmbed() (*discordgo.MessageEmbed, error) {
 	var onlineStaff []string
 	var errors []error
 
@@ -380,8 +416,8 @@ func NewStaffEmbed() (*dgo.MessageEmbed, error) {
 		content = strings.Join(onlineStaff, ", ")
 	}
 
-	return &dgo.MessageEmbed{
-		Type:        dgo.EmbedTypeRich,
+	return &discordgo.MessageEmbed{
+		Type:        discordgo.EmbedTypeRich,
 		Title:       "Staff List | Online",
 		Description: fmt.Sprintf("```%s```", content),
 		Color:       discordutil.GOLD,

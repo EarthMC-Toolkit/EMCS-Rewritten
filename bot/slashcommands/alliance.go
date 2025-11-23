@@ -21,7 +21,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
-	"github.com/samber/lo/parallel"
 )
 
 const EDITOR_ROLE = "966359842417705020"
@@ -140,7 +139,7 @@ func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Intera
 		if err != nil {
 			//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
 
-			discordutil.FollowUpContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
+			discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 			return err
 		}
 
@@ -175,11 +174,11 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 	if err != nil {
 		//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
 
-		_, err := discordutil.FollowUpContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
+		_, err := discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 		return err
 	}
 
-	_, err = discordutil.FollowUpEmbeds(s, i, shared.NewAllianceEmbed(s, alliance))
+	_, err = discordutil.FollowupEmbeds(s, i, shared.NewAllianceEmbed(s, alliance, allianceStore))
 	return err
 }
 
@@ -196,8 +195,8 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 
 	alliances := allianceStore.Values()
 
-	count := len(alliances)
-	if count == 0 {
+	allianceCount := len(alliances)
+	if allianceCount == 0 {
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 			Content: "No alliances seem to exist? Something may have gone wrong with the database or alliance store.",
 		})
@@ -206,12 +205,12 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 	}
 
 	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
-	perPage := 10
-	paginator := discordutil.NewInteractionPaginator(s, i, count, perPage)
+	perPage := 5
+	paginator := discordutil.NewInteractionPaginator(s, i, allianceCount, perPage)
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
-		start, end := paginator.CurrentPageBounds(count)
+		start, end := paginator.CurrentPageBounds(allianceCount)
 
-		content := ""
+		allianceStrings := []string{}
 		for idx, item := range alliances[start:end] {
 			allianceName := item.Identifier
 			if item.Optional.DiscordCode == nil {
@@ -240,33 +239,25 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 				representativeName = repUser.Username
 			}
 
-			nations := item.GetNations(nationStore)
-			// towns := lo.FlatMap(nations, func(n oapi.NationInfo, _ int) []oapi.Entity {
-			// 	return n.Towns // TODO: If we never use info, maybe just accumulate n.Stats.NumTowns
-			// })
-			// residents := lo.FlatMap(nations, func(n oapi.NationInfo, _ int) []oapi.Entity {
-			// 	return n.Residents // TODO: If we never use info, maybe just accumulate n.Stats.NumResidents
-			// })
-
-			towns := 0
-			residents := 0
-			area := 0
-			parallel.ForEach(nations, func(n oapi.NationInfo, _ int) {
-				towns += n.Stats.NumTowns
-				residents += n.Stats.NumResidents
-				area += n.Stats.NumTownBlocks
-			})
-
-			content += fmt.Sprintf(
-				"%d. %s (%s)\nLeader(s): %s\nRepresentative: `%s`\nNations: %s\nTowns: %s\nResidents: %s\n", start+idx+1,
+			nations, towns, residents, area, wealth := item.GetStats(nationStore)
+			allianceStrings = append(allianceStrings, fmt.Sprintf(
+				"%d. %s (%s)\nLeader(s): %s\nRepresentative: `%s`\nNations: %s\nTowns: %s\nResidents: %s\nSize: %s", start+idx+1,
 				allianceName, item.Type.Colloquial(), leaderStr, representativeName,
 				utils.HumanizedSprintf("`%d`", len(nations)),
-				utils.HumanizedSprintf("`%d`", towns),
+				utils.HumanizedSprintf("`%d`", len(towns)),
 				utils.HumanizedSprintf("`%d`", residents),
-			)
+				utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, wealth, shared.EMOJIS.GOLD_INGOT),
+			))
 		}
 
-		data.Content = content + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
+		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
+		embed := &discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("[%d] List of Alliances | %s", allianceCount, pageStr),
+			Description: strings.Join(allianceStrings, "\n\n"),
+			Color:       discordutil.DARK_AQUA,
+		}
+
+		data.Embeds = []*discordgo.MessageEmbed{embed}
 	}
 
 	return paginator.Start()
@@ -325,9 +316,9 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 				Style:       discordgo.TextInputParagraph,
 			}),
 			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "parents",
-				Label:       "Parent Alliance(s)",
-				Placeholder: "(Optional) Enter a comma-seperated list of alliance *identifiers* which this alliance is a child of.",
+				CustomID:    "parent",
+				Label:       "Parent Alliance",
+				Placeholder: "(Optional) Enter the identifier of this alliance's parent alliance.",
 				Required:    false,
 				MinLength:   3,
 				Style:       discordgo.TextInputParagraph,
@@ -437,6 +428,17 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 		return n.Name
 	})
 
+	nationsPlaceholder := "Too many nations to display, run /alliance query to see the full list."
+	nationsStr := strings.Join(nationNames, ", ")
+	if len(nationsStr) < 100 {
+		nationsPlaceholder = nationsStr
+	}
+
+	parentPlaceholder := ""
+	if alliance.Parent != nil {
+		parentPlaceholder = *alliance.Parent
+	}
+
 	return discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
 		CustomID: "alliance_editor_functional@" + alliance.Identifier,
 		Title:    "Alliance Editor - Functional Fields",
@@ -468,14 +470,14 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "nations",
 				Label:       "Own Nations",
-				Placeholder: strings.Join(nationNames, ", "),
+				Placeholder: nationsPlaceholder,
 				MinLength:   3,
 				Style:       discordgo.TextInputParagraph,
 			}),
 			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "parents",
-				Label:       "Parent Alliance(s)",
-				Placeholder: strings.Join(alliance.Parents, ", "),
+				CustomID:    "parent",
+				Label:       "Parent Alliance",
+				Placeholder: parentPlaceholder,
 				MinLength:   3,
 				Style:       discordgo.TextInputParagraph,
 			}),
@@ -578,7 +580,22 @@ func handleAllianceEditorModalFunctional(
 
 	ident := defaultIfEmpty(inputs["identifier"], oldIdent)
 	label := defaultIfEmpty(inputs["label"], alliance.Label)
-	parents := defaultIfEmpty(inputs["parents"], strings.Join(alliance.Parents, ", "))
+
+	parent := alliance.Parent
+	parentInput := strings.ReplaceAll(inputs["parent"], " ", "")
+	if parentInput != "" {
+		exists := allianceStore.HasKey(strings.ToLower(parentInput))
+		if !exists {
+			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("Parent alliance `%s` does not exist.", parentInput),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+
+			return nil
+		}
+
+		parent = &parentInput
+	}
 
 	representative := inputs["representative"]
 	representativeID := alliance.RepresentativeID
@@ -627,7 +644,7 @@ func handleAllianceEditorModalFunctional(
 	alliance.Label = label
 	alliance.RepresentativeID = representativeID
 	alliance.OwnNations = nationUUIDs
-	alliance.Parents = strings.Split(strings.ReplaceAll(parents, " ", ""), ",")
+	alliance.Parent = parent
 
 	// Update store
 	allianceStore.SetKey(strings.ToLower(ident), *alliance)
@@ -642,7 +659,7 @@ func handleAllianceEditorModalFunctional(
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed := shared.NewAllianceEmbed(s, alliance)
+	embed := shared.NewAllianceEmbed(s, alliance, allianceStore)
 	content := "Successfully edited alliance:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD
@@ -682,13 +699,14 @@ func handleAllianceEditorModalOptional(
 		image = parsedUrl
 	}
 
+	//#region Discord invite validation
 	var discordCode string
 	if alliance.Optional.DiscordCode != nil {
 		discordCode = *alliance.Optional.DiscordCode
 	}
 
-	if input := inputs["discord"]; input != "" {
-		code, err := discordutil.ExtractInviteCode(inputs["discord"])
+	if discordInput := inputs["discord"]; discordInput != "" {
+		code, err := discordutil.ExtractInviteCode(discordInput)
 		if err != nil {
 			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 				Content: "Input for field **Discord Invite** could not be parsed correctly. Provide a link or code.",
@@ -710,19 +728,84 @@ func handleAllianceEditorModalOptional(
 
 		discordCode = code
 	}
+	//#endregion
 
-	//leaders := strings.Split(strings.ReplaceAll(inputs["leaders"], " ", ""), ",")
-	// TODO: validate leaders exist
+	//#region Colours validation
+	var fillColour, outlineColour string
+	if alliance.Optional.Colours != nil {
+		if alliance.Optional.Colours.Fill != nil {
+			fillColour = *alliance.Optional.Colours.Fill
+		}
+		if alliance.Optional.Colours.Outline != nil {
+			outlineColour = *alliance.Optional.Colours.Outline
+		}
+	}
 
-	//colours := inputs["colours"]
-	// TODO: validate hex
+	colours := strings.TrimSpace(strings.ReplaceAll(inputs["colours"], "#", ""))
+	if colours != "" {
+		var spaceSeperated bool
 
-	allianceType := database.NewAllianceType(inputs["type"]) // invalid input will default to pact
+		fillColour, outlineColour, spaceSeperated = strings.Cut(colours, " ")
+		fillColour = strings.TrimSpace(fillColour)
+		if spaceSeperated {
+			outlineColour = strings.TrimSpace(outlineColour)
+		} else {
+			outlineColour = fillColour // Use fill colour for outline if only one provided.
+		}
+
+		ok := utils.ValidateHexColour(fillColour)
+		if !ok {
+			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+				Content: "Input for field **Colours** contains an invalid HEX code as the fill colour.",
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+
+			return nil
+		}
+
+		ok = utils.ValidateHexColour(outlineColour)
+		if !ok {
+			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+				Content: "Input for field **Colours** contains an invalid HEX code as the outline colour.",
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+
+			return nil
+		}
+	}
+	//#endregion
+
+	//#region Leaders validation
+	leadersInput := strings.ReplaceAll(inputs["leaders"], " ", "")
+
+	invalid := []string{}
+	if leadersInput != "" {
+		var err error
+		leaders := strings.Split(leadersInput, ",")
+
+		invalid, err = alliance.SetLeaders(leaders...)
+		if err != nil {
+			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("An error occurred while setting alliance leaders:```%s```", err),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+
+			return nil
+		}
+	}
+	//#endregion
 
 	// Update alliance fields after all validation/transformations complete.
-	alliance.Type = allianceType
+	alliance.Type = database.NewAllianceType(inputs["type"]) // invalid input will default to pact
 	alliance.Optional.DiscordCode = &discordCode
 	alliance.Optional.ImageURL = &image
+	alliance.Optional.Colours = &database.AllianceColours{
+		Fill:    &fillColour,
+		Outline: nil,
+	}
+	if outlineColour != "" {
+		alliance.Optional.Colours.Outline = &outlineColour
+	}
 
 	// Update alliance in store
 	allianceStore.SetKey(strings.ToLower(alliance.Identifier), *alliance)
@@ -737,9 +820,16 @@ func handleAllianceEditorModalOptional(
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully edited alliance:",
 		Embeds: []*discordgo.MessageEmbed{
-			shared.NewAllianceEmbed(s, alliance),
+			shared.NewAllianceEmbed(s, alliance, allianceStore),
 		},
 	})
+
+	if len(invalid) > 0 {
+		discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf(
+			"The following leaders do not exist and were not included:```%s```",
+			strings.Join(invalid, ", "),
+		))
+	}
 
 	return nil
 }
@@ -828,7 +918,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed := shared.NewAllianceEmbed(s, &alliance)
+	embed := shared.NewAllianceEmbed(s, &alliance, allianceStore)
 	content := "Successfully created alliance:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD

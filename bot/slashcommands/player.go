@@ -58,13 +58,13 @@ func (cmd PlayerCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerName string) (*discordgo.Message, error) {
 	players, err := oapi.QueryPlayers(strings.ToLower(playerName))
 	if err != nil {
-		return discordutil.FollowUpContent(s, i, "An error occurred retrieving player information :(")
+		return discordutil.FollowupContent(s, i, "An error occurred retrieving player information :(")
 	}
 
 	if len(players) == 0 {
-		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No players retrieved. Player `%s` does not seem to exist.", playerName))
+		return discordutil.FollowupContent(s, i, fmt.Sprintf("No players retrieved. Player `%s` does not seem to exist.", playerName))
 	}
 
 	embed := shared.NewPlayerEmbed(players[0])
-	return discordutil.FollowUpEmbeds(s, i, embed)
+	return discordutil.FollowupEmbeds(s, i, embed)
 }

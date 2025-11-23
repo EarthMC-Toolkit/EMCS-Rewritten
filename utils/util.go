@@ -163,6 +163,31 @@ func DifferenceBy[T any, K comparable](listA []T, listB []T, keyFn func(T) K) ([
 	return result, seen
 }
 
+// Length of a HEX colour without the '#' prefix.
+// Since there are two digits per channel (#RRGGBB), we get a max of six.
+const HEX_COLOUR_LEN = 6
+
+// Validates whether str is a valid HEX colour string, independent of whether a '#' is already present.
+func ValidateHexColour(str string) bool {
+	str = strings.ReplaceAll(str, "#", "")
+	if len(str) != HEX_COLOUR_LEN {
+		return false
+	}
+
+	for i := range HEX_COLOUR_LEN {
+		c := str[i] // current character in input string
+
+		between09 := c >= '0' && c <= '9'
+		betweenAF := c >= 'a' && c <= 'f'
+		betweenAFUpper := c >= 'A' && c <= 'F'
+		if !(between09 || betweenAF || betweenAFUpper) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // func DifferenceByReverse[T any, K comparable](listB []T, seenA map[K]struct{}, keyFn func(T) K) []T {
 // 	onlyB := make([]T, 0)
 // 	for _, v := range listB {

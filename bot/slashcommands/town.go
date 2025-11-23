@@ -55,7 +55,7 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 		// fallback to oapi
 		t, wasErr := getTownFromOAPI(townName)
 		if wasErr {
-			return discordutil.FollowUpContent(s, i, "DB error occurred and OAPI error also occurred during fallback!?!")
+			return discordutil.FollowupContent(s, i, "DB error occurred and OAPI error also occurred during fallback!?!")
 		}
 
 		town = t
@@ -69,7 +69,7 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 			// fallback to oapi
 			oapiTown, wasErr := getTownFromOAPI(townName)
 			if wasErr {
-				return discordutil.FollowUpContent(s, i, "Town does not exist in the database and the OAPI failed!")
+				return discordutil.FollowupContent(s, i, "Town does not exist in the database and the OAPI failed!")
 			}
 
 			town = oapiTown
@@ -78,11 +78,11 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 
 	// DB and OAPI are working normally but town wasn't found in either.
 	if town == nil {
-		return discordutil.FollowUpContent(s, i, fmt.Sprintf("Town `%s` does not seem to exist.", townName))
+		return discordutil.FollowupContent(s, i, fmt.Sprintf("Town `%s` does not seem to exist.", townName))
 	}
 
 	embed := shared.NewTownEmbed(*town)
-	return discordutil.FollowUpEmbeds(s, i, embed)
+	return discordutil.FollowupEmbeds(s, i, embed)
 }
 
 func getTownFromOAPI(townName string) (*oapi.TownInfo, bool) {

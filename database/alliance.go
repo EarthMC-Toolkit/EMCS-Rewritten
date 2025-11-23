@@ -5,7 +5,6 @@ import (
 	"emcsrw/database/store"
 	"encoding/json"
 	"fmt"
-	"slices"
 	"strings"
 	"sync"
 
@@ -21,7 +20,7 @@ type AllianceColours struct {
 }
 
 type AllianceOptionals struct {
-	Leaders     []string         `json:"leaders,omitempty"` // Minecraft UUIDs of alliance leaders.
+	Leaders     []string         `json:"leaders,omitempty"` // All UUIDs of alliance leaders that exist on EMC.
 	ImageURL    *string          `json:"imageURL,omitempty"`
 	DiscordCode *string          `json:"discordURL,omitempty"`
 	Colours     *AllianceColours `json:"colours,omitempty"`
@@ -84,7 +83,7 @@ type Alliance struct {
 	Identifier       string            `json:"identifier"`       // Case-insensitive colloquial short name for lookup.
 	Label            string            `json:"label"`            // Full name for display purposes.
 	RepresentativeID *string           `json:"representativeID"` // Discord ID of the user representing this alliance.
-	Parents          []string          `json:"parents"`          // The Identifier (not UUID) of all parents of this alliance.
+	Parent           *string           `json:"parent"`           // The Identifier (not UUID) of the alliance this alliance is puppeted by.
 	OwnNations       []string          `json:"ownNations"`       // UUIDs of nations in THIS alliance only.
 	UpdatedTimestamp *uint64           `json:"updatedTimestamp"` // Unix timestamp (ms) at which the last update was made to this alliance.
 	Optional         AllianceOptionals `json:"optional"`         // Extra properties that are not required for basic alliance functionality.
@@ -99,23 +98,26 @@ func (a *Alliance) GetNations(nationStore *store.Store[oapi.NationInfo]) []oapi.
 	return nationStore.GetMany(a.OwnNations...)
 }
 
+// Attempts to set the alliance leaders given their IGNs by querying the Official API.
+//
+// The leaders are stored in UUID form if they exist, otherwise the IGN will be added to the `invalid` output slice.
 func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
 	leaders, err := oapi.QueryPlayers(igns...)
 	if err != nil {
-		return nil, fmt.Errorf("error occurred:\n%v", err)
+		return nil, err
 	}
+
+	leaderUUIDs := make([]string, 0, len(leaders))
 
 	found := make(ExistenceMap, len(leaders))
 	for _, p := range leaders {
 		found[p.Name] = struct{}{}
-
-		// Only add leader if they don't exist already.
-		if !slices.Contains(a.Optional.Leaders, p.UUID) {
-			a.Optional.Leaders = append(a.Optional.Leaders, p.UUID)
-		}
+		leaderUUIDs = append(leaderUUIDs, p.UUID)
 	}
 
-	// Report names of any leader igns that weren't valid.
+	a.Optional.Leaders = leaderUUIDs
+
+	// Report names of any leader igns that weren't valid. I.e, not found in the query results.
 	for _, ign := range igns {
 		if _, ok := found[ign]; !ok {
 			invalid = append(invalid, ign)
@@ -154,6 +156,31 @@ func (a Alliance) GetLeaderNames() ([]string, error) {
 	}), nil
 }
 
+func (a Alliance) GetStats(nationStore *store.Store[oapi.NationInfo]) (
+	nations []oapi.NationInfo, towns []oapi.Entity,
+	residents, area int, wealth int,
+) {
+	nations = a.GetNations(nationStore)
+	towns = lo.FlatMap(nations, func(n oapi.NationInfo, _ int) []oapi.Entity {
+		return n.Towns
+	})
+
+	residents = 0
+	area = 0
+	lo.ForEach(nations, func(n oapi.NationInfo, _ int) {
+		residents += n.Stats.NumResidents
+		area += n.Stats.NumTownBlocks
+	})
+
+	townsCount := len(towns)
+
+	townsChunkWorth := (area - townsCount) * 16 // Every chunk after the first free one.
+	townsBaseWorth := townsCount * 64           // Actual cost of town creation.
+	wealth = townsChunkWorth + townsBaseWorth
+
+	return
+}
+
 // Returns a map of parent alliance UUID → slice of child alliances.
 // For correct results, parameter `alliances` should be a map of all known alliances.
 func BuildChildAlliancesMap(alliances map[string]Alliance) map[string][]*Alliance {
@@ -161,11 +188,13 @@ func BuildChildAlliancesMap(alliances map[string]Alliance) map[string][]*Allianc
 	mu := sync.Mutex{}
 
 	parallel.ForEach(lo.Values(alliances), func(a Alliance, _ int) {
-		for _, parentID := range a.Parents {
-			mu.Lock()
-			children[parentID] = append(children[parentID], &a)
-			mu.Unlock()
+		if a.Parent == nil {
+			return
 		}
+
+		mu.Lock()
+		children[*a.Parent] = append(children[*a.Parent], &a)
+		mu.Unlock()
 	})
 
 	return children
@@ -175,9 +204,11 @@ func BuildChildAlliancesMap(alliances map[string]Alliance) map[string][]*Allianc
 // func BuildChildAlliancesMap(alliances map[string]Alliance) map[string][]*Alliance {
 // 	children := make(map[string][]*Alliance)
 // 	for _, a := range alliances {
-// 		for _, parentID := range a.Parents {
-// 			children[parentID] = append(children[parentID], &a)
+// 		if a.Parent == nil {
+// 			continue
 // 		}
+
+// 		children[*a.Parent] = append(children[*a.Parent], &a)
 // 	}
 
 // 	return children

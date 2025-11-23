@@ -49,13 +49,13 @@ func (cmd NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) (*discordgo.Message, error) {
 	nations, err := oapi.QueryNations(strings.ToLower(nationName))
 	if err != nil {
-		return discordutil.FollowUpContent(s, i, "An error occurred retrieving nation information :(")
+		return discordutil.FollowupContent(s, i, "An error occurred retrieving nation information :(")
 	}
 
 	if len(nations) == 0 {
-		return discordutil.FollowUpContent(s, i, fmt.Sprintf("No nations retrieved. Nation `%s` does not seem to exist.", nationName))
+		return discordutil.FollowupContent(s, i, fmt.Sprintf("No nations retrieved. Nation `%s` does not seem to exist.", nationName))
 	}
 
 	embed := shared.NewNationEmbed(nations[0])
-	return discordutil.FollowUpEmbeds(s, i, embed)
+	return discordutil.FollowupEmbeds(s, i, embed)
 }
