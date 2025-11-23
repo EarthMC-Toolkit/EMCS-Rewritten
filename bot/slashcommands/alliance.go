@@ -584,8 +584,8 @@ func handleAllianceEditorModalFunctional(
 	parent := alliance.Parent
 	parentInput := strings.ReplaceAll(inputs["parent"], " ", "")
 	if parentInput != "" {
-		exists := allianceStore.HasKey(strings.ToLower(parentInput))
-		if !exists {
+		pa, err := allianceStore.GetKey(strings.ToLower(parentInput))
+		if err != nil {
 			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Parent alliance `%s` does not exist.", parentInput),
 				Flags:   discordgo.MessageFlagsEphemeral,
@@ -594,7 +594,7 @@ func handleAllianceEditorModalFunctional(
 			return nil
 		}
 
-		parent = &parentInput
+		parent = &pa.Identifier
 	}
 
 	representative := inputs["representative"]
@@ -899,14 +899,32 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	})
 	//#endregion
 
-	label := strings.TrimSpace(inputs["label"])
+	//#region Validate parent alliance
+	var parent *string
+	parentInput := strings.ReplaceAll(inputs["parent"], " ", "")
+	if parentInput != "" {
+		pa, err := allianceStore.GetKey(strings.ToLower(parentInput))
+		if err != nil {
+			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("Parent alliance `%s` does not exist.", parentInput),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+
+			return nil
+		}
+
+		parent = &pa.Identifier
+	}
+	//#endregion
 
 	alliance := database.Alliance{
 		UUID:             generateAllianceID(),
 		Identifier:       ident,
-		Label:            label,
+		Label:            strings.TrimSpace(inputs["label"]),
 		RepresentativeID: &representativeUser.ID,
 		OwnNations:       nationUUIDs,
+		Parent:           parent,
+		Type:             database.AllianceTypePact,
 	}
 
 	allianceStore.SetKey(strings.ToLower(ident), alliance)
