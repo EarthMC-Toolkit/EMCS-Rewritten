@@ -21,7 +21,7 @@ type AllianceColours struct {
 type AllianceOptionals struct {
 	Leaders     []string         `json:"leaders,omitempty"` // All UUIDs of alliance leaders that exist on EMC.
 	ImageURL    *string          `json:"imageURL,omitempty"`
-	DiscordCode *string          `json:"discordURL,omitempty"`
+	DiscordCode *string          `json:"discordCode,omitempty"`
 	Colours     *AllianceColours `json:"colours,omitempty"`
 }
 
@@ -154,7 +154,7 @@ func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
 }
 
 // Returns a map of leaders where key is the leader's UUID and value is their player data.
-func (a Alliance) GetLeaders() (map[string]oapi.PlayerInfo, error) {
+func (a Alliance) QueryLeaders() (map[string]oapi.PlayerInfo, error) {
 	if len(a.Optional.Leaders) < 1 {
 		return nil, nil
 	}
@@ -171,15 +171,22 @@ func (a Alliance) GetLeaders() (map[string]oapi.PlayerInfo, error) {
 	}), nil
 }
 
-func (a Alliance) GetLeaderNames() ([]string, error) {
-	leaders, err := a.GetLeaders()
-	if err != nil {
-		return nil, err
+func (a Alliance) GetLeaderNames(entitiesStore *store.Store[oapi.EntityList]) []string {
+	reslist, _ := entitiesStore.GetKey("residentlist")
+	townlesslist, _ := entitiesStore.GetKey("townlesslist")
+
+	leaderNames := []string{}
+	for _, id := range a.Optional.Leaders {
+		if name, ok := (*reslist)[id]; ok {
+			leaderNames = append(leaderNames, name)
+			continue
+		}
+		if name, ok := (*townlesslist)[id]; ok {
+			leaderNames = append(leaderNames, name)
+		}
 	}
 
-	return lo.MapToSlice(leaders, func(_ string, p oapi.PlayerInfo) string {
-		return p.Name
-	}), nil
+	return leaderNames
 }
 
 func (a Alliance) GetStats(

@@ -67,7 +67,7 @@ func NewAllianceEmbed(s *discordgo.Session, a *database.Alliance, allianceStore 
 
 	// Leader field logic
 	leadersValue := "None"
-	leaders, err := a.GetLeaders() // TODO: Do we want to send an OAPI req for leaders every time?
+	leaders, err := a.QueryLeaders() // TODO: Do we want to send an OAPI req for leaders every time?
 	if err != nil {
 		fmt.Printf("ERROR | Could not get leaders for alliance %s:\n%v", a.Identifier, err)
 	} else {

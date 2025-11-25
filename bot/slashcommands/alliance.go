@@ -195,6 +195,11 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 		return err
 	}
 
+	entitiesStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ENTITIES_STORE)
+	if err != nil {
+		return err
+	}
+
 	alliances := allianceStore.Values()
 
 	allianceCount := len(alliances)
@@ -227,7 +232,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 			}
 
 			leaderStr := "`Unknown/Error`"
-			leaders, err := item.GetLeaderNames()
+			leaders := item.GetLeaderNames(entitiesStore)
 			if err != nil {
 				fmt.Printf("%s an error occurred getting leaders for alliance %s:\n%v", time.Now().Format(time.Stamp), item.Identifier, err)
 			} else {
@@ -488,6 +493,11 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 }
 
 func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance) error {
+	entitiesStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ENTITIES_STORE)
+	if err != nil {
+		return err
+	}
+
 	discordPlaceholder := "Enter an invite link or code to the alliance's Discord."
 	if alliance.Optional.DiscordCode != nil {
 		discordPlaceholder = fmt.Sprintf("https://discord.gg/%s", *alliance.Optional.DiscordCode)
@@ -503,10 +513,8 @@ func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, all
 
 	leaderPlaceholder := "Enter the Minecraft IGNs of the alliance leaders, comma-separated."
 	if alliance.Optional.Leaders != nil {
-		leaderNames, err := alliance.GetLeaderNames()
-		if err == nil {
-			leaderPlaceholder = strings.Join(leaderNames, ", ")
-		}
+		leaderNames := alliance.GetLeaderNames(entitiesStore)
+		leaderPlaceholder = strings.Join(leaderNames, ", ")
 	}
 
 	coloursPlaceholder := "Enter HEX colour(s) seperated by a space. Fill first, Outline second."

@@ -66,7 +66,7 @@ func Run(botToken string) {
 		log.Fatal("Cannot open Discord session: ", err)
 	}
 
-	//go serveAPI()
+	//go capi.Serve()
 
 	// Wait for Ctrl+C or kill.
 	c := make(chan os.Signal, 1)
@@ -84,7 +84,3 @@ func Run(botToken string) {
 		log.Printf("error closing Discord session: %v", err)
 	}
 }
-
-// func serveAPI() {
-
-// }
