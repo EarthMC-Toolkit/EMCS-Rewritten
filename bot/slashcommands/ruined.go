@@ -86,10 +86,11 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			)
 		}
 
+		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
 		embed := &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("List of Ruined Towns [%d]", count),
+			Title:       fmt.Sprintf("[%d] List of Ruined Towns | %s", count, pageStr),
 			Footer:      shared.DEFAULT_FOOTER,
-			Description: desc + fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages()),
+			Description: desc,
 			Color:       discordutil.DARK_GOLD,
 		}
 

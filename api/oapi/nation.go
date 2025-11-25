@@ -55,6 +55,20 @@ type NationInfo struct {
 	} `json:"coordinates"`
 }
 
+// Gets all ranks for a specified player.
+// This func will go through all possible ranks and build a slice of the ranks they hold.
+//
+// For example, with the name input "Fix" and the nation ranks are as follows:
+//
+//	{
+//	  "Chancellor": ["Fix"],
+//	  "Colonist": [],
+//	  "Diplomat": ["Fix"]
+//	}
+//
+// The output would be:
+//
+//	[]string{"Chancellor", "Diplomat"}
 func (n NationInfo) GetPlayerRanks(name string) []string {
 	return lo.FilterMapToSlice(n.Ranks, func(rank string, entities []Entity) (string, bool) {
 		return rank, slices.ContainsFunc(entities, func(e Entity) bool {
@@ -79,4 +93,16 @@ func (n NationInfo) FillColourInt() int {
 // Returns the outline colour of the nation on the map as an int instead of a HEX string.
 func (n NationInfo) OutlineColourInt() int {
 	return utils.HexToInt(n.MapColourOutline)
+}
+
+func (n NationInfo) Size() int {
+	return n.Stats.NumTownBlocks
+}
+
+func (n NationInfo) Worth() int {
+	numTowns := n.Stats.NumTowns
+	base := numTowns * 64               // every towns first initial chunk (town creation cost)
+	extra := (n.Size() - numTowns) * 16 // remaining claimed chunks
+
+	return base + extra
 }

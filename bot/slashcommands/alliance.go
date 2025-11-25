@@ -496,6 +496,9 @@ func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, all
 	imagePlaceholder := "Enter the URL of the alliance's image/flag from the flags channel."
 	if alliance.Optional.ImageURL != nil {
 		imagePlaceholder = *alliance.Optional.ImageURL
+		if len(imagePlaceholder) >= 100 {
+			imagePlaceholder = "Flag image URL too long to display!"
+		}
 	}
 
 	leaderPlaceholder := "Enter the Minecraft IGNs of the alliance leaders, comma-separated."

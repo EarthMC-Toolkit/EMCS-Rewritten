@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strconv"
 
-	lop "github.com/samber/lo/parallel"
+	"github.com/samber/lo/parallel"
 )
 
 type TownStatus struct {
@@ -87,12 +87,26 @@ func (t TownInfo) MaxSize() uint32 {
 	return t.Stats.MaxTownBlocks
 }
 
+// Calculate the worth of the town based on its size, where the first chunk is 64G
+// (when the town is created) and each additional chunk is 16G.
+func (t TownInfo) Worth() uint32 {
+	initialCost := uint32(64)
+	if t.Size() <= 1 {
+		return initialCost // Shouldn't rly have a town with 0 chunks, but here just in case.
+	}
+
+	chunkCost := uint32(16)
+	extra := t.Size() - 1
+
+	return initialCost + extra*chunkCost
+}
+
 func (t TownInfo) OverclaimedString() string {
 	return strconv.FormatBool(t.Status.Overclaimed)
 }
 
 func (t TownInfo) GetResidentNames(alphabetical bool) []string {
-	names := lop.Map(t.Residents, func(t Entity, _ int) string {
+	names := parallel.Map(t.Residents, func(t Entity, _ int) string {
 		return t.Name
 	})
 

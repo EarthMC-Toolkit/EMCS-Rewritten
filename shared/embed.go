@@ -215,6 +215,23 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 		title += fmt.Sprintf(" aka \"%s\"", alias)
 	}
 
+	townRanks := player.Ranks.Town
+	nationRanks := player.Ranks.Nation
+
+	townRanksStr := "No ranks"
+	if len(townRanks) > 0 {
+		townRanksStr = strings.Join(lo.Map(townRanks, func(r string, _ int) string {
+			return fmt.Sprintf("`%s`", r)
+		}), ", ")
+	}
+
+	nationRanksStr := "No ranks"
+	if len(nationRanks) > 0 {
+		nationRanksStr = strings.Join(lo.Map(nationRanks, func(r string, _ int) string {
+			return fmt.Sprintf("`%s`", r)
+		}), ", ")
+	}
+
 	embed := &discordgo.MessageEmbed{
 		Type:   discordgo.EmbedTypeRich,
 		Color:  discordutil.DARK_PURPLE,
@@ -224,8 +241,8 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 		},
 		Title: title,
 		Fields: []*discordgo.MessageEmbedField{
-			// affiliation (prepended)
-			// rank (prepended)
+			// Affiliation (prepended)
+			// Rank (prepended)
 			NewEmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, EMOJIS.GOLD_INGOT), true),
 			NewEmbedField("Status", status, true),
 		},
@@ -243,6 +260,7 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 	}
 
 	AddField(embed, "Registered", fmt.Sprintf("<t:%d:R>", registeredTs/1000), true)
+	AddField(embed, "Appointed Ranks", fmt.Sprintf("Town: %s\nNation: %s", townRanksStr, nationRanksStr), false)
 	AddField(embed, "Friends", friendsStr, false)
 	AddField(embed, "Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false)
 
@@ -282,13 +300,21 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	}
 
 	nationName := "No Nation"
+	nationJoin := ""
 	if town.Nation.Name != nil {
 		nationName = *town.Nation.Name
+		nationJoin = fmt.Sprintf(" (Joined <t:%d:R>)", *town.Timestamps.JoinedNationAt/1000)
 	}
 
 	locX := town.Coordinates.Spawn.X
 	locY := town.Coordinates.Spawn.Y
 	locZ := town.Coordinates.Spawn.Z
+
+	sizeStr := utils.HumanizedSprintf("`%d`/`%d` %s (Worth: `%d` %s)", town.Size(), town.MaxSize(), EMOJIS.CHUNK, town.Worth(), EMOJIS.GOLD_INGOT)
+	balanceStr := utils.HumanizedSprintf("`%.0f`G %s", town.Bal(), EMOJIS.GOLD_INGOT)
+	residentsStr := utils.HumanizedSprintf("`%d`", town.Stats.NumResidents)
+	outlawsStr := utils.HumanizedSprintf("`%d`", town.Stats.NumOutlaws)
+	trustedStr := utils.HumanizedSprintf("`%d`", town.Stats.NumTrusted)
 
 	embed := &discordgo.MessageEmbed{
 		Type:        discordgo.EmbedTypeRich,
@@ -300,17 +326,40 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 			//NewEmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
 			NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by `%s`", foundedTs, town.Founder), false),
 			NewEmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
-			NewEmbedField("Nation", fmt.Sprintf("`%s`", nationName), true),
+			NewEmbedField("Nation", fmt.Sprintf("`%s`%s", nationName, nationJoin), true),
 			NewEmbedField("Location", fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=3)", locX, locY, locZ, locX, locZ), true),
-			NewEmbedField("Area", utils.HumanizedSprintf("`%d`/`%d` Chunks", town.Size(), town.MaxSize()), true),
-			NewEmbedField("Balance", utils.HumanizedSprintf("`%0.0f`G %s", town.Bal(), EMOJIS.GOLD_INGOT), true),
-			NewEmbedField("Residents", utils.HumanizedSprintf("`%d`", town.Stats.NumResidents), true),
+			NewEmbedField("Stats", fmt.Sprintf(
+				"Size: %s\nBalance: %s\nResidents: %s\nTrusted: %s\nOutlaws: %s",
+				sizeStr, balanceStr, residentsStr, trustedStr, outlawsStr,
+			), true),
 		},
 	}
 
-	if !town.Status.Ruined {
-		AddField(embed, "Overclaim Status", fmt.Sprintf("Overclaimed: `%s`\nShield: %s", town.OverclaimedString(), overclaimShield), false)
+	status := town.Status
+
+	AddField(embed, "Status", fmt.Sprintf(
+		"%s Open\n%s Public\n%s Neutral\n%s Can Outsiders Spawn\n%s For Sale",
+		BoolToEmoji(status.Open), BoolToEmoji(status.Public), BoolToEmoji(status.Neutral),
+		BoolToEmoji(status.CanOutsidersSpawn), BoolToEmoji(status.ForSale),
+	), true)
+
+	if !status.Ruined {
+		AddField(embed, "Overclaim Status", fmt.Sprintf("Overclaimed: `%s`\nShield: %s", town.OverclaimedString(), overclaimShield), true)
 	}
+
+	perms := town.Perms
+	flags := perms.Flags
+
+	AddField(embed, "Flags", fmt.Sprintf(
+		"%s Explosions\n%s Mobs\n%s Fire\n%s PVP",
+		BoolToEmoji(flags.Explosions), BoolToEmoji(flags.Mobs), BoolToEmoji(flags.Fire), BoolToEmoji(flags.PVP),
+	), true)
+
+	build, destroy, sw, itemUse := perms.GetPermStrings()
+	AddField(embed, "Permissions", fmt.Sprintf(
+		"Build: `%s`\nDestroy: `%s`\nSwitch: `%s`\nItem Use: `%s`",
+		build, destroy, sw, itemUse,
+	), true)
 
 	return embed
 }
@@ -330,6 +379,9 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 	capitalName := nation.Capital.Name
 	leaderName := nation.King.Name
 
+	// TODO: add bonus to stats field
+	//nationBonus :=
+
 	open := fmt.Sprintf("%s Open", lo.Ternary(nation.Status.Open, ":green_circle:", ":red_circle:"))
 	public := fmt.Sprintf("%s Public", lo.Ternary(nation.Status.Public, ":green_circle:", ":red_circle:"))
 	neutral := fmt.Sprintf("%s Neutral", lo.Ternary(nation.Status.Neutral, ":green_circle:", ":red_circle:"))
@@ -346,6 +398,31 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 		townsStr = fmt.Sprintf("```%s```", townsStr)
 	}
 
+	sizeStr := utils.HumanizedSprintf("`%d` %s (Worth: `%d` %s)", nation.Size(), EMOJIS.CHUNK, nation.Worth(), EMOJIS.GOLD_INGOT)
+	residentsStr := utils.HumanizedSprintf("`%d`", stats.NumResidents)
+	balanceStr := utils.HumanizedSprintf("`%.0f`G%s  ", stats.Balance, EMOJIS.GOLD_INGOT)
+	//bonusStr := utils.HumanizedSprintf("`%d`")
+	alliesEnemiesStr := utils.HumanizedSprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies)
+
+	statsStr := fmt.Sprintf(
+		"Size: %s\nBalance: %s\nResidents: %s\nAllies/Enemies: %s",
+		sizeStr, balanceStr, residentsStr, alliesEnemiesStr,
+	)
+
+	rankLines := []string{}
+	for rank, players := range nation.Ranks {
+		names := lo.Map(players, func(e oapi.Entity, _ int) string {
+			return fmt.Sprintf("`%s`", e.Name)
+		})
+
+		line := fmt.Sprintf("[%d] %s", len(names), rank)
+		if len(names) > 0 {
+			line += fmt.Sprintf("\n%s", strings.Join(names, ", "))
+		}
+
+		rankLines = append(rankLines, line)
+	}
+
 	embed := &discordgo.MessageEmbed{
 		Type:        discordgo.EmbedTypeRich,
 		Title:       fmt.Sprintf("Nation Information | `%s`", nation.Name),
@@ -356,16 +433,19 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
 			NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
 			NewEmbedField("Location", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", spawn.X, spawn.Z, spawn.X, spawn.Y, spawn.Z), true),
-			NewEmbedField("Size", utils.HumanizedSprintf("%s `%d` Chunks", EMOJIS.CHUNK, stats.NumTownBlocks), true),
-			NewEmbedField("Residents", utils.HumanizedSprintf("`%d`", stats.NumResidents), true),
-			NewEmbedField("Balance", utils.HumanizedSprintf("%s `%.0f`G", EMOJIS.GOLD_INGOT, stats.Balance), true),
-			NewEmbedField("Allies/Enemies", fmt.Sprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies), true),
+			NewEmbedField("Stats", statsStr, true),
 			NewEmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
 			NewEmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),
 			NewEmbedField(fmt.Sprintf("Towns [%d]", stats.NumTowns), townsStr, false),
-			NewEmbedField("Founded", dateFounded, true),
 		},
 	}
+
+	ranksStr := strings.Join(rankLines, "\n\n")
+	if len(ranksStr) < discordutil.EMBED_FIELD_VALUE_LIMIT {
+		AddField(embed, "Ranks", ranksStr, false)
+	}
+
+	AddField(embed, "Founded", dateFounded, true)
 
 	if nation.Wiki != "" {
 		AddField(embed, "Wiki", fmt.Sprintf("[Visit wiki page](%s)", nation.Wiki), true)
@@ -422,4 +502,12 @@ func NewStaffEmbed() (*discordgo.MessageEmbed, error) {
 		Description: fmt.Sprintf("```%s```", content),
 		Color:       discordutil.GOLD,
 	}, nil
+}
+
+func BoolToEmoji(v bool) string {
+	if v {
+		return EMOJIS.CIRCLE_CHECK
+	}
+
+	return EMOJIS.CIRCLE_CROSS
 }

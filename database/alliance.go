@@ -11,7 +11,7 @@ import (
 	"github.com/samber/lo"
 )
 
-type ExistenceMap = map[string]struct{}
+type HashSet = map[string]struct{}
 
 type AllianceColours struct {
 	Fill    *string `json:"fill"`
@@ -102,7 +102,7 @@ func (a *Alliance) GetOwnNations(nationStore *store.Store[oapi.NationInfo]) []oa
 // If we know beforehand there are no child alliances, prefer GetOwnNations() instead for better performance.
 func (a Alliance) GetAllNations(nationStore *store.Store[oapi.NationInfo], allianceStore *store.Store[Alliance]) []oapi.NationInfo {
 	allNations := utils.CopySlice(a.OwnNations) // with value receiver, slice is still a reference so a copy is required
-	seen := make(ExistenceMap, len(a.OwnNations))
+	seen := make(HashSet, len(a.OwnNations))
 	for _, id := range a.OwnNations {
 		seen[id] = struct{}{}
 	}
@@ -135,7 +135,7 @@ func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
 
 	leaderUUIDs := make([]string, 0, len(leaders))
 
-	found := make(ExistenceMap, len(leaders))
+	found := make(HashSet, len(leaders))
 	for _, p := range leaders {
 		found[p.Name] = struct{}{}
 		leaderUUIDs = append(leaderUUIDs, p.UUID)

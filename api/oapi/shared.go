@@ -1,5 +1,21 @@
 package oapi
 
+var rnao = [4]byte{'r', 'n', 'a', 'o'}
+
+// Takes a single permission (array) and outputs a string in the RNAO (Resident, Nation, Ally, Outsider) format.
+func encodePerm(arr [4]bool) string {
+	b := make([]byte, 4)
+	for i, v := range arr {
+		if v {
+			b[i] = rnao[i]
+		} else {
+			b[i] = '-'
+		}
+	}
+
+	return string(b)
+}
+
 type Timestamps struct {
 	Registered uint64 `json:"registered"`
 }
@@ -24,6 +40,18 @@ type Perms struct {
 		Fire       bool `json:"fire"`
 		Mobs       bool `json:"mobs"`
 	} `json:"flags"`
+}
+
+// Encodes all town permissions (Build, Destroy, Switch, ItemUse) into their RNAO string equivalents as seen in Towny.
+//
+// Here are some examples of what each one could look like:
+//
+//	"r-r-r-r"
+//	"r-r----"
+//	"--r-r--"
+//	"-------"
+func (p Perms) GetPermStrings() (string, string, string, string) {
+	return encodePerm(p.Build), encodePerm(p.Destroy), encodePerm(p.Switch), encodePerm(p.ItemUse)
 }
 
 type EntityNullableValues struct {

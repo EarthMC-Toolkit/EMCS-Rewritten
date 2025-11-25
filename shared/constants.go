@@ -19,6 +19,8 @@ var SUPPORTED_MAPS = struct {
 type Emoji = string
 
 var EMOJIS = struct {
+	CIRCLE_CHECK   Emoji
+	CIRCLE_CROSS   Emoji
 	ENTRY          Emoji
 	EXIT           Emoji
 	ARROW_DOWN_RED Emoji
@@ -28,6 +30,8 @@ var EMOJIS = struct {
 	GOLD_INGOT     Emoji
 	CHUNK          Emoji
 }{
+	CIRCLE_CHECK:   "<:circle_check:1442466686794989659>",
+	CIRCLE_CROSS:   "<:circle_cross:1442466697201192960>",
 	ENTRY:          "<:entry:1430368475309936721>",
 	EXIT:           "<:exit:1430368497996791901>",
 	ARROW_DOWN_RED: "<:arrow_down_red:1413371841170374766>",
