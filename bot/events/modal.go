@@ -24,12 +24,14 @@ func OnInteractionCreateModalSubmit(s *discordgo.Session, i *discordgo.Interacti
 
 	customID := i.ModalSubmitData().CustomID
 	parts := strings.SplitN(customID, "_", 2) // split into parts with underscore seperator
-	if len(parts) > 0 {
-		cmdName := parts[0] // grab first part, usually the name of the command
-		if cmd, ok := slashcommands.All()[cmdName]; ok {
-			if modalCmd, ok := cmd.(slashcommands.ModalCommand); ok {
-				_ = modalCmd.HandleModal(s, i.Interaction, customID)
-			}
+	if len(parts) == 0 {
+		return
+	}
+
+	cmdName := parts[0] // grab first part, usually the name of the command
+	if cmd, ok := slashcommands.All()[cmdName]; ok {
+		if modalCmd, ok := cmd.(slashcommands.ModalHandler); ok {
+			_ = modalCmd.HandleModal(s, i.Interaction, customID)
 		}
 	}
 }

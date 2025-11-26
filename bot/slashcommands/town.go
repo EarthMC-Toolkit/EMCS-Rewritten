@@ -51,50 +51,39 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 	var town *oapi.TownInfo
 
 	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
-	if err != nil || len(townStore.Keys()) < 1 {
-		// fallback to oapi
-		t, wasErr := getTownFromOAPI(townName)
-		if wasErr {
-			return discordutil.FollowupContent(s, i, "DB error occurred and OAPI error also occurred during fallback!?!")
+	if err != nil {
+		town, err = getTownFromOAPI(townName)
+		if err != nil {
+			return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("A database error occurred and the API failed during fallback!?```%s```", err))
 		}
-
-		town = t
 	} else {
-		t, err := townStore.FindFirst(func(townInfo oapi.TownInfo) bool {
-			return strings.EqualFold(townName, townInfo.Name) || townName == townInfo.UUID
-		})
-		if err == nil {
-			town = t // db success
-		} else {
-			// fallback to oapi
-			oapiTown, wasErr := getTownFromOAPI(townName)
-			if wasErr {
-				return discordutil.FollowupContent(s, i, "Town does not exist in the database and the OAPI failed!")
-			}
-
-			town = oapiTown
+		if len(townStore.Keys()) == 0 {
+			return discordutil.FollowupContentEphemeral(s, i, "The town database is currently empty. This is unusual, but may resolve itself.")
 		}
+
+		town, _ = townStore.FindFirst(func(info oapi.TownInfo) bool {
+			return strings.EqualFold(townName, info.Name) || townName == info.UUID
+		})
 	}
 
-	// DB and OAPI are working normally but town wasn't found in either.
 	if town == nil {
-		return discordutil.FollowupContent(s, i, fmt.Sprintf("Town `%s` does not seem to exist.", townName))
+		return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Town `%s` does not seem to exist.", townName))
 	}
 
 	embed := shared.NewTownEmbed(*town)
 	return discordutil.FollowupEmbeds(s, i, embed)
 }
 
-func getTownFromOAPI(townName string) (*oapi.TownInfo, bool) {
+func getTownFromOAPI(townName string) (*oapi.TownInfo, error) {
 	towns, err := oapi.QueryTowns(strings.ToLower(townName))
 	if err != nil {
-		return nil, true
+		return nil, err
 	}
 
 	if len(towns) == 0 {
-		return nil, false
+		return nil, nil
 	}
 
 	t := towns[0]
-	return &t, false
+	return &t, nil
 }

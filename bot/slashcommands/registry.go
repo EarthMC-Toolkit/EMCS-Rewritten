@@ -35,9 +35,12 @@ type SlashCommand interface {
 	Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error
 }
 
-type ModalCommand interface {
-	SlashCommand
+type ModalHandler interface {
 	HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error
+}
+
+type ButtonHandler interface {
+	HandleButton(s *discordgo.Session, i *discordgo.Interaction, customID string) error
 }
 
 func ToApplicationCommand(cmd SlashCommand) *discordgo.ApplicationCommand {
@@ -120,5 +123,13 @@ func init() {
 // }
 
 // func (cmd ExampleCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+// 	return nil
+// }
+
+// func (cmd ExampleCommand) HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
+// 	return nil
+// }
+
+// func (cmd ExampleCommand) HandleButton(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
 // 	return nil
 // }

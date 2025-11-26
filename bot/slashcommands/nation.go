@@ -2,6 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/oapi"
+	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -46,16 +47,66 @@ func (cmd NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	return nil
 }
 
+// func (cmd NationCommand) HandleButton(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
+// 	if strings.HasPrefix(customID, "nation_relations") {
+// 		return nil
+// 	}
+
+// 	return nil
+// }
+
 func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) (*discordgo.Message, error) {
+	var nation *oapi.NationInfo
+
+	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
+	if err != nil {
+		nation, err = getNationFromOAPI(nationName)
+		if err != nil {
+			return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("DB error occurred and the OAPI failed during fallback!?```%s```", err))
+		}
+	} else {
+		if len(nationStore.Keys()) == 0 {
+			return discordutil.FollowupContentEphemeral(s, i, "The nation database is currently empty. This is unusual, but may resolve itself.")
+		}
+
+		nation, _ = nationStore.FindFirst(func(info oapi.NationInfo) bool {
+			return strings.EqualFold(nationName, info.Name) || nationName == info.UUID
+		})
+	}
+
+	if nation == nil {
+		return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Nation `%s` does not seem to exist.", nationName))
+	}
+
+	// button := discordgo.Button{
+	// 	CustomID: "nation_relations@" + nations[0].UUID,
+	// 	Label:    "Show Relations",
+	// 	Style:    discordgo.PrimaryButton,
+	// }
+
+	// row := discordgo.ActionsRow{
+	// 	Components: []discordgo.MessageComponent{button},
+	// }
+
+	// return discordutil.Followup(s, i, &discordgo.WebhookParams{
+	// 	Embeds:     []*discordgo.MessageEmbed{embed},
+	// 	Components: []discordgo.MessageComponent{row},
+	// })
+
+	embed := shared.NewNationEmbed(*nation)
+	return discordutil.FollowupEmbeds(s, i, embed)
+}
+
+func getNationFromOAPI(nationName string) (*oapi.NationInfo, error) {
 	nations, err := oapi.QueryNations(strings.ToLower(nationName))
 	if err != nil {
-		return discordutil.FollowupContent(s, i, "An error occurred retrieving nation information :(")
+		return nil, err
 	}
 
 	if len(nations) == 0 {
-		return discordutil.FollowupContent(s, i, fmt.Sprintf("No nations retrieved. Nation `%s` does not seem to exist.", nationName))
+		return nil, nil
 	}
 
-	embed := shared.NewNationEmbed(nations[0])
-	return discordutil.FollowupEmbeds(s, i, embed)
+	n := nations[0]
+	return &n, nil
 }

@@ -36,8 +36,9 @@ func Run(botToken string) {
 	// https://discord.com/developers/docs/events/gateway-events#receive-events
 	s.AddHandler(events.OnReady)
 	s.AddHandler(events.OnInteractionCreateApplicationCommand) // Slash cmds
-	s.AddHandler(events.OnInteractionCreateMessageComponent)   // Buttons, rows, select menus
-	s.AddHandler(events.OnInteractionCreateModalSubmit)        // Modal submit
+	s.AddHandler(events.OnInteractionCreateModalSubmit)
+	s.AddHandler(events.OnInteractionCreateButton)
+	//s.AddHandler(events.OnInteractionCreateSelectMenu)
 
 	s.Identify.Intents = ALL_INTENTS
 

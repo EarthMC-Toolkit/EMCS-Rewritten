@@ -436,7 +436,6 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 			NewEmbedField("Stats", statsStr, true),
 			NewEmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
 			NewEmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),
-			NewEmbedField(fmt.Sprintf("Towns [%d]", stats.NumTowns), townsStr, false),
 		},
 	}
 
@@ -445,6 +444,7 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 		AddField(embed, "Ranks", ranksStr, false)
 	}
 
+	AddField(embed, fmt.Sprintf("Towns [%d]", stats.NumTowns), townsStr, false)
 	AddField(embed, "Founded", dateFounded, true)
 
 	if nation.Wiki != "" {

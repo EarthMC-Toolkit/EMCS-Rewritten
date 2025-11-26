@@ -214,6 +214,25 @@ func (p *InteractionPaginator) startButtonListener() {
 	removeHandler := p.session.AddHandler(btnHandler)
 	go func() {
 		time.Sleep(p.timeout)
+
+		row := p.customNavRow
+		if row == nil {
+			row = p.NewNavigationButtonRow()
+		}
+
+		// Disable all buttons now paginator expired
+		for i, comp := range row.Components {
+			if btn, ok := comp.(discordgo.Button); ok {
+				btn.Disabled = true
+				row.Components[i] = btn
+			}
+		}
+
+		// Edit message with new row of disabled btns
+		_, _ = p.session.InteractionResponseEdit(p.interaction, &discordgo.WebhookEdit{
+			Components: &[]discordgo.MessageComponent{row},
+		})
+
 		removeHandler()
 	}()
 }

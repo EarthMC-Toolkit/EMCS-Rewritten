@@ -31,7 +31,7 @@ func JsonPostRequest[T any](url string, body any) (T, error) {
 
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
-		fmt.Printf("\nfailed to marshal query body into byte arr:\n%v\n", err)
+		fmt.Printf("\nfailed to marshal query body into byte slice:\n%v\n", err)
 	}
 
 	res, err := PostRequest(url, "application/json", bytes.NewBuffer(bodyBytes))
