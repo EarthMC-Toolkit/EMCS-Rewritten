@@ -10,16 +10,22 @@ import (
 	"sync"
 )
 
+// Looks a lil pointless, but this wraps the store's name together with its type
+// so you can't accidentally open the wrong store for a given data type.
+//
+// It also prevents hard-coded strings littering the codebase and hurting maintenance.
 type StoreDefinition[T any] struct {
 	Name string
 }
 
-var SERVER_STORE = StoreDefinition[oapi.ServerInfo]{Name: "server"}
-var TOWNS_STORE = StoreDefinition[oapi.TownInfo]{Name: "towns"}
-var NATIONS_STORE = StoreDefinition[oapi.NationInfo]{Name: "nations"}
-var ENTITIES_STORE = StoreDefinition[oapi.EntityList]{Name: "entities"}
-var ALLIANCES_STORE = StoreDefinition[Alliance]{Name: "alliances"}
-var USAGE_USERS_STORE = StoreDefinition[UserUsage]{Name: "usage-users"}
+var (
+	SERVER_STORE      = StoreDefinition[oapi.ServerInfo]{Name: "server"}
+	TOWNS_STORE       = StoreDefinition[oapi.TownInfo]{Name: "towns"}
+	NATIONS_STORE     = StoreDefinition[oapi.NationInfo]{Name: "nations"}
+	ENTITIES_STORE    = StoreDefinition[oapi.EntityList]{Name: "entities"}
+	ALLIANCES_STORE   = StoreDefinition[Alliance]{Name: "alliances"}
+	USAGE_USERS_STORE = StoreDefinition[UserUsage]{Name: "usage-users"}
+)
 
 var databases = make(map[string]*Database)
 var mu sync.RWMutex // Guards access to databases
@@ -100,27 +106,6 @@ func Get(name string) (*Database, error) {
 	return mdb, nil
 }
 
-// Creates a new store an adds it to the given MapDB stores. Returns an error if the store already exists.
-func AssignStore[T any](db *Database, storeDef StoreDefinition[T]) *store.Store[T] {
-	db.storeMu.Lock()
-	defer db.storeMu.Unlock()
-
-	if s, ok := db.stores[storeDef.Name]; ok {
-		fmt.Printf("\nstore '%s' already defined", storeDef.Name)
-		return s.(*store.Store[T])
-	}
-
-	fpath := filepath.Join(db.dirPath, storeDef.Name+".json")
-	store, err := store.New[T](fpath)
-	if err != nil {
-		fmt.Printf("\nfailed to create store '%s': %v", storeDef.Name, err)
-		return nil
-	}
-
-	db.stores[storeDef.Name] = store
-	return store
-}
-
 // Retrieves the Store for a specific file/db.
 func GetStore[T any](db *Database, storeDef StoreDefinition[T]) (*store.Store[T], error) {
 	db.storeMu.RLock()
@@ -149,4 +134,25 @@ func GetStoreForMap[T any](mapName string, store StoreDefinition[T]) (*store.Sto
 	}
 
 	return GetStore(mdb, store)
+}
+
+// Creates a new store an adds it to the given MapDB stores. Returns an error if the store already exists.
+func AssignStore[T any](db *Database, storeDef StoreDefinition[T]) *store.Store[T] {
+	db.storeMu.Lock()
+	defer db.storeMu.Unlock()
+
+	if s, ok := db.stores[storeDef.Name]; ok {
+		fmt.Printf("\nstore '%s' already defined", storeDef.Name)
+		return s.(*store.Store[T])
+	}
+
+	fpath := filepath.Join(db.dirPath, storeDef.Name+".json")
+	store, err := store.New[T](fpath)
+	if err != nil {
+		fmt.Printf("\nfailed to create store '%s': %v", storeDef.Name, err)
+		return nil
+	}
+
+	db.stores[storeDef.Name] = store
+	return store
 }
