@@ -24,9 +24,19 @@ type UserUsage struct {
 	CommandHistory map[string][]UsageCommandEntry `json:"slash_command_history"` // key = command name
 }
 
-func (u *UserUsage) TotalCommandsExecuted() (total int) {
+// A version of CalculateTotal that does not require an input slice since
+// we can just use the command history length directly.
+func (u UserUsage) TotalCommandsExecuted() (total int) {
 	for _, execs := range u.CommandHistory {
 		total += len(execs)
+	}
+
+	return
+}
+
+func (u UserUsage) CalculateTotal(stats []UsageCommandStat) (total int) {
+	for _, s := range stats {
+		total += s.Count
 	}
 
 	return

@@ -89,13 +89,15 @@ func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 	}
 	mostUsed30DaysStr := strings.Join(mostUsed, "\n")
 
+	totalAllTime := utils.HumanizedSprintf("Total: `%d`", usage.CalculateTotal(statsAllTime))
+	total30Days := utils.HumanizedSprintf("Total: `%d`", usage.CalculateTotal(statsLast30Days))
+
 	embed := &discordgo.MessageEmbed{
 		Title:  fmt.Sprintf("Bot Usage Statistics | `%s`", author.Username),
 		Footer: shared.DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
-			discordutil.NewEmbedField("Total Commands Executed", utils.HumanizedSprintf("`%d`", usage.TotalCommandsExecuted()), false),
-			discordutil.NewEmbedField("Top Commands (All Time)", mostUsedStr, true),
-			discordutil.NewEmbedField("Top Commands (Last 30 Days)", mostUsed30DaysStr, true),
+			discordutil.NewEmbedField("Top Commands (All Time)", totalAllTime+"\n\n"+mostUsedStr, true),
+			discordutil.NewEmbedField("Top Commands (Last 30 Days)", total30Days+"\n\n"+mostUsed30DaysStr, true),
 		},
 		Color: discordutil.WHITE,
 	}
