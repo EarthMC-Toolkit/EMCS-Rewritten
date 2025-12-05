@@ -2,7 +2,7 @@ package mapi
 
 import "emcsrw/utils/requests"
 
-const SETTINGS_URL = "https://map.earthmc.net/tiles/minecraft_overworld/settings.json"
+const SETTINGS_URL = MAP_DOMAIN + "/tiles/minecraft_overworld/settings.json"
 
 type SettingsResponse struct {
 }

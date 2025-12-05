@@ -1,8 +1,11 @@
 package mapi
 
-import "emcsrw/utils/requests"
+import (
+	"emcsrw/utils/requests"
+)
 
-const MARKERS_URL = "https://map.earthmc.net/tiles/minecraft_overworld/markers.json"
+const MAP_DOMAIN = "https://map.earthmc.net"
+const MARKERS_URL = MAP_DOMAIN + "/tiles/minecraft_overworld/markers.json"
 
 type MarkersResponse struct {
 }

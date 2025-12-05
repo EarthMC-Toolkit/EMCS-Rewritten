@@ -6,10 +6,6 @@ import (
 	"emcsrw/shared"
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
-	"strings"
-	"syscall"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -22,7 +18,7 @@ var GUILD_INTENTS = discordgo.IntentGuilds |
 
 var ALL_INTENTS = discordgo.IntentMessageContent | GUILD_INTENTS
 
-func Run(botToken string) {
+func Run(botToken string) (*discordgo.Session, *database.Database) {
 	// Initialize a Discord Session
 	s, err := discordgo.New("Bot " + botToken)
 	if err != nil {
@@ -67,21 +63,5 @@ func Run(botToken string) {
 		log.Fatal("Cannot open Discord session: ", err)
 	}
 
-	//go capi.Serve()
-
-	// Wait for Ctrl+C or kill.
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
-	sig := <-c
-
-	fmt.Printf("\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
-
-	// Since the `defer` keyword only works in successful exits,
-	// closing explicitly here makes sure we always properly cleanup.
-	if err := auroraDB.Flush(); err != nil {
-		log.Printf("error closing DB: %v", err)
-	}
-	if err := s.Close(); err != nil {
-		log.Printf("error closing Discord session: %v", err)
-	}
+	return s, auroraDB
 }

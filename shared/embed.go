@@ -57,7 +57,7 @@ func GetAffiliationLines(players map[string]oapi.PlayerInfo) string {
 }
 
 // Creates a single embed showing info from the given Alliance.
-func NewAllianceEmbed(s *discordgo.Session, a *database.Alliance, allianceStore *store.Store[database.Alliance]) *discordgo.MessageEmbed {
+func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.Alliance], a database.Alliance) *discordgo.MessageEmbed {
 	// Resort to dark blue unless alliance has optional fill colour specified.
 	embedColour := discordutil.DARK_AQUA
 	colours := a.Optional.Colours
@@ -327,7 +327,7 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 			NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by `%s`", foundedTs, town.Founder), false),
 			NewEmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
 			NewEmbedField("Nation", fmt.Sprintf("`%s`%s", nationName, nationJoin), true),
-			NewEmbedField("Location", fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=3)", locX, locY, locZ, locX, locZ), true),
+			NewEmbedField("Location (XYZ)", fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=3)", locX, locY, locZ, locX, locZ), true),
 			NewEmbedField("Stats", fmt.Sprintf(
 				"Size: %s\nBalance: %s\nResidents: %s\nTrusted: %s\nOutlaws: %s",
 				sizeStr, balanceStr, residentsStr, trustedStr, outlawsStr,
@@ -432,7 +432,7 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 		Fields: []*discordgo.MessageEmbedField{
 			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
 			NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
-			NewEmbedField("Location", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", spawn.X, spawn.Z, spawn.X, spawn.Y, spawn.Z), true),
+			NewEmbedField("Location (XZ)", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", spawn.X, spawn.Z, spawn.X, spawn.Y, spawn.Z), true),
 			NewEmbedField("Stats", statsStr, true),
 			NewEmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
 			NewEmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),

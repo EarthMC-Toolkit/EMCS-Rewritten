@@ -180,7 +180,7 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 		return err
 	}
 
-	_, err = discordutil.FollowupEmbeds(s, i, shared.NewAllianceEmbed(s, alliance, allianceStore))
+	_, err = discordutil.FollowupEmbeds(s, i, shared.NewAllianceEmbed(s, allianceStore, *alliance))
 	return err
 }
 
@@ -199,6 +199,9 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 	if err != nil {
 		return err
 	}
+
+	reslist, _ := entitiesStore.GetKey("residentlist")
+	townlesslist, _ := entitiesStore.GetKey("townlesslist")
 
 	alliances := allianceStore.Values()
 
@@ -232,7 +235,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 			}
 
 			leaderStr := "`Unknown/Error`"
-			leaders := item.GetLeaderNames(entitiesStore)
+			leaders := item.GetLeaderNames(reslist, townlesslist)
 			if err != nil {
 				fmt.Printf("%s an error occurred getting leaders for alliance %s:\n%v", time.Now().Format(time.Stamp), item.Identifier, err)
 			} else {
@@ -498,6 +501,9 @@ func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, all
 		return err
 	}
 
+	reslist, _ := entitiesStore.GetKey("residentlist")
+	townlesslist, _ := entitiesStore.GetKey("townlesslist")
+
 	discordPlaceholder := "Enter an invite link or code to the alliance's Discord."
 	if alliance.Optional.DiscordCode != nil {
 		discordPlaceholder = fmt.Sprintf("https://discord.gg/%s", *alliance.Optional.DiscordCode)
@@ -513,7 +519,7 @@ func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, all
 
 	leaderPlaceholder := "Enter the Minecraft IGNs of the alliance leaders, comma-separated."
 	if alliance.Optional.Leaders != nil {
-		leaderNames := alliance.GetLeaderNames(entitiesStore)
+		leaderNames := alliance.GetLeaderNames(reslist, townlesslist)
 		leaderPlaceholder = strings.Join(leaderNames, ", ")
 	}
 
@@ -663,6 +669,8 @@ func handleAllianceEditorModalFunctional(
 	alliance.OwnNations = nationUUIDs
 	alliance.Parent = parent
 
+	alliance.SetUpdated()
+
 	// Update store
 	allianceStore.SetKey(strings.ToLower(ident), *alliance)
 	if !strings.EqualFold(oldIdent, ident) {
@@ -676,7 +684,7 @@ func handleAllianceEditorModalFunctional(
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed := shared.NewAllianceEmbed(s, alliance, allianceStore)
+	embed := shared.NewAllianceEmbed(s, allianceStore, *alliance)
 	content := "Successfully edited alliance:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD
@@ -824,6 +832,8 @@ func handleAllianceEditorModalOptional(
 		alliance.Optional.Colours.Outline = &outlineColour
 	}
 
+	alliance.SetUpdated()
+
 	// Update alliance in store
 	allianceStore.SetKey(strings.ToLower(alliance.Identifier), *alliance)
 
@@ -837,7 +847,7 @@ func handleAllianceEditorModalOptional(
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully edited alliance:",
 		Embeds: []*discordgo.MessageEmbed{
-			shared.NewAllianceEmbed(s, alliance, allianceStore),
+			shared.NewAllianceEmbed(s, allianceStore, *alliance),
 		},
 	})
 
@@ -934,14 +944,18 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	}
 	//#endregion
 
+	id, createdTs := generateAllianceID()
+	cleanLabel := strings.TrimSpace(inputs["label"])
+
 	alliance := database.Alliance{
-		UUID:             generateAllianceID(),
+		UUID:             id,
 		Identifier:       ident,
-		Label:            strings.TrimSpace(inputs["label"]),
+		Label:            cleanLabel,
 		RepresentativeID: &representativeUser.ID,
 		OwnNations:       nationUUIDs,
 		Parent:           parent,
 		Type:             database.AllianceTypePact,
+		UpdatedTimestamp: &createdTs,
 	}
 
 	allianceStore.SetKey(strings.ToLower(ident), alliance)
@@ -953,7 +967,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed := shared.NewAllianceEmbed(s, &alliance, allianceStore)
+	embed := shared.NewAllianceEmbed(s, allianceStore, alliance)
 	content := "Successfully created alliance:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD
@@ -980,10 +994,10 @@ func defaultIfEmpty(value, fallback string) string {
 	return value
 }
 
-func generateAllianceID() uint64 {
-	createdTs := uint64(time.Now().UnixMilli()) // Shouldn't ever be negative after 1970 :P
-	suffix := uint64(rand.Intn(1 << 16))        // Safe to cast to uint since Intn returns 0-n anyway.
-	return (createdTs << 16) | suffix
+func generateAllianceID() (id uint64, createdTs uint64) {
+	createdTs = uint64(time.Now().UnixMilli()) // Shouldn't ever be negative after 1970 :P
+	suffix := uint64(rand.Intn(1 << 16))       // Safe to cast to uint since Intn returns 0-n anyway.
+	return (createdTs << 16) | suffix, createdTs
 }
 
 func validateAllianceImage(rawURL string) (string, error) {

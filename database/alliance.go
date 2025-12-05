@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 )
@@ -93,6 +94,11 @@ func (a Alliance) CreatedTimestamp() uint64 {
 	return a.UUID >> 16
 }
 
+func (a *Alliance) SetUpdated() {
+	now := uint64(time.Now().UnixMilli())
+	a.UpdatedTimestamp = &now
+}
+
 func (a *Alliance) GetOwnNations(nationStore *store.Store[oapi.NationInfo]) []oapi.NationInfo {
 	return nationStore.GetMany(a.OwnNations...)
 }
@@ -171,22 +177,18 @@ func (a Alliance) QueryLeaders() (map[string]oapi.PlayerInfo, error) {
 	}), nil
 }
 
-func (a Alliance) GetLeaderNames(entitiesStore *store.Store[oapi.EntityList]) []string {
-	reslist, _ := entitiesStore.GetKey("residentlist")
-	townlesslist, _ := entitiesStore.GetKey("townlesslist")
-
-	leaderNames := []string{}
+func (a Alliance) GetLeaderNames(reslist, townlesslist *oapi.EntityList) (names []string) {
 	for _, id := range a.Optional.Leaders {
 		if name, ok := (*reslist)[id]; ok {
-			leaderNames = append(leaderNames, name)
+			names = append(names, name)
 			continue
 		}
 		if name, ok := (*townlesslist)[id]; ok {
-			leaderNames = append(leaderNames, name)
+			names = append(names, name)
 		}
 	}
 
-	return leaderNames
+	return
 }
 
 func (a Alliance) GetStats(

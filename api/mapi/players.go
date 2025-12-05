@@ -1,13 +1,20 @@
 package mapi
 
-import "emcsrw/utils/requests"
+import (
+	"emcsrw/utils/requests"
+	"fmt"
+)
 
-const PLAYERS_URL = "https://map.earthmc.net/tiles/players.json"
+const PLAYERS_URL = MAP_DOMAIN + "/tiles/players.json"
 
 type Location struct {
 	X int64 `json:"x"`
 	Y int64 `json:"y"`
 	Z int64 `json:"z"`
+}
+
+func (loc Location) ToMapLink(zoom uint8) string {
+	return fmt.Sprintf("%s?x=%d&z=%d&zoom=%d", MAP_DOMAIN, loc.X, loc.Z, zoom)
 }
 
 type MapPlayer struct {

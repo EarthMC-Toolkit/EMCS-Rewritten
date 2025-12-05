@@ -2,10 +2,10 @@ package oapi
 
 var rnao = [4]byte{'r', 'n', 'a', 'o'}
 
-// Takes a single permission (array) and outputs a string in the RNAO (Resident, Nation, Ally, Outsider) format.
-func encodePerm(arr [4]bool) string {
+// Takes a single permission (slice of bools) and outputs a string in the RNAO (Resident, Nation, Ally, Outsider) format.
+func encodePerm(perm [4]bool) string {
 	b := make([]byte, 4)
-	for i, v := range arr {
+	for i, v := range perm {
 		if v {
 			b[i] = rnao[i]
 		} else {

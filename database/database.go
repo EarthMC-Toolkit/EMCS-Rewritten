@@ -61,6 +61,10 @@ func New(baseDir string, mapName string) (*Database, error) {
 	return db, nil
 }
 
+func (db *Database) Name() string {
+	return filepath.Base(db.dirPath)
+}
+
 // The clean path to the dir of this MapDB which all store files live under.
 func (db *Database) Dir() string {
 	return filepath.Clean(db.dirPath)

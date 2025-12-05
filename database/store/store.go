@@ -105,7 +105,10 @@ func (s *Store[T]) Clear() {
 }
 
 func (s *Store[T]) IsEmpty() bool {
-	return len(s.data) <= 0
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return len(s.data) == 0
 }
 
 // Deletes a value in this store that is associated with the key.
@@ -150,11 +153,10 @@ func (s *Store[T]) HasKey(key string) bool {
 	return ok
 }
 
-func (s *Store[T]) GetMany(keys ...string) []T {
+func (s *Store[T]) GetMany(keys ...string) (results []T) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	results := make([]T, 0, len(keys))
 	for _, key := range keys {
 		if v, ok := s.data[key]; ok {
 			results = append(results, v)
@@ -162,6 +164,19 @@ func (s *Store[T]) GetMany(keys ...string) []T {
 	}
 
 	return results
+}
+
+func (s *Store[T]) FindMany(predicate func(value T) bool) (results []T) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, v := range s.data {
+		if predicate(v) {
+			results = append(results, v)
+		}
+	}
+
+	return
 }
 
 func (s *Store[T]) FindFirst(predicate func(value T) bool) (*T, error) {
@@ -175,20 +190,6 @@ func (s *Store[T]) FindFirst(predicate func(value T) bool) (*T, error) {
 	}
 
 	return nil, fmt.Errorf("no matching value found in store: %s", s.CleanPath())
-}
-
-func (s *Store[T]) FindMany(predicate func(value T) bool) []T {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	var results []T
-	for _, v := range s.data {
-		if predicate(v) {
-			results = append(results, v)
-		}
-	}
-
-	return results
 }
 
 // Overwrite the current store cache state with data from the associated JSON file/database located at path.
