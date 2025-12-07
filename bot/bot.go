@@ -34,6 +34,7 @@ func Run(botToken string) (*discordgo.Session, *database.Database) {
 	s.AddHandler(events.OnInteractionCreateApplicationCommand) // Slash cmds
 	s.AddHandler(events.OnInteractionCreateModalSubmit)
 	s.AddHandler(events.OnInteractionCreateButton)
+	s.AddHandler(events.OnInteractionCreateAutocomplete)
 	//s.AddHandler(events.OnInteractionCreateSelectMenu)
 
 	s.Identify.Intents = ALL_INTENTS

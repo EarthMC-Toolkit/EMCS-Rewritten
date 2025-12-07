@@ -75,6 +75,18 @@ func RequiredStringOption(name, description string, minLen, maxLen int) *discord
 	}
 }
 
+func AutocompleteStringOption(name, description string, minLen, maxLen int, required bool) *discordgo.ApplicationCommandOption {
+	return &discordgo.ApplicationCommandOption{
+		Type:         discordgo.ApplicationCommandOptionString,
+		Name:         name,
+		Description:  description,
+		MinLength:    &minLen,
+		MaxLength:    maxLen,
+		Required:     required,
+		Autocomplete: true,
+	}
+}
+
 func TextInputActionRow(input discordgo.TextInput) discordgo.ActionsRow {
 	return discordgo.ActionsRow{
 		Components: []discordgo.MessageComponent{input},

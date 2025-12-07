@@ -43,6 +43,10 @@ type ButtonHandler interface {
 	HandleButton(s *discordgo.Session, i *discordgo.Interaction, customID string) error
 }
 
+type AutocompleteHandler interface {
+	HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error
+}
+
 func ToApplicationCommand(cmd SlashCommand) *discordgo.ApplicationCommand {
 	return &discordgo.ApplicationCommand{
 		Name:             cmd.Name(),

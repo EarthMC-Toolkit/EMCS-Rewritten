@@ -66,7 +66,7 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 	}
 
 	// Leader field logic
-	leadersValue := "None"
+	leadersValue := "`None`"
 	leaders, err := a.QueryLeaders() // TODO: Do we want to send an OAPI req for leaders every time?
 	if err != nil {
 		fmt.Printf("ERROR | Could not get leaders for alliance %s:\n%v", a.Identifier, err)
@@ -75,11 +75,11 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 	}
 
 	// Representative field logic
-	representativeValue := "None"
+	representativeValue := "`None`"
 	if a.RepresentativeID != nil {
 		u, err := s.User(*a.RepresentativeID)
 		if err == nil {
-			representativeValue = u.String()
+			representativeValue = fmt.Sprintf("`%s`", u.String())
 		}
 	}
 

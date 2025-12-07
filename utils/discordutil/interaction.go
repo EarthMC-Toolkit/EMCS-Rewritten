@@ -6,6 +6,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+const AUTOCOMPLETE_CHOICE_LIMIT = 25
+
 func OpenModal(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) error {
 	return s.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseModal,
@@ -183,4 +185,43 @@ func GetModalInputs(i *discordgo.Interaction) map[string]string {
 	}
 
 	return inputs
+}
+
+func GetFocusedValue[T any](options []*discordgo.ApplicationCommandInteractionDataOption) (v T, ok bool) {
+	for _, opt := range options {
+		if opt.Focused {
+			v, ok = opt.Value.(T)
+			return
+		}
+
+		if len(opt.Options) > 0 {
+			if v, ok = GetFocusedValue[T](opt.Options); ok {
+				return
+			}
+		}
+	}
+
+	return
+}
+
+// Creates a slice of [discordgo.ApplicationCommandOptionChoice] by transforming the given items slice.
+// The Name and Value are acquired from the given format function (where T is the item).
+// This resulting slice is then capped at the max Discord allows to prevent the command from failing.
+//
+// NOTE: Formatting like **bold** or italics won't work in autocomplete so don't use those when formatting Name.
+func CreateAutocompleteChoices[T any, V any](items []T, format func(T) (name string, value V)) []*discordgo.ApplicationCommandOptionChoice {
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(items))
+	for _, item := range items {
+		name, value := format(item)
+		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
+			Name:  name,
+			Value: value,
+		})
+
+		if len(choices) == AUTOCOMPLETE_CHOICE_LIMIT {
+			break
+		}
+	}
+
+	return choices
 }

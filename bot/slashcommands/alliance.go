@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"path"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -43,7 +44,7 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 			Name:        "query",
 			Description: "Query information about an alliance (meganation, organisation or pact).",
 			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
+				discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
 			},
 		},
 		{
@@ -62,7 +63,7 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 			Name:        "disband",
 			Description: "Disband an alliance. This command is for Editors only.",
 			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
+				discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
 			},
 		},
 		{
@@ -75,7 +76,7 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 					Name:        "functional",
 					Description: "Edit alliance fields that are required for basic functionality.",
 					Options: AppCommandOpts{
-						discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
+						discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
 					},
 				},
 				{
@@ -83,7 +84,7 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 					Name:        "optional",
 					Description: "Edit alliance fields that are not tied to its functionality.",
 					Options: AppCommandOpts{
-						discordutil.RequiredStringOption("identifier", "The alliance's identifier/short name.", 3, 16),
+						discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
 					},
 				},
 			},
@@ -119,6 +120,83 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	return nil
+}
+
+// TODO: Getting store and looping through entries every filter/keypress could become costly?
+func (cmd AllianceCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error {
+	cdata := i.ApplicationCommandData()
+	if len(cdata.Options) == 0 {
+		return nil
+	}
+
+	//fmt.Println("Auto complete handler working")
+
+	// top-level sub cmd or group
+	subCmd := cdata.Options[0]
+	switch subCmd.Name {
+	case "edit":
+		fallthrough
+	case "disband":
+		fallthrough
+	case "query":
+		return identifierAutocomplete(s, i, cdata)
+	}
+
+	return nil
+}
+
+func identifierAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
+	focused, ok := discordutil.GetFocusedValue[string](cdata.Options)
+	if !ok {
+		return fmt.Errorf("alliance autocomplete error: focused value could not be cast as string")
+	}
+
+	allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
+	if err != nil {
+		return err
+	}
+
+	var matches []database.Alliance
+	if focused == "" {
+		alliances := allianceStore.Values()
+
+		// Sort alphabetically by Identifier.
+		// TODO: Sort by alliance rank first instead.
+		sort.Slice(alliances, func(i, j int) bool {
+			return strings.ToLower(alliances[i].Identifier) < strings.ToLower(alliances[j].Identifier)
+		})
+
+		matches = alliances
+	} else {
+		keyLower := strings.ToLower(focused)
+		matches = allianceStore.FindMany(func(a database.Alliance) bool {
+			if a.Label != "" && strings.Contains(strings.ToLower(a.Label), keyLower) {
+				return true
+			}
+			if a.Identifier != "" && strings.Contains(strings.ToLower(a.Identifier), keyLower) {
+				return true
+			}
+
+			return false
+		})
+	}
+
+	// truncate to Discord limit
+	if len(matches) > discordutil.AUTOCOMPLETE_CHOICE_LIMIT {
+		limit := min(len(matches), discordutil.AUTOCOMPLETE_CHOICE_LIMIT)
+		matches = matches[:limit]
+	}
+
+	choices := discordutil.CreateAutocompleteChoices(matches, func(a database.Alliance) (string, string) {
+		return fmt.Sprintf("%s | %s (%s)", a.Identifier, a.Label, a.Type.Colloquial()), a.Identifier
+	})
+
+	return s.InteractionRespond(i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+		Data: &discordgo.InteractionResponseData{
+			Choices: choices,
+		},
+	})
 }
 
 func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
@@ -234,15 +312,19 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 				)
 			}
 
-			leaderStr := "`Unknown/Error`"
+			leaderStr := "`None`"
 			leaders := item.GetLeaderNames(reslist, townlesslist)
 			if err != nil {
 				fmt.Printf("%s an error occurred getting leaders for alliance %s:\n%v", time.Now().Format(time.Stamp), item.Identifier, err)
+				leaderStr = "`Unknown/Error`"
 			} else {
-				leaderStr = strings.Join(lo.Map(leaders, func(leader string, _ int) string {
-					return fmt.Sprintf("`%s`", leader)
-				}), ", ")
+				if len(leaders) > 0 {
+					leaderStr = strings.Join(lo.Map(leaders, func(leader string, _ int) string {
+						return fmt.Sprintf("`%s`", leader)
+					}), ", ")
+				}
 			}
+
 			representativeName := "`Unknown/Error`"
 			repUser, err := s.User(*item.RepresentativeID)
 			if err == nil {

@@ -65,3 +65,23 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 		}
 	}
 }
+
+func OnInteractionCreateAutocomplete(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("handler OnInteractionCreateAutocomplete recovered from a panic.\n%v\n%s", err, debug.Stack())
+			discordutil.ReplyWithPanicError(s, i.Interaction, err)
+		}
+	}()
+
+	if i.Type != discordgo.InteractionApplicationCommandAutocomplete {
+		return
+	}
+
+	cmdName := i.ApplicationCommandData().Name
+	if cmd, ok := slashcommands.All()[cmdName]; ok {
+		if autocompleteCmd, ok := cmd.(slashcommands.AutocompleteHandler); ok {
+			_ = autocompleteCmd.HandleAutocomplete(s, i.Interaction)
+		}
+	}
+}
