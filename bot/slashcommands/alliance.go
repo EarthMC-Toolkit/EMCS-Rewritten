@@ -412,7 +412,8 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 				Placeholder: "(Optional) Enter the identifier of this alliance's parent alliance.",
 				Required:    false,
 				MinLength:   3,
-				Style:       discordgo.TextInputParagraph,
+				MaxLength:   16,
+				Style:       discordgo.TextInputShort,
 			}),
 		},
 	})
@@ -570,7 +571,8 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 				Label:       "Parent Alliance",
 				Placeholder: parentPlaceholder,
 				MinLength:   3,
-				Style:       discordgo.TextInputParagraph,
+				MaxLength:   16,
+				Style:       discordgo.TextInputShort,
 			}),
 		},
 	})
