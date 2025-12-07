@@ -109,20 +109,14 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 	embed := &discordgo.MessageEmbed{
 		Color:  embedColour,
 		Footer: DEFAULT_FOOTER,
-		Title:  fmt.Sprintf("Alliance Info | `%s` | `%s`", a.Identifier, a.Label),
+		Title:  fmt.Sprintf("Alliance Info | `%s`", a.Label),
 		Fields: []*discordgo.MessageEmbedField{
-			NewEmbedField("Leader(s)", leadersValue, true),
-			NewEmbedField("Representative", representativeValue, true),
-			NewEmbedField("Type", fmt.Sprintf("`%s`", a.Type.Colloquial()), true),
+			NewEmbedField("Leader(s)", leadersValue, false),
 			NewEmbedField("Stats", stats, true),
 		},
 	}
 
-	if a.Optional.DiscordCode != nil {
-		embed.Title = fmt.Sprintf("Alliance Info | %s | %s", a.Identifier, a.Label)
-		embed.URL = fmt.Sprintf("https://discord.gg/%s", *a.Optional.DiscordCode)
-	}
-
+	var coloursStr = "No colours set."
 	if a.Optional.Colours != nil && a.Optional.Colours.Fill != nil {
 		fill := *a.Optional.Colours.Fill
 
@@ -131,17 +125,20 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 			outline = *a.Optional.Colours.Outline
 		}
 
-		coloursStr := fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", fill, outline)
-		AddField(embed, "Colours", coloursStr, true)
+		coloursStr = fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", fill, outline)
 	}
 
-	AddField(embed, nationsKey, nationsValue, false)
+	AddField(embed, "Colours", coloursStr, true)
+	AddField(embed, "Type", fmt.Sprintf("`%s`", a.Type.Colloquial()), true)
 	AddField(embed, "Founded", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", founded, founded), true)
 
 	if a.UpdatedTimestamp != nil {
 		updatedSec := *a.UpdatedTimestamp / 1000
 		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", updatedSec, updatedSec), true)
 	}
+
+	AddField(embed, nationsKey, nationsValue, false)
+	AddField(embed, "Discord Representative", representativeValue, false)
 
 	flag := a.Optional.ImageURL
 	if flag != nil {
@@ -157,6 +154,11 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 		if err == nil {
 			embed.Description = fmt.Sprintf("*This alliance is a puppet of `%s` / `%s`*.", parentAlliance.Identifier, parentAlliance.Label)
 		}
+	}
+
+	if a.Optional.DiscordCode != nil {
+		embed.Title = fmt.Sprintf("Alliance Info | %s", a.Label)
+		embed.URL = fmt.Sprintf("https://discord.gg/%s", *a.Optional.DiscordCode)
 	}
 
 	return embed
