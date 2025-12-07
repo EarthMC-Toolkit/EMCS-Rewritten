@@ -382,12 +382,12 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 			}),
 			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "label",
-				Label:       "Alliance Name (4-36 chars)",
+				Label:       "Alliance Name (4-64 chars)",
 				Placeholder: "Enter this alliance's full name.",
 				Required:    true,
 				Style:       discordgo.TextInputShort,
 				MinLength:   4,
-				MaxLength:   36,
+				MaxLength:   64,
 			}),
 			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "representative",
@@ -544,11 +544,11 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 			}),
 			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "label",
-				Label:       "Alliance Name (4-36 chars)",
+				Label:       "Alliance Name (4-64 chars)",
 				Placeholder: alliance.Label,
 				Style:       discordgo.TextInputShort,
 				MinLength:   4,
-				MaxLength:   36,
+				MaxLength:   64,
 			}),
 			discordutil.TextInputActionRow(discordgo.TextInput{
 				CustomID:    "representative",
