@@ -118,8 +118,20 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 		},
 	}
 
-	if a.Optional.Colours != nil {
-		coloursStr := fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", *a.Optional.Colours.Fill, *a.Optional.Colours.Outline)
+	if a.Optional.DiscordCode != nil {
+		embed.Title = fmt.Sprintf("Alliance Info | %s | %s", a.Identifier, a.Label)
+		embed.URL = fmt.Sprintf("https://discord.gg/%s", *a.Optional.DiscordCode)
+	}
+
+	if a.Optional.Colours != nil && a.Optional.Colours.Fill != nil {
+		fill := *a.Optional.Colours.Fill
+
+		outline := fill
+		if a.Optional.Colours.Outline != nil {
+			outline = *a.Optional.Colours.Outline
+		}
+
+		coloursStr := fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", fill, outline)
 		AddField(embed, "Colours", coloursStr, true)
 	}
 

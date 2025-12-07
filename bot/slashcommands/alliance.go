@@ -907,12 +907,17 @@ func handleAllianceEditorModalOptional(
 	alliance.Type = database.NewAllianceType(inputs["type"]) // invalid input will default to pact
 	alliance.Optional.DiscordCode = &discordCode
 	alliance.Optional.ImageURL = &image
-	alliance.Optional.Colours = &database.AllianceColours{
-		Fill:    &fillColour,
-		Outline: nil,
-	}
-	if outlineColour != "" {
-		alliance.Optional.Colours.Outline = &outlineColour
+
+	// If both colours are invalid or unspecified, Optional.Colours will remain nil
+	if fillColour != "" || outlineColour != "" {
+		alliance.Optional.Colours = &database.AllianceColours{}
+
+		if fillColour != "" {
+			alliance.Optional.Colours.Fill = &fillColour
+		}
+		if outlineColour != "" {
+			alliance.Optional.Colours.Outline = &outlineColour
+		}
 	}
 
 	alliance.SetUpdated()
