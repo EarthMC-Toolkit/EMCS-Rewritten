@@ -109,14 +109,15 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return listAlliances(s, i.Interaction)
 	}
 
+	if opt = cdata.GetOption("edit"); opt != nil {
+		return editAlliance(s, i.Interaction, cdata)
+	}
+
 	if opt = cdata.GetOption("create"); opt != nil {
 		return createAlliance(s, i.Interaction)
 	}
 	if opt = cdata.GetOption("disband"); opt != nil {
 		return disbandAlliance(s, i.Interaction, cdata)
-	}
-	if opt = cdata.GetOption("edit"); opt != nil {
-		return editAlliance(s, i.Interaction, cdata)
 	}
 
 	return nil
@@ -128,8 +129,6 @@ func (cmd AllianceCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo
 	if len(cdata.Options) == 0 {
 		return nil
 	}
-
-	//fmt.Println("Auto complete handler working")
 
 	// top-level sub cmd or group
 	subCmd := cdata.Options[0]
