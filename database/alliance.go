@@ -162,7 +162,7 @@ func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
 // Returns a map of leaders where key is the leader's UUID and value is their player data.
 func (a Alliance) QueryLeaders() (map[string]oapi.PlayerInfo, error) {
 	if len(a.Optional.Leaders) < 1 {
-		return nil, nil
+		return nil, fmt.Errorf("no leaders exist to query")
 	}
 
 	// I doubt we'll ever have an alliance with more leaders than the player query limit,

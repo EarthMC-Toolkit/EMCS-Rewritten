@@ -127,7 +127,8 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 	AddField(embed, "Founded", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", founded, founded), true)
 
 	if a.UpdatedTimestamp != nil {
-		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", *a.UpdatedTimestamp, *a.UpdatedTimestamp), true)
+		updatedSec := *a.UpdatedTimestamp / 1000
+		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", updatedSec, updatedSec), true)
 	}
 
 	flag := a.Optional.ImageURL

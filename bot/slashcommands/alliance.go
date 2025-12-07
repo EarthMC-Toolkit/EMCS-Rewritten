@@ -685,7 +685,7 @@ func handleAllianceEditorModalFunctional(
 	}
 
 	embed := shared.NewAllianceEmbed(s, allianceStore, *alliance)
-	content := "Successfully edited alliance:"
+	content := "Successfully edited alliance. Result:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD
 		content = fmt.Sprintf(
@@ -845,7 +845,7 @@ func handleAllianceEditorModalOptional(
 	}
 
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
-		Content: "Successfully edited alliance:",
+		Content: "Successfully edited alliance. Result:",
 		Embeds: []*discordgo.MessageEmbed{
 			shared.NewAllianceEmbed(s, allianceStore, *alliance),
 		},
