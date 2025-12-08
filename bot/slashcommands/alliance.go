@@ -293,7 +293,9 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 
 	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
 	perPage := 5
-	paginator := discordutil.NewInteractionPaginator(s, i, allianceCount, perPage)
+	paginator := discordutil.NewInteractionPaginator(s, i, allianceCount, perPage).
+		WithTimeout(6 * time.Minute)
+
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(allianceCount)
 

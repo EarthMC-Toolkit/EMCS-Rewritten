@@ -123,8 +123,8 @@ func (p *InteractionPaginator) WithCustomNavigationRow(row CustomNavigationButto
 	return p
 }
 
-func (p *InteractionPaginator) WithTimeout(timeout time.Duration) *InteractionPaginator {
-	p.timeout = timeout
+func (p *InteractionPaginator) WithTimeout(t time.Duration) *InteractionPaginator {
+	p.timeout = t
 	return p
 }
 
