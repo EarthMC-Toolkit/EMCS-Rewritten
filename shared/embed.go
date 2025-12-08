@@ -98,7 +98,7 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 	nationsKey := fmt.Sprintf("Nations [%d]", nationsLen)
 	nationsValue := fmt.Sprintf("```%s```", strings.Join(nationNames, ", ")) // TODO: ALSO INCLUDE NATIONS FROM CHILD ALLIANCES
 
-	founded := a.CreatedTimestamp() / 1000
+	registered := a.CreatedTimestamp() / 1000
 
 	stats := fmt.Sprintf("Towns: %s\nResidents: %s\nSize: %s",
 		utils.HumanizedSprintf("`%d`", len(towns)),
@@ -130,7 +130,7 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 
 	AddField(embed, "Colours", coloursStr, true)
 	AddField(embed, "Type", fmt.Sprintf("`%s`", a.Type.Colloquial()), true)
-	AddField(embed, "Founded", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", founded, founded), true)
+	AddField(embed, "Registered", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", registered, registered), true)
 
 	if a.UpdatedTimestamp != nil {
 		updatedSec := *a.UpdatedTimestamp / 1000

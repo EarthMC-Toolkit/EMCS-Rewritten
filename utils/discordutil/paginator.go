@@ -151,6 +151,7 @@ func (p *InteractionPaginator) Start() error {
 	return nil
 }
 
+// TODO: Do we even need to store a pointer to data? We could just return data as value from PageFunc
 func (p *InteractionPaginator) getPageData(page int) *discordgo.InteractionResponseData {
 	data, ok := p.cache[page]
 	if !ok {
