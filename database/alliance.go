@@ -143,7 +143,7 @@ func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
 
 	found := make(HashSet, len(leaders))
 	for _, p := range leaders {
-		found[p.Name] = struct{}{}
+		found[strings.ToLower(p.Name)] = struct{}{}
 		leaderUUIDs = append(leaderUUIDs, p.UUID)
 	}
 
@@ -151,7 +151,7 @@ func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
 
 	// Report names of any leader igns that weren't valid. I.e, not found in the query results.
 	for _, ign := range igns {
-		if _, ok := found[ign]; !ok {
+		if _, ok := found[strings.ToLower(ign)]; !ok {
 			invalid = append(invalid, ign)
 		}
 	}
