@@ -6,6 +6,7 @@ import (
 	"emcsrw/utils"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -13,6 +14,16 @@ import (
 )
 
 type HashSet = map[string]struct{}
+
+type RankedAlliance struct {
+	Alliance
+	Score float64
+	Rank  int
+}
+
+type AllianceWeights struct {
+	Residents, Nations, Towns, Wealth float64
+}
 
 type AllianceColours struct {
 	Fill    *string `json:"fill"`
@@ -109,8 +120,8 @@ func (a *Alliance) GetOwnNations(nationStore *store.Store[oapi.NationInfo]) []oa
 func (a Alliance) GetAllNations(nationStore *store.Store[oapi.NationInfo], allianceStore *store.Store[Alliance]) []oapi.NationInfo {
 	allNations := utils.CopySlice(a.OwnNations) // with value receiver, slice is still a reference so a copy is required
 	seen := make(HashSet, len(a.OwnNations))
-	for _, id := range a.OwnNations {
-		seen[id] = struct{}{}
+	for _, uuid := range a.OwnNations {
+		seen[uuid] = struct{}{}
 	}
 
 	childAlliances, count := a.GetChildAlliances(allianceStore)
@@ -198,6 +209,7 @@ func (a Alliance) GetStats(
 	nations []oapi.NationInfo, towns []oapi.Entity,
 	residents, area int, wealth int,
 ) {
+	// TODO: OPTIMIZE THIS WITH PARENT->CHILD MAP INSTEAD OF BUILDING EVERY TIME.
 	nations = a.GetAllNations(nationStore, allianceStore)
 	towns = lo.FlatMap(nations, func(n oapi.NationInfo, _ int) []oapi.Entity {
 		return n.Towns
@@ -233,6 +245,50 @@ func (a Alliance) GetChildAlliances(allianceStore *store.Store[Alliance]) (child
 	}
 
 	return children, len(children)
+}
+
+func GetRankedAlliances(
+	nationStore *store.Store[oapi.NationInfo],
+	allianceStore *store.Store[Alliance],
+	w AllianceWeights,
+) []RankedAlliance {
+	alliances := allianceStore.Values()
+
+	stats := make([]AllianceWeights, len(alliances))
+	for i, a := range alliances {
+		// TODO: Uhh. kinda slow calling this in a loop i'd imagine.
+		// should we get stats every time or store them somewhere?
+		nations, towns, residents, _, wealth := a.GetStats(nationStore, allianceStore)
+		s := AllianceWeights{
+			Residents: float64(residents),
+			Nations:   float64(len(nations)),
+			Towns:     float64(len(towns)),
+			Wealth:    float64(wealth),
+		}
+
+		stats[i] = s
+	}
+
+	ranked := make([]RankedAlliance, len(alliances))
+	for i, a := range alliances {
+		s := stats[i]
+
+		score := s.Residents*w.Residents + s.Nations*w.Nations + s.Towns*w.Towns + s.Wealth*w.Wealth
+		ranked[i] = RankedAlliance{
+			Alliance: a,
+			Score:    score / 4, // Scores could be in the millions, scale down to ensure its readable.
+		}
+	}
+
+	// sort by score and assign rank based on new index
+	sort.Slice(ranked, func(i, j int) bool {
+		return ranked[i].Score > ranked[j].Score
+	})
+	for i := range ranked {
+		ranked[i].Rank = i + 1 // start from 1, where 1 is the best rank.
+	}
+
+	return ranked
 }
 
 // Returns a map of parent alliance UUID → slice of child alliances.
