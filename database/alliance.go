@@ -3,7 +3,6 @@ package database
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/database/store"
-	"emcsrw/utils"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -118,23 +117,28 @@ func (a *Alliance) GetOwnNations(nationStore *store.Store[oapi.NationInfo]) []oa
 //
 // If we know beforehand there are no child alliances, prefer GetOwnNations() instead for better performance.
 func (a Alliance) GetAllNations(nationStore *store.Store[oapi.NationInfo], allianceStore *store.Store[Alliance]) []oapi.NationInfo {
-	allNations := utils.CopySlice(a.OwnNations) // with value receiver, slice is still a reference so a copy is required
+	allNations := make([]string, 0, len(a.OwnNations))
 	seen := make(HashSet, len(a.OwnNations))
-	for _, uuid := range a.OwnNations {
-		seen[uuid] = struct{}{}
-	}
 
-	childAlliances, count := a.GetChildAlliances(allianceStore)
-	if count > 0 {
-		for _, child := range childAlliances {
-			for _, uuid := range child.OwnNations {
-				if _, exists := seen[uuid]; exists {
-					continue
-				}
-
-				seen[uuid] = struct{}{}
-				allNations = append(allNations, uuid)
+	addNations := func(uuids []string) {
+		for _, uuid := range uuids {
+			if _, exists := seen[uuid]; exists {
+				continue
 			}
+
+			seen[uuid] = struct{}{}
+			allNations = append(allNations, uuid)
+		}
+	}
+	addNations(a.OwnNations) // include top-level nations from this alliance ofc.
+
+	// attempt to add all nations from child alliances
+	for _, child := range allianceStore.Values() {
+		if child.Identifier == a.Identifier || child.Parent == nil {
+			continue // skip self and alliance's w no parent
+		}
+		if *child.Parent == a.Identifier {
+			addNations(child.OwnNations)
 		}
 	}
 
@@ -232,20 +236,16 @@ func (a Alliance) GetStats(
 }
 
 // Returns all alliances that are children of this alliance, if any.
-func (a Alliance) GetChildAlliances(allianceStore *store.Store[Alliance]) (children []Alliance, count int) {
-	parentIdent := a.Identifier
-	for _, alliance := range allianceStore.Values() {
-		if alliance.Identifier == parentIdent {
-			continue // skip self
-		}
+// func (a Alliance) GetChildAlliances(allianceStore *store.Store[Alliance]) []Alliance {
+// 	children := allianceStore.FindMany(func(child Alliance) bool {
+// 		self := child.Identifier == a.Identifier
+// 		isParent := child.Parent != nil && *child.Parent == a.Identifier
 
-		if alliance.Parent != nil && *alliance.Parent == parentIdent {
-			children = append(children, alliance)
-		}
-	}
+// 		return !self && isParent
+// 	})
 
-	return children, len(children)
-}
+// 	return children
+// }
 
 func GetRankedAlliances(
 	nationStore *store.Store[oapi.NationInfo],
