@@ -37,7 +37,9 @@ type Alliance struct {
 
 func parseAlliance(a database.Alliance, nationStore *store.Store[oapi.NationInfo], reslist, townlesslist *oapi.EntityList) Alliance {
 	leaderNames := a.GetLeaderNames(reslist, townlesslist)
-	nationNames := lo.Map(a.GetOwnNations(nationStore), func(n oapi.NationInfo, _ int) string {
+
+	ownNations := nationStore.GetMany(a.OwnNations...)
+	nationNames := lo.Map(ownNations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
 	})
 

@@ -88,6 +88,20 @@ func (s *Store[T]) Values() (values []T) {
 	return
 }
 
+func (s *Store[T]) EntriesAndValues() (entries StoreData[T], values []T) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	entries = make(StoreData[T], s.Count())
+	values = make([]T, 0, s.Count())
+	for k, v := range s.data {
+		entries[k] = v
+		values = append(values, v)
+	}
+
+	return
+}
+
 func (s *Store[T]) Overwrite(value StoreData[T]) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -111,6 +125,10 @@ func (s *Store[T]) IsEmpty() bool {
 	return len(s.data) == 0
 }
 
+func (s *Store[T]) Count() int {
+	return len(s.data)
+}
+
 // Deletes a value in this store that is associated with the key.
 //
 // This operation is case-sensitive. If you are storing keys insensitively,
@@ -130,6 +148,14 @@ func (s *Store[T]) SetKey(key string, value T) {
 	s.data[key] = value
 }
 
+func (s *Store[T]) HasKey(key string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	_, ok := s.data[key]
+	return ok
+}
+
 // Retrieves a value from this store that is associated with the key.
 //
 // This operation is case-sensitive. If you are storing keys insensitively,
@@ -143,14 +169,6 @@ func (s *Store[T]) GetKey(key string) (*T, error) {
 	}
 
 	return nil, fmt.Errorf("could not get value for key '%s' from store: %s. no such key exists", key, s.CleanPath())
-}
-
-func (s *Store[T]) HasKey(key string) bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	_, ok := s.data[key]
-	return ok
 }
 
 func (s *Store[T]) GetMany(keys ...string) (results []T) {
@@ -221,6 +239,7 @@ func (s *Store[T]) WriteSnapshot() error {
 	cpy := s.data.shallowCopy()
 	s.mu.RUnlock()
 
+	// using a copy prevents a panic if map is modified when marshal iterates it
 	data, err := json.Marshal(cpy)
 	if err != nil {
 		return err

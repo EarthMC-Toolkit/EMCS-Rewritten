@@ -3,6 +3,7 @@ package database
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/database/store"
+	"emcsrw/utils/sets"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -11,8 +12,6 @@ import (
 
 	"github.com/samber/lo"
 )
-
-type HashSet = map[string]struct{}
 
 type RankedAlliance struct {
 	Alliance
@@ -109,40 +108,29 @@ func (a *Alliance) SetUpdated() {
 	a.UpdatedTimestamp = &now
 }
 
-func (a *Alliance) GetOwnNations(nationStore *store.Store[oapi.NationInfo]) []oapi.NationInfo {
-	return nationStore.GetMany(a.OwnNations...)
+type ChildAlliances []Alliance
+
+func (alliances ChildAlliances) NationIds() (nations []string) {
+	seen := make(sets.StringSet)
+	for _, child := range alliances {
+		seen.AppendSlice(&nations, child.OwnNations)
+	}
+
+	return
 }
 
-// Returns all nations in this alliance and its child alliances.
-//
-// If we know beforehand there are no child alliances, prefer GetOwnNations() instead for better performance.
-func (a Alliance) GetAllNations(nationStore *store.Store[oapi.NationInfo], allianceStore *store.Store[Alliance]) []oapi.NationInfo {
-	allNations := make([]string, 0, len(a.OwnNations))
-	seen := make(HashSet, len(a.OwnNations))
-
-	addNations := func(uuids []string) {
-		for _, uuid := range uuids {
-			if _, exists := seen[uuid]; exists {
-				continue
-			}
-
-			seen[uuid] = struct{}{}
-			allNations = append(allNations, uuid)
-		}
-	}
-	addNations(a.OwnNations) // include top-level nations from this alliance ofc.
-
-	// attempt to add all nations from child alliances
-	for _, child := range allianceStore.Values() {
+// TODO: Precompute a parent → children map once when loading/updating alliances.
+func (a *Alliance) ChildAlliances(alliances []Alliance) (children ChildAlliances) {
+	for _, child := range alliances {
 		if child.Identifier == a.Identifier || child.Parent == nil {
-			continue // skip self and alliance's w no parent
+			continue // skip self and alliances without parent
 		}
 		if *child.Parent == a.Identifier {
-			addNations(child.OwnNations)
+			children = append(children, child)
 		}
 	}
 
-	return nationStore.GetMany(allNations...)
+	return
 }
 
 // Attempts to set the alliance leaders given their IGNs by querying the Official API.
@@ -156,7 +144,7 @@ func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
 
 	leaderUUIDs := make([]string, 0, len(leaders))
 
-	found := make(HashSet, len(leaders))
+	found := make(sets.StringSet, len(leaders))
 	for _, p := range leaders {
 		found[strings.ToLower(p.Name)] = struct{}{}
 		leaderUUIDs = append(leaderUUIDs, p.UUID)
@@ -206,24 +194,23 @@ func (a Alliance) GetLeaderNames(reslist, townlesslist *oapi.EntityList) (names 
 	return
 }
 
-func (a Alliance) GetStats(
-	nationStore *store.Store[oapi.NationInfo],
-	allianceStore *store.Store[Alliance],
-) (
-	nations []oapi.NationInfo, towns []oapi.Entity,
+func (a Alliance) GetStats(ownNations []oapi.NationInfo, childNations []oapi.NationInfo) (
+	towns []oapi.Entity,
 	residents, area int, wealth int,
 ) {
-	// TODO: OPTIMIZE THIS WITH PARENT->CHILD MAP INSTEAD OF BUILDING EVERY TIME.
-	nations = a.GetAllNations(nationStore, allianceStore)
-	towns = lo.FlatMap(nations, func(n oapi.NationInfo, _ int) []oapi.Entity {
-		return n.Towns
-	})
-
 	residents = 0
 	area = 0
-	lo.ForEach(nations, func(n oapi.NationInfo, _ int) {
+
+	lo.ForEach(ownNations, func(n oapi.NationInfo, _ int) {
 		residents += n.Stats.NumResidents
 		area += n.Stats.NumTownBlocks
+		towns = append(towns, n.Towns...)
+	})
+
+	lo.ForEach(childNations, func(n oapi.NationInfo, _ int) {
+		residents += n.Stats.NumResidents
+		area += n.Stats.NumTownBlocks
+		towns = append(towns, n.Towns...)
 	})
 
 	townsCount := len(towns)
@@ -253,12 +240,18 @@ func GetRankedAlliances(
 	w AllianceWeights,
 ) []RankedAlliance {
 	alliances := allianceStore.Values()
+	nations := nationStore.Values()
 
 	stats := make([]AllianceWeights, len(alliances))
 	for i, a := range alliances {
-		// TODO: Uhh. kinda slow calling this in a loop i'd imagine.
-		// should we get stats every time or store them somewhere?
-		nations, towns, residents, _, wealth := a.GetStats(nationStore, allianceStore)
+		// collect own nations
+		ownNations := nationStore.GetMany(a.OwnNations...)
+
+		// collect child nations
+		childNationIDs := a.ChildAlliances(alliances).NationIds()
+		childNations := nationStore.GetMany(childNationIDs...)
+
+		towns, residents, _, wealth := a.GetStats(ownNations, childNations)
 		s := AllianceWeights{
 			Residents: float64(residents),
 			Nations:   float64(len(nations)),

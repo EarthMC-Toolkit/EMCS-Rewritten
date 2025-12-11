@@ -58,6 +58,9 @@ func GetAffiliationLines(players map[string]oapi.PlayerInfo) string {
 
 // Creates a single embed showing info from the given Alliance.
 func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.Alliance], a database.Alliance) *discordgo.MessageEmbed {
+	alliances := allianceStore.Values()
+	childAlliances := a.ChildAlliances(alliances)
+
 	// Resort to dark blue unless alliance has optional fill colour specified.
 	embedColour := discordutil.DARK_AQUA
 	colours := a.Optional.Colours
@@ -85,26 +88,26 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 
 	// Nation field logic
 	nationStore, _ := database.GetStoreForMap(ACTIVE_MAP, database.NATIONS_STORE)
-	nations, towns, residents, area, wealth := a.GetStats(nationStore, allianceStore)
-	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
+
+	ownNations := nationStore.GetMany(a.OwnNations...)
+	ownNationNames := lo.Map(ownNations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
 	})
-
-	nationsLen := len(nationNames)
-	if nationsLen > 0 {
-		slices.Sort(nationNames) // Alphabet sort
+	if len(ownNationNames) > 0 {
+		slices.Sort(ownNationNames) // Alphabet sort
 	}
 
-	nationsKey := fmt.Sprintf("Nations [%d]", nationsLen)
-	nationsValue := fmt.Sprintf("```%s```", strings.Join(nationNames, ", ")) // TODO: ALSO INCLUDE NATIONS FROM CHILD ALLIANCES
+	childNationIds := childAlliances.NationIds()
+	childNations := nationStore.GetMany(childNationIds...)
 
-	registered := a.CreatedTimestamp() / 1000
-
+	towns, residents, area, wealth := a.GetStats(ownNations, childNations)
 	stats := fmt.Sprintf("Towns: %s\nResidents: %s\nSize: %s",
 		utils.HumanizedSprintf("`%d`", len(towns)),
 		utils.HumanizedSprintf("`%d`", residents),
 		utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, EMOJIS.CHUNK, wealth, EMOJIS.GOLD_INGOT),
 	)
+
+	registered := a.CreatedTimestamp() / 1000
 
 	embed := &discordgo.MessageEmbed{
 		Color:  embedColour,
@@ -137,7 +140,33 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", updatedSec, updatedSec), true)
 	}
 
-	AddField(embed, nationsKey, nationsValue, false)
+	ownNationsKey := fmt.Sprintf("Own Nations [%d]", len(ownNations))
+	ownNationsValue := fmt.Sprintf("```%s```", strings.Join(ownNationNames, ", "))
+	AddField(embed, ownNationsKey, ownNationsValue, false)
+
+	if len(childNations) > 0 {
+		childAllianceNames := lo.Map(childAlliances, func(a database.Alliance, _ int) string {
+			return fmt.Sprintf("`%s`", a.Identifier)
+		})
+
+		childNationNames := lo.Map(childNations, func(n oapi.NationInfo, _ int) string {
+			return n.Name
+		})
+		if len(childNationNames) > 0 {
+			slices.Sort(childNationNames) // Alphabet sort
+		}
+
+		childNationsKey := fmt.Sprintf("Puppet Nations [%d]", len(childNations))
+		childNationsValue := fmt.Sprintf(
+			"Condensed list from `%d` puppet alliance(s): %s.```%s```",
+			len(childAlliances),
+			strings.Join(childAllianceNames, ", "),
+			strings.Join(childNationNames, ", "),
+		)
+
+		AddField(embed, childNationsKey, childNationsValue, false)
+	}
+
 	AddField(embed, "Discord Representative", representativeValue, false)
 
 	flag := a.Optional.ImageURL

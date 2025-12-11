@@ -8,6 +8,7 @@ import (
 	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/sets"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -267,6 +268,15 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 		return err
 	}
 
+	allianceCount := allianceStore.Count()
+	if allianceCount == 0 {
+		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: "No alliances seem to exist? Something may have gone wrong with the database or alliance store.",
+		})
+
+		return err
+	}
+
 	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 	if err != nil {
 		return err
@@ -281,15 +291,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 	townlesslist, _ := entitiesStore.GetKey("townlesslist")
 
 	alliances := allianceStore.Values()
-
-	allianceCount := len(alliances)
-	if allianceCount == 0 {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
-			Content: "No alliances seem to exist? Something may have gone wrong with the database or alliance store.",
-		})
-
-		return err
-	}
+	nations := nationStore.Values()
 
 	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
 	perPage := 5
@@ -300,23 +302,23 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 		start, end := paginator.CurrentPageBounds(allianceCount)
 
 		allianceStrings := []string{}
-		for idx, item := range alliances[start:end] {
-			allianceName := item.Identifier
-			if item.Optional.DiscordCode == nil {
-				allianceName += fmt.Sprintf(" / %s", item.Label)
+		for idx, a := range alliances[start:end] {
+			allianceName := a.Identifier
+			if a.Optional.DiscordCode == nil {
+				allianceName += fmt.Sprintf(" / %s", a.Label)
 			} else {
 				allianceName = fmt.Sprintf(
 					"[%s / %s](https://discord.gg/%s)",
-					item.Identifier,
-					item.Label,
-					*item.Optional.DiscordCode,
+					a.Identifier,
+					a.Label,
+					*a.Optional.DiscordCode,
 				)
 			}
 
 			leaderStr := "`None`"
-			leaders := item.GetLeaderNames(reslist, townlesslist)
+			leaders := a.GetLeaderNames(reslist, townlesslist)
 			if err != nil {
-				fmt.Printf("%s an error occurred getting leaders for alliance %s:\n%v", time.Now().Format(time.Stamp), item.Identifier, err)
+				fmt.Printf("%s an error occurred getting leaders for alliance %s:\n%v", time.Now().Format(time.Stamp), a.Identifier, err)
 				leaderStr = "`Unknown/Error`"
 			} else {
 				if len(leaders) > 0 {
@@ -327,15 +329,20 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 			}
 
 			representativeName := "`Unknown/Error`"
-			repUser, err := s.User(*item.RepresentativeID)
+			repUser, err := s.User(*a.RepresentativeID)
 			if err == nil {
 				representativeName = repUser.Username
 			}
 
-			nations, towns, residents, area, wealth := item.GetStats(nationStore, allianceStore)
+			ownNations := nationStore.GetMany(a.OwnNations...)
+
+			childNationIds := a.ChildAlliances(alliances).NationIds()
+			childNations := nationStore.GetMany(childNationIds...)
+
+			towns, residents, area, wealth := a.GetStats(ownNations, childNations)
 			allianceStrings = append(allianceStrings, fmt.Sprintf(
 				"%d. %s (%s)\nLeader(s): %s\nRepresentative: `%s`\nNations: %s\nTowns: %s\nResidents: %s\nSize: %s", start+idx+1,
-				allianceName, item.Type.Colloquial(), leaderStr, representativeName,
+				allianceName, a.Type.Colloquial(), leaderStr, representativeName,
 				utils.HumanizedSprintf("`%d`", len(nations)),
 				utils.HumanizedSprintf("`%d`", len(towns)),
 				utils.HumanizedSprintf("`%d`", residents),
@@ -517,7 +524,7 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordg
 
 func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance) error {
 	nationStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
-	nations := alliance.GetOwnNations(nationStore)
+	nations := nationStore.GetMany(alliance.OwnNations...)
 	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
 	})
@@ -1136,9 +1143,9 @@ func validateAllianceImage(rawURL string) (string, error) {
 }
 
 func validateNations(nationStore *store.Store[oapi.NationInfo], input []string) (valid []oapi.NationInfo, missing []string) {
-	inputNations := make(map[string]struct{}, len(input))
+	inputNations := make(sets.StringSet, len(input))
 	for _, name := range input {
-		inputNations[strings.ToLower(name)] = struct{}{}
+		inputNations[strings.ToLower(name)] = struct{}{} // mark as seen
 	}
 
 	valid = nationStore.FindMany(func(n oapi.NationInfo) bool {
