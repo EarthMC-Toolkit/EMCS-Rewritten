@@ -193,6 +193,58 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 	return embed
 }
 
+// Builds an embed that describes a user with only minimal info.
+//
+// Should be preferred when the user is annoying and has opted-out of the Official API.
+func NewBasicPlayerEmbed(player BasicPlayer) *discordgo.MessageEmbed {
+	townName := lo.Ternary(player.Town == nil, "No Town", player.Town.Name)
+	nationName := lo.TernaryF(player.Town.Nation.Name == nil,
+		func() string { return "No Nation" },
+		func() string { return *player.Town.Nation.Name },
+	)
+
+	affiliation := "None (Townless)"
+	if player.Town == nil {
+		spawn := player.Town.Coordinates.Spawn
+		affiliation = fmt.Sprintf("[%s](https://map.earthmc.net?x=%f&z=%f&zoom=3) (%s)", townName, spawn.X, spawn.Z, nationName)
+	}
+
+	title := fmt.Sprintf("Player Information | `%s`", player.Name)
+	desc := ":warning: Limited data available. This player has chosen to opt out of the EarthMC API, what a *pussy*."
+
+	embed := &discordgo.MessageEmbed{
+		Type:   discordgo.EmbedTypeRich,
+		Color:  discordutil.DARK_PURPLE,
+		Footer: DEFAULT_FOOTER,
+		Thumbnail: &discordgo.MessageEmbedThumbnail{
+			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID),
+		},
+		Title:       title,
+		Description: desc,
+		Fields: []*discordgo.MessageEmbedField{
+			NewEmbedField("Affiliation", affiliation, true),
+		},
+	}
+
+	if player.Town != nil {
+		rank := "Resident"
+		if player.Town.Mayor.Name == player.Name {
+			rank = "Mayor"
+		}
+
+		AddField(embed, "Rank", rank, true)
+	}
+
+	// TODO: Add town ranks using player.Town.Ranks
+
+	AddField(embed, "Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false)
+
+	return embed
+}
+
+// Builds an embed that describes a user using info from the Official API.
+//
+// Should be preferred when the user exists on said API and has not opted-out.
 func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 	registeredTs := player.Timestamps.Registered   // ms
 	lastOnlineTs := player.Timestamps.LastOnline   // ms
@@ -201,8 +253,8 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 	status := "Offline" // Assume they are offline
 	if player.Status.IsOnline {
 		status = "Online"
-	} else {
-		status = lo.Ternary(lastOnlineTs == nil, "Offline", fmt.Sprintf("Offline (Last Online: <t:%d:R>)", *lastOnlineTs/1000))
+	} else if lastOnlineTs != nil {
+		status = fmt.Sprintf("Offline (Last Online: <t:%d:R>)", *lastOnlineTs/1000)
 	}
 
 	playerName := player.Name
@@ -223,8 +275,7 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 
 	affiliation := "None (Townless)"
 	if townName != "No Town" {
-		mdb, _ := database.Get(ACTIVE_MAP)
-		townsStore, _ := database.GetStore(mdb, database.TOWNS_STORE)
+		townsStore, _ := database.GetStoreForMap(ACTIVE_MAP, database.TOWNS_STORE)
 		town, err := townsStore.GetKey(*player.Town.UUID)
 
 		// Should never rly be false bc we established they aren't townless.

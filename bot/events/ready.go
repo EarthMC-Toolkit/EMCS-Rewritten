@@ -230,6 +230,7 @@ func UpdateData(db *database.Database) (
 	return townList, staleTowns, townlessList, residentList, err
 }
 
+// #region Channel notifs
 func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
 	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
 		return t.UUID, t, t.Status.Ruined
@@ -371,6 +372,8 @@ func TrySendLeftJoinedNotif(s *discordgo.Session, towns, staleTowns []oapi.TownI
 		})
 	}
 }
+
+//#endregion
 
 func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.EntityList) (left, joined []string) {
 	// resident -> town mapping for stale/outdated residents

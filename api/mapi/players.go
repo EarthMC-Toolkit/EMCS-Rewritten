@@ -31,7 +31,7 @@ type PlayersResponse struct {
 	Players []MapPlayer `json:"players"`
 }
 
-// TODO: Maybe return map instead. Use UUID as key for faster lookup?
+// TODO: Maybe return map instead, using UUID as key for faster lookup?
 func GetVisiblePlayers() ([]MapPlayer, error) {
 	res, err := requests.JsonGetRequest[PlayersResponse](PLAYERS_URL)
 	if err != nil {

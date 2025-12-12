@@ -122,3 +122,19 @@ func (t TownInfo) GetResidentNames(alphabetical bool) []string {
 
 	return names
 }
+
+// type Resident struct {
+// 	Entity
+// 	Town TownInfo
+// }
+
+// // Returns a an instance of [Resident] if it exists within this town, otherwise nil.
+// func (t TownInfo) GetResidentByName(name string) (res *Resident) {
+// 	parallel.ForEach(t.Residents, func(e Entity, _ int) {
+// 		if name == e.Name {
+// 			res = &Resident{Entity: e, Town: t} // associate the resident with this town
+// 		}
+// 	})
+
+// 	return
+// }
