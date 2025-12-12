@@ -24,16 +24,16 @@ type AllianceOptionals struct {
 
 // type PuppetMap map[string][]string // Key is puppet alliance identifier, value is all it's nation names.
 type Alliance struct {
-	UUID             uint64            `json:"uuid"`             // First 48bits = ms timestamp. Extra 16bits = randomness.
-	Identifier       string            `json:"identifier"`       // Case-insensitive colloquial short name for lookup.
-	Label            string            `json:"label"`            // Full name for display purposes.
-	RepresentativeID *string           `json:"representativeID"` // Discord ID of the user representing this alliance.
-	Parent           *string           `json:"parentAlliance"`   // The Identifier (not UUID) of the parent alliance this alliance is a child of.
-	OwnNations       []string          `json:"ownNations"`       // Names of nations in THIS alliance only.
-	UpdatedTimestamp *uint64           `json:"updatedTimestamp"` // Unix timestamp (ms) denoting the time of the last update made to this alliance.
-	CreatedTimestamp uint64            `json:"createdTimestamp"` // Unix timestamp (ms) denoting the time at which this alliance was created.
-	Optional         AllianceOptionals `json:"optional"`         // Extra properties that are not required for basic alliance functionality.
-	Type             string            `json:"type"`             // Type of alliance. See AllianceType consts.
+	UUID             uint64            `json:"uuid"`                     // First 48bits = ms timestamp. Extra 16bits = randomness.
+	Identifier       string            `json:"identifier"`               // Case-insensitive colloquial short name for lookup.
+	Label            string            `json:"label"`                    // Full name for display purposes.
+	RepresentativeID *string           `json:"representativeID"`         // Discord ID of the user representing this alliance.
+	Parent           *string           `json:"parentAlliance,omitempty"` // The Identifier (not UUID) of the parent alliance this alliance is a child of.
+	OwnNations       []string          `json:"ownNations"`               // Names of nations in THIS alliance only.
+	UpdatedTimestamp *uint64           `json:"updatedTimestamp"`         // Unix timestamp (ms) denoting the time of the last update made to this alliance.
+	CreatedTimestamp uint64            `json:"createdTimestamp"`         // Unix timestamp (ms) denoting the time at which this alliance was created.
+	Optional         AllianceOptionals `json:"optional"`                 // Extra properties that are not required for basic alliance functionality.
+	Type             string            `json:"type"`                     // Type of alliance. See AllianceType consts.
 }
 
 func parseAlliance(a database.Alliance, nationStore *store.Store[oapi.NationInfo], reslist, townlesslist *oapi.EntityList) Alliance {

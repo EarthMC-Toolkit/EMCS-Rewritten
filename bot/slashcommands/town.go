@@ -219,7 +219,7 @@ func executeListTowns(s *discordgo.Session, i *discordgo.Interaction) error {
 				t.Worth(), shared.EMOJIS.GOLD_INGOT,
 			)
 
-			balance := utils.HumanizedSprintf("`%d`", t.Bal())
+			balance := utils.HumanizedSprintf("`%0.f`", t.Bal())
 			residents := utils.HumanizedSprintf("`%d`", len(t.Residents))
 
 			overclaimed := shared.EMOJIS.CIRCLE_CROSS
@@ -235,7 +235,7 @@ func executeListTowns(s *discordgo.Session, i *discordgo.Interaction) error {
 			overclaim := fmt.Sprintf("%s/%s", overclaimed, overclaimShield)
 			townStrings = append(townStrings, fmt.Sprintf(
 				"%d. %s (**%s**)\nMayor: `%s`\nResidents: %s\nBalance: %s\nSize: %s\nOverclaim/Shield: %s",
-				start+idx+1, t.Name, nationName, t.Mayor, residents, balance, size, overclaim,
+				start+idx+1, t.Name, nationName, t.Mayor.Name, residents, balance, size, overclaim,
 			))
 		}
 
