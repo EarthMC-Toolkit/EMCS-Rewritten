@@ -342,14 +342,14 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 			childNationIds := a.ChildAlliances(alliances).NationIds()
 			childNations := nationStore.GetMany(childNationIds...)
 
-			towns, residents, area, wealth := a.GetStats(ownNations, childNations)
+			towns, residents, area, worth := a.GetStats(ownNations, childNations)
 			allianceStrings = append(allianceStrings, fmt.Sprintf(
 				"%d. %s (%s)\nLeader(s): %s\nRepresentative: `%s`\nNations: %s\nTowns: %s\nResidents: %s\nSize: %s", start+idx+1,
 				allianceName, a.Type.Colloquial(), leaderStr, representativeName,
 				utils.HumanizedSprintf("`%d`", len(nations)),
 				utils.HumanizedSprintf("`%d`", len(towns)),
 				utils.HumanizedSprintf("`%d`", residents),
-				utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, wealth, shared.EMOJIS.GOLD_INGOT),
+				utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, worth, shared.EMOJIS.GOLD_INGOT),
 			))
 		}
 

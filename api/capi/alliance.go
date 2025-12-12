@@ -22,13 +22,14 @@ type AllianceOptionals struct {
 	Colours     *AllianceColours `json:"colours"`
 }
 
+// type PuppetMap map[string][]string // Key is puppet alliance identifier, value is all it's nation names.
 type Alliance struct {
 	UUID             uint64            `json:"uuid"`             // First 48bits = ms timestamp. Extra 16bits = randomness.
 	Identifier       string            `json:"identifier"`       // Case-insensitive colloquial short name for lookup.
 	Label            string            `json:"label"`            // Full name for display purposes.
 	RepresentativeID *string           `json:"representativeID"` // Discord ID of the user representing this alliance.
 	Parent           *string           `json:"parentAlliance"`   // The Identifier (not UUID) of the parent alliance this alliance is a child of.
-	OwnNations       []string          `json:"ownNations"`       // UUIDs of nations in THIS alliance only.
+	OwnNations       []string          `json:"ownNations"`       // Names of nations in THIS alliance only.
 	UpdatedTimestamp *uint64           `json:"updatedTimestamp"` // Unix timestamp (ms) denoting the time of the last update made to this alliance.
 	CreatedTimestamp uint64            `json:"createdTimestamp"` // Unix timestamp (ms) denoting the time at which this alliance was created.
 	Optional         AllianceOptionals `json:"optional"`         // Extra properties that are not required for basic alliance functionality.
@@ -39,9 +40,21 @@ func parseAlliance(a database.Alliance, nationStore *store.Store[oapi.NationInfo
 	leaderNames := a.GetLeaderNames(reslist, townlesslist)
 
 	ownNations := nationStore.GetMany(a.OwnNations...)
-	nationNames := lo.Map(ownNations, func(n oapi.NationInfo, _ int) string {
+	ownNationNames := lo.Map(ownNations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
 	})
+
+	// childAlliances := a.ChildAlliances(alliances)
+	// childNations := nationStore.GetMany(childAlliances.NationIds()...)
+	// childNationNames := lo.Map(childNations, func(n oapi.NationInfo, _ int) string {
+	// 	return n.Name
+	// })
+
+	// // Map child alliance identifiers to their nations
+	// puppets := make(PuppetMap)
+	// for _, child := range childAlliances {
+	// 	puppets[child.Identifier] = childNationNames
+	// }
 
 	return Alliance{
 		UUID:             a.UUID,
@@ -49,7 +62,8 @@ func parseAlliance(a database.Alliance, nationStore *store.Store[oapi.NationInfo
 		Label:            a.Label,
 		RepresentativeID: a.RepresentativeID,
 		Parent:           a.Parent,
-		OwnNations:       nationNames,
+		OwnNations:       ownNationNames,
+		// Puppets:          puppets,
 		UpdatedTimestamp: a.UpdatedTimestamp,
 		CreatedTimestamp: a.CreatedTimestamp(),
 		Optional: AllianceOptionals{

@@ -101,6 +101,12 @@ func (t TownInfo) Worth() uint32 {
 	return initialCost + extra*chunkCost
 }
 
+// Unlike Worth(), this func takes everything into account and provides a breakdown
+// of the towns total wealth including bank balances in addition to chunks.
+func (t TownInfo) Wealth() float32 {
+	return float32(t.Worth()) + t.Bal()
+}
+
 func (t TownInfo) OverclaimedString() string {
 	return strconv.FormatBool(t.Status.Overclaimed)
 }

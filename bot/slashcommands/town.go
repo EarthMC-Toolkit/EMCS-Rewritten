@@ -4,6 +4,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"sort"
@@ -49,6 +50,9 @@ func (cmd TownCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCre
 		townNameArg := opt.GetOption("name").StringValue()
 		_, err := executeQueryTown(s, i.Interaction, townNameArg)
 		return err
+	}
+	if opt := cdata.GetOption("list"); opt != nil {
+		return executeListTowns(s, i.Interaction)
 	}
 
 	return nil
@@ -171,4 +175,79 @@ func getTownFromOAPI(townName string) (*oapi.TownInfo, error) {
 
 	t := towns[0]
 	return &t, nil
+}
+
+func executeListTowns(s *discordgo.Session, i *discordgo.Interaction) error {
+	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+	if err != nil {
+		return err
+	}
+
+	townCount := townStore.Count()
+	if townCount == 0 {
+		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: "No towns seem to exist? Something may have gone wrong with the database or town store.",
+		})
+
+		return err
+	}
+
+	towns := townStore.Values()
+
+	// Sort alphabetically by Name.
+	// TODO: Sort by town rank first instead. Also provide option to customise sort.
+	sort.Slice(towns, func(i, j int) bool {
+		return strings.ToLower(towns[i].Name) < strings.ToLower(towns[j].Name)
+	})
+
+	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
+	perPage := 5
+	paginator := discordutil.NewInteractionPaginator(s, i, townCount, perPage)
+
+	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
+		start, end := paginator.CurrentPageBounds(townCount)
+
+		townStrings := []string{}
+		for idx, t := range towns[start:end] {
+			nationName := "No Nation"
+			if t.Status.HasNation {
+				nationName = *t.Nation.Name
+			}
+
+			size := utils.HumanizedSprintf("`%d`/`%d` %s (Worth `%d` %s)",
+				t.Size(), t.MaxSize(), shared.EMOJIS.CHUNK,
+				t.Worth(), shared.EMOJIS.GOLD_INGOT,
+			)
+
+			balance := utils.HumanizedSprintf("`%d`", t.Bal())
+			residents := utils.HumanizedSprintf("`%d`", len(t.Residents))
+
+			overclaimed := shared.EMOJIS.CIRCLE_CROSS
+			if t.Status.Overclaimed {
+				overclaimed = shared.EMOJIS.CIRCLE_CHECK
+			}
+
+			overclaimShield := shared.EMOJIS.SHIELD_RED
+			if t.Status.HasOverclaimShield {
+				overclaimShield = shared.EMOJIS.SHIELD_GREEN
+			}
+
+			overclaim := fmt.Sprintf("%s/%s", overclaimed, overclaimShield)
+			townStrings = append(townStrings, fmt.Sprintf(
+				"%d. %s (**%s**)\nMayor: `%s`\nResidents: %s\nBalance: %s\nSize: %s\nOverclaim/Shield: %s",
+				start+idx+1, t.Name, nationName, t.Mayor, residents, balance, size, overclaim,
+			))
+		}
+
+		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
+		embed := &discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("[%d] List of Towns | %s", townCount, pageStr),
+			Description: strings.Join(townStrings, "\n\n"),
+			Color:       discordutil.DARK_AQUA,
+		}
+
+		data.Embeds = []*discordgo.MessageEmbed{embed}
+	}
+
+	return paginator.Start()
 }
