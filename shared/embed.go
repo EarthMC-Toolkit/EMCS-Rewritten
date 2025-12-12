@@ -357,8 +357,7 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	sizeStr := utils.HumanizedSprintf("`%d`/`%d` %s (Worth: `%d` %s)", town.Size(), town.MaxSize(), EMOJIS.CHUNK, town.Worth(), EMOJIS.GOLD_INGOT)
 	balanceStr := utils.HumanizedSprintf("`%.0f`G %s", town.Bal(), EMOJIS.GOLD_INGOT)
 	residentsStr := utils.HumanizedSprintf("`%d`", town.Stats.NumResidents)
-	outlawsStr := utils.HumanizedSprintf("`%d`", town.Stats.NumOutlaws)
-	trustedStr := utils.HumanizedSprintf("`%d`", town.Stats.NumTrusted)
+	trustedOutlawsStr := utils.HumanizedSprintf("`%d`/`%d`", town.Stats.NumTrusted, town.Stats.NumOutlaws)
 
 	embed := &discordgo.MessageEmbed{
 		Type:        discordgo.EmbedTypeRich,
@@ -373,8 +372,8 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 			NewEmbedField("Nation", fmt.Sprintf("`%s`%s", nationName, nationJoin), true),
 			NewEmbedField("Location (XYZ)", fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=3)", locX, locY, locZ, locX, locZ), true),
 			NewEmbedField("Stats", fmt.Sprintf(
-				"Size: %s\nBalance: %s\nResidents: %s\nTrusted: %s\nOutlaws: %s",
-				sizeStr, balanceStr, residentsStr, trustedStr, outlawsStr,
+				"Size: %s\nBalance: %s\nResidents: %s\nTrusted/Outlaws: %s",
+				sizeStr, balanceStr, residentsStr, trustedOutlawsStr,
 			), true),
 		},
 	}
