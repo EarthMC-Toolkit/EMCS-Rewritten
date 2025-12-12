@@ -232,9 +232,9 @@ func executeListTowns(s *discordgo.Session, i *discordgo.Interaction) error {
 				overclaimShield = shared.EMOJIS.SHIELD_GREEN
 			}
 
-			overclaim := fmt.Sprintf("%s/%s", overclaimed, overclaimShield)
+			overclaim := fmt.Sprintf("%s / %s", overclaimed, overclaimShield)
 			townStrings = append(townStrings, fmt.Sprintf(
-				"%d. %s (**%s**)\nMayor: `%s`\nResidents: %s\nBalance: %s\nSize: %s\nOverclaim/Shield: %s",
+				"%d. %s (**%s**)\nMayor: `%s`\nResidents: %s\nBalance: %s\nSize: %s\nOverclaimed/Has Shield: %s",
 				start+idx+1, t.Name, nationName, t.Mayor.Name, residents, balance, size, overclaim,
 			))
 		}
