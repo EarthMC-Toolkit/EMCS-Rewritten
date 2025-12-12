@@ -139,13 +139,16 @@ func (cmd AllianceCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo
 	case "disband":
 		fallthrough
 	case "query":
-		return identifierAutocomplete(s, i, cdata)
+		return allianceIdentifierAutocomplete(s, i, cdata)
 	}
 
 	return nil
 }
 
-func identifierAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
+func allianceIdentifierAutocomplete(
+	s *discordgo.Session, i *discordgo.Interaction,
+	cdata discordgo.ApplicationCommandInteractionData,
+) error {
 	focused, ok := discordutil.GetFocusedValue[string](cdata.Options)
 	if !ok {
 		return fmt.Errorf("alliance autocomplete error: focused value could not be cast as string")

@@ -6,6 +6,7 @@ import (
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -25,7 +26,7 @@ func (cmd NationCommand) Options() AppCommandOpts {
 			Name:        "query",
 			Description: "Query information about a nation. Similar to /n in-game.",
 			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("name", "The name of the nation to query.", 2, 36),
+				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 36, true),
 			},
 		},
 	}
@@ -45,6 +46,77 @@ func (cmd NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	}
 
 	return nil
+}
+
+func (cmd NationCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error {
+	cdata := i.ApplicationCommandData()
+	if len(cdata.Options) == 0 {
+		return nil
+	}
+
+	// top-level sub cmd or group
+	subCmd := cdata.Options[0]
+	switch subCmd.Name {
+	case "query":
+		return nationNameAutocomplete(s, i, cdata)
+	}
+
+	return nil
+}
+
+func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
+	focused, ok := discordutil.GetFocusedValue[string](cdata.Options)
+	if !ok {
+		return fmt.Errorf("nation autocomplete error: focused value could not be cast as string")
+	}
+
+	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
+	if err != nil {
+		return err
+	}
+
+	var matches []oapi.NationInfo
+	if focused == "" {
+		nations := nationStore.Values()
+
+		// Sort alphabetically by Name.
+		// TODO: Sort by nation rank first instead.
+		sort.Slice(nations, func(i, j int) bool {
+			return strings.ToLower(nations[i].Name) < strings.ToLower(nations[j].Name)
+		})
+
+		matches = nations
+	} else {
+		keyLower := strings.ToLower(focused)
+		matches = nationStore.FindMany(func(n oapi.NationInfo) bool {
+			if n.Name != "" && strings.Contains(strings.ToLower(n.Name), keyLower) {
+				return true
+			}
+			if n.UUID != "" && n.UUID == focused {
+				return true
+			}
+
+			return false
+		})
+	}
+
+	// truncate to Discord limit
+	if len(matches) > discordutil.AUTOCOMPLETE_CHOICE_LIMIT {
+		limit := min(len(matches), discordutil.AUTOCOMPLETE_CHOICE_LIMIT)
+		matches = matches[:limit]
+	}
+
+	choices := discordutil.CreateAutocompleteChoices(matches, func(n oapi.NationInfo) (string, string) {
+		display := fmt.Sprintf("%s (Capital: %s)", n.Name, n.Capital.Name)
+		return display, n.Name
+	})
+
+	return s.InteractionRespond(i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+		Data: &discordgo.InteractionResponseData{
+			Choices: choices,
+		},
+	})
 }
 
 // func (cmd NationCommand) HandleButton(s *discordgo.Session, i *discordgo.Interaction, customID string) error {

@@ -11,7 +11,7 @@ import (
 )
 
 // Req/m for "<mapName>/alliances" endpoint
-const ALLIANCES_RPM = 2
+const ALLIANCES_RPM = 3
 
 func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
