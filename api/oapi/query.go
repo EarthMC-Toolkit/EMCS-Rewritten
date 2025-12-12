@@ -2,6 +2,7 @@ package oapi
 
 import (
 	"emcsrw/utils/requests"
+	"strings"
 	"sync"
 
 	"github.com/samber/lo"
@@ -150,4 +151,32 @@ func QueryConcurrentEntities[T Identifiable](
 	})
 
 	return QueryConcurrent(queryFunc, ids)
+}
+
+func QueryTown(townName string) (*TownInfo, error) {
+	towns, err := QueryTowns(strings.ToLower(townName))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(towns) == 0 {
+		return nil, nil
+	}
+
+	t := towns[0]
+	return &t, nil
+}
+
+func QueryNation(nationName string) (*NationInfo, error) {
+	nations, err := QueryNations(strings.ToLower(nationName))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(nations) == 0 {
+		return nil, nil
+	}
+
+	n := nations[0]
+	return &n, nil
 }

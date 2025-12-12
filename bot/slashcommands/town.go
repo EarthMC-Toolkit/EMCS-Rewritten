@@ -34,7 +34,6 @@ func (cmd TownCommand) Options() AppCommandOpts {
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "list",
 			Description: "Sends a paginator enabling navigation through all existing towns.",
-			Options:     AppCommandOpts{},
 		},
 	}
 }
@@ -141,7 +140,7 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 
 	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
 	if err != nil {
-		town, err = getTownFromOAPI(townName)
+		town, err = oapi.QueryTown(townName)
 		if err != nil {
 			return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("A database error occurred and the API failed during fallback!?```%s```", err))
 		}
@@ -161,20 +160,6 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 
 	embed := shared.NewTownEmbed(*town)
 	return discordutil.FollowupEmbeds(s, i, embed)
-}
-
-func getTownFromOAPI(townName string) (*oapi.TownInfo, error) {
-	towns, err := oapi.QueryTowns(strings.ToLower(townName))
-	if err != nil {
-		return nil, err
-	}
-
-	if len(towns) == 0 {
-		return nil, nil
-	}
-
-	t := towns[0]
-	return &t, nil
 }
 
 func executeListTowns(s *discordgo.Session, i *discordgo.Interaction) error {
@@ -219,7 +204,7 @@ func executeListTowns(s *discordgo.Session, i *discordgo.Interaction) error {
 				t.Worth(), shared.EMOJIS.GOLD_INGOT,
 			)
 
-			balance := utils.HumanizedSprintf("`%0.f`", t.Bal())
+			balance := utils.HumanizedSprintf("`%0.f`G %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
 			residents := utils.HumanizedSprintf("`%d`", len(t.Residents))
 
 			overclaimed := shared.EMOJIS.CIRCLE_CROSS
@@ -243,7 +228,7 @@ func executeListTowns(s *discordgo.Session, i *discordgo.Interaction) error {
 		embed := &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("[%d] List of Towns | %s", townCount, pageStr),
 			Description: strings.Join(townStrings, "\n\n"),
-			Color:       discordutil.DARK_AQUA,
+			Color:       discordutil.GREEN,
 		}
 
 		data.Embeds = []*discordgo.MessageEmbed{embed}

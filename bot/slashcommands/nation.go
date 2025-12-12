@@ -4,6 +4,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"sort"
@@ -29,6 +30,11 @@ func (cmd NationCommand) Options() AppCommandOpts {
 				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 36, true),
 			},
 		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "list",
+			Description: "Sends a paginator enabling navigation through all existing nations.",
+		},
 	}
 }
 
@@ -43,6 +49,9 @@ func (cmd NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		nationNameArg := opt.GetOption("name").StringValue()
 		_, err := executeQueryNation(s, i.Interaction, nationNameArg)
 		return err
+	}
+	if opt := cdata.GetOption("list"); opt != nil {
+		return executeListNations(s, i.Interaction)
 	}
 
 	return nil
@@ -132,7 +141,7 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 
 	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 	if err != nil {
-		nation, err = getNationFromOAPI(nationName)
+		nation, err = oapi.QueryNation(nationName)
 		if err != nil {
 			return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("DB error occurred and the OAPI failed during fallback!?```%s```", err))
 		}
@@ -169,16 +178,62 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 	return discordutil.FollowupEmbeds(s, i, embed)
 }
 
-func getNationFromOAPI(nationName string) (*oapi.NationInfo, error) {
-	nations, err := oapi.QueryNations(strings.ToLower(nationName))
+func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
+	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if len(nations) == 0 {
-		return nil, nil
+	nationCount := nationStore.Count()
+	if nationCount == 0 {
+		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			Content: "No nations seem to exist? Something may have gone wrong with the database or nation store.",
+		})
+
+		return err
 	}
 
-	n := nations[0]
-	return &n, nil
+	nations := nationStore.Values()
+
+	// Sort alphabetically by Name.
+	// TODO: Sort by nation rank first instead. Also provide option to customise sort.
+	sort.Slice(nations, func(i, j int) bool {
+		return strings.ToLower(nations[i].Name) < strings.ToLower(nations[j].Name)
+	})
+
+	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
+	perPage := 5
+	paginator := discordutil.NewInteractionPaginator(s, i, nationCount, perPage)
+
+	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
+		start, end := paginator.CurrentPageBounds(nationCount)
+
+		nationStrings := []string{}
+		for idx, n := range nations[start:end] {
+			balance := utils.HumanizedSprintf("`%0.f`G %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
+			towns := utils.HumanizedSprintf("`%d`", n.Stats.NumTowns)
+			residents := utils.HumanizedSprintf("`%d`", n.Stats.NumResidents)
+
+			size := utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)",
+				n.Size(), shared.EMOJIS.CHUNK,
+				n.Worth(), shared.EMOJIS.GOLD_INGOT,
+			)
+
+			nationStrings = append(nationStrings, fmt.Sprintf(
+				"%d. %s (Capital: %s)\nLeader: `%s`\nTowns: %s\nResidents: %s\nBalance: %s\nSize: %s",
+				start+idx+1, n.Name, n.Capital.Name, n.King.Name, towns, residents, balance, size,
+			))
+		}
+
+		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
+		embed := &discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("[%d] List of Nations | %s", nationCount, pageStr),
+			Description: strings.Join(nationStrings, "\n\n"),
+			Color:       discordutil.AQUA,
+		}
+
+		data.Embeds = []*discordgo.MessageEmbed{embed}
+	}
+
+	return paginator.Start()
 }
