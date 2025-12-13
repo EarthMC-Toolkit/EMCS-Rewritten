@@ -145,21 +145,26 @@ func SetKeyFunc[T any](store *store.Store[T], key string, task func() (T, error)
 	return res, err
 }
 
-func UpdateData(db *database.Database) (
+func UpdateData(mdb *database.Database) (
 	towns map[string]oapi.TownInfo, staleTowns map[string]oapi.TownInfo,
 	townless, residents oapi.EntityList, err error,
 ) {
-	townStore, err := database.GetStore(db, database.TOWNS_STORE)
+	townStore, err := database.GetStore(mdb, database.TOWNS_STORE)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	nationStore, err := database.GetStore(db, database.NATIONS_STORE)
+	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	entityStore, err := database.GetStore(db, database.ENTITIES_STORE)
+	entityStore, err := database.GetStore(mdb, database.ENTITIES_STORE)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -223,6 +228,45 @@ func UpdateData(db *database.Database) (
 		}), nil
 	})
 	//endregion
+
+	// Use pointers so the town struct isn't copied every time.
+	// This should help with mem usage when we use it in building basic player map.
+	playerTownLookup := make(map[string]*oapi.TownInfo, len(residentList))
+	for _, town := range townList {
+		for _, r := range town.Residents {
+			t := town
+			playerTownLookup[r.UUID] = &t
+		}
+	}
+
+	OverwriteFunc(playerStore, func() (map[string]database.BasicPlayer, error) {
+		playersMap := make(map[string]database.BasicPlayer)
+
+		for uuid, name := range townlessList {
+			playersMap[uuid] = database.BasicPlayer{
+				Entity: oapi.Entity{UUID: uuid, Name: name},
+			}
+		}
+
+		for uuid, name := range residentList {
+			bp := database.BasicPlayer{
+				Entity: oapi.Entity{UUID: uuid, Name: name},
+			}
+
+			// Get player town by their UUID. While the town should always exist,
+			// this prevents a potential panic and keeps them townless.
+			if t, ok := playerTownLookup[uuid]; ok {
+				bp.Town = &t.Entity
+				if t.Nation.UUID != nil {
+					bp.Nation = &oapi.Entity{Name: *t.Nation.Name, UUID: *t.Nation.UUID}
+				}
+			}
+
+			playersMap[uuid] = bp
+		}
+
+		return playersMap, nil
+	})
 
 	fmt.Printf("\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
 	fmt.Printf("\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))

@@ -23,6 +23,7 @@ var (
 	TOWNS_STORE       = StoreDefinition[oapi.TownInfo]{Name: "towns"}
 	NATIONS_STORE     = StoreDefinition[oapi.NationInfo]{Name: "nations"}
 	ENTITIES_STORE    = StoreDefinition[oapi.EntityList]{Name: "entities"}
+	PLAYERS_STORE     = StoreDefinition[BasicPlayer]{Name: "players"}
 	ALLIANCES_STORE   = StoreDefinition[Alliance]{Name: "alliances"}
 	USAGE_USERS_STORE = StoreDefinition[UserUsage]{Name: "usage-users"}
 )

@@ -3,6 +3,7 @@ package slashcommands
 import (
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"log"
@@ -67,7 +68,7 @@ func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 			"The next Towny new day occurs in <t:%d:R>.\nExactly %s from now.",
 			sec, formatDuration(secUntilNewDay),
 		),
-		Footer: shared.DEFAULT_FOOTER,
+		Footer: embeds.DEFAULT_FOOTER,
 		Color:  discordutil.DARK_PURPLE,
 	}
 

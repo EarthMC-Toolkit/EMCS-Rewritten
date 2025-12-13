@@ -133,10 +133,11 @@ func (a *Alliance) ChildAlliances(alliances []Alliance) (children ChildAlliances
 	return
 }
 
-// Attempts to set the alliance leaders given their IGNs by querying the Official API.
+// Attempts to set the alliance leaders given their IGNs.
 //
 // The leaders are stored in UUID form if they exist, otherwise the IGN will be added to the `invalid` output slice.
 func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
+	// TODO: Use entity store instead of querying
 	leaders, err := oapi.QueryPlayers(igns...)
 	if err != nil {
 		return nil, err
@@ -162,22 +163,37 @@ func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
 	return
 }
 
-// Returns a map of leaders where key is the leader's UUID and value is their player data.
-func (a Alliance) QueryLeaders() (map[string]oapi.PlayerInfo, error) {
-	if len(a.Optional.Leaders) < 1 {
-		return nil, fmt.Errorf("no leaders exist to query")
+// Returns a map of leaders where key is the leader's UUID and value is their OAPI player data.
+// func (a Alliance) QueryLeaders() (map[string]oapi.PlayerInfo, error) {
+// 	if len(a.Optional.Leaders) < 1 {
+// 		return nil, fmt.Errorf("no leaders exist to query")
+// 	}
+
+// 	// I doubt we'll ever have an alliance with more leaders than the player query limit,
+// 	// so there shouldn't be a need to send more than one request.
+// 	leaders, err := oapi.QueryPlayers(a.Optional.Leaders...)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("error occurred:\n%v", err)
+// 	}
+
+// 	return lo.SliceToMap(leaders, func(p oapi.PlayerInfo) (string, oapi.PlayerInfo) {
+// 		return p.UUID, p
+// 	}), nil
+// }
+
+// Returns a map of leaders where key is the leader's UUID and value is their basic player data.
+func (a Alliance) GetLeaders(playerStore *store.Store[BasicPlayer]) ([]BasicPlayer, error) {
+	leaderCount := len(a.Optional.Leaders)
+	if leaderCount < 1 {
+		return nil, fmt.Errorf("cannot query leaders. none set")
 	}
 
-	// I doubt we'll ever have an alliance with more leaders than the player query limit,
-	// so there shouldn't be a need to send more than one request.
-	leaders, err := oapi.QueryPlayers(a.Optional.Leaders...) // TODO: Should store import oapi?
-	if err != nil {
-		return nil, fmt.Errorf("error occurred:\n%v", err)
+	players := playerStore.GetMany(a.Optional.Leaders...)
+	if len(players) < 1 {
+		return nil, fmt.Errorf("leader(s) are set but do not exist")
 	}
 
-	return lo.SliceToMap(leaders, func(p oapi.PlayerInfo) (string, oapi.PlayerInfo) {
-		return p.UUID, p
-	}), nil
+	return players, nil
 }
 
 func (a Alliance) GetLeaderNames(reslist, townlesslist *oapi.EntityList) (names []string) {

@@ -3,6 +3,7 @@ package slashcommands
 import (
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -46,7 +47,7 @@ func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.Interacti
 			vpTarget-vpRemaining, vpTarget, vpRemaining,
 		),
 		Color:  discordutil.BLURPLE,
-		Footer: shared.DEFAULT_FOOTER,
+		Footer: embeds.DEFAULT_FOOTER,
 	}
 
 	// Should generally respond in 3 seconds. May need to defer in future?

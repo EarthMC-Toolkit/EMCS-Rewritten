@@ -3,6 +3,7 @@ package slashcommands
 import (
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -94,7 +95,7 @@ func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 
 	embed := &discordgo.MessageEmbed{
 		Title:  fmt.Sprintf("Bot Usage Statistics | `%s`", author.Username),
-		Footer: shared.DEFAULT_FOOTER,
+		Footer: embeds.DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
 			discordutil.NewEmbedField("Top Commands (All Time)", totalAllTime+"\n\n"+mostUsedStr, true),
 			discordutil.NewEmbedField("Top Commands (Last 30 Days)", total30Days+"\n\n"+mostUsed30DaysStr, true),

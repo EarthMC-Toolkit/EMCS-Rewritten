@@ -1,9 +1,10 @@
-package shared
+package embeds
 
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/database/store"
+	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -32,45 +33,40 @@ var DEFAULT_FOOTER = &discordgo.MessageEmbedFooter{
 //	`Player1` of Town1 (**Nation1**)
 //	`Player2` of Town2
 //	`Player3` (Townless)
-func GetAffiliationLines(players map[string]oapi.PlayerInfo) string {
-	var str string
-	if players != nil {
-		lines := []string{}
-		for _, p := range players {
-			line := fmt.Sprintf("`%s`", p.Name)
-			if p.Town.Name != nil {
-				line += fmt.Sprintf(" of %s", *p.Town.Name)
-				if p.Nation.Name != nil {
-					line += fmt.Sprintf(" (**%s**)", *p.Nation.Name)
-				}
-			} else {
-				line += " (Townless)"
-			}
-
-			lines = append(lines, line)
-		}
-
-		str = strings.Join(lines, "\n")
+func GetAffiliationLines(players []database.BasicPlayer) string {
+	if players == nil {
+		return ""
 	}
 
-	return str
+	lines := []string{}
+	for _, p := range players {
+		line := fmt.Sprintf("`%s`", p.Name)
+		if p.Town != nil {
+			line += fmt.Sprintf(" of %s", p.Town.Name)
+			if p.Nation != nil {
+				line += fmt.Sprintf(" (**%s**)", p.Nation.Name)
+			}
+		} else {
+			line += " (Townless)"
+		}
+
+		lines = append(lines, line)
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 // Creates a single embed showing info from the given Alliance.
 func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.Alliance], a database.Alliance) *discordgo.MessageEmbed {
-	alliances := allianceStore.Values()
-	childAlliances := a.ChildAlliances(alliances)
-
-	// Resort to dark blue unless alliance has optional fill colour specified.
-	embedColour := discordutil.DARK_AQUA
-	colours := a.Optional.Colours
-	if colours != nil && colours.Fill != nil {
-		embedColour = utils.HexToInt(*colours.Fill)
+	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
+	if err != nil {
+		fmt.Printf("ERROR | Could not get player store for map %s:\n%v", shared.ACTIVE_MAP, err)
+		return nil
 	}
 
 	// Leader field logic
 	leadersValue := "`None`"
-	leaders, err := a.QueryLeaders() // TODO: Do we want to send an OAPI req for leaders every time?
+	leaders, err := a.GetLeaders(playerStore)
 	if err != nil {
 		fmt.Printf("ERROR | Could not get leaders for alliance %s:\n%v", a.Identifier, err)
 	} else {
@@ -87,7 +83,7 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 	}
 
 	// Nation field logic
-	nationStore, _ := database.GetStoreForMap(ACTIVE_MAP, database.NATIONS_STORE)
+	nationStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 
 	ownNations := nationStore.GetMany(a.OwnNations...)
 	ownNationNames := lo.Map(ownNations, func(n oapi.NationInfo, _ int) string {
@@ -97,6 +93,8 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 		slices.Sort(ownNationNames) // Alphabet sort
 	}
 
+	alliances := allianceStore.Values()
+	childAlliances := a.ChildAlliances(alliances)
 	childNationIds := childAlliances.NationIds()
 	childNations := nationStore.GetMany(childNationIds...)
 
@@ -104,10 +102,17 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 	stats := fmt.Sprintf("Towns: %s\nResidents: %s\nSize: %s",
 		utils.HumanizedSprintf("`%d`", len(towns)),
 		utils.HumanizedSprintf("`%d`", residents),
-		utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, EMOJIS.CHUNK, wealth, EMOJIS.GOLD_INGOT),
+		utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, wealth, shared.EMOJIS.GOLD_INGOT),
 	)
 
 	registered := a.CreatedTimestamp() / 1000
+
+	// Resort to dark blue unless alliance has optional fill colour specified.
+	embedColour := discordutil.DARK_AQUA
+	colours := a.Optional.Colours
+	if colours != nil && colours.Fill != nil {
+		embedColour = utils.HexToInt(*colours.Fill)
+	}
 
 	embed := &discordgo.MessageEmbed{
 		Color:  embedColour,
@@ -196,16 +201,19 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 // Builds an embed that describes a user with only minimal info.
 //
 // Should be preferred when the user is annoying and has opted-out of the Official API.
-func NewBasicPlayerEmbed(player BasicPlayer) *discordgo.MessageEmbed {
-	townName := lo.Ternary(player.Town == nil, "No Town", player.Town.Name)
-	nationName := lo.TernaryF(player.Town.Nation.Name == nil,
+func NewBasicPlayerEmbed(player database.BasicPlayer) *discordgo.MessageEmbed {
+	townsStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+	town, _ := townsStore.GetKey(player.Town.UUID)
+
+	townName := lo.Ternary(town == nil, "No Town", town.Name)
+	nationName := lo.TernaryF(town.Nation.Name == nil,
 		func() string { return "No Nation" },
-		func() string { return *player.Town.Nation.Name },
+		func() string { return *town.Nation.Name },
 	)
 
 	affiliation := "None (Townless)"
-	if player.Town == nil {
-		spawn := player.Town.Coordinates.Spawn
+	if town != nil {
+		spawn := town.Coordinates.Spawn
 		affiliation = fmt.Sprintf("[%s](https://map.earthmc.net?x=%f&z=%f&zoom=3) (%s)", townName, spawn.X, spawn.Z, nationName)
 	}
 
@@ -226,9 +234,9 @@ func NewBasicPlayerEmbed(player BasicPlayer) *discordgo.MessageEmbed {
 		},
 	}
 
-	if player.Town != nil {
+	if town != nil {
 		rank := "Resident"
-		if player.Town.Mayor.Name == player.Name {
+		if town.Mayor.Name == player.Name {
 			rank = "Mayor"
 		}
 
@@ -275,7 +283,7 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 
 	affiliation := "None (Townless)"
 	if townName != "No Town" {
-		townsStore, _ := database.GetStoreForMap(ACTIVE_MAP, database.TOWNS_STORE)
+		townsStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
 		town, err := townsStore.GetKey(*player.Town.UUID)
 
 		// Should never rly be false bc we established they aren't townless.
@@ -338,14 +346,14 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 		Fields: []*discordgo.MessageEmbedField{
 			// Affiliation (prepended)
 			// Rank (prepended)
-			NewEmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, EMOJIS.GOLD_INGOT), true),
+			NewEmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, shared.EMOJIS.GOLD_INGOT), true),
 			NewEmbedField("Status", status, true),
 		},
 	}
 
 	if player.About != nil {
 		about := *player.About
-		if about != "" && about != DEFAULT_ABOUT {
+		if about != "" && about != shared.DEFAULT_ABOUT {
 			embed.Description = fmt.Sprintf("*%s*", about)
 		}
 	}
@@ -385,13 +393,13 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	}
 
 	desc := ""
-	if town.Board != DEFAULT_TOWN_BOARD {
+	if town.Board != shared.DEFAULT_TOWN_BOARD {
 		desc = fmt.Sprintf("*%s*", town.Board)
 	}
 
-	overclaimShield := "`Inactive` " + EMOJIS.SHIELD_RED
+	overclaimShield := "`Inactive` " + shared.EMOJIS.SHIELD_RED
 	if town.Status.HasOverclaimShield {
-		overclaimShield = "`Active` " + EMOJIS.SHIELD_GREEN
+		overclaimShield = "`Active` " + shared.EMOJIS.SHIELD_GREEN
 	}
 
 	nationName := "No Nation"
@@ -405,10 +413,14 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	locY := town.Coordinates.Spawn.Y
 	locZ := town.Coordinates.Spawn.Z
 
-	sizeStr := utils.HumanizedSprintf("`%d`/`%d` %s (Worth: `%d` %s)", town.Size(), town.MaxSize(), EMOJIS.CHUNK, town.Worth(), EMOJIS.GOLD_INGOT)
-	balanceStr := utils.HumanizedSprintf("`%.0f`G %s", town.Bal(), EMOJIS.GOLD_INGOT)
+	balanceStr := utils.HumanizedSprintf("`%.0f`G %s", town.Bal(), shared.EMOJIS.GOLD_INGOT)
 	residentsStr := utils.HumanizedSprintf("`%d`", town.Stats.NumResidents)
 	trustedOutlawsStr := utils.HumanizedSprintf("`%d`/`%d`", town.Stats.NumTrusted, town.Stats.NumOutlaws)
+
+	sizeStr := utils.HumanizedSprintf("`%d`/`%d` %s (Worth: `%d` %s)",
+		town.Size(), town.MaxSize(),
+		shared.EMOJIS.CHUNK, town.Worth(), shared.EMOJIS.GOLD_INGOT,
+	)
 
 	embed := &discordgo.MessageEmbed{
 		Type:        discordgo.EmbedTypeRich,
@@ -492,11 +504,14 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 		townsStr = fmt.Sprintf("```%s```", townsStr)
 	}
 
-	sizeStr := utils.HumanizedSprintf("`%d` %s (Worth: `%d` %s)", nation.Size(), EMOJIS.CHUNK, nation.Worth(), EMOJIS.GOLD_INGOT)
 	residentsStr := utils.HumanizedSprintf("`%d`", stats.NumResidents)
-	balanceStr := utils.HumanizedSprintf("`%.0f`G%s  ", stats.Balance, EMOJIS.GOLD_INGOT)
+	balanceStr := utils.HumanizedSprintf("`%.0f`G%s  ", stats.Balance, shared.EMOJIS.GOLD_INGOT)
 	//bonusStr := utils.HumanizedSprintf("`%d`")
 	alliesEnemiesStr := utils.HumanizedSprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies)
+	sizeStr := utils.HumanizedSprintf("`%d` %s (Worth: `%d` %s)",
+		nation.Size(), shared.EMOJIS.CHUNK,
+		nation.Worth(), shared.EMOJIS.GOLD_INGOT,
+	)
 
 	statsStr := fmt.Sprintf(
 		"Size: %s\nBalance: %s\nResidents: %s\nAllies/Enemies: %s",
@@ -524,7 +539,7 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 		Color:       nation.FillColourInt(),
 		Footer:      DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
-			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
+			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, shared.NAMEMC_URL+nation.King.UUID), true),
 			NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
 			NewEmbedField("Location (XZ)", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", spawn.X, spawn.Z, spawn.X, spawn.Y, spawn.Z), true),
 			NewEmbedField("Stats", statsStr, true),
@@ -600,8 +615,8 @@ func NewStaffEmbed() (*discordgo.MessageEmbed, error) {
 
 func BoolToEmoji(v bool) string {
 	if v {
-		return EMOJIS.CIRCLE_CHECK
+		return shared.EMOJIS.CIRCLE_CHECK
 	}
 
-	return EMOJIS.CIRCLE_CROSS
+	return shared.EMOJIS.CIRCLE_CROSS
 }

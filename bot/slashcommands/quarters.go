@@ -4,6 +4,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"sort"
@@ -125,7 +126,7 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 
 		embed := &discordgo.MessageEmbed{
 			Title:  fmt.Sprintf("Quarters For Sale | `%s` | %s", affiliation, pageStr),
-			Footer: shared.DEFAULT_FOOTER,
+			Footer: embeds.DEFAULT_FOOTER,
 			Color:  discordutil.BLURPLE,
 			Fields: []*discordgo.MessageEmbedField{
 				NewEmbedField("Name", fmt.Sprintf("`%s`", q.Name), true),

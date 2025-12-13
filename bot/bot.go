@@ -52,6 +52,7 @@ func Run(botToken string) (*discordgo.Session, *database.Database) {
 	database.AssignStore(auroraDB, database.TOWNS_STORE)
 	database.AssignStore(auroraDB, database.NATIONS_STORE)
 	database.AssignStore(auroraDB, database.ENTITIES_STORE) // Store keys: residentlist, townlesslist
+	database.AssignStore(auroraDB, database.PLAYERS_STORE)
 	database.AssignStore(auroraDB, database.ALLIANCES_STORE)
 	database.AssignStore(auroraDB, database.USAGE_USERS_STORE)
 	//database.AssignStoreToDB[map[string]any](auroraDB, database.USAGE_LEADERBOARD_STORE)

@@ -4,6 +4,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"strings"
@@ -63,24 +64,30 @@ func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerNa
 	}
 
 	if len(players) == 0 {
-		entitiesStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ENTITIES_STORE)
+		mdb, err := database.Get(shared.ACTIVE_MAP)
+		if err != nil {
+			return discordutil.FollowupContent(s, i, "An error occurred getting the database for map: "+shared.ACTIVE_MAP)
+		}
+
+		playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
 		if err != nil {
 			return discordutil.FollowupContent(s, i, "An error occurred retrieving player information :(")
 		}
 
-		reslist, _ := entitiesStore.GetKey("residentlist")
-		townlesslist, _ := entitiesStore.GetKey("townlesslist")
-
 		// check if they opted out (massive pussy) or actually don't exist.
-		p := shared.GetBasicPlayer(playerName, *reslist, *townlesslist)
-		if p == nil {
-			return discordutil.FollowupContent(s, i, fmt.Sprintf("No players retrieved. Player `%s` does not seem to exist.", playerName))
+		p, err := playerStore.FindFirst(func(p database.BasicPlayer) bool {
+			return strings.EqualFold(p.Name, playerName)
+		})
+		if err != nil {
+			return discordutil.FollowupContent(s, i,
+				fmt.Sprintf("No players retrieved. Player `%s` does not seem to exist.", playerName),
+			)
 		}
 
-		embed := shared.NewBasicPlayerEmbed(*p)
+		embed := embeds.NewBasicPlayerEmbed(*p)
 		return discordutil.FollowupEmbeds(s, i, embed)
 	}
 
-	embed := shared.NewPlayerEmbed(players[0])
+	embed := embeds.NewPlayerEmbed(players[0])
 	return discordutil.FollowupEmbeds(s, i, embed)
 }

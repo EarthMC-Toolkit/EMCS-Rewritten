@@ -2,7 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/api/mapi"
-	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"time"
@@ -60,7 +60,7 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 		embed := &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("List of Visible Players [%d]", count),
-			Footer:      shared.DEFAULT_FOOTER,
+			Footer:      embeds.DEFAULT_FOOTER,
 			Description: desc + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages()),
 		}
 

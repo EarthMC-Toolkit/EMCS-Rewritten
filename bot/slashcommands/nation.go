@@ -4,6 +4,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -174,7 +175,7 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 	// 	Components: []discordgo.MessageComponent{row},
 	// })
 
-	embed := shared.NewNationEmbed(*nation)
+	embed := embeds.NewNationEmbed(*nation)
 	return discordutil.FollowupEmbeds(s, i, embed)
 }
 

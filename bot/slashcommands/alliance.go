@@ -6,6 +6,7 @@ import (
 	"emcsrw/database"
 	"emcsrw/database/store"
 	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/sets"
@@ -56,21 +57,44 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "create",
-			Description: "Create an alliance. This command is for Editors only.",
+			Description: "Create an alliance. EDITORS ONLY",
 		},
 		{
 			// TODO: Maybe turn into modal with text inputs "Identifier" and "Disband Reason".
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "disband",
-			Description: "Disband an alliance. This command is for Editors only.",
+			Description: "Disband an alliance. EDITORS ONLY",
 			Options: AppCommandOpts{
 				discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
 			},
 		},
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
+			Name:        "update",
+			Description: "Add/remove info to/from an alliance. EDITORS ONLY",
+			Options: AppCommandOpts{
+				{
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Name:        "nations",
+					Description: "Add or remove nations from an alliance.",
+					Options: AppCommandOpts{
+						discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
+					},
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Name:        "leaders",
+					Description: "Add or remove leaders from an alliance.",
+					Options: AppCommandOpts{
+						discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
+					},
+				},
+			},
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
 			Name:        "edit",
-			Description: "Edit alliance info. This command is for Editors only.",
+			Description: "Bulk overwrite info of an alliance. EDITORS ONLY",
 			Options: AppCommandOpts{
 				{
 					Type:        discordgo.ApplicationCommandOptionSubCommand,
@@ -110,8 +134,11 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return listAlliances(s, i.Interaction)
 	}
 
+	if opt = cdata.GetOption("update"); opt != nil {
+		return editAlliance(s, i.Interaction, opt)
+	}
 	if opt = cdata.GetOption("edit"); opt != nil {
-		return editAlliance(s, i.Interaction, cdata)
+		return editAlliance(s, i.Interaction, opt)
 	}
 
 	if opt = cdata.GetOption("create"); opt != nil {
@@ -140,6 +167,66 @@ func (cmd AllianceCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo
 		fallthrough
 	case "query":
 		return allianceIdentifierAutocomplete(s, i, cdata)
+	}
+
+	return nil
+}
+
+func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
+	if customID == "alliance_creator" {
+		err := handleAllianceCreatorModal(s, i)
+		if err != nil {
+			discordutil.ReplyWithError(s, i, err)
+			return err
+		}
+	}
+
+	if strings.HasPrefix(customID, "alliance_editor") {
+		allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
+		if err != nil {
+			return err
+		}
+
+		ident := strings.Split(customID, "@")[1]
+		alliance, err := allianceStore.GetKey(strings.ToLower(ident))
+		if err != nil {
+			//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
+
+			discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
+			return err
+		}
+
+		if strings.HasPrefix(customID, "alliance_editor_functional") {
+			err := handleAllianceEditorModalFunctional(s, i, alliance, allianceStore)
+			if err != nil {
+				discordutil.ReplyWithError(s, i, err)
+				return err
+			}
+		}
+
+		if strings.Contains(customID, "alliance_editor_optional") {
+			err := handleAllianceEditorModalOptional(s, i, alliance, allianceStore)
+			if err != nil {
+				discordutil.ReplyWithError(s, i, err)
+				return err
+			}
+		}
+
+		if strings.HasPrefix(customID, "alliance_editor_nations") {
+			err := handleAllianceEditorModalNationsUpdate(s, i, alliance, allianceStore)
+			if err != nil {
+				discordutil.ReplyWithError(s, i, err)
+				return err
+			}
+		}
+
+		if strings.Contains(customID, "alliance_editor_leaders") {
+			err := handleAllianceEditorModalLeadersUpdate(s, i, alliance, allianceStore)
+			if err != nil {
+				discordutil.ReplyWithError(s, i, err)
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -202,50 +289,6 @@ func allianceIdentifierAutocomplete(
 	})
 }
 
-func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
-	if customID == "alliance_creator" {
-		err := handleAllianceCreatorModal(s, i)
-		if err != nil {
-			discordutil.ReplyWithError(s, i, err)
-			return err
-		}
-	}
-
-	if strings.HasPrefix(customID, "alliance_editor") {
-		allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
-		if err != nil {
-			return err
-		}
-
-		ident := strings.Split(customID, "@")[1]
-		alliance, err := allianceStore.GetKey(strings.ToLower(ident))
-		if err != nil {
-			//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
-
-			discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
-			return err
-		}
-
-		if strings.HasPrefix(customID, "alliance_editor_functional") {
-			err := handleAllianceEditorModalFunctional(s, i, alliance, allianceStore)
-			if err != nil {
-				discordutil.ReplyWithError(s, i, err)
-				return err
-			}
-		}
-
-		if strings.Contains(customID, "alliance_editor_optional") {
-			err := handleAllianceEditorModalOptional(s, i, alliance, allianceStore)
-			if err != nil {
-				discordutil.ReplyWithError(s, i, err)
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
 func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
 	allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
 	if err != nil {
@@ -261,12 +304,17 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 		return err
 	}
 
-	_, err = discordutil.FollowupEmbeds(s, i, shared.NewAllianceEmbed(s, allianceStore, *alliance))
+	_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, allianceStore, *alliance))
 	return err
 }
 
 func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
-	allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
+	mdb, err := database.Get(shared.ACTIVE_MAP)
+	if err != nil {
+		return err
+	}
+
+	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
 	if err != nil {
 		return err
 	}
@@ -280,12 +328,12 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 		return err
 	}
 
-	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
+	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
 	if err != nil {
 		return err
 	}
 
-	entitiesStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ENTITIES_STORE)
+	entitiesStore, err := database.GetStore(mdb, database.ENTITIES_STORE)
 	if err != nil {
 		return err
 	}
@@ -481,7 +529,7 @@ func disbandAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata disco
 	return err
 }
 
-func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
+func editAlliance(s *discordgo.Session, i *discordgo.Interaction, opt *discordgo.ApplicationCommandInteractionDataOption) error {
 	isEditor, _ := discordutil.HasRole(i.Member, EDITOR_ROLE)
 	if !isEditor && !discordutil.IsDev(i) {
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
@@ -497,16 +545,27 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordg
 		return err
 	}
 
-	opt := cdata.GetOption("edit")
-	functional := opt.GetOption("functional")
-	optional := opt.GetOption("optional")
-	if functional != nil {
-		opt = functional
-	} else {
-		opt = optional
+	// get the sub cmd currently being used
+	// TODO: Replace this bollocks with a func that searches for active subcmd.
+	subCmd := opt
+	if opt.Name == "edit" {
+		functional := opt.GetOption("functional")
+		if functional != nil {
+			subCmd = functional
+		} else {
+			subCmd = opt.GetOption("optional")
+		}
+	}
+	if opt.Name == "update" {
+		nations := opt.GetOption("nations")
+		if nations != nil {
+			subCmd = nations
+		} else {
+			subCmd = opt.GetOption("leaders")
+		}
 	}
 
-	ident := opt.GetOption("identifier").StringValue()
+	ident := subCmd.GetOption("identifier").StringValue()
 	alliance, err := allianceStore.GetKey(strings.ToLower(ident))
 	if err != nil {
 		//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
@@ -518,11 +577,79 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordg
 		return err
 	}
 
-	if functional != nil {
+	switch subCmd.Name {
+	case "functional":
 		return openEditorModalFunctional(s, i, alliance)
+	case "optional":
+		return openEditorModalOptional(s, i, alliance)
+	case "nations":
+		return openEditorModalNationsUpdate(s, i, alliance)
+	case "leaders":
+		return openEditorModalLeadersUpdate(s, i, alliance)
 	}
 
-	return openEditorModalOptional(s, i, alliance)
+	return fmt.Errorf("no valid option found for editAlliance")
+}
+
+func openEditorModalNationsUpdate(s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance) error {
+	return discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
+		CustomID: "alliance_editor_nations@" + alliance.Identifier,
+		Title:    "Alliance Editor - Nations Field",
+		Components: []discordgo.MessageComponent{
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "add",
+				Label:       "Nations to Add (comma-seperated)",
+				Placeholder: "Enter list of nation names...",
+				Style:       discordgo.TextInputParagraph,
+				MinLength:   2,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "remove",
+				Label:       "Nations to Remove (comma-seperated)",
+				Placeholder: "Enter list of nation names...",
+				Style:       discordgo.TextInputParagraph,
+				MinLength:   2,
+			}),
+		},
+	})
+}
+
+func openEditorModalLeadersUpdate(s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance) error {
+	return discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
+		CustomID: "alliance_editor_leaders@" + alliance.Identifier,
+		Title:    "Alliance Editor - Leaders Field",
+		Components: []discordgo.MessageComponent{
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "add",
+				Label:       "Leaders to Add (comma-seperated)",
+				Placeholder: "Enter list of IGNs...",
+				Style:       discordgo.TextInputParagraph,
+				MinLength:   3,
+			}),
+			discordutil.TextInputActionRow(discordgo.TextInput{
+				CustomID:    "remove",
+				Label:       "Leaders to Remove (comma-seperated)",
+				Placeholder: "Enter list of IGNs...",
+				Style:       discordgo.TextInputParagraph,
+				MinLength:   3,
+			}),
+		},
+	})
+}
+
+// TODO: Implement these
+func handleAllianceEditorModalLeadersUpdate(
+	s *discordgo.Session, i *discordgo.Interaction,
+	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
+) error {
+	return nil
+}
+
+func handleAllianceEditorModalNationsUpdate(
+	s *discordgo.Session, i *discordgo.Interaction,
+	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
+) error {
+	return nil
 }
 
 func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance) error {
@@ -779,7 +906,7 @@ func handleAllianceEditorModalFunctional(
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed := shared.NewAllianceEmbed(s, allianceStore, *alliance)
+	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance)
 	content := "Successfully edited alliance. Result:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD
@@ -953,7 +1080,7 @@ func handleAllianceEditorModalOptional(
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully edited alliance. Result:",
 		Embeds: []*discordgo.MessageEmbed{
-			shared.NewAllianceEmbed(s, allianceStore, *alliance),
+			embeds.NewAllianceEmbed(s, allianceStore, *alliance),
 		},
 	})
 
@@ -1074,7 +1201,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed := shared.NewAllianceEmbed(s, allianceStore, alliance)
+	embed := embeds.NewAllianceEmbed(s, allianceStore, alliance)
 	content := "Successfully created alliance:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD

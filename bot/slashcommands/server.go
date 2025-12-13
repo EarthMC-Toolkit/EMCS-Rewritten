@@ -4,6 +4,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -209,7 +210,7 @@ func executeServerInfo(s *discordgo.Session, i *discordgo.Interaction) (*discord
 		Title:  "Server Info",
 		Fields: []*discordgo.MessageEmbedField{timestampsField, vpField, statsField},
 		Color:  discordutil.BLURPLE,
-		Footer: shared.DEFAULT_FOOTER,
+		Footer: embeds.DEFAULT_FOOTER,
 	}
 
 	return discordutil.FollowupEmbeds(s, i, embed)
@@ -273,7 +274,7 @@ func executeServerPlayerStats(s *discordgo.Session, i *discordgo.Interaction, so
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
 		embed := &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("All-Time Player Statistics | %s", pageStr),
-			Footer:      shared.DEFAULT_FOOTER,
+			Footer:      embeds.DEFAULT_FOOTER,
 			Description: fmt.Sprintf("```%s```", desc),
 			Color:       discordutil.DARK_GOLD,
 		}

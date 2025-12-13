@@ -4,6 +4,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -158,7 +159,7 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 		return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Town `%s` does not seem to exist.", townName))
 	}
 
-	embed := shared.NewTownEmbed(*town)
+	embed := embeds.NewTownEmbed(*town)
 	return discordutil.FollowupEmbeds(s, i, embed)
 }
 

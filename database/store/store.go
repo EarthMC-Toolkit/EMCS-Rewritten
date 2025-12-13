@@ -171,6 +171,19 @@ func (s *Store[T]) GetKey(key string) (*T, error) {
 	return nil, fmt.Errorf("could not get value for key '%s' from store: %s. no such key exists", key, s.CleanPath())
 }
 
+func (s *Store[T]) GetKeyFunc(predicate func(key StoreKey) bool) (*T, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for k, v := range s.data {
+		if predicate(k) {
+			return &v, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no matching key found in store: %s", s.CleanPath())
+}
+
 func (s *Store[T]) GetMany(keys ...string) (results []T) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

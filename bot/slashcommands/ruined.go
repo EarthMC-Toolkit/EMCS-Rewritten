@@ -4,6 +4,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
@@ -89,7 +90,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
 		embed := &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("[%d] List of Ruined Towns | %s", count, pageStr),
-			Footer:      shared.DEFAULT_FOOTER,
+			Footer:      embeds.DEFAULT_FOOTER,
 			Description: desc,
 			Color:       discordutil.DARK_GOLD,
 		}
