@@ -102,6 +102,7 @@ func init() {
 	Register(TownCommand{})
 	Register(NationCommand{})
 	Register(PlayerCommand{})
+	Register(ResidentCommand{})
 	Register(VisibleCommand{})
 	Register(OnlineCommand{})
 	Register(RuinedCommand{})
