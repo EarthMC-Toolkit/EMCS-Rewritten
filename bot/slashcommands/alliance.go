@@ -161,6 +161,7 @@ func (cmd AllianceCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo
 	// top-level sub cmd or group
 	subCmd := cdata.Options[0]
 	switch subCmd.Name {
+	case "update":
 	case "edit":
 		fallthrough
 	case "disband":

@@ -238,18 +238,6 @@ func (a Alliance) GetStats(ownNations []oapi.NationInfo, childNations []oapi.Nat
 	return
 }
 
-// Returns all alliances that are children of this alliance, if any.
-// func (a Alliance) GetChildAlliances(allianceStore *store.Store[Alliance]) []Alliance {
-// 	children := allianceStore.FindMany(func(child Alliance) bool {
-// 		self := child.Identifier == a.Identifier
-// 		isParent := child.Parent != nil && *child.Parent == a.Identifier
-
-// 		return !self && isParent
-// 	})
-
-// 	return children
-// }
-
 func GetRankedAlliances(
 	nationStore *store.Store[oapi.NationInfo],
 	allianceStore *store.Store[Alliance],
@@ -299,36 +287,3 @@ func GetRankedAlliances(
 
 	return ranked
 }
-
-// Returns a map of parent alliance UUID → slice of child alliances.
-// For correct results, parameter `alliances` should be a map of all known alliances.
-// func BuildChildAlliancesMap(alliances []Alliance) map[string][]Alliance {
-// 	children := make(map[string][]Alliance)
-// 	mu := sync.Mutex{}
-
-// 	parallel.ForEach(alliances, func(a Alliance, _ int) {
-// 		if a.Parent == nil {
-// 			return
-// 		}
-
-// 		mu.Lock()
-// 		children[*a.Parent] = append(children[*a.Parent], a)
-// 		mu.Unlock()
-// 	})
-
-// 	return children
-// }
-
-// A non-parallel version of BuildChildAlliancesMap in case the parallel one has issues.
-// func BuildChildAlliancesMap(alliances map[string]Alliance) map[string][]*Alliance {
-// 	children := make(map[string][]*Alliance)
-// 	for _, a := range alliances {
-// 		if a.Parent == nil {
-// 			continue
-// 		}
-
-// 		children[*a.Parent] = append(children[*a.Parent], &a)
-// 	}
-
-// 	return children
-// }
