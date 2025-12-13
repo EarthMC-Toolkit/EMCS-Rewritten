@@ -21,9 +21,13 @@ func (s StringSet) Keys() (keys []string) {
 // This is useful when an intermediate set is required to deduplicate X slice while adding elements from Y slice.
 func (set StringSet) AppendSlice(dst *[]string, values []string) {
 	for _, v := range values {
-		if _, ok := set[v]; !ok {
-			set[v] = struct{}{}
-			*dst = append(*dst, v)
-		}
+		set.AppendIfUnseen(dst, v)
+	}
+}
+
+func (set StringSet) AppendIfUnseen(dst *[]string, v string) {
+	if _, ok := set[v]; !ok {
+		set[v] = struct{}{}
+		*dst = append(*dst, v)
 	}
 }

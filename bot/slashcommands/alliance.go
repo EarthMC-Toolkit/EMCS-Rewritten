@@ -13,7 +13,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
 	"math/rand"
 	"net/url"
 	"path"
@@ -21,6 +20,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
@@ -162,6 +162,7 @@ func (cmd AllianceCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo
 	subCmd := cdata.Options[0]
 	switch subCmd.Name {
 	case "update":
+		fallthrough
 	case "edit":
 		fallthrough
 	case "disband":
@@ -638,7 +639,7 @@ func openEditorModalLeadersUpdate(s *discordgo.Session, i *discordgo.Interaction
 	})
 }
 
-// TODO: Implement these
+// TODO: Implement this
 func handleAllianceEditorModalLeadersUpdate(
 	s *discordgo.Session, i *discordgo.Interaction,
 	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
@@ -650,6 +651,95 @@ func handleAllianceEditorModalNationsUpdate(
 	s *discordgo.Session, i *discordgo.Interaction,
 	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
 ) error {
+	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
+	if err != nil {
+		return err
+	}
+
+	// start with a set of existing UUIDs for easier add/remove
+	nationUUIDs := sets.StringSet{}
+	for _, uuid := range alliance.OwnNations {
+		nationUUIDs[uuid] = struct{}{}
+	}
+
+	// build name -> NationInfo map for O(1) lookups
+	nationByName := make(map[string]oapi.NationInfo)
+	for _, n := range nationStore.Entries() {
+		nationByName[strings.ToLower(n.Name)] = n
+	}
+
+	var notAdded, notRemoved []string
+	var inputs = discordutil.GetModalInputs(i)
+
+	if strings.TrimSpace(inputs["remove"]) != "" {
+		removeNames, _ := parseNations(inputs["remove"])
+		for _, name := range removeNames {
+			// i don't think this lookup is required since we want to
+			// remove the input nations that don't exist in the store anyway?
+			n, ok := nationByName[strings.ToLower(name)]
+			if !ok {
+				notRemoved = append(notRemoved, name)
+				continue
+			}
+
+			if _, exists := nationUUIDs[n.UUID]; exists {
+				delete(nationUUIDs, n.UUID)
+			} else {
+				notRemoved = append(notRemoved, name)
+			}
+		}
+	}
+	if strings.TrimSpace(inputs["add"]) != "" {
+		addNames, _ := parseNations(inputs["add"])
+		for _, name := range addNames {
+			n, ok := nationByName[strings.ToLower(name)]
+			if !ok {
+				notAdded = append(notAdded, name)
+				continue
+			}
+
+			nationUUIDs[n.UUID] = struct{}{}
+		}
+	}
+
+	// Update alliance with new nation list
+	alliance.OwnNations = nationUUIDs.Keys()
+	alliance.SetUpdated()
+
+	// Persist changes
+	allianceStore.SetKey(strings.ToLower(alliance.Identifier), *alliance)
+	err = allianceStore.WriteSnapshot()
+	if err != nil {
+		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
+	}
+
+	content := "Successfully edited alliance. Result:"
+	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance)
+	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		Content: content,
+		Embeds:  []*discordgo.MessageEmbed{embed},
+	})
+
+	//#region Build & send feedback message
+	var messages []string
+	if len(notRemoved) > 0 {
+		messages = append(messages, fmt.Sprintf(
+			"The following nations were not removed as they are not present or do not exist:```%s```",
+			strings.Join(notRemoved, ", "),
+		))
+	}
+	if len(notAdded) > 0 {
+		messages = append(messages, fmt.Sprintf(
+			"The following nations were not added as they do not exist:```%s```",
+			strings.Join(notAdded, ", "),
+		))
+	}
+
+	if len(messages) > 0 {
+		discordutil.FollowupContentEphemeral(s, i, strings.Join(messages, "\n"))
+	}
+	//#endregion
+
 	return nil
 }
 
@@ -823,14 +913,14 @@ func handleAllianceEditorModalFunctional(
 	ident := defaultIfEmpty(inputs["identifier"], oldIdent)
 	label := defaultIfEmpty(inputs["label"], alliance.Label)
 
-	parent := alliance.Parent
+	parentIdent := alliance.Parent
 	parentInput := strings.ReplaceAll(inputs["parent"], " ", "")
 	parentInputLower := strings.ToLower(parentInput)
 
 	if slices.Contains(REMOVE_KEYWORDS, parentInputLower) {
-		parent = nil
+		parentIdent = nil
 	} else if parentInput != "" {
-		pa, err := allianceStore.GetKey(parentInputLower)
+		parent, err := allianceStore.GetKey(parentInputLower)
 		if err != nil {
 			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Parent alliance `%s` does not exist.", parentInput),
@@ -840,7 +930,7 @@ func handleAllianceEditorModalFunctional(
 			return nil
 		}
 
-		parent = &pa.Identifier
+		parentIdent = &parent.Identifier
 	}
 
 	representative := inputs["representative"]
@@ -867,7 +957,7 @@ func handleAllianceEditorModalFunctional(
 	if inputs["nations"] != "" {
 		inputNations := strings.Split(strings.ReplaceAll(inputs["nations"], " ", ""), ",")
 
-		//#region Nation name inputs -> UUIDs
+		//#region Check nations name inputs are valid and grab their UUIDs.
 		validNations, missing := validateNations(nationStore, inputNations)
 		if len(validNations) < 1 {
 			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
@@ -890,7 +980,7 @@ func handleAllianceEditorModalFunctional(
 	alliance.Label = label
 	alliance.RepresentativeID = representativeID
 	alliance.OwnNations = nationUUIDs
-	alliance.Parent = parent
+	alliance.Parent = parentIdent
 
 	alliance.SetUpdated()
 
@@ -1145,7 +1235,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return nil
 	}
 
-	//#region Nation name inputs -> UUIDs
+	//#region Check nations name inputs are valid and grab their UUIDs.
 	validNations, missingNations := validateNations(nationStore, inputNations)
 	if len(validNations) < 1 {
 		discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
@@ -1273,23 +1363,45 @@ func validateAllianceImage(rawURL string) (string, error) {
 	return u.String(), nil
 }
 
-func validateNations(nationStore *store.Store[oapi.NationInfo], input []string) (valid []oapi.NationInfo, missing []string) {
-	inputNations := make(sets.StringSet, len(input))
-	for _, name := range input {
-		inputNations[strings.ToLower(name)] = struct{}{} // mark as seen
-	}
-
-	valid = nationStore.FindMany(func(n oapi.NationInfo) bool {
-		_, ok := inputNations[strings.ToLower(n.Name)]
-		return ok
+func parseNations(input string) ([]string, error) {
+	parts := strings.FieldsFunc(input, func(r rune) bool {
+		return r == ',' || unicode.IsSpace(r)
 	})
 
-	// filter out all the valid and now unneeded ones.
-	for _, n := range valid {
-		delete(inputNations, strings.ToLower(n.Name))
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p != "" {
+			out = append(out, p)
+		}
 	}
 
-	return valid, slices.Collect(maps.Keys(inputNations))
+	if len(out) == 0 {
+		return nil, fmt.Errorf("no valid nations found")
+	}
+
+	return out, nil
+}
+
+func validateNations(nationStore *store.Store[oapi.NationInfo], input []string) (valid []oapi.NationInfo, missing []string) {
+	if len(input) == 0 {
+		return nil, nil // in case we were stupid and didn't provide an input
+	}
+
+	// Build reverse map to get NationInfo by name.
+	nameMap := make(map[string]oapi.NationInfo)
+	for _, n := range nationStore.Values() {
+		nameMap[strings.ToLower(n.Name)] = n
+	}
+
+	for _, name := range input {
+		if n, ok := nameMap[strings.ToLower(name)]; ok {
+			valid = append(valid, n)
+		} else {
+			missing = append(missing, name)
+		}
+	}
+
+	return
 }
 
 func sendAllianceBackup(s *discordgo.Session, i *discordgo.Interaction, a *database.Alliance, reason string) {

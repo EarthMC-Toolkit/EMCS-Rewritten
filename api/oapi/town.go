@@ -123,6 +123,28 @@ func (t TownInfo) GetResidentNames(alphabetical bool) []string {
 	return names
 }
 
+func (t TownInfo) GetOnlineResidents() ([]Entity, error) {
+	online, err := QueryList(ENDPOINT_ONLINE)
+	if err != nil {
+		return nil, err
+	}
+
+	residentUUIDs := make(map[string]struct{}, len(t.Residents))
+	for _, r := range t.Residents {
+		residentUUIDs[r.UUID] = struct{}{}
+	}
+
+	idx := 0
+	for _, op := range online {
+		if _, ok := residentUUIDs[op.UUID]; ok {
+			online[idx] = op
+			idx++
+		}
+	}
+
+	return online[:idx], nil
+}
+
 // type Resident struct {
 // 	Entity
 // 	Town TownInfo

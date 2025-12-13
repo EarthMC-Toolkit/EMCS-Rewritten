@@ -17,6 +17,27 @@ import (
 	lop "github.com/samber/lo/parallel"
 )
 
+func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
+	online, err := oapi.QueryList(oapi.ENDPOINT_ONLINE)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := lop.Map(online, func(p oapi.Entity, _ int) string {
+		return p.UUID
+	})
+
+	players, errs, _ := oapi.QueryConcurrent(oapi.QueryPlayers, ids)
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+	if len(players) == 0 {
+		return nil, errors.New("failed to query all players, received 0 players from QueryConcurrent")
+	}
+
+	return players, nil
+}
+
 // Uses the map API to get online players, chunks them into slices with max len of [oapi.PLAYERS_QUERY_LIMIT],
 // and then queries the official API for their full player info.
 //
