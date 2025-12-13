@@ -70,7 +70,9 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			ruinedTime := time.UnixMilli(int64(*t.Timestamps.RuinedAt))
 			after72h := ruinedTime.Add(72 * time.Hour)
 
-			nextNewDay := time.Date(after72h.Year(), after72h.Month(), after72h.Day(), 11, 0, 0, 0, time.UTC)
+			// TODO: Hard coding this isn't great. Switch to a more robust automatic version of
+			// new day calculation using server info like we do in the `/newday when` cmd.
+			nextNewDay := time.Date(after72h.Year(), after72h.Month(), after72h.Day(), 10, 0, 0, 0, time.UTC)
 			if !nextNewDay.After(after72h) {
 				nextNewDay = nextNewDay.Add(24 * time.Hour)
 			}

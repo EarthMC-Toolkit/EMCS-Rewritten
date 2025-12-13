@@ -26,10 +26,15 @@ func (cmd OnlineCommand) Options() AppCommandOpts {
 	return AppCommandOpts{
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "list",
+			Description: "Sends a paginator allowing navigation through all online players.",
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "town",
 			Description: "Query information about the online status of a town's residents.",
 			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("name", "The name of the town to query.", 2, 40),
+				discordutil.AutocompleteStringOption("name", "The name of the town to query.", 2, 40, true),
 			},
 		},
 		{
@@ -37,10 +42,28 @@ func (cmd OnlineCommand) Options() AppCommandOpts {
 			Name:        "nation",
 			Description: "Query information about the online status of a nation's residents.",
 			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("name", "The name of the nation to query.", 2, 40),
+				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 40, true),
 			},
 		},
 	}
+}
+
+func (cmd OnlineCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error {
+	cdata := i.ApplicationCommandData()
+	if len(cdata.Options) > 0 {
+		return nil
+	}
+
+	// top-level sub cmd or group
+	subCmd := cdata.Options[0]
+	switch subCmd.Name {
+	case "town":
+		return townNameAutocomplete(s, i, cdata)
+	case "nation":
+		return nationNameAutocomplete(s, i, cdata)
+	}
+
+	return nil
 }
 
 func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {

@@ -249,7 +249,7 @@ func allianceIdentifierAutocomplete(
 	}
 
 	var matches []database.Alliance
-	if focused == "" {
+	if strings.TrimSpace(focused) == "" {
 		alliances := allianceStore.Values()
 
 		// Sort alphabetically by Identifier.

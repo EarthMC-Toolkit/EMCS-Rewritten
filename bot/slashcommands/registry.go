@@ -32,7 +32,7 @@ type SlashCommand interface {
 	Options() AppCommandOpts
 	// IntegrationTypes() *[]discordgo.ApplicationIntegrationType
 	// Contexts() *[]discordgo.InteractionContextType
-	Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error
+	Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error // TODO: Refactor to discordgo.Interaction
 }
 
 type ModalHandler interface {

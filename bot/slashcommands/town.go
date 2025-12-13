@@ -86,7 +86,7 @@ func townNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata 
 	}
 
 	var matches []oapi.TownInfo
-	if focused == "" {
+	if strings.TrimSpace(focused) == "" {
 		towns := townStore.Values()
 
 		// Sort alphabetically by Name.

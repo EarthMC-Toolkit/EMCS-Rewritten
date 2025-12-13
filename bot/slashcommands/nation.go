@@ -86,7 +86,7 @@ func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdat
 	}
 
 	var matches []oapi.NationInfo
-	if focused == "" {
+	if strings.TrimSpace(focused) == "" {
 		nations := nationStore.Values()
 
 		// Sort alphabetically by Name.

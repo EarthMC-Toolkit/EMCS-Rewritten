@@ -2,6 +2,7 @@ package slashcommands
 
 import "github.com/bwmarrin/discordgo"
 
+// TODO: Implement
 type FallingCommand struct{}
 
 func (cmd FallingCommand) Name() string { return "falling" }

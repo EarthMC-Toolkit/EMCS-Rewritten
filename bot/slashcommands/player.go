@@ -79,9 +79,9 @@ func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerNa
 			return strings.EqualFold(p.Name, playerName)
 		})
 		if err != nil {
-			return discordutil.FollowupContent(s, i,
-				fmt.Sprintf("No players retrieved. Player `%s` does not seem to exist.", playerName),
-			)
+			content := fmt.Sprintf("Player `%s` could not be retrieved from the EarthMC API.", playerName)
+			content += "\nIt is possible that this player is both townless and has opted-out."
+			return discordutil.FollowupContent(s, i, content)
 		}
 
 		embed := embeds.NewBasicPlayerEmbed(*p)

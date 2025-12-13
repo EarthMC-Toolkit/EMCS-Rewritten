@@ -123,7 +123,6 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		}
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
-
 		embed := &discordgo.MessageEmbed{
 			Title:  fmt.Sprintf("Quarters For Sale | `%s` | %s", affiliation, pageStr),
 			Footer: embeds.DEFAULT_FOOTER,
