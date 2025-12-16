@@ -58,36 +58,49 @@ func (cmd PlayerCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 }
 
 func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerName string) (*discordgo.Message, error) {
-	players, err := oapi.QueryPlayers(strings.ToLower(playerName))
-	if err != nil {
-		return discordutil.FollowupContent(s, i, "An error occurred retrieving player information :(")
+	players, apiErr := oapi.QueryPlayers(strings.ToLower(playerName))
+	if apiErr != nil {
+		desc := ":warning: The EarthMC API is likely down right now. As such, some data may be missing until it is online again."
+		embed, err := buildBasicPlayerEmbed(playerName, desc)
+		if err != nil {
+			content := fmt.Sprintf("An error occurred retrieving player information :(```%s```", apiErr)
+			return discordutil.FollowupContent(s, i, content)
+		}
+
+		return discordutil.FollowupEmbeds(s, i, embed)
 	}
 
+	// API is up, but no results.
 	if len(players) == 0 {
-		mdb, err := database.Get(shared.ACTIVE_MAP)
-		if err != nil {
-			return discordutil.FollowupContent(s, i, "An error occurred getting the database for map: "+shared.ACTIVE_MAP)
-		}
-
-		playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
-		if err != nil {
-			return discordutil.FollowupContent(s, i, "An error occurred retrieving player information :(")
-		}
-
-		// check if they opted out (massive pussy) or actually don't exist.
-		p, err := playerStore.FindFirst(func(p database.BasicPlayer) bool {
-			return strings.EqualFold(p.Name, playerName)
-		})
-		if err != nil {
+		desc := ":warning: Limited data available. This player has chosen to opt out of the EarthMC API, what a *pussy*."
+		embed, err := buildBasicPlayerEmbed(playerName, desc)
+		if err == nil {
 			content := fmt.Sprintf("Player `%s` could not be retrieved from the EarthMC API.", playerName)
 			content += "\nIt is possible that this player is both townless and has opted-out."
 			return discordutil.FollowupContent(s, i, content)
 		}
 
-		embed := embeds.NewBasicPlayerEmbed(*p)
 		return discordutil.FollowupEmbeds(s, i, embed)
 	}
 
+	// API is up and results received, everything working normally.
 	embed := embeds.NewPlayerEmbed(players[0])
 	return discordutil.FollowupEmbeds(s, i, embed)
+}
+
+func buildBasicPlayerEmbed(playerName string, desc string) (*discordgo.MessageEmbed, error) {
+	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
+	if err != nil {
+		return nil, fmt.Errorf("error querying player `%s`: failed to get player store from DB", playerName)
+	}
+
+	// check if they opted out (massive pussy) or actually don't exist.
+	p, err := playerStore.FindFirst(func(p database.BasicPlayer) bool {
+		return strings.EqualFold(p.Name, playerName)
+	})
+	if err != nil {
+		return nil, nil
+	}
+
+	return embeds.NewBasicPlayerEmbed(*p, desc), nil
 }

@@ -653,7 +653,7 @@ func handleAllianceEditorModalNationsUpdate(
 ) error {
 	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 	if err != nil {
-		return err
+		return fmt.Errorf("error updating nations for alliance: %s. failed to get nation store from DB", alliance.Identifier)
 	}
 
 	// start with a set of existing UUIDs for easier add/remove

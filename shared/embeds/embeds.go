@@ -201,7 +201,7 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 // Builds an embed that describes a user with only minimal info.
 //
 // Should be preferred when the user is annoying and has opted-out of the Official API.
-func NewBasicPlayerEmbed(player database.BasicPlayer) *discordgo.MessageEmbed {
+func NewBasicPlayerEmbed(player database.BasicPlayer, description string) *discordgo.MessageEmbed {
 	townsStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
 	town, _ := townsStore.GetKey(player.Town.UUID)
 
@@ -218,8 +218,6 @@ func NewBasicPlayerEmbed(player database.BasicPlayer) *discordgo.MessageEmbed {
 	}
 
 	title := fmt.Sprintf("Player Information | `%s`", player.Name)
-	desc := ":warning: Limited data available. This player has chosen to opt out of the EarthMC API, what a *pussy*."
-
 	embed := &discordgo.MessageEmbed{
 		Type:   discordgo.EmbedTypeRich,
 		Color:  discordutil.DARK_PURPLE,
@@ -228,7 +226,7 @@ func NewBasicPlayerEmbed(player database.BasicPlayer) *discordgo.MessageEmbed {
 			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID),
 		},
 		Title:       title,
-		Description: desc,
+		Description: description,
 		Fields: []*discordgo.MessageEmbedField{
 			NewEmbedField("Affiliation", affiliation, true),
 		},
