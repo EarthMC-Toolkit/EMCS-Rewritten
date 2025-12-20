@@ -59,13 +59,6 @@ func (s *Store[T]) CleanPath() string {
 	return filepath.Clean(s.filePath)
 }
 
-func (s *Store[T]) Entries() StoreData[T] {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	return s.data.shallowCopy()
-}
-
 func (s *Store[T]) Keys() (keys []StoreKey) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -88,6 +81,25 @@ func (s *Store[T]) Values() (values []T) {
 	return
 }
 
+func (s *Store[T]) Entries() StoreData[T] {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.data.shallowCopy()
+}
+
+// Similar to Entries(), this func will return a map, with the key being customizable based on keyFunc.
+func (s *Store[T]) EntriesKeyFunc(keyFunc func(value T) string) map[string]T {
+	vals := s.Values()
+	out := make(map[string]T, len(vals))
+	for _, v := range vals {
+		out[keyFunc(v)] = v
+	}
+
+	return out
+}
+
+// Gets both entries and values in a single pass.
 func (s *Store[T]) EntriesAndValues() (entries StoreData[T], values []T) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
