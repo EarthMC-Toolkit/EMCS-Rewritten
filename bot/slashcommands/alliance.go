@@ -36,7 +36,7 @@ type AllianceCommand struct{}
 
 func (cmd AllianceCommand) Name() string { return "alliance" }
 func (cmd AllianceCommand) Description() string {
-	return "Look up and alliance or request one be created/edited."
+	return "Query a single alliance or navigate through existing alliances."
 }
 
 func (cmd AllianceCommand) Options() AppCommandOpts {
@@ -639,11 +639,97 @@ func openEditorModalLeadersUpdate(s *discordgo.Session, i *discordgo.Interaction
 	})
 }
 
-// TODO: Implement this
 func handleAllianceEditorModalLeadersUpdate(
 	s *discordgo.Session, i *discordgo.Interaction,
 	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
 ) error {
+	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
+	if err != nil {
+		return fmt.Errorf("error updating leaders for alliance: %s. failed to get player store from DB", alliance.Identifier)
+	}
+
+	// build map of Name -> BasicPlayer for O(1) lookups
+	playerByName := playerStore.EntriesKeyFunc(func(p database.BasicPlayer) string {
+		return strings.ToLower(p.Name)
+	})
+
+	// start with a set of existing UUIDs for easier add/remove
+	leaderUUIDs := sets.StringSet{}
+	for _, uuid := range alliance.Optional.Leaders {
+		leaderUUIDs[uuid] = struct{}{}
+	}
+
+	var notAdded, notRemoved []string
+	var inputs = discordutil.GetModalInputs(i)
+
+	if strings.TrimSpace(inputs["remove"]) != "" {
+		removeNames, _ := parseFieldsStr(inputs["remove"])
+		for _, name := range removeNames {
+			p, ok := playerByName[strings.ToLower(name)]
+			if !ok {
+				notRemoved = append(notRemoved, name)
+				continue // Can't remove dis player cuz they dont exist cuh
+			}
+
+			// remove leader if dey exist
+			if _, exists := leaderUUIDs[p.UUID]; exists {
+				delete(leaderUUIDs, p.UUID)
+			} else {
+				notRemoved = append(notRemoved, name)
+			}
+		}
+	}
+	if strings.TrimSpace(inputs["add"]) != "" {
+		addNames, _ := parseFieldsStr(inputs["add"])
+		for _, name := range addNames {
+			p, ok := playerByName[strings.ToLower(name)]
+			if !ok {
+				notAdded = append(notAdded, name)
+				continue
+			}
+
+			leaderUUIDs[p.UUID] = struct{}{}
+		}
+	}
+
+	// Update alliance with new nation list
+	alliance.Optional.Leaders = leaderUUIDs.Keys()
+	alliance.SetUpdated()
+
+	// Persist changes
+	allianceStore.SetKey(strings.ToLower(alliance.Identifier), *alliance)
+	err = allianceStore.WriteSnapshot()
+	if err != nil {
+		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
+	}
+
+	content := "Successfully edited alliance. Result:"
+	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance)
+	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		Content: content,
+		Embeds:  []*discordgo.MessageEmbed{embed},
+	})
+
+	//#region Build & send feedback message
+	var messages []string
+	if len(notRemoved) > 0 {
+		messages = append(messages, fmt.Sprintf(
+			"The following leaders were not removed as they are not present:```%s```",
+			strings.Join(notRemoved, ", "),
+		))
+	}
+	if len(notAdded) > 0 {
+		messages = append(messages, fmt.Sprintf(
+			"The following leaders were not added as they do not exist:```%s```",
+			strings.Join(notAdded, ", "),
+		))
+	}
+
+	if len(messages) > 0 {
+		discordutil.FollowupContentEphemeral(s, i, strings.Join(messages, "\n"))
+	}
+	//#endregion
+
 	return nil
 }
 
@@ -656,23 +742,22 @@ func handleAllianceEditorModalNationsUpdate(
 		return fmt.Errorf("error updating nations for alliance: %s. failed to get nation store from DB", alliance.Identifier)
 	}
 
+	// build map of Name -> NationInfo for O(1) lookups
+	nationByName := nationStore.EntriesKeyFunc(func(n oapi.NationInfo) string {
+		return strings.ToLower(n.Name)
+	})
+
 	// start with a set of existing UUIDs for easier add/remove
 	nationUUIDs := sets.StringSet{}
 	for _, uuid := range alliance.OwnNations {
 		nationUUIDs[uuid] = struct{}{}
 	}
 
-	// build name -> NationInfo map for O(1) lookups
-	nationByName := make(map[string]oapi.NationInfo)
-	for _, n := range nationStore.Entries() {
-		nationByName[strings.ToLower(n.Name)] = n
-	}
-
 	var notAdded, notRemoved []string
 	var inputs = discordutil.GetModalInputs(i)
 
 	if strings.TrimSpace(inputs["remove"]) != "" {
-		removeNames, _ := parseNations(inputs["remove"])
+		removeNames, _ := parseFieldsStr(inputs["remove"])
 		for _, name := range removeNames {
 			// i don't think this lookup is required since we want to
 			// remove the input nations that don't exist in the store anyway?
@@ -690,7 +775,7 @@ func handleAllianceEditorModalNationsUpdate(
 		}
 	}
 	if strings.TrimSpace(inputs["add"]) != "" {
-		addNames, _ := parseNations(inputs["add"])
+		addNames, _ := parseFieldsStr(inputs["add"])
 		for _, name := range addNames {
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
@@ -1021,7 +1106,7 @@ func handleAllianceEditorModalOptional(
 ) error {
 	inputs := discordutil.GetModalInputs(i)
 
-	image := inputs["image"]
+	image := strings.TrimSpace(inputs["image"])
 	if image != "" {
 		parsedUrl, err := validateAllianceImage(image)
 		if err != nil {
@@ -1043,7 +1128,8 @@ func handleAllianceEditorModalOptional(
 		discordCode = *alliance.Optional.DiscordCode
 	}
 
-	if discordInput := inputs["discord"]; discordInput != "" {
+	discordInput := strings.TrimSpace(inputs["discord"])
+	if discordInput != "" {
 		code, err := discordutil.ExtractInviteCode(discordInput)
 		if err != nil {
 			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
@@ -1114,14 +1200,15 @@ func handleAllianceEditorModalOptional(
 	//#endregion
 
 	//#region Leaders validation
-	leadersInput := strings.ReplaceAll(inputs["leaders"], " ", "")
+	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
+	if err != nil {
+		return fmt.Errorf("error updating leaders for alliance: %s. failed to get player store from DB", alliance.Identifier)
+	}
 
-	invalid := []string{}
-	if leadersInput != "" {
-		var err error
-		leaders := strings.Split(leadersInput, ",")
-
-		invalid, err = alliance.SetLeaders(leaders...)
+	invalidLeaders := []string{}
+	if strings.TrimSpace(inputs["leaders"]) != "" {
+		leaders, err := parseFieldsStr(inputs["leaders"])
+		invalidLeaders, err = alliance.SetLeaders(playerStore, leaders...)
 		if err != nil {
 			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("An error occurred while setting alliance leaders:```%s```", err),
@@ -1163,7 +1250,7 @@ func handleAllianceEditorModalOptional(
 
 	// We instantly write the data to the db to make sure the changes stick without waiting for graceful shutdown,
 	// since the bot could panic and not recover at any moment and all changes would be lost.
-	err := allianceStore.WriteSnapshot()
+	err = allianceStore.WriteSnapshot()
 	if err != nil {
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
@@ -1176,10 +1263,10 @@ func handleAllianceEditorModalOptional(
 	})
 
 	// After sending updated alliance embed, report missing leaders if any.
-	if len(invalid) > 0 {
+	if len(invalidLeaders) > 0 {
 		discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf(
 			"The following leaders do not exist and were not included:```%s```",
-			strings.Join(invalid, ", "),
+			strings.Join(invalidLeaders, ", "),
 		))
 	}
 
@@ -1363,7 +1450,14 @@ func validateAllianceImage(rawURL string) (string, error) {
 	return u.String(), nil
 }
 
-func parseNations(input string) ([]string, error) {
+// Takes an input string (expected to be list of nation names) and returns a slice containing each of the names.
+
+// Similar to [strings.Fields] which splits elements by whitespace, we use [strings.FieldsFunc] to also
+// check for commas, and any of the resulting empty strings elements are simply ignored.
+// This should ensure it is able to handle most edge cases when the input is malformed.
+//
+// For example, the input ",foo1  , bar2,,, baz3" should produce the output: ["foo1" "bar2" "baz3"]
+func parseFieldsStr(input string) ([]string, error) {
 	parts := strings.FieldsFunc(input, func(r rune) bool {
 		return r == ',' || unicode.IsSpace(r)
 	})
@@ -1376,7 +1470,7 @@ func parseNations(input string) ([]string, error) {
 	}
 
 	if len(out) == 0 {
-		return nil, fmt.Errorf("no valid nations found")
+		return nil, fmt.Errorf("failed to parse string list: no valid elements found")
 	}
 
 	return out, nil
@@ -1387,11 +1481,9 @@ func validateNations(nationStore *store.Store[oapi.NationInfo], input []string) 
 		return nil, nil // in case we were stupid and didn't provide an input
 	}
 
-	// Build reverse map to get NationInfo by name.
-	nameMap := make(map[string]oapi.NationInfo)
-	for _, n := range nationStore.Values() {
-		nameMap[strings.ToLower(n.Name)] = n
-	}
+	nameMap := nationStore.EntriesKeyFunc(func(n oapi.NationInfo) string {
+		return strings.ToLower(n.Name)
+	})
 
 	for _, name := range input {
 		if n, ok := nameMap[strings.ToLower(name)]; ok {

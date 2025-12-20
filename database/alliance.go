@@ -136,18 +136,11 @@ func (a *Alliance) ChildAlliances(alliances []Alliance) (children ChildAlliances
 // Attempts to set the alliance leaders given their IGNs.
 //
 // The leaders are stored in UUID form if they exist, otherwise the IGN will be added to the `invalid` output slice.
-func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
-	// TODO: Use entity store instead of querying
-	leaders, err := oapi.QueryPlayers(igns...)
-	if err != nil {
-		return nil, err
-	}
-
-	leaderUUIDs := make([]string, 0, len(leaders))
-
-	found := make(sets.StringSet, len(leaders))
-	for _, p := range leaders {
-		found[strings.ToLower(p.Name)] = struct{}{}
+func (a *Alliance) SetLeaders(playerStore *store.Store[BasicPlayer], igns ...string) (invalid []string, err error) {
+	leaderSet := make(sets.StringSet)
+	leaderUUIDs := []string{}
+	for _, p := range playerStore.Values() {
+		leaderSet[strings.ToLower(p.Name)] = struct{}{}
 		leaderUUIDs = append(leaderUUIDs, p.UUID)
 	}
 
@@ -155,7 +148,7 @@ func (a *Alliance) SetLeaders(igns ...string) (invalid []string, err error) {
 
 	// Report names of any leader igns that weren't valid. I.e, not found in the query results.
 	for _, ign := range igns {
-		if _, ok := found[strings.ToLower(ign)]; !ok {
+		if _, ok := leaderSet[strings.ToLower(ign)]; !ok {
 			invalid = append(invalid, ign)
 		}
 	}
