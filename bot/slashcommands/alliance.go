@@ -693,7 +693,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	}
 
 	// Update alliance with new nation list
-	alliance.Optional.Leaders = leaderUUIDs.Keys()
+	alliance.Optional.Leaders = leaderUUIDs.Keys() // TODO: Keep as igns, then use alliance.SetLeaders
 	alliance.SetUpdated()
 
 	// Persist changes
