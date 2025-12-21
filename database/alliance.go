@@ -108,17 +108,6 @@ func (a *Alliance) SetUpdated() {
 	a.UpdatedTimestamp = &now
 }
 
-type ChildAlliances []Alliance
-
-func (alliances ChildAlliances) NationIds() (nations []string) {
-	seen := make(sets.StringSet)
-	for _, child := range alliances {
-		seen.AppendSlice(&nations, child.OwnNations)
-	}
-
-	return
-}
-
 // TODO: Precompute a parent → children map once when loading/updating alliances.
 func (a *Alliance) ChildAlliances(alliances []Alliance) (children ChildAlliances) {
 	for _, child := range alliances {
@@ -137,22 +126,23 @@ func (a *Alliance) ChildAlliances(alliances []Alliance) (children ChildAlliances
 //
 // The leaders are stored in UUID form if they exist, otherwise the IGN will be added to the `invalid` output slice.
 func (a *Alliance) SetLeaders(playerStore *store.Store[BasicPlayer], igns ...string) (invalid []string, err error) {
+	playerByName := playerStore.EntriesKeyFunc(func(p BasicPlayer) string {
+		return strings.ToLower(p.Name)
+	})
+
+	// Report names of any leader igns that weren't valid (not found in the player store).
 	leaderSet := make(sets.StringSet)
-	leaderUUIDs := []string{}
-	for _, p := range playerStore.Values() {
-		leaderSet[strings.ToLower(p.Name)] = struct{}{}
-		leaderUUIDs = append(leaderUUIDs, p.UUID)
-	}
-
-	a.Optional.Leaders = leaderUUIDs
-
-	// Report names of any leader igns that weren't valid. I.e, not found in the query results.
 	for _, ign := range igns {
-		if _, ok := leaderSet[strings.ToLower(ign)]; !ok {
+		p, ok := playerByName[strings.ToLower(ign)]
+		if !ok {
 			invalid = append(invalid, ign)
+			continue
 		}
+
+		leaderSet.Append(p.UUID)
 	}
 
+	a.Optional.Leaders = leaderSet.Keys()
 	return
 }
 
@@ -279,4 +269,15 @@ func GetRankedAlliances(
 	}
 
 	return ranked
+}
+
+type ChildAlliances []Alliance
+
+func (alliances ChildAlliances) NationIds() (nations []string) {
+	seen := make(sets.StringSet)
+	for _, child := range alliances {
+		seen.AppendSlice(&nations, child.OwnNations)
+	}
+
+	return
 }
