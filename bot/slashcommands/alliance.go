@@ -730,6 +730,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	return nil
 }
 
+// TODO: Create a scheduled job that loops through alliances, removing nations that no longer exist.
 // /alliance update nations
 func handleAllianceEditorModalNationsUpdate(
 	s *discordgo.Session, i *discordgo.Interaction,
@@ -755,23 +756,24 @@ func handleAllianceEditorModalNationsUpdate(
 	removeInput := strings.TrimSpace(inputs["remove"])
 	addInput := strings.TrimSpace(inputs["add"])
 
-	var notAdded, notRemoved []string
+	var notAdded, notRemoved, alreadyPuppets []string
 	if removeInput != "" {
 		removeNames, _ := parseFieldsStr(removeInput)
 		for _, name := range removeNames {
-			// i don't think this lookup is required since we want to
-			// remove the input nations that don't exist in the store anyway?
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
+				// Can't remove dis input name bc it isn't even a nation.
 				notRemoved = append(notRemoved, name)
 				continue
 			}
 
-			if _, exists := nationUUIDs[n.UUID]; exists {
-				delete(nationUUIDs, n.UUID)
-			} else {
-				notRemoved = append(notRemoved, name)
+			if _, isPuppet := puppetNationUUIDs[n.UUID]; isPuppet {
+				alreadyPuppets = append(alreadyPuppets, name)
+				continue
 			}
+
+			// If it isn't already present, this is just a safe no-op.
+			delete(nationUUIDs, n.UUID)
 		}
 	}
 	if addInput != "" {
@@ -779,11 +781,17 @@ func handleAllianceEditorModalNationsUpdate(
 		for _, name := range addNames {
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
+				// Can't add dis input name bc it isn't even a nation.
 				notAdded = append(notAdded, name)
 				continue
 			}
 
-			nationUUIDs[n.UUID] = struct{}{}
+			if _, isPuppet := puppetNationUUIDs[n.UUID]; isPuppet {
+				alreadyPuppets = append(alreadyPuppets, name)
+				continue
+			}
+
+			nationUUIDs.Append(n.UUID)
 		}
 	}
 
@@ -813,7 +821,7 @@ func handleAllianceEditorModalNationsUpdate(
 	var messages []string
 	if len(notRemoved) > 0 {
 		messages = append(messages, fmt.Sprintf(
-			"The following nations were not removed as they are not present or do not exist:```%s```",
+			"The following nations were not removed as they do not exist:```%s```",
 			strings.Join(notRemoved, ", "),
 		))
 	}

@@ -146,7 +146,7 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", updatedSec, updatedSec), true)
 	}
 
-	ownNationsKey := fmt.Sprintf("Puppet Nations [%d]", len(ownNations))
+	ownNationsKey := fmt.Sprintf("Nations [%d]", len(ownNations))
 	ownNationsValue := fmt.Sprintf("```%s```", strings.Join(ownNationNames, ", "))
 	AddField(embed, ownNationsKey, ownNationsValue, false)
 
