@@ -230,7 +230,6 @@ func (a Alliance) GetStats(ownNations []oapi.NationInfo, childNations []oapi.Nat
 	return
 }
 
-// TODO: Maybe just turn into a map with UUID -> Rank/Score?
 func GetRankedAlliances(
 	allianceStore *store.Store[Alliance],
 	nationStore *store.Store[oapi.NationInfo],
