@@ -19,7 +19,8 @@ type RankedAlliance struct {
 	Rank  int
 }
 
-type AllianceWeights struct {
+type AllianceWeights AllianceStats
+type AllianceStats struct {
 	Residents, Nations, Towns, Wealth float64
 }
 
@@ -29,7 +30,7 @@ type AllianceColours struct {
 }
 
 type AllianceOptionals struct {
-	Leaders     []string         `json:"leaders,omitempty"` // All UUIDs of alliance leaders that exist on EMC.
+	Leaders     sets.StringSet   `json:"leaders,omitempty"` // All UUIDs of alliance leaders that exist on EMC.
 	ImageURL    *string          `json:"imageURL,omitempty"`
 	DiscordCode *string          `json:"discordCode,omitempty"`
 	Colours     *AllianceColours `json:"colours,omitempty"`
@@ -93,7 +94,7 @@ type Alliance struct {
 	Label            string            `json:"label"`            // Full name for display purposes.
 	RepresentativeID *string           `json:"representativeID"` // Discord ID of the user representing this alliance.
 	Parent           *string           `json:"parent"`           // The Identifier (not UUID) of the parent alliance this alliance is a child of.
-	OwnNations       []string          `json:"ownNations"`       // UUIDs of nations in THIS alliance only.
+	OwnNations       sets.StringSet    `json:"ownNations"`       // UUIDs of nations in THIS alliance only.
 	UpdatedTimestamp *uint64           `json:"updatedTimestamp"` // Unix timestamp (ms) at which the last update was made to this alliance.
 	Optional         AllianceOptionals `json:"optional"`         // Extra properties that are not required for basic alliance functionality.
 	Type             AllianceType      `json:"type"`             // Type of alliance. See AllianceType consts.
@@ -142,7 +143,7 @@ func (a *Alliance) SetLeaders(playerStore *store.Store[BasicPlayer], igns ...str
 		leaderSet.Append(p.UUID)
 	}
 
-	a.Optional.Leaders = leaderSet.Keys()
+	a.Optional.Leaders = leaderSet
 	return
 }
 
@@ -171,7 +172,7 @@ func (a Alliance) GetLeaders(playerStore *store.Store[BasicPlayer]) ([]BasicPlay
 		return nil, fmt.Errorf("cannot query leaders. none set")
 	}
 
-	players := playerStore.GetMany(a.Optional.Leaders...)
+	players := playerStore.GetFromSet(a.Optional.Leaders)
 	if len(players) < 1 {
 		return nil, fmt.Errorf("leader(s) are set but do not exist")
 	}
@@ -180,7 +181,7 @@ func (a Alliance) GetLeaders(playerStore *store.Store[BasicPlayer]) ([]BasicPlay
 }
 
 func (a Alliance) GetLeaderNames(reslist, townlesslist *oapi.EntityList) (names []string) {
-	for _, id := range a.Optional.Leaders {
+	for id := range a.Optional.Leaders {
 		if name, ok := (*reslist)[id]; ok {
 			names = append(names, name)
 			continue
@@ -195,7 +196,7 @@ func (a Alliance) GetLeaderNames(reslist, townlesslist *oapi.EntityList) (names 
 
 func (a Alliance) GetStats(ownNations []oapi.NationInfo, childNations []oapi.NationInfo) (
 	towns []oapi.Entity,
-	residents, area int, worth int,
+	residents, area, worth int,
 ) {
 	residents = 0
 	area = 0
@@ -229,17 +230,17 @@ func GetRankedAlliances(
 	alliances := allianceStore.Values()
 	nations := nationStore.Values()
 
-	stats := make([]AllianceWeights, len(alliances))
+	stats := make([]AllianceStats, len(alliances))
 	for i, a := range alliances {
 		// collect own nations
-		ownNations := nationStore.GetMany(a.OwnNations...)
+		ownNations := nationStore.GetFromSet(a.OwnNations)
 
 		// collect child nations
 		childNationIDs := a.ChildAlliances(alliances).NationIds()
 		childNations := nationStore.GetMany(childNationIDs...)
 
 		towns, residents, _, wealth := a.GetStats(ownNations, childNations)
-		s := AllianceWeights{
+		s := AllianceStats{
 			Residents: float64(residents),
 			Nations:   float64(len(nations)),
 			Towns:     float64(len(towns)),
@@ -252,7 +253,6 @@ func GetRankedAlliances(
 	ranked := make([]RankedAlliance, len(alliances))
 	for i, a := range alliances {
 		s := stats[i]
-
 		score := s.Residents*w.Residents + s.Nations*w.Nations + s.Towns*w.Towns + s.Wealth*w.Wealth
 		ranked[i] = RankedAlliance{
 			Alliance: a,
@@ -273,11 +273,18 @@ func GetRankedAlliances(
 
 type ChildAlliances []Alliance
 
-func (alliances ChildAlliances) NationIds() (nations []string) {
+func (a ChildAlliances) NationIds() (uuids []string) {
+	seen := a.NationIdsSet()
+	return seen.Keys()
+}
+
+func (a ChildAlliances) NationIdsSet() sets.StringSet {
 	seen := make(sets.StringSet)
-	for _, child := range alliances {
-		seen.AppendSlice(&nations, child.OwnNations)
+	for _, child := range a {
+		for uuid := range child.OwnNations {
+			seen.Append(uuid)
+		}
 	}
 
-	return
+	return seen
 }

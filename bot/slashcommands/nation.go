@@ -98,7 +98,7 @@ func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdat
 		matches = nations
 	} else {
 		keyLower := strings.ToLower(focused)
-		matches = nationStore.FindMany(func(n oapi.NationInfo) bool {
+		matches = nationStore.FindAll(func(n oapi.NationInfo) bool {
 			if n.Name != "" && strings.Contains(strings.ToLower(n.Name), keyLower) {
 				return true
 			}
@@ -151,7 +151,7 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 			return discordutil.FollowupContentEphemeral(s, i, "The nation database is currently empty. This is unusual, but may resolve itself.")
 		}
 
-		nation, _ = nationStore.FindFirst(func(info oapi.NationInfo) bool {
+		nation, _ = nationStore.Find(func(info oapi.NationInfo) bool {
 			return strings.EqualFold(nationName, info.Name) || nationName == info.UUID
 		})
 	}

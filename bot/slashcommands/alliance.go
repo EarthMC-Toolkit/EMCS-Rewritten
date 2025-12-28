@@ -9,7 +9,6 @@ import (
 	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
-	"emcsrw/utils/sets"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -261,7 +260,7 @@ func allianceIdentifierAutocomplete(
 		matches = alliances
 	} else {
 		keyLower := strings.ToLower(focused)
-		matches = allianceStore.FindMany(func(a database.Alliance) bool {
+		matches = allianceStore.FindAll(func(a database.Alliance) bool {
 			if a.Label != "" && strings.Contains(strings.ToLower(a.Label), keyLower) {
 				return true
 			}
@@ -387,7 +386,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 				representativeName = repUser.Username
 			}
 
-			ownNations := nationStore.GetMany(a.OwnNations...)
+			ownNations := nationStore.GetFromSet(a.OwnNations)
 
 			childNationIds := a.ChildAlliances(alliances).NationIds()
 			childNations := nationStore.GetMany(childNationIds...)
@@ -500,7 +499,7 @@ func disbandAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata disco
 		return err
 	}
 
-	a, _ := allianceStore.FindFirst(func(a database.Alliance) bool {
+	a, _ := allianceStore.Find(func(a database.Alliance) bool {
 		return strings.EqualFold(a.Identifier, ident)
 	})
 	if a == nil {
@@ -639,6 +638,7 @@ func openEditorModalLeadersUpdate(s *discordgo.Session, i *discordgo.Interaction
 	})
 }
 
+// /alliance update leaders
 func handleAllianceEditorModalLeadersUpdate(
 	s *discordgo.Session, i *discordgo.Interaction,
 	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
@@ -654,10 +654,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	})
 
 	// start with a set of existing UUIDs for easier add/remove
-	leaderUUIDs := sets.StringSet{}
-	for _, uuid := range alliance.Optional.Leaders {
-		leaderUUIDs[uuid] = struct{}{}
-	}
+	leaderUUIDs := utils.CopyMap(alliance.Optional.Leaders)
 
 	var notAdded, notRemoved []string
 	var inputs = discordutil.GetModalInputs(i)
@@ -693,7 +690,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	}
 
 	// Update alliance with new nation list
-	alliance.Optional.Leaders = leaderUUIDs.Keys() // TODO: Keep as igns, then use alliance.SetLeaders
+	alliance.Optional.Leaders = leaderUUIDs // TODO: Keep as igns, then use alliance.SetLeaders
 	alliance.SetUpdated()
 
 	// Persist changes
@@ -733,6 +730,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	return nil
 }
 
+// /alliance update nations
 func handleAllianceEditorModalNationsUpdate(
 	s *discordgo.Session, i *discordgo.Interaction,
 	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
@@ -748,16 +746,17 @@ func handleAllianceEditorModalNationsUpdate(
 	})
 
 	// start with a set of existing UUIDs for easier add/remove
-	nationUUIDs := sets.StringSet{}
-	for _, uuid := range alliance.OwnNations {
-		nationUUIDs[uuid] = struct{}{}
-	}
+	nationUUIDs := utils.CopyMap(alliance.OwnNations)
+
+	puppetNationUUIDs := alliance.ChildAlliances(allianceStore.Values()).NationIdsSet()
+
+	inputs := discordutil.GetModalInputs(i)
+	removeInput := strings.TrimSpace(inputs["remove"])
+	addInput := strings.TrimSpace(inputs["add"])
 
 	var notAdded, notRemoved []string
-	var inputs = discordutil.GetModalInputs(i)
-
-	if strings.TrimSpace(inputs["remove"]) != "" {
-		removeNames, _ := parseFieldsStr(inputs["remove"])
+	if removeInput != "" {
+		removeNames, _ := parseFieldsStr(removeInput)
 		for _, name := range removeNames {
 			// i don't think this lookup is required since we want to
 			// remove the input nations that don't exist in the store anyway?
@@ -774,8 +773,8 @@ func handleAllianceEditorModalNationsUpdate(
 			}
 		}
 	}
-	if strings.TrimSpace(inputs["add"]) != "" {
-		addNames, _ := parseFieldsStr(inputs["add"])
+	if addInput != "" {
+		addNames, _ := parseFieldsStr(addInput)
 		for _, name := range addNames {
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
@@ -787,8 +786,12 @@ func handleAllianceEditorModalNationsUpdate(
 		}
 	}
 
+	if (len(nationUUIDs) + len(puppetNationUUIDs)) < 2 {
+		return fmt.Errorf("alliance must have at least two nations. either directly or from puppet alliances.")
+	}
+
 	// Update alliance with new nation list
-	alliance.OwnNations = nationUUIDs.Keys()
+	alliance.OwnNations = nationUUIDs
 	alliance.SetUpdated()
 
 	// Persist changes
@@ -819,6 +822,12 @@ func handleAllianceEditorModalNationsUpdate(
 			strings.Join(notAdded, ", "),
 		))
 	}
+	// if len(alreadyPuppets) > 0 {
+	// 	messages = append(messages, fmt.Sprintf(
+	// 		"The following nations were skipped as they are already puppets:```%s```",
+	// 		strings.Join(alreadyPuppets, ", "),
+	// 	))
+	// }
 
 	if len(messages) > 0 {
 		discordutil.FollowupContentEphemeral(s, i, strings.Join(messages, "\n"))
@@ -830,7 +839,7 @@ func handleAllianceEditorModalNationsUpdate(
 
 func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance) error {
 	nationStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
-	nations := nationStore.GetMany(alliance.OwnNations...)
+	nations := nationStore.GetFromSet(alliance.OwnNations)
 	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
 	})
@@ -1054,8 +1063,8 @@ func handleAllianceEditorModalFunctional(
 		}
 
 		missingNations = missing
-		nationUUIDs = lo.Map(validNations, func(n oapi.NationInfo, _ int) string {
-			return n.UUID
+		nationUUIDs = lo.Associate(validNations, func(n oapi.NationInfo) (string, struct{}) {
+			return n.UUID, struct{}{}
 		})
 		//#endregion
 	}
@@ -1333,8 +1342,8 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return nil
 	}
 
-	nationUUIDs := lo.Map(validNations, func(n oapi.NationInfo, _ int) string {
-		return n.UUID
+	nationUUIDs := lo.SliceToMap(validNations, func(n oapi.NationInfo) (string, struct{}) {
+		return n.UUID, struct{}{}
 	})
 	//#endregion
 

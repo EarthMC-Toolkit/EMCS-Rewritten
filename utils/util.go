@@ -140,9 +140,11 @@ func CopySlice[T any](value []T) []T {
 	return cpy
 }
 
-func CopyMap[K comparable, V any](value map[K]V) map[K]V {
-	cpy := make(map[K]V, len(value))
-	maps.Copy(cpy, value)
+// Returns a shallow copy of the input map while preserving its type.
+// For example, if a StringSet is passed (underlying map), a StringSet will also be returned.
+func CopyMap[K comparable, V any, M ~map[K]V](m M) M {
+	cpy := make(M, len(m))
+	maps.Copy(cpy, m)
 	return cpy
 }
 

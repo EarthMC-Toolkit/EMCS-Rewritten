@@ -98,7 +98,7 @@ func townNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata 
 		matches = towns
 	} else {
 		keyLower := strings.ToLower(focused)
-		matches = townStore.FindMany(func(t oapi.TownInfo) bool {
+		matches = townStore.FindAll(func(t oapi.TownInfo) bool {
 			if t.Name != "" && strings.Contains(strings.ToLower(t.Name), keyLower) {
 				return true
 			}
@@ -150,7 +150,7 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 			return discordutil.FollowupContentEphemeral(s, i, "The town database is currently empty. This is unusual, but may resolve itself.")
 		}
 
-		town, _ = townStore.FindFirst(func(info oapi.TownInfo) bool {
+		town, _ = townStore.Find(func(info oapi.TownInfo) bool {
 			return strings.EqualFold(townName, info.Name) || townName == info.UUID
 		})
 	}

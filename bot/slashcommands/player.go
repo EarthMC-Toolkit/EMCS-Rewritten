@@ -95,7 +95,7 @@ func buildBasicPlayerEmbed(playerName string, desc string) (*discordgo.MessageEm
 	}
 
 	// check if they opted out (massive pussy) or actually don't exist.
-	p, err := playerStore.FindFirst(func(p database.BasicPlayer) bool {
+	p, err := playerStore.Find(func(p database.BasicPlayer) bool {
 		return strings.EqualFold(p.Name, playerName)
 	})
 	if err != nil {

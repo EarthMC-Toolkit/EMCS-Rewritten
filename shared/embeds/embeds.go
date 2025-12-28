@@ -85,7 +85,7 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 	// Nation field logic
 	nationStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 
-	ownNations := nationStore.GetMany(a.OwnNations...)
+	ownNations := nationStore.GetFromSet(a.OwnNations)
 	ownNationNames := lo.Map(ownNations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
 	})
@@ -98,10 +98,12 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 	childNationIds := childAlliances.NationIds()
 	childNations := nationStore.GetMany(childNationIds...)
 
-	towns, residents, area, wealth := a.GetStats(ownNations, childNations)
-	stats := fmt.Sprintf("Towns: %s\nResidents: %s\nSize: %s",
+	nationsAmt := len(ownNations) + len(childNations)
+	towns, residentsAmt, area, wealth := a.GetStats(ownNations, childNations)
+	stats := fmt.Sprintf("Towns: %s\nNations: %s\nResidents: %s\nSize: %s",
 		utils.HumanizedSprintf("`%d`", len(towns)),
-		utils.HumanizedSprintf("`%d`", residents),
+		utils.HumanizedSprintf("`%d`", nationsAmt),
+		utils.HumanizedSprintf("`%d`", residentsAmt),
 		utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, wealth, shared.EMOJIS.GOLD_INGOT),
 	)
 
@@ -145,7 +147,7 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", updatedSec, updatedSec), true)
 	}
 
-	ownNationsKey := fmt.Sprintf("Own Nations [%d]", len(ownNations))
+	ownNationsKey := fmt.Sprintf("Puppet Nations [%d]", len(ownNations))
 	ownNationsValue := fmt.Sprintf("```%s```", strings.Join(ownNationNames, ", "))
 	AddField(embed, ownNationsKey, ownNationsValue, false)
 

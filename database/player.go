@@ -14,7 +14,7 @@ type BasicPlayer struct {
 }
 
 func FindPlayerTown(name string, townStore *store.Store[oapi.TownInfo]) (*oapi.TownInfo, error) {
-	return townStore.FindFirst(func(t oapi.TownInfo) bool {
+	return townStore.Find(func(t oapi.TownInfo) bool {
 		for _, res := range t.Residents {
 			if res.Name == name {
 				return true

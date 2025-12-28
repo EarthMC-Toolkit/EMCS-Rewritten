@@ -2,6 +2,7 @@ package store
 
 import (
 	"emcsrw/utils"
+	"emcsrw/utils/sets"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -89,6 +90,8 @@ func (s *Store[T]) Entries() StoreData[T] {
 }
 
 // Similar to Entries(), this func will return a map, with the key being customizable based on keyFunc.
+//
+// This is useful for creating maps, where the key is based on a specific field of the stored value type.
 func (s *Store[T]) EntriesKeyFunc(keyFunc func(value T) string) map[string]T {
 	vals := s.Values()
 	out := make(map[string]T, len(vals))
@@ -152,20 +155,21 @@ func (s *Store[T]) DeleteKey(key string) {
 	delete(s.data, key)
 }
 
-// Creates or overwrites the value in the store at the given key in a thread-safe manner.
-func (s *Store[T]) SetKey(key string, value T) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.data[key] = value
-}
-
+// Checks whether the store has a value associated with the given key.
 func (s *Store[T]) HasKey(key string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	_, ok := s.data[key]
 	return ok
+}
+
+// Creates or overwrites the value in the store at the given key in a thread-safe manner.
+func (s *Store[T]) SetKey(key string, value T) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.data[key] = value
 }
 
 // Retrieves a value from this store that is associated with the key.
@@ -196,6 +200,19 @@ func (s *Store[T]) GetKeyFunc(predicate func(key StoreKey) bool) (*T, error) {
 	return nil, fmt.Errorf("no matching key found in store: %s", s.CleanPath())
 }
 
+func (s *Store[T]) GetFromSet(set sets.StringSet) (results []T) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for k := range set {
+		if v, ok := s.data[k]; ok {
+			results = append(results, v)
+		}
+	}
+
+	return results
+}
+
 func (s *Store[T]) GetMany(keys ...string) (results []T) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -209,20 +226,7 @@ func (s *Store[T]) GetMany(keys ...string) (results []T) {
 	return results
 }
 
-func (s *Store[T]) FindMany(predicate func(value T) bool) (results []T) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	for _, v := range s.data {
-		if predicate(v) {
-			results = append(results, v)
-		}
-	}
-
-	return
-}
-
-func (s *Store[T]) FindFirst(predicate func(value T) bool) (*T, error) {
+func (s *Store[T]) Find(predicate func(value T) bool) (*T, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -233,6 +237,19 @@ func (s *Store[T]) FindFirst(predicate func(value T) bool) (*T, error) {
 	}
 
 	return nil, fmt.Errorf("no matching value found in store: %s", s.CleanPath())
+}
+
+func (s *Store[T]) FindAll(predicate func(value T) bool) (results []T) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, v := range s.data {
+		if predicate(v) {
+			results = append(results, v)
+		}
+	}
+
+	return
 }
 
 // Overwrite the current store cache state with data from the associated JSON file/database located at path.

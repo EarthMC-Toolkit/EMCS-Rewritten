@@ -94,7 +94,7 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 		return err
 	}
 
-	town, err := townStore.FindFirst(func(t oapi.TownInfo) bool {
+	town, err := townStore.Find(func(t oapi.TownInfo) bool {
 		return strings.EqualFold(t.Name, townName)
 	})
 	if err != nil {
@@ -129,7 +129,7 @@ func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationN
 		return err
 	}
 
-	nation, err := nationStore.FindFirst(func(n oapi.NationInfo) bool {
+	nation, err := nationStore.Find(func(n oapi.NationInfo) bool {
 		return strings.EqualFold(n.Name, nationName)
 	})
 	if err != nil {
