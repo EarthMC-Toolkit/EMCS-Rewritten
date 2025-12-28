@@ -236,8 +236,8 @@ func GetRankedAlliances(
 		ownNations := nationStore.GetFromSet(a.OwnNations)
 
 		// collect child nations
-		childNationIDs := a.ChildAlliances(alliances).NationIds()
-		childNations := nationStore.GetMany(childNationIDs...)
+		childNationIDs := a.ChildAlliances(alliances).NationIdsSet()
+		childNations := nationStore.GetFromSet(childNationIDs)
 
 		towns, residents, _, wealth := a.GetStats(ownNations, childNations)
 		s := AllianceStats{

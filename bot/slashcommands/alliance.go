@@ -388,8 +388,8 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 
 			ownNations := nationStore.GetFromSet(a.OwnNations)
 
-			childNationIds := a.ChildAlliances(alliances).NationIds()
-			childNations := nationStore.GetMany(childNationIds...)
+			childNationIds := a.ChildAlliances(alliances).NationIdsSet()
+			childNations := nationStore.GetFromSet(childNationIds)
 
 			towns, residents, area, worth := a.GetStats(ownNations, childNations)
 			allianceStrings = append(allianceStrings, fmt.Sprintf(

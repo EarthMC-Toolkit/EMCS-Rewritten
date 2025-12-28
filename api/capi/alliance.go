@@ -45,7 +45,7 @@ func parseAlliance(a database.Alliance, nationStore *store.Store[oapi.NationInfo
 	})
 
 	// childAlliances := a.ChildAlliances(alliances)
-	// childNations := nationStore.GetMany(childAlliances.NationIds()...)
+	// childNations := nationStore.GetFromSet(childAlliances.NationIdsSet())
 	// childNationNames := lo.Map(childNations, func(n oapi.NationInfo, _ int) string {
 	// 	return n.Name
 	// })

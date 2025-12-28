@@ -213,18 +213,18 @@ func (s *Store[T]) GetFromSet(set sets.StringSet) (results []T) {
 	return results
 }
 
-func (s *Store[T]) GetMany(keys ...string) (results []T) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+// func (s *Store[T]) GetMulti(keys ...string) (results []T) {
+// 	s.mu.RLock()
+// 	defer s.mu.RUnlock()
 
-	for _, key := range keys {
-		if v, ok := s.data[key]; ok {
-			results = append(results, v)
-		}
-	}
+// 	for _, key := range keys {
+// 		if v, ok := s.data[key]; ok {
+// 			results = append(results, v)
+// 		}
+// 	}
 
-	return results
-}
+// 	return results
+// }
 
 func (s *Store[T]) Find(predicate func(value T) bool) (*T, error) {
 	s.mu.RLock()

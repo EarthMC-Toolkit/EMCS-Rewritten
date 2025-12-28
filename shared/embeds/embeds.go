@@ -95,8 +95,7 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 
 	alliances := allianceStore.Values()
 	childAlliances := a.ChildAlliances(alliances)
-	childNationIds := childAlliances.NationIds()
-	childNations := nationStore.GetMany(childNationIds...)
+	childNations := nationStore.GetFromSet(childAlliances.NationIdsSet())
 
 	nationsAmt := len(ownNations) + len(childNations)
 	towns, residentsAmt, area, wealth := a.GetStats(ownNations, childNations)
