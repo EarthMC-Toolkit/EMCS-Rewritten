@@ -32,9 +32,9 @@ const ALLIANCE_BACKUP_CHANNEL = "1438592337335947314"
 
 var REMOVE_KEYWORDS = []string{"null", "none", "remove", "delete"}
 var DEFAULT_WEIGHTS = database.AllianceWeights{
-	Residents: 3,
-	Towns:     2.7,
-	Nations:   2.5,
+	Residents: 4,   // Baseline
+	Towns:     3.2, // 20% less important than Residents
+	Nations:   2.4, // 40% less important than Residents
 	Worth:     0.2, // Worth of all towns in this alliance. Initial cost + town blocks.
 }
 
