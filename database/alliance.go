@@ -13,6 +13,13 @@ import (
 	"github.com/samber/lo"
 )
 
+var DEFAULT_ALLIANCE_WEIGHTS = AllianceWeights{
+	Residents: 4,   // Baseline
+	Towns:     3.2, // 20% less important than Residents
+	Nations:   2.4, // 40% less important than Residents
+	Worth:     0.2, // Worth of all towns in this alliance. Initial cost + town blocks.
+}
+
 // UUID -> AllianceRankInfo
 type RankedAlliances = map[uint64]AllianceRankInfo
 type AllianceRankInfo struct {
@@ -20,12 +27,6 @@ type AllianceRankInfo struct {
 	Rank  int
 	Score float64
 	Stats AllianceStats
-}
-
-type RankedAlliance struct {
-	Alliance
-	Score float64
-	Rank  int
 }
 
 type AllianceWeights AllianceStats
@@ -87,7 +88,7 @@ func (t AllianceType) Valid() bool {
 	}
 }
 
-// Make sure when an alliance is marshalled (like when saved to a file), the type defaults to pact.
+// Make sure when an alliance is marshalled (like when saving to a file) that the type defaults to pact.
 // This way, we avoid the issue where the type can be its zero-value (empty string) when querying.
 func (t AllianceType) MarshalJSON() ([]byte, error) {
 	if t == "" {
@@ -237,7 +238,6 @@ func GetRankedAlliances(
 	w AllianceWeights,
 ) RankedAlliances {
 	alliances := allianceStore.Values()
-	nations := nationStore.Values()
 
 	stats := make([]AllianceStats, len(alliances))
 	for i, a := range alliances {
@@ -251,7 +251,7 @@ func GetRankedAlliances(
 		towns, residents, _, worth := a.GetStats(ownNations, childNations)
 		s := AllianceStats{
 			Residents: float64(residents),
-			Nations:   float64(len(nations)),
+			Nations:   float64(len(ownNations) + len(childNations)),
 			Towns:     float64(len(towns)),
 			Worth:     float64(worth),
 		}

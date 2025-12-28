@@ -38,6 +38,7 @@ func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 		townlesslist, _ := entitiesStore.GetKey("townlesslist")
 
 		alliances := allianceStore.Values()
+		//rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, database.DEFAULT_ALLIANCE_WEIGHTS)
 		parsedAlliances := getParsedAlliances(alliances, nationStore, reslist, townlesslist)
 
 		// Generate SHA-1 ETag from JSON

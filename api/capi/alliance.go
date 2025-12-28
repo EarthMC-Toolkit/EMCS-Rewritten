@@ -22,6 +22,15 @@ type AllianceOptionals struct {
 	Colours     *AllianceColours `json:"colours"`
 }
 
+type AllianceStats struct {
+	NumPuppetAlliances int `json:"numPuppetAlliances"`
+	NumPuppetNations   int `json:"numPuppetNations"`
+	NumResidents       int `json:"numResidents"`
+	NumTowns           int `json:"numTowns"`
+	NumTownBlocks      int `json:"numTownBlocks"`
+	Worth              int `json:"worth"`
+}
+
 // type PuppetMap map[string][]string // Key is puppet alliance identifier, value is all it's nation names.
 type Alliance struct {
 	UUID             uint64            `json:"uuid"`                     // First 48bits = ms timestamp. Extra 16bits = randomness.
@@ -34,9 +43,14 @@ type Alliance struct {
 	CreatedTimestamp uint64            `json:"createdTimestamp"`         // Unix timestamp (ms) denoting the time at which this alliance was created.
 	Optional         AllianceOptionals `json:"optional"`                 // Extra properties that are not required for basic alliance functionality.
 	Type             string            `json:"type"`                     // Type of alliance. See AllianceType consts.
+	Stats            AllianceStats     `json:"stats"`                    // Information about ranks within the alliance.
 }
 
-func parseAlliance(a database.Alliance, nationStore *store.Store[oapi.NationInfo], reslist, townlesslist *oapi.EntityList) Alliance {
+func parseAlliance(
+	a database.Alliance, alliances []database.Alliance,
+	nationStore *store.Store[oapi.NationInfo],
+	reslist, townlesslist *oapi.EntityList,
+) Alliance {
 	leaderNames := a.GetLeaderNames(reslist, townlesslist)
 
 	ownNations := nationStore.GetFromSet(a.OwnNations)
@@ -44,6 +58,10 @@ func parseAlliance(a database.Alliance, nationStore *store.Store[oapi.NationInfo
 		return n.Name
 	})
 
+	childAlliances := a.ChildAlliances(alliances)
+	childNations := nationStore.GetFromSet(childAlliances.NationIds())
+
+	towns, residents, area, worth := a.GetStats(ownNations, childNations)
 	return Alliance{
 		UUID:             a.UUID,
 		Identifier:       a.Identifier,
@@ -59,6 +77,14 @@ func parseAlliance(a database.Alliance, nationStore *store.Store[oapi.NationInfo
 			ImageURL:    a.Optional.ImageURL,
 			DiscordCode: a.Optional.DiscordCode,
 			Colours:     (*AllianceColours)(a.Optional.Colours),
+		},
+		Stats: AllianceStats{
+			NumPuppetAlliances: len(childAlliances),
+			NumPuppetNations:   len(childNations),
+			NumResidents:       residents,
+			NumTowns:           len(towns),
+			NumTownBlocks:      area,
+			Worth:              worth,
 		},
 	}
 }
@@ -79,7 +105,7 @@ func getParsedAlliances(
 		idx := i      // capture index
 		go func() {
 			defer wg.Done()
-			parsedAlliances[idx] = parseAlliance(a, nationStore, reslist, townlesslist)
+			parsedAlliances[idx] = parseAlliance(a, alliances, nationStore, reslist, townlesslist)
 		}()
 	}
 

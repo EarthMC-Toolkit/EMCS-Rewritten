@@ -31,12 +31,6 @@ const SR_EDITOR_ROLE = "1143253762039873646"
 const ALLIANCE_BACKUP_CHANNEL = "1438592337335947314"
 
 var REMOVE_KEYWORDS = []string{"null", "none", "remove", "delete"}
-var DEFAULT_WEIGHTS = database.AllianceWeights{
-	Residents: 4,   // Baseline
-	Towns:     3.2, // 20% less important than Residents
-	Nations:   2.4, // 40% less important than Residents
-	Worth:     0.2, // Worth of all towns in this alliance. Initial cost + town blocks.
-}
 
 type AllianceCommand struct{}
 
@@ -337,7 +331,7 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 		return err
 	}
 
-	rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, DEFAULT_WEIGHTS)
+	rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, database.DEFAULT_ALLIANCE_WEIGHTS)
 	allianceRankInfo := rankedAlliances[alliance.UUID]
 
 	_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, allianceStore, *alliance, &allianceRankInfo))
@@ -367,27 +361,29 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 		return err
 	}
 
-	rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, DEFAULT_WEIGHTS)
+	WEIGHTS := database.DEFAULT_ALLIANCE_WEIGHTS
+
+	rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, WEIGHTS)
 	allianceRankInfo := rankedAlliances[alliance.UUID]
 
-	residentsCalc := allianceRankInfo.Stats.Residents * DEFAULT_WEIGHTS.Residents
+	residentsCalc := allianceRankInfo.Stats.Residents * WEIGHTS.Residents
 	residentsStr := utils.HumanizedSprintf("Residents: `%.0f` * `%.1f` = **%.0f**",
-		allianceRankInfo.Stats.Residents, DEFAULT_WEIGHTS.Residents, residentsCalc,
+		allianceRankInfo.Stats.Residents, WEIGHTS.Residents, residentsCalc,
 	)
 
-	nationsCalc := allianceRankInfo.Stats.Nations * DEFAULT_WEIGHTS.Nations
+	nationsCalc := allianceRankInfo.Stats.Nations * WEIGHTS.Nations
 	nationsStr := utils.HumanizedSprintf("Nations: `%.0f` * `%.1f` = **%.0f**",
-		allianceRankInfo.Stats.Nations, DEFAULT_WEIGHTS.Nations, nationsCalc,
+		allianceRankInfo.Stats.Nations, WEIGHTS.Nations, nationsCalc,
 	)
 
-	townsCalc := allianceRankInfo.Stats.Towns * DEFAULT_WEIGHTS.Towns
+	townsCalc := allianceRankInfo.Stats.Towns * WEIGHTS.Towns
 	townsStr := utils.HumanizedSprintf("Towns: `%.0f` * `%.1f` = **%.0f**",
-		allianceRankInfo.Stats.Towns, DEFAULT_WEIGHTS.Towns, townsCalc,
+		allianceRankInfo.Stats.Towns, WEIGHTS.Towns, townsCalc,
 	)
 
-	worthCalc := allianceRankInfo.Stats.Worth * DEFAULT_WEIGHTS.Worth
+	worthCalc := allianceRankInfo.Stats.Worth * WEIGHTS.Worth
 	worthStr := utils.HumanizedSprintf("Worth: `%.0f` * `%.1f` = **%.0f**",
-		allianceRankInfo.Stats.Worth, DEFAULT_WEIGHTS.Worth, worthCalc,
+		allianceRankInfo.Stats.Worth, WEIGHTS.Worth, worthCalc,
 	)
 
 	scoreStr := utils.HumanizedSprintf("Total: `%.0f` + `%.0f` + `%.0f` + `%.0f` = **%.0f**",
@@ -453,7 +449,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 	alliances := allianceStore.Values()
 	nations := nationStore.Values()
 
-	rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, DEFAULT_WEIGHTS)
+	rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, database.DEFAULT_ALLIANCE_WEIGHTS)
 	slices.SortFunc(alliances, func(a, b database.Alliance) int {
 		// sort alliances via rankedAlliances map. lowest (best) rank first
 		return cmp.Compare(rankedAlliances[a.UUID].Rank, rankedAlliances[b.UUID].Rank)
