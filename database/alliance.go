@@ -17,8 +17,9 @@ import (
 type RankedAlliances = map[uint64]AllianceRankInfo
 type AllianceRankInfo struct {
 	UUID  uint64
-	Score float64
 	Rank  int
+	Score float64
+	Stats AllianceStats
 }
 
 type RankedAlliance struct {
@@ -261,10 +262,13 @@ func GetRankedAlliances(
 	ranked := make([]AllianceRankInfo, len(alliances))
 	for i, a := range alliances {
 		s := stats[i]
-		score := s.Residents*w.Residents + s.Nations*w.Nations + s.Towns*w.Towns + s.Worth*w.Worth
+
+		// Scores could be in the millions, scale down to ensure its readable.
+		score := s.Residents*w.Residents + s.Towns*w.Towns + s.Nations*w.Nations + s.Worth*w.Worth
 		ranked[i] = AllianceRankInfo{
 			UUID:  a.UUID,
-			Score: score / 4, // Scores could be in the millions, scale down to ensure its readable.
+			Score: score / 4,
+			Stats: s,
 		}
 	}
 

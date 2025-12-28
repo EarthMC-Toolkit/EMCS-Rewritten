@@ -62,6 +62,14 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 		},
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "score",
+			Description: "Provides a breakdown of this alliance's score, which affects its rank.",
+			Options: AppCommandOpts{
+				discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
+			},
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "create",
 			Description: "Create an alliance. EDITORS ONLY",
 		},
@@ -136,6 +144,15 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return queryAlliance(s, i.Interaction, cdata)
 	}
 
+	if opt = cdata.GetOption("score"); opt != nil {
+		err := discordutil.DeferReply(s, i.Interaction)
+		if err != nil {
+			return err
+		}
+
+		return queryAllianceScore(s, i.Interaction, cdata)
+	}
+
 	if opt = cdata.GetOption("list"); opt != nil {
 		return listAlliances(s, i.Interaction)
 	}
@@ -172,6 +189,8 @@ func (cmd AllianceCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo
 	case "edit":
 		fallthrough
 	case "disband":
+		fallthrough
+	case "score":
 		fallthrough
 	case "query":
 		return allianceIdentifierAutocomplete(s, i, cdata)
@@ -322,6 +341,79 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 	allianceRankInfo := rankedAlliances[alliance.UUID]
 
 	_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, allianceStore, *alliance, &allianceRankInfo))
+	return err
+}
+
+func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
+	mdb, err := database.Get(shared.ACTIVE_MAP)
+	if err != nil {
+		return err
+	}
+
+	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
+	if err != nil {
+		return err
+	}
+
+	ident := cdata.GetOption("score").GetOption("identifier").StringValue()
+	alliance, err := allianceStore.GetKey(strings.ToLower(ident))
+	if err != nil {
+		_, err := discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
+		return err
+	}
+
+	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
+	if err != nil {
+		return err
+	}
+
+	rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, DEFAULT_WEIGHTS)
+	allianceRankInfo := rankedAlliances[alliance.UUID]
+
+	residentsCalc := allianceRankInfo.Stats.Residents * DEFAULT_WEIGHTS.Residents
+	residentsStr := utils.HumanizedSprintf("Residents: `%.0f` * `%.1f` = **%.0f**",
+		allianceRankInfo.Stats.Residents, DEFAULT_WEIGHTS.Residents, residentsCalc,
+	)
+
+	nationsCalc := allianceRankInfo.Stats.Nations * DEFAULT_WEIGHTS.Nations
+	nationsStr := utils.HumanizedSprintf("Nations: `%.0f` * `%.1f` = **%.0f**",
+		allianceRankInfo.Stats.Nations, DEFAULT_WEIGHTS.Nations, nationsCalc,
+	)
+
+	townsCalc := allianceRankInfo.Stats.Towns * DEFAULT_WEIGHTS.Towns
+	townsStr := utils.HumanizedSprintf("Towns: `%.0f` * `%.1f` = **%.0f**",
+		allianceRankInfo.Stats.Towns, DEFAULT_WEIGHTS.Towns, townsCalc,
+	)
+
+	worthCalc := allianceRankInfo.Stats.Worth * DEFAULT_WEIGHTS.Worth
+	worthStr := utils.HumanizedSprintf("Worth: `%.0f` * `%.1f` = **%.0f**",
+		allianceRankInfo.Stats.Worth, DEFAULT_WEIGHTS.Worth, worthCalc,
+	)
+
+	scoreStr := utils.HumanizedSprintf("Total: `%.0f` + `%.0f` + `%.0f` + `%.0f` = **%.0f**",
+		residentsCalc, nationsCalc, townsCalc, worthCalc, allianceRankInfo.Score*4,
+	)
+
+	normalizedStr := utils.HumanizedSprintf("Normalized: `%.0f` / 4 = **%.0f**",
+		allianceRankInfo.Score*4, allianceRankInfo.Score,
+	)
+
+	// TODO: Maybe include closest rival alliance and required score to surpass it.
+	standingStr := utils.HumanizedSprintf("This alliance has a score of **%.0f** which places it at rank **%d** out of **%d**.",
+		allianceRankInfo.Score, allianceRankInfo.Rank, allianceStore.Count(),
+	)
+
+	embed := &discordgo.MessageEmbed{
+		Title: fmt.Sprintf("Alliance Score Breakdown | `%s` | #%d", alliance.Identifier, allianceRankInfo.Rank),
+		Description: fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n\n%s\n%s", standingStr,
+			residentsStr, nationsStr, townsStr, worthStr,
+			scoreStr, normalizedStr,
+		),
+		Color:  discordutil.DARK_AQUA,
+		Footer: embeds.DEFAULT_FOOTER,
+	}
+
+	_, err = discordutil.FollowupEmbeds(s, i, embed)
 	return err
 }
 
