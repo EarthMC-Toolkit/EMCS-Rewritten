@@ -98,8 +98,8 @@ func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *disco
 // }
 
 func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err any) {
-	errStr := fmt.Sprintf("```%v```", err) // NOTE: This could panic itself. Maybe handle it or just send generic text.
-	content := "Bot encountered a non-fatal error during this command.\n" + errStr
+	// NOTE: This could panic itself. Maybe handle it or just send generic text.
+	content := fmt.Sprintf("Bot encountered a non-fatal error during this command.```%s```", err)
 
 	// Not already deferred, reply.
 	_, err = EditOrSendReply(s, i, &discordgo.InteractionResponseData{

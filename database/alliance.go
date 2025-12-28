@@ -13,6 +13,14 @@ import (
 	"github.com/samber/lo"
 )
 
+// UUID -> AllianceRankInfo
+type RankedAlliances = map[uint64]AllianceRankInfo
+type AllianceRankInfo struct {
+	UUID  uint64
+	Score float64
+	Rank  int
+}
+
 type RankedAlliance struct {
 	Alliance
 	Score float64
@@ -21,7 +29,7 @@ type RankedAlliance struct {
 
 type AllianceWeights AllianceStats
 type AllianceStats struct {
-	Residents, Nations, Towns, Wealth float64
+	Residents, Nations, Towns, Worth float64
 }
 
 type AllianceColours struct {
@@ -222,11 +230,12 @@ func (a Alliance) GetStats(ownNations []oapi.NationInfo, childNations []oapi.Nat
 	return
 }
 
+// TODO: Maybe just turn into a map with UUID -> Rank/Score?
 func GetRankedAlliances(
-	nationStore *store.Store[oapi.NationInfo],
 	allianceStore *store.Store[Alliance],
+	nationStore *store.Store[oapi.NationInfo],
 	w AllianceWeights,
-) []RankedAlliance {
+) RankedAlliances {
 	alliances := allianceStore.Values()
 	nations := nationStore.Values()
 
@@ -239,24 +248,24 @@ func GetRankedAlliances(
 		childNationIDs := a.ChildAlliances(alliances).NationIds()
 		childNations := nationStore.GetFromSet(childNationIDs)
 
-		towns, residents, _, wealth := a.GetStats(ownNations, childNations)
+		towns, residents, _, worth := a.GetStats(ownNations, childNations)
 		s := AllianceStats{
 			Residents: float64(residents),
 			Nations:   float64(len(nations)),
 			Towns:     float64(len(towns)),
-			Wealth:    float64(wealth),
+			Worth:     float64(worth),
 		}
 
 		stats[i] = s
 	}
 
-	ranked := make([]RankedAlliance, len(alliances))
+	ranked := make([]AllianceRankInfo, len(alliances))
 	for i, a := range alliances {
 		s := stats[i]
-		score := s.Residents*w.Residents + s.Nations*w.Nations + s.Towns*w.Towns + s.Wealth*w.Wealth
-		ranked[i] = RankedAlliance{
-			Alliance: a,
-			Score:    score / 4, // Scores could be in the millions, scale down to ensure its readable.
+		score := s.Residents*w.Residents + s.Nations*w.Nations + s.Towns*w.Towns + s.Worth*w.Worth
+		ranked[i] = AllianceRankInfo{
+			UUID:  a.UUID,
+			Score: score / 4, // Scores could be in the millions, scale down to ensure its readable.
 		}
 	}
 
@@ -268,7 +277,12 @@ func GetRankedAlliances(
 		ranked[i].Rank = i + 1 // start from 1, where 1 is the best rank.
 	}
 
-	return ranked
+	out := make(RankedAlliances, len(ranked))
+	for _, info := range ranked {
+		out[info.UUID] = info
+	}
+
+	return out
 }
 
 type ChildAlliances []Alliance

@@ -2,6 +2,7 @@ package slashcommands
 
 import (
 	"bytes"
+	"cmp"
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/database/store"
@@ -30,6 +31,12 @@ const SR_EDITOR_ROLE = "1143253762039873646"
 const ALLIANCE_BACKUP_CHANNEL = "1438592337335947314"
 
 var REMOVE_KEYWORDS = []string{"null", "none", "remove", "delete"}
+var DEFAULT_WEIGHTS = database.AllianceWeights{
+	Residents: 90,
+	Towns:     55, // 35% less than residents
+	Nations:   35, // 20% less than towns
+	Worth:     20, // Worth of all towns in this alliance. Initial cost + town blocks.
+}
 
 type AllianceCommand struct{}
 
@@ -191,8 +198,6 @@ func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Intera
 		ident := strings.Split(customID, "@")[1]
 		alliance, err := allianceStore.GetKey(strings.ToLower(ident))
 		if err != nil {
-			//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
-
 			discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 			return err
 		}
@@ -291,7 +296,12 @@ func allianceIdentifierAutocomplete(
 }
 
 func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
-	allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
+	mdb, err := database.Get(shared.ACTIVE_MAP)
+	if err != nil {
+		return err
+	}
+
+	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
 	if err != nil {
 		return err
 	}
@@ -299,13 +309,19 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 	ident := cdata.GetOption("query").GetOption("identifier").StringValue()
 	alliance, err := allianceStore.GetKey(strings.ToLower(ident))
 	if err != nil {
-		//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
-
 		_, err := discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 		return err
 	}
 
-	_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, allianceStore, *alliance))
+	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
+	if err != nil {
+		return err
+	}
+
+	rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, DEFAULT_WEIGHTS)
+	allianceRankInfo := rankedAlliances[alliance.UUID]
+
+	_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, allianceStore, *alliance, &allianceRankInfo))
 	return err
 }
 
@@ -344,6 +360,12 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 
 	alliances := allianceStore.Values()
 	nations := nationStore.Values()
+
+	rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, DEFAULT_WEIGHTS)
+	slices.SortFunc(alliances, func(a, b database.Alliance) int {
+		// sort alliances via rankedAlliances map. lowest (best) rank first
+		return cmp.Compare(rankedAlliances[a.UUID].Rank, rankedAlliances[b.UUID].Rank)
+	})
 
 	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
 	perPage := 5
@@ -701,7 +723,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	}
 
 	content := "Successfully edited alliance. Result:"
-	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance)
+	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil)
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Content: content,
 		Embeds:  []*discordgo.MessageEmbed{embed},
@@ -733,12 +755,12 @@ func handleAllianceEditorModalLeadersUpdate(
 // TODO: Create a scheduled job that loops through alliances, removing nations that no longer exist.
 // /alliance update nations
 func handleAllianceEditorModalNationsUpdate(
-	s *discordgo.Session, i *discordgo.Interaction,
-	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
+	s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance,
+	allianceStore *store.Store[database.Alliance],
 ) error {
 	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 	if err != nil {
-		return fmt.Errorf("error updating nations for alliance: %s. failed to get nation store from DB", alliance.Identifier)
+		return err
 	}
 
 	// build map of Name -> NationInfo for O(1) lookups
@@ -795,8 +817,15 @@ func handleAllianceEditorModalNationsUpdate(
 		}
 	}
 
-	if (len(nationUUIDs) + len(puppetNationUUIDs)) < 2 {
-		return fmt.Errorf("alliance must have at least two nations. either directly or from puppet alliances.")
+	allNationsAmt := len(nationUUIDs) + len(puppetNationUUIDs)
+	if allNationsAmt < 2 {
+		return fmt.Errorf("An alliance cannot have a single nation or no nations!\n" +
+			"There must be a total of two nations either directly, via puppet alliances, or both.",
+		)
+	}
+
+	if utils.MapKeysEqual(alliance.OwnNations, nationUUIDs) {
+		return fmt.Errorf("Alliance not edited. No changes were made to the nation list.")
 	}
 
 	// Update alliance with new nation list
@@ -811,7 +840,7 @@ func handleAllianceEditorModalNationsUpdate(
 	}
 
 	content := "Successfully edited alliance. Result:"
-	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance)
+	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil)
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Content: content,
 		Embeds:  []*discordgo.MessageEmbed{embed},
@@ -831,12 +860,12 @@ func handleAllianceEditorModalNationsUpdate(
 			strings.Join(notAdded, ", "),
 		))
 	}
-	// if len(alreadyPuppets) > 0 {
-	// 	messages = append(messages, fmt.Sprintf(
-	// 		"The following nations were skipped as they are already puppets:```%s```",
-	// 		strings.Join(alreadyPuppets, ", "),
-	// 	))
-	// }
+	if len(alreadyPuppets) > 0 {
+		messages = append(messages, fmt.Sprintf(
+			"The following nations were skipped as they are already puppets:```%s```",
+			strings.Join(alreadyPuppets, ", "),
+		))
+	}
 
 	if len(messages) > 0 {
 		discordutil.FollowupContentEphemeral(s, i, strings.Join(messages, "\n"))
@@ -1001,8 +1030,8 @@ func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, all
 }
 
 func handleAllianceEditorModalFunctional(
-	s *discordgo.Session, i *discordgo.Interaction,
-	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
+	s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance,
+	allianceStore *store.Store[database.Alliance],
 ) error {
 	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 	if err != nil {
@@ -1100,7 +1129,7 @@ func handleAllianceEditorModalFunctional(
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance)
+	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil)
 	content := "Successfully edited alliance. Result:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD
@@ -1276,7 +1305,7 @@ func handleAllianceEditorModalOptional(
 	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully edited alliance. Result:",
 		Embeds: []*discordgo.MessageEmbed{
-			embeds.NewAllianceEmbed(s, allianceStore, *alliance),
+			embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil),
 		},
 	})
 
@@ -1397,7 +1426,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed := embeds.NewAllianceEmbed(s, allianceStore, alliance)
+	embed := embeds.NewAllianceEmbed(s, allianceStore, alliance, nil)
 	content := "Successfully created alliance:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD

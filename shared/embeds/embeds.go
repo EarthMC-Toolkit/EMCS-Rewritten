@@ -57,7 +57,10 @@ func GetAffiliationLines(players []database.BasicPlayer) string {
 }
 
 // Creates a single embed showing info from the given Alliance.
-func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.Alliance], a database.Alliance) *discordgo.MessageEmbed {
+func NewAllianceEmbed(
+	s *discordgo.Session, allianceStore *store.Store[database.Alliance],
+	a database.Alliance, rankInfo *database.AllianceRankInfo,
+) *discordgo.MessageEmbed {
 	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
 	if err != nil {
 		fmt.Printf("ERROR | Could not get player store for map %s:\n%v", shared.ACTIVE_MAP, err)
@@ -115,10 +118,15 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 		embedColour = utils.HexToInt(*colours.Fill)
 	}
 
+	title := fmt.Sprintf("Alliance Info | `%s`", a.Label)
+	if rankInfo != nil {
+		title += fmt.Sprintf(" | #%d", rankInfo.Rank)
+	}
+
 	embed := &discordgo.MessageEmbed{
 		Color:  embedColour,
 		Footer: DEFAULT_FOOTER,
-		Title:  fmt.Sprintf("Alliance Info | `%s`", a.Label),
+		Title:  title,
 		Fields: []*discordgo.MessageEmbedField{
 			NewEmbedField("Leader(s)", leadersValue, false),
 			NewEmbedField("Stats", stats, true),
@@ -192,8 +200,11 @@ func NewAllianceEmbed(s *discordgo.Session, allianceStore *store.Store[database.
 	}
 
 	if a.Optional.DiscordCode != nil {
-		embed.Title = fmt.Sprintf("Alliance Info | %s", a.Label)
 		embed.URL = fmt.Sprintf("https://discord.gg/%s", *a.Optional.DiscordCode)
+		embed.Title = fmt.Sprintf("Alliance Info | %s", a.Label)
+		if rankInfo != nil {
+			embed.Title += fmt.Sprintf(" | #%d", rankInfo.Rank)
+		}
 	}
 
 	return embed

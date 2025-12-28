@@ -148,6 +148,20 @@ func CopyMap[K comparable, V any, M ~map[K]V](m M) M {
 	return cpy
 }
 
+// Compares two maps for equality based on their keys only.
+func MapKeysEqual[K comparable, V comparable](a, b map[K]V) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k := range a {
+		if _, ok := b[k]; !ok {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Returns items in listA but not in listB based on keyFunc.
 func DifferenceBy[T any, K comparable](listA []T, listB []T, keyFn func(T) K) ([]T, map[K]struct{}) {
 	seen := make(map[K]struct{}, len(listB))
