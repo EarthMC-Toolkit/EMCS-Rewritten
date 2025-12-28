@@ -236,7 +236,7 @@ func GetRankedAlliances(
 		ownNations := nationStore.GetFromSet(a.OwnNations)
 
 		// collect child nations
-		childNationIDs := a.ChildAlliances(alliances).NationIdsSet()
+		childNationIDs := a.ChildAlliances(alliances).NationIds()
 		childNations := nationStore.GetFromSet(childNationIDs)
 
 		towns, residents, _, wealth := a.GetStats(ownNations, childNations)
@@ -273,12 +273,7 @@ func GetRankedAlliances(
 
 type ChildAlliances []Alliance
 
-func (a ChildAlliances) NationIds() (uuids []string) {
-	seen := a.NationIdsSet()
-	return seen.Keys()
-}
-
-func (a ChildAlliances) NationIdsSet() sets.StringSet {
+func (a ChildAlliances) NationIds() sets.StringSet {
 	seen := make(sets.StringSet)
 	for _, child := range a {
 		for uuid := range child.OwnNations {

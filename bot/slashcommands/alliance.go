@@ -388,7 +388,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 
 			ownNations := nationStore.GetFromSet(a.OwnNations)
 
-			childNationIds := a.ChildAlliances(alliances).NationIdsSet()
+			childNationIds := a.ChildAlliances(alliances).NationIds()
 			childNations := nationStore.GetFromSet(childNationIds)
 
 			towns, residents, area, worth := a.GetStats(ownNations, childNations)
@@ -748,7 +748,8 @@ func handleAllianceEditorModalNationsUpdate(
 	// start with a set of existing UUIDs for easier add/remove
 	nationUUIDs := utils.CopyMap(alliance.OwnNations)
 
-	puppetNationUUIDs := alliance.ChildAlliances(allianceStore.Values()).NationIdsSet()
+	puppetAlliances := alliance.ChildAlliances(allianceStore.Values())
+	puppetNationUUIDs := puppetAlliances.NationIds()
 
 	inputs := discordutil.GetModalInputs(i)
 	removeInput := strings.TrimSpace(inputs["remove"])

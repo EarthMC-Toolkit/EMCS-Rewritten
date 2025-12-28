@@ -2,7 +2,6 @@ package sets
 
 import (
 	"encoding/json"
-	"maps"
 )
 
 // type SyncedStringSet struct {
@@ -63,12 +62,4 @@ func (s *StringSet) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
-}
-
-// Constructs a new StringSet from this set.
-func (s StringSet) Copy() StringSet {
-	copy := make(StringSet, len(s))
-	maps.Copy(copy, s)
-
-	return copy
 }
