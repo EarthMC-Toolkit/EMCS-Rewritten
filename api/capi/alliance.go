@@ -44,18 +44,6 @@ func parseAlliance(a database.Alliance, nationStore *store.Store[oapi.NationInfo
 		return n.Name
 	})
 
-	// childAlliances := a.ChildAlliances(alliances)
-	// childNations := nationStore.GetFromSet(childAlliances.NationIdsSet())
-	// childNationNames := lo.Map(childNations, func(n oapi.NationInfo, _ int) string {
-	// 	return n.Name
-	// })
-
-	// // Map child alliance identifiers to their nations
-	// puppets := make(PuppetMap)
-	// for _, child := range childAlliances {
-	// 	puppets[child.Identifier] = childNationNames
-	// }
-
 	return Alliance{
 		UUID:             a.UUID,
 		Identifier:       a.Identifier,
@@ -63,7 +51,7 @@ func parseAlliance(a database.Alliance, nationStore *store.Store[oapi.NationInfo
 		RepresentativeID: a.RepresentativeID,
 		Parent:           a.Parent,
 		OwnNations:       ownNationNames,
-		// Puppets:          puppets,
+		Type:             string(a.Type),
 		UpdatedTimestamp: a.UpdatedTimestamp,
 		CreatedTimestamp: a.CreatedTimestamp(),
 		Optional: AllianceOptionals{
@@ -72,13 +60,15 @@ func parseAlliance(a database.Alliance, nationStore *store.Store[oapi.NationInfo
 			DiscordCode: a.Optional.DiscordCode,
 			Colours:     (*AllianceColours)(a.Optional.Colours),
 		},
-		Type: string(a.Type),
 	}
 }
 
 // Parses input slice of [database.Alliance] to [Alliance] in parallel and returns
 // the slice in alphabetical order according to the alliance Identifier.
-func getParsedAlliances(alliances []database.Alliance, nationStore *store.Store[oapi.NationInfo], reslist, townlesslist *oapi.EntityList) []Alliance {
+func getParsedAlliances(
+	alliances []database.Alliance, nationStore *store.Store[oapi.NationInfo],
+	reslist, townlesslist *oapi.EntityList,
+) []Alliance {
 	parsedAlliances := make([]Alliance, len(alliances))
 
 	var wg sync.WaitGroup
@@ -95,7 +85,7 @@ func getParsedAlliances(alliances []database.Alliance, nationStore *store.Store[
 
 	wg.Wait()
 
-	// Keep same order for every request (alphabetical)
+	// Persist alphabetical order through requests.
 	sort.Slice(parsedAlliances, func(i, j int) bool {
 		return parsedAlliances[i].Identifier < parsedAlliances[j].Identifier
 	})
