@@ -62,26 +62,28 @@ func (s *Store[T]) CleanPath() string {
 	return filepath.Clean(s.filePath)
 }
 
-func (s *Store[T]) Keys() (keys []StoreKey) {
+func (s *Store[T]) Keys() []StoreKey {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	keys := make([]StoreKey, 0, len(s.data))
 	for k := range s.data {
 		keys = append(keys, k)
 	}
 
-	return
+	return keys
 }
 
-func (s *Store[T]) Values() (values []T) {
+func (s *Store[T]) Values() []T {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	values := make([]T, 0, len(s.data))
 	for _, v := range s.data {
 		values = append(values, v)
 	}
 
-	return
+	return values
 }
 
 func (s *Store[T]) Entries() StoreData[T] {
@@ -92,16 +94,18 @@ func (s *Store[T]) Entries() StoreData[T] {
 }
 
 // Similar to Entries(), this func will return a map, with the key being customizable based on keyFunc.
-//
-// This is useful for creating maps, where the key is based on a specific field of the stored value type.
+// However, unlike Entries(), no shallow copy is made since the keys are being re-mapped anyway.
+// This is useful for creating a new map where the key is based on a specific field of the stored value type.
 func (s *Store[T]) EntriesFunc(f func(value T) string) map[string]T {
-	vals := s.Values()
-	out := make(map[string]T, len(vals))
-	for _, v := range vals {
-		out[f(v)] = v
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	m := make(map[string]T, len(s.data))
+	for _, v := range s.data {
+		m[f(v)] = v
 	}
 
-	return out
+	return m
 }
 
 // Gets both entries and values in a single pass.
