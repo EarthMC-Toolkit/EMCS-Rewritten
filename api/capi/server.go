@@ -34,8 +34,8 @@ func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc(alliancesEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		// Pre-cache common data
-		reslist, _ := entitiesStore.GetKey("residentlist")
-		townlesslist, _ := entitiesStore.GetKey("townlesslist")
+		reslist, _ := entitiesStore.Get("residentlist")
+		townlesslist, _ := entitiesStore.Get("townlesslist")
 
 		alliances := allianceStore.Values()
 		//rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, database.DEFAULT_ALLIANCE_WEIGHTS)

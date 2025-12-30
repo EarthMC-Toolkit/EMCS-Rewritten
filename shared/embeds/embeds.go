@@ -193,7 +193,7 @@ func NewAllianceEmbed(
 	}
 
 	if a.Parent != nil {
-		parentAlliance, err := allianceStore.GetKey(strings.ToLower(*a.Parent))
+		parentAlliance, err := allianceStore.Get(strings.ToLower(*a.Parent))
 		if err == nil {
 			embed.Description = fmt.Sprintf("*This alliance is a puppet of `%s` / `%s`*.", parentAlliance.Identifier, parentAlliance.Label)
 		}
@@ -215,7 +215,7 @@ func NewAllianceEmbed(
 // Should be preferred when the user is annoying and has opted-out of the Official API.
 func NewBasicPlayerEmbed(player database.BasicPlayer, description string) *discordgo.MessageEmbed {
 	townsStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
-	town, _ := townsStore.GetKey(player.Town.UUID)
+	town, _ := townsStore.Get(player.Town.UUID)
 
 	townName := lo.Ternary(town == nil, "No Town", town.Name)
 	nationName := lo.TernaryF(town.Nation.Name == nil,
@@ -294,7 +294,7 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 	affiliation := "None (Townless)"
 	if townName != "No Town" {
 		townsStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
-		town, err := townsStore.GetKey(*player.Town.UUID)
+		town, err := townsStore.Get(*player.Town.UUID)
 
 		// Should never rly be false bc we established they aren't townless.
 		if err == nil {

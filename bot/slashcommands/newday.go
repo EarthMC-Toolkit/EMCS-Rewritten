@@ -47,7 +47,7 @@ func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 		return err
 	}
 
-	info, err := serverStore.GetKey("info")
+	info, err := serverStore.Get("info")
 	if err != nil {
 		log.Printf("failed to get serverinfo from db:\n%v", err)
 		return discordutil.SendReply(s, i, &discordgo.InteractionResponseData{

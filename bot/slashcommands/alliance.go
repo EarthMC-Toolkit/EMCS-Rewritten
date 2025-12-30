@@ -209,7 +209,7 @@ func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Intera
 		}
 
 		ident := strings.Split(customID, "@")[1]
-		alliance, err := allianceStore.GetKey(strings.ToLower(ident))
+		alliance, err := allianceStore.Get(strings.ToLower(ident))
 		if err != nil {
 			discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 			return err
@@ -320,7 +320,7 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 	}
 
 	ident := cdata.GetOption("query").GetOption("identifier").StringValue()
-	alliance, err := allianceStore.GetKey(strings.ToLower(ident))
+	alliance, err := allianceStore.Get(strings.ToLower(ident))
 	if err != nil {
 		_, err := discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 		return err
@@ -350,7 +350,7 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 	}
 
 	ident := cdata.GetOption("score").GetOption("identifier").StringValue()
-	alliance, err := allianceStore.GetKey(strings.ToLower(ident))
+	alliance, err := allianceStore.Get(strings.ToLower(ident))
 	if err != nil {
 		_, err := discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 		return err
@@ -443,8 +443,8 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 		return err
 	}
 
-	reslist, _ := entitiesStore.GetKey("residentlist")
-	townlesslist, _ := entitiesStore.GetKey("townlesslist")
+	reslist, _ := entitiesStore.Get("residentlist")
+	townlesslist, _ := entitiesStore.Get("townlesslist")
 
 	alliances := allianceStore.Values()
 	nations := nationStore.Values()
@@ -624,7 +624,7 @@ func disbandAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata disco
 	// Send disband notif and the alliance's json data to backup channel.
 	sendAllianceBackup(s, i, a, "disbanded")
 
-	allianceStore.DeleteKey(strings.ToLower(a.Identifier))
+	allianceStore.Delete(strings.ToLower(a.Identifier))
 
 	// We instantly write the data to the db to make sure the changes stick without waiting for graceful shutdown,
 	// since the bot could panic and not recover at any moment and all changes would be lost.
@@ -677,7 +677,7 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, opt *discordgo
 	}
 
 	ident := subCmd.GetOption("identifier").StringValue()
-	alliance, err := allianceStore.GetKey(strings.ToLower(ident))
+	alliance, err := allianceStore.Get(strings.ToLower(ident))
 	if err != nil {
 		//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
@@ -759,7 +759,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	}
 
 	// build map of Name -> BasicPlayer for O(1) lookups
-	playerByName := playerStore.EntriesKeyFunc(func(p database.BasicPlayer) string {
+	playerByName := playerStore.EntriesFunc(func(p database.BasicPlayer) string {
 		return strings.ToLower(p.Name)
 	})
 
@@ -804,7 +804,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	alliance.SetUpdated()
 
 	// Persist changes
-	allianceStore.SetKey(strings.ToLower(alliance.Identifier), *alliance)
+	allianceStore.Set(strings.ToLower(alliance.Identifier), *alliance)
 	err = allianceStore.WriteSnapshot()
 	if err != nil {
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
@@ -852,7 +852,7 @@ func handleAllianceEditorModalNationsUpdate(
 	}
 
 	// build map of Name -> NationInfo for O(1) lookups
-	nationByName := nationStore.EntriesKeyFunc(func(n oapi.NationInfo) string {
+	nationByName := nationStore.EntriesFunc(func(n oapi.NationInfo) string {
 		return strings.ToLower(n.Name)
 	})
 
@@ -921,7 +921,7 @@ func handleAllianceEditorModalNationsUpdate(
 	alliance.SetUpdated()
 
 	// Persist changes
-	allianceStore.SetKey(strings.ToLower(alliance.Identifier), *alliance)
+	allianceStore.Set(strings.ToLower(alliance.Identifier), *alliance)
 	err = allianceStore.WriteSnapshot()
 	if err != nil {
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
@@ -1034,8 +1034,8 @@ func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, all
 		return err
 	}
 
-	reslist, _ := entitiesStore.GetKey("residentlist")
-	townlesslist, _ := entitiesStore.GetKey("townlesslist")
+	reslist, _ := entitiesStore.Get("residentlist")
+	townlesslist, _ := entitiesStore.Get("townlesslist")
 
 	discordPlaceholder := "Enter an invite link or code to the alliance's Discord."
 	if alliance.Optional.DiscordCode != nil {
@@ -1140,7 +1140,7 @@ func handleAllianceEditorModalFunctional(
 	if slices.Contains(REMOVE_KEYWORDS, parentInputLower) {
 		parentIdent = nil
 	} else if parentInput != "" {
-		parent, err := allianceStore.GetKey(parentInputLower)
+		parent, err := allianceStore.Get(parentInputLower)
 		if err != nil {
 			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Parent alliance `%s` does not exist.", parentInput),
@@ -1205,9 +1205,9 @@ func handleAllianceEditorModalFunctional(
 	alliance.SetUpdated()
 
 	// Update store
-	allianceStore.SetKey(strings.ToLower(ident), *alliance)
+	allianceStore.Set(strings.ToLower(ident), *alliance)
 	if !strings.EqualFold(oldIdent, ident) {
-		allianceStore.DeleteKey(strings.ToLower(oldIdent)) // remove old key if identifier changed
+		allianceStore.Delete(strings.ToLower(oldIdent)) // remove old key if identifier changed
 	}
 
 	// We instantly write the data to the db to make sure the changes stick without waiting for graceful shutdown,
@@ -1381,7 +1381,7 @@ func handleAllianceEditorModalOptional(
 	alliance.SetUpdated()
 
 	// Update alliance in store
-	allianceStore.SetKey(strings.ToLower(alliance.Identifier), *alliance)
+	allianceStore.Set(strings.ToLower(alliance.Identifier), *alliance)
 
 	// We instantly write the data to the db to make sure the changes stick without waiting for graceful shutdown,
 	// since the bot could panic and not recover at any moment and all changes would be lost.
@@ -1477,7 +1477,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	var parent *string
 	parentInput := strings.ReplaceAll(inputs["parent"], " ", "")
 	if parentInput != "" {
-		pa, err := allianceStore.GetKey(strings.ToLower(parentInput))
+		pa, err := allianceStore.Get(strings.ToLower(parentInput))
 		if err != nil {
 			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Parent alliance `%s` does not exist.", parentInput),
@@ -1505,7 +1505,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		UpdatedTimestamp: &createdTs,
 	}
 
-	allianceStore.SetKey(strings.ToLower(ident), alliance)
+	allianceStore.Set(strings.ToLower(ident), alliance)
 
 	// We instantly write the data to the db to make sure the changes stick without waiting for graceful shutdown,
 	// since the bot could panic and not recover at any moment and all changes would be lost.
@@ -1616,7 +1616,7 @@ func validateNations(nationStore *store.Store[oapi.NationInfo], input []string) 
 		return nil, nil // in case we were stupid and didn't provide an input
 	}
 
-	nameMap := nationStore.EntriesKeyFunc(func(n oapi.NationInfo) string {
+	nameMap := nationStore.EntriesFunc(func(n oapi.NationInfo) string {
 		return strings.ToLower(n.Name)
 	})
 

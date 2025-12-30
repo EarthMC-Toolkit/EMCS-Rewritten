@@ -28,7 +28,7 @@ func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.Interacti
 		return err
 	}
 
-	info, err := serverStore.GetKey("info")
+	info, err := serverStore.Get("info")
 	if err != nil {
 		err := fmt.Errorf("failed to execute /serverinfo. could not find 'info' key in 'server' store")
 		discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{

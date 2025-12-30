@@ -98,7 +98,7 @@ func UpdateUsageForUser(db *Database, user *discordgo.User, cmdName string, entr
 		return err
 	}
 
-	usage, _ := usageStore.GetKey(user.ID)
+	usage, _ := usageStore.Get(user.ID)
 	if usage == nil {
 		usage = &UserUsage{
 			CommandHistory: make(map[string][]UsageCommandEntry),
@@ -106,7 +106,7 @@ func UpdateUsageForUser(db *Database, user *discordgo.User, cmdName string, entr
 	}
 
 	usage.CommandHistory[cmdName] = append(usage.CommandHistory[cmdName], entry)
-	usageStore.SetKey(user.ID, *usage)
+	usageStore.Set(user.ID, *usage)
 
 	return nil
 }

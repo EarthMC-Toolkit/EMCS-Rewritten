@@ -137,7 +137,7 @@ func (a *Alliance) ChildAlliances(alliances []Alliance) (children ChildAlliances
 //
 // The leaders are stored in UUID form if they exist, otherwise the IGN will be added to the `invalid` output slice.
 func (a *Alliance) SetLeaders(playerStore *store.Store[BasicPlayer], igns ...string) (invalid []string, err error) {
-	playerByName := playerStore.EntriesKeyFunc(func(p BasicPlayer) string {
+	playerByName := playerStore.EntriesFunc(func(p BasicPlayer) string {
 		return strings.ToLower(p.Name)
 	})
 

@@ -26,10 +26,12 @@ func (sd StoreData[T]) shallowCopy() StoreData[T] {
 	return utils.CopyMap(sd)
 }
 
-// Essentially a persistent cache.
-// Each 'store' is backed by a JSON file aka database which the cache will be populated from when it is initialized (if the file exists).
+// Essentially a persistent cache that can be interfaced with like a KV store.
 //
-// A Store has the ability to Get/Set values or create snapshots of the cache which can be written to the database.
+// Each 'store' is backed by a JSON file aka database which the cache will be populated from when it is initialized (if the file exists).
+// From there on, all operations are done in-memory and the current state can be saved to the file on demand.
+//
+// The store is thread-safe and can be used concurrently across multiple goroutines.
 type Store[T any] struct {
 	filePath string       // Path to the file/dataset for this store.
 	data     StoreData[T] // The actual data within the file.
@@ -92,11 +94,11 @@ func (s *Store[T]) Entries() StoreData[T] {
 // Similar to Entries(), this func will return a map, with the key being customizable based on keyFunc.
 //
 // This is useful for creating maps, where the key is based on a specific field of the stored value type.
-func (s *Store[T]) EntriesKeyFunc(keyFunc func(value T) string) map[string]T {
+func (s *Store[T]) EntriesFunc(f func(value T) string) map[string]T {
 	vals := s.Values()
 	out := make(map[string]T, len(vals))
 	for _, v := range vals {
-		out[keyFunc(v)] = v
+		out[f(v)] = v
 	}
 
 	return out
@@ -148,7 +150,7 @@ func (s *Store[T]) Count() int {
 //
 // This operation is case-sensitive. If you are storing keys insensitively,
 // make sure the key is lowered before inputting to this func.
-func (s *Store[T]) DeleteKey(key string) {
+func (s *Store[T]) Delete(key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -165,7 +167,7 @@ func (s *Store[T]) HasKey(key string) bool {
 }
 
 // Creates or overwrites the value in the store at the given key in a thread-safe manner.
-func (s *Store[T]) SetKey(key string, value T) {
+func (s *Store[T]) Set(key string, value T) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -176,7 +178,7 @@ func (s *Store[T]) SetKey(key string, value T) {
 //
 // This operation is case-sensitive. If you are storing keys insensitively,
 // make sure the key is lowered before inputting to this func.
-func (s *Store[T]) GetKey(key string) (*T, error) {
+func (s *Store[T]) Get(key string) (*T, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -187,7 +189,7 @@ func (s *Store[T]) GetKey(key string) (*T, error) {
 	return nil, fmt.Errorf("could not get value for key '%s' from store: %s. no such key exists", key, s.CleanPath())
 }
 
-func (s *Store[T]) GetKeyFunc(predicate func(key StoreKey) bool) (*T, error) {
+func (s *Store[T]) GetFunc(predicate func(key StoreKey) bool) (*T, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

@@ -70,7 +70,7 @@ func TestStorePersistence(t *testing.T) {
 	mdb, dbDir := setupTest(t, testPersistDB)
 	s := database.AssignStore(mdb, testStore)
 
-	s.SetKey("key1", TestData{Name: "PersistentKey", Names: []string{"Persist1", "Persist2"}})
+	s.Set("key1", TestData{Name: "PersistentKey", Names: []string{"Persist1", "Persist2"}})
 	if err := s.WriteSnapshot(); err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestStorePersistence(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	v, _ := rs.GetKey("key1")
+	v, _ := rs.Get("key1")
 	if v == nil {
 		t.Fatalf("expected key1 to exist after reload")
 	}
@@ -95,8 +95,8 @@ func TestSetGet(t *testing.T) {
 	mdb, _ := setupTest(t, testDB)
 	s := database.AssignStore(mdb, testStore)
 
-	s.SetKey("key1", TestData{Name: "Test", Names: []string{"Test1", "Test2"}})
-	v, err := s.GetKey("key1")
+	s.Set("key1", TestData{Name: "Test", Names: []string{"Test1", "Test2"}})
+	v, err := s.Get("key1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestSetGet(t *testing.T) {
 func BenchmarkSet(b *testing.B) {
 	_, s, _ := setupBench(b)
 	for i := 0; b.Loop(); i++ {
-		s.SetKey(fmt.Sprintf("key%d", i), TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
+		s.Set(fmt.Sprintf("key%d", i), TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
 	}
 }
 
@@ -118,11 +118,11 @@ func BenchmarkGet(b *testing.B) {
 
 	total := 100_000
 	for i := range total {
-		s.SetKey(fmt.Sprintf("key%d", i), TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
+		s.Set(fmt.Sprintf("key%d", i), TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
 	}
 
 	for i := 0; b.Loop(); i++ {
-		if _, err := s.GetKey(fmt.Sprintf("key%d", i%total)); err != nil {
+		if _, err := s.Get(fmt.Sprintf("key%d", i%total)); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -133,7 +133,7 @@ func BenchmarkSetSingle(b *testing.B) {
 
 	key := "key1"
 	for b.Loop() {
-		s.SetKey(key, TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
+		s.Set(key, TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
 	}
 }
 
@@ -141,10 +141,10 @@ func BenchmarkGetSingle(b *testing.B) {
 	_, s, _ := setupBench(b)
 
 	key := "key1"
-	s.SetKey(key, TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
+	s.Set(key, TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
 
 	for b.Loop() {
-		if _, err := s.GetKey(key); err != nil {
+		if _, err := s.Get(key); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -156,7 +156,7 @@ func BenchmarkWriteSnapshot(b *testing.B) {
 	// Fill the store with some data
 	total := 20_000
 	for i := range total {
-		s.SetKey(fmt.Sprintf("key%d", i), TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
+		s.Set(fmt.Sprintf("key%d", i), TestData{Name: "Benchmark", Names: []string{"Bench1", "Bench2"}})
 	}
 
 	for b.Loop() {

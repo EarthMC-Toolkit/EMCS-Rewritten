@@ -139,7 +139,7 @@ func SetKeyFunc[T any](store *store.Store[T], key string, task func() (T, error)
 		return res, err
 	}
 
-	store.SetKey(key, res)
+	store.Set(key, res)
 	//log.Printf("put '%s' into db at %s\n", key, dbDir)
 
 	return res, err
