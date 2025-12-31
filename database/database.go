@@ -16,6 +16,7 @@ import (
 // It also prevents hard-coded strings littering the codebase and hurting maintenance.
 type StoreDefinition[T any] struct {
 	Name string
+	//Type T
 }
 
 var (
@@ -132,13 +133,13 @@ func GetStore[T any](db *Database, storeDef StoreDefinition[T]) (*store.Store[T]
 	return s, nil
 }
 
-func GetStoreForMap[T any](mapName string, store StoreDefinition[T]) (*store.Store[T], error) {
+func GetStoreForMap[T any](mapName string, storeDef StoreDefinition[T]) (*store.Store[T], error) {
 	mdb, err := Get(mapName)
 	if err != nil {
 		return nil, err
 	}
 
-	return GetStore(mdb, store)
+	return GetStore(mdb, storeDef)
 }
 
 // Creates a new store an adds it to the given MapDB stores. Returns an error if the store already exists.

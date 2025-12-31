@@ -270,7 +270,7 @@ func allianceIdentifierAutocomplete(
 		alliances := allianceStore.Values()
 
 		// Sort alphabetically by Identifier.
-		// TODO: Sort by alliance rank first instead.
+		// TODO: Sort by alliance rank first instead. Need to cache ranks for that tho.
 		sort.Slice(alliances, func(i, j int) bool {
 			return strings.ToLower(alliances[i].Identifier) < strings.ToLower(alliances[j].Identifier)
 		})
