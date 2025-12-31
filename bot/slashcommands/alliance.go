@@ -447,7 +447,6 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 	townlesslist, _ := entitiesStore.Get("townlesslist")
 
 	alliances := allianceStore.Values()
-	nations := nationStore.Values()
 
 	rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, database.DEFAULT_ALLIANCE_WEIGHTS)
 	slices.SortFunc(alliances, func(a, b database.Alliance) int {
@@ -505,7 +504,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 			allianceStrings = append(allianceStrings, fmt.Sprintf(
 				"%d. %s (%s)\nLeader(s): %s\nRepresentative: `%s`\nNations: %s\nTowns: %s\nResidents: %s\nSize: %s", start+idx+1,
 				allianceName, a.Type.Colloquial(), leaderStr, representativeName,
-				utils.HumanizedSprintf("`%d`", len(nations)),
+				utils.HumanizedSprintf("`%d`", len(childNations)+len(ownNations)),
 				utils.HumanizedSprintf("`%d`", len(towns)),
 				utils.HumanizedSprintf("`%d`", residents),
 				utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, worth, shared.EMOJIS.GOLD_INGOT),
