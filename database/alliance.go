@@ -14,10 +14,10 @@ import (
 )
 
 var DEFAULT_ALLIANCE_WEIGHTS = AllianceWeights{
-	Residents: 4,   // Baseline
-	Towns:     3.2, // 20% less important than Residents
-	Nations:   2.4, // 40% less important than Residents
-	Worth:     0.2, // Worth of all towns in this alliance. Initial cost + town blocks.
+	Residents: 10,   // Baseline
+	Nations:   6,    // 40% less important than Residents
+	Towns:     5,    // 50% less important than Residents
+	Worth:     0.15, // Worth of all towns in this alliance. Initial cost + town blocks.
 }
 
 // UUID -> AllianceRankInfo
