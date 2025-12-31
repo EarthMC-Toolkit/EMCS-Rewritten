@@ -206,7 +206,7 @@ func (s *Store[T]) GetFunc(predicate func(key StoreKey) bool) (*T, error) {
 	return nil, fmt.Errorf("no matching key found in store: %s", s.CleanPath())
 }
 
-func (s *Store[T]) GetFromSet(set sets.StringSet) (results []T) {
+func (s *Store[T]) GetFromSet(set sets.Set[string]) (results []T) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

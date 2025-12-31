@@ -40,7 +40,7 @@ type AllianceColours struct {
 }
 
 type AllianceOptionals struct {
-	Leaders     sets.StringSet   `json:"leaders,omitempty"` // All UUIDs of alliance leaders that exist on EMC.
+	Leaders     sets.Set[string] `json:"leaders,omitempty"` // All UUIDs of alliance leaders that exist on EMC.
 	ImageURL    *string          `json:"imageURL,omitempty"`
 	DiscordCode *string          `json:"discordCode,omitempty"`
 	Colours     *AllianceColours `json:"colours,omitempty"`
@@ -104,7 +104,7 @@ type Alliance struct {
 	Label            string            `json:"label"`            // Full name for display purposes.
 	RepresentativeID *string           `json:"representativeID"` // Discord ID of the user representing this alliance.
 	Parent           *string           `json:"parent"`           // The Identifier (not UUID) of the parent alliance this alliance is a child of.
-	OwnNations       sets.StringSet    `json:"ownNations"`       // UUIDs of nations in THIS alliance only.
+	OwnNations       sets.Set[string]  `json:"ownNations"`       // UUIDs of nations in THIS alliance only.
 	UpdatedTimestamp *uint64           `json:"updatedTimestamp"` // Unix timestamp (ms) at which the last update was made to this alliance.
 	Optional         AllianceOptionals `json:"optional"`         // Extra properties that are not required for basic alliance functionality.
 	Type             AllianceType      `json:"type"`             // Type of alliance. See AllianceType consts.
@@ -142,7 +142,7 @@ func (a *Alliance) SetLeaders(playerStore *store.Store[BasicPlayer], igns ...str
 	})
 
 	// Report names of any leader igns that weren't valid (not found in the player store).
-	leaderSet := make(sets.StringSet)
+	leaderSet := make(sets.Set[string])
 	for _, ign := range igns {
 		p, ok := playerByName[strings.ToLower(ign)]
 		if !ok {
@@ -290,8 +290,8 @@ func GetRankedAlliances(
 
 type ChildAlliances []Alliance
 
-func (a ChildAlliances) NationIds() sets.StringSet {
-	seen := make(sets.StringSet)
+func (a ChildAlliances) NationIds() sets.Set[string] {
+	seen := make(sets.Set[string])
 	for _, child := range a {
 		for uuid := range child.OwnNations {
 			seen.Append(uuid)
