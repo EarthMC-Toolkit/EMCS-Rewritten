@@ -111,7 +111,7 @@ func NewAllianceEmbed(
 
 	registered := a.CreatedTimestamp() / 1000
 
-	// Resort to dark blue unless alliance has optional fill colour specified.
+	// Resort to default colour unless the alliance has a fill colour specified.
 	embedColour := discordutil.DARK_AQUA
 	colours := a.Optional.Colours
 	if colours != nil && colours.Fill != nil {

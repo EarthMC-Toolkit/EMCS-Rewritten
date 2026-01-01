@@ -328,6 +328,10 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 
 	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
 	if err != nil {
+		fmt.Print(err)
+
+		// Nations store failed, but we should still be able to send without rank info.
+		_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil))
 		return err
 	}
 
