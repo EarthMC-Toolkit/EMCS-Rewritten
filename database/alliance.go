@@ -291,12 +291,12 @@ func GetRankedAlliances(
 type ChildAlliances []Alliance
 
 func (a ChildAlliances) NationIds() sets.Set[string] {
-	seen := make(sets.Set[string])
+	s := make(sets.Set[string])
 	for _, child := range a {
 		for uuid := range child.OwnNations {
-			seen.Append(uuid)
+			s.Append(uuid)
 		}
 	}
 
-	return seen
+	return s
 }
