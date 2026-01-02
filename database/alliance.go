@@ -190,6 +190,7 @@ func (a Alliance) GetLeaders(playerStore *store.Store[BasicPlayer]) ([]BasicPlay
 	return players, nil
 }
 
+// TODO: Maybe just use player store for only one argument and existence check
 func (a Alliance) GetLeaderNames(reslist, townlesslist *oapi.EntityList) (names []string) {
 	for id := range a.Optional.Leaders {
 		if name, ok := (*reslist)[id]; ok {

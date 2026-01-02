@@ -5,8 +5,8 @@ import (
 	"emcsrw/database/store"
 )
 
-// Describes a player who has less info than a regular player than
-// one returned from the Official API. It is possible they have opted out.
+// Describes a player who has less info than a regular player (from the Official API).
+// It is possible that this player has opted-out.
 type BasicPlayer struct {
 	oapi.Entity
 	Town   *oapi.Entity

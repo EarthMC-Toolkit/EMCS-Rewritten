@@ -11,7 +11,8 @@ import (
 )
 
 // Req/m for "<mapName>/alliances" endpoint
-const ALLIANCES_RPM = 3
+const ALLIANCES_RPM = 5
+const PLAYERS_RPM = 3
 
 func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
@@ -29,9 +30,29 @@ func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 		return nil, err
 	}
 
-	alliancesEndpoint := fmt.Sprintf("/%s/alliances", mdb.Name())
+	playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
+	if err != nil {
+		return nil, err
+	}
 
 	mux := http.NewServeMux()
+
+	playersEndpoint := fmt.Sprintf("/%s/players", mdb.Name())
+	mux.HandleFunc(playersEndpoint, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=30")
+		w.Header().Set("Content-Type", "application/json")
+
+		limiter := getLimiter(r.RemoteAddr, playersEndpoint, PLAYERS_RPM)
+		if !limiter.Allow() {
+			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+			return
+		}
+
+		data, _ := json.Marshal(playerStore.Values())
+		w.Write(data)
+	})
+
+	alliancesEndpoint := fmt.Sprintf("/%s/alliances", mdb.Name())
 	mux.HandleFunc(alliancesEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		// Pre-cache common data
 		reslist, _ := entitiesStore.Get("residentlist")
@@ -47,7 +68,7 @@ func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 		etag := fmt.Sprintf(`"%s"`, hex.EncodeToString(hash[:]))
 
 		w.Header().Set("ETag", etag)
-		w.Header().Set("Cache-Control", "public, max-age=90")
+		w.Header().Set("Cache-Control", "public, max-age=60")
 		w.Header().Set("Content-Type", "application/json")
 
 		if match := r.Header.Get("If-None-Match"); match != "" && match == etag {
@@ -55,7 +76,7 @@ func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 			return // cached response, don't touch limiter
 		}
 
-		limiter := getLimiter(r.RemoteAddr, ALLIANCES_RPM)
+		limiter := getLimiter(r.RemoteAddr, alliancesEndpoint, ALLIANCES_RPM)
 		if !limiter.Allow() {
 			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 			return

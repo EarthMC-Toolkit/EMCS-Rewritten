@@ -154,7 +154,7 @@ func NewAllianceEmbed(
 		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", updatedSec, updatedSec), true)
 	}
 
-	ownNationsKey := fmt.Sprintf("Nations [%d]", len(ownNations))
+	ownNationsKey := fmt.Sprintf("Self Nations [%d]", len(ownNations))
 	ownNationsValue := fmt.Sprintf("```%s```", strings.Join(ownNationNames, ", "))
 	AddField(embed, ownNationsKey, ownNationsValue, false)
 
@@ -515,7 +515,7 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 	}
 
 	residentsStr := utils.HumanizedSprintf("`%d`", stats.NumResidents)
-	balanceStr := utils.HumanizedSprintf("`%.0f`G%s  ", stats.Balance, shared.EMOJIS.GOLD_INGOT)
+	balanceStr := utils.HumanizedSprintf("`%.0f` %s", stats.Balance, shared.EMOJIS.GOLD_INGOT)
 	//bonusStr := utils.HumanizedSprintf("`%d`")
 	alliesEnemiesStr := utils.HumanizedSprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies)
 	sizeStr := utils.HumanizedSprintf("`%d` %s (Worth: `%d` %s)",
