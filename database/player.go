@@ -9,8 +9,8 @@ import (
 // It is possible that this player has opted-out.
 type BasicPlayer struct {
 	oapi.Entity
-	Town   *oapi.Entity
-	Nation *oapi.Entity
+	Town   *oapi.Entity `json:"town,omitempty"`
+	Nation *oapi.Entity `json:"nation,omitempty"`
 }
 
 func FindPlayerTown(name string, townStore *store.Store[oapi.TownInfo]) (*oapi.TownInfo, error) {
