@@ -13,11 +13,13 @@ import (
 	"github.com/samber/lo"
 )
 
+// Since `Worth` is usually a massive number, we consider it only slightly by scaling
+// it down by a negative multiplier, while raising the ones that matter.
 var DEFAULT_ALLIANCE_WEIGHTS = AllianceWeights{
-	Residents: 10,   // Baseline
-	Nations:   6,    // 40% less important than Residents
-	Towns:     5,    // 50% less important than Residents
-	Worth:     0.15, // Worth of all towns in this alliance. Initial cost + town blocks.
+	Residents: 20,   // Baseline
+	Nations:   16,   // 20% less important than Residents
+	Towns:     12,   // 40% less important than Residents
+	Worth:     0.01, // Worth of all towns in this alliance. Initial cost + town blocks.
 }
 
 // UUID -> AllianceRankInfo
@@ -239,8 +241,9 @@ func GetRankedAlliances(
 	w AllianceWeights,
 ) RankedAlliances {
 	alliances := allianceStore.Values()
+	allianceCount := len(alliances)
 
-	stats := make([]AllianceStats, len(alliances))
+	stats := make([]AllianceStats, allianceCount)
 	for i, a := range alliances {
 		// collect own nations
 		ownNations := nationStore.GetFromSet(a.OwnNations)
@@ -260,7 +263,7 @@ func GetRankedAlliances(
 		stats[i] = s
 	}
 
-	ranked := make([]AllianceRankInfo, len(alliances))
+	ranked := make([]AllianceRankInfo, allianceCount)
 	for i, a := range alliances {
 		s := stats[i]
 
@@ -268,7 +271,7 @@ func GetRankedAlliances(
 		score := s.Residents*w.Residents + s.Towns*w.Towns + s.Nations*w.Nations + s.Worth*w.Worth
 		ranked[i] = AllianceRankInfo{
 			UUID:  a.UUID,
-			Score: score / 4,
+			Score: score,
 			Stats: s,
 		}
 	}
@@ -281,7 +284,7 @@ func GetRankedAlliances(
 		ranked[i].Rank = i + 1 // start from 1, where 1 is the best rank.
 	}
 
-	out := make(RankedAlliances, len(ranked))
+	out := make(RankedAlliances, allianceCount)
 	for _, info := range ranked {
 		out[info.UUID] = info
 	}

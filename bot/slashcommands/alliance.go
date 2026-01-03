@@ -386,17 +386,17 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 	)
 
 	worthCalc := allianceRankInfo.Stats.Worth * WEIGHTS.Worth
-	worthStr := utils.HumanizedSprintf("Worth: `%.0f` * `%.1f` = **%.0f**",
+	worthStr := utils.HumanizedSprintf("Worth: `%.0f` * `%f` = **%.0f**",
 		allianceRankInfo.Stats.Worth, WEIGHTS.Worth, worthCalc,
 	)
 
 	scoreStr := utils.HumanizedSprintf("Total: `%.0f` + `%.0f` + `%.0f` + `%.0f` = **%.0f**",
-		residentsCalc, nationsCalc, townsCalc, worthCalc, allianceRankInfo.Score*4,
+		residentsCalc, nationsCalc, townsCalc, worthCalc, allianceRankInfo.Score,
 	)
 
-	normalizedStr := utils.HumanizedSprintf("Normalized: `%.0f` / 4 = **%.0f**",
-		allianceRankInfo.Score*4, allianceRankInfo.Score,
-	)
+	// normalizedStr := utils.HumanizedSprintf("Normalized: `%.0f` / 2 = **%.0f**",
+	// 	allianceRankInfo.Score*4, allianceRankInfo.Score,
+	// )
 
 	// TODO: Maybe include closest rival alliance and required score to surpass it.
 	standingStr := utils.HumanizedSprintf("This alliance has a score of **%.0f** which places it at rank **%d** out of **%d**.",
@@ -405,9 +405,9 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 
 	embed := &discordgo.MessageEmbed{
 		Title: fmt.Sprintf("Alliance Score Breakdown | `%s` | #%d", alliance.Identifier, allianceRankInfo.Rank),
-		Description: fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n\n%s\n%s", standingStr,
+		Description: fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n\n%s", standingStr,
 			residentsStr, nationsStr, townsStr, worthStr,
-			scoreStr, normalizedStr,
+			scoreStr, //normalizedStr,
 		),
 		Color:  discordutil.DARK_AQUA,
 		Footer: embeds.DEFAULT_FOOTER,
@@ -915,7 +915,29 @@ func handleAllianceEditorModalNationsUpdate(
 		)
 	}
 
-	if utils.MapKeysEqual(alliance.OwnNations, nationUUIDs) {
+	//#region Build feedback messages
+	var messages []string
+	if len(notRemoved) > 0 {
+		messages = append(messages, fmt.Sprintf(
+			"The following nations were not removed as they do not exist:```%s```",
+			strings.Join(notRemoved, ", "),
+		))
+	}
+	if len(notAdded) > 0 {
+		messages = append(messages, fmt.Sprintf(
+			"The following nations were not added as they do not exist:```%s```",
+			strings.Join(notAdded, ", "),
+		))
+	}
+	if len(alreadyPuppets) > 0 {
+		messages = append(messages, fmt.Sprintf(
+			"The following nations were skipped as they are already puppets:```%s```",
+			strings.Join(alreadyPuppets, ", "),
+		))
+	}
+	//#endregion
+
+	if len(messages) < 1 && utils.MapKeysEqual(alliance.OwnNations, nationUUIDs) {
 		return fmt.Errorf("Alliance not edited. No changes were made to the nation list.")
 	}
 
@@ -937,27 +959,7 @@ func handleAllianceEditorModalNationsUpdate(
 		Embeds:  []*discordgo.MessageEmbed{embed},
 	})
 
-	//#region Build & send feedback message
-	var messages []string
-	if len(notRemoved) > 0 {
-		messages = append(messages, fmt.Sprintf(
-			"The following nations were not removed as they do not exist:```%s```",
-			strings.Join(notRemoved, ", "),
-		))
-	}
-	if len(notAdded) > 0 {
-		messages = append(messages, fmt.Sprintf(
-			"The following nations were not added as they do not exist:```%s```",
-			strings.Join(notAdded, ", "),
-		))
-	}
-	if len(alreadyPuppets) > 0 {
-		messages = append(messages, fmt.Sprintf(
-			"The following nations were skipped as they are already puppets:```%s```",
-			strings.Join(alreadyPuppets, ", "),
-		))
-	}
-
+	//#region Send feedback messages if any
 	if len(messages) > 0 {
 		discordutil.FollowupContentEphemeral(s, i, strings.Join(messages, "\n"))
 	}

@@ -154,11 +154,13 @@ func NewAllianceEmbed(
 		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", updatedSec, updatedSec), true)
 	}
 
-	ownNationsKey := fmt.Sprintf("Self Nations [%d]", len(ownNations))
 	ownNationsValue := fmt.Sprintf("```%s```", strings.Join(ownNationNames, ", "))
-	AddField(embed, ownNationsKey, ownNationsValue, false)
 
-	if len(childNations) > 0 {
+	if len(childNations) < 1 {
+		AddField(embed, fmt.Sprintf("Nations [%d]", len(ownNations)), ownNationsValue, false)
+	} else {
+		AddField(embed, fmt.Sprintf("Self Nations [%d]", len(ownNations)), ownNationsValue, false)
+
 		childAllianceNames := lo.Map(childAlliances, func(a database.Alliance, _ int) string {
 			return fmt.Sprintf("`%s`", a.Identifier)
 		})
