@@ -36,15 +36,13 @@ var vpLastCheck time.Time
 // https://discordjs.guide/creating-your-bot/command-deployment.html#command-registration.
 func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	fmt.Printf("Logged in as: %s\n\n", s.State.User.Username)
-	slashcommands.SyncWithRemote(s)
+	slashcommands.SyncRemote(s)
 
-	db, err := database.Get(shared.ACTIVE_MAP)
+	mdb, err := database.Get(shared.ACTIVE_MAP)
 	if err != nil {
 		fmt.Printf("\n[OnReady]: wtf happened? error fetching db:\n%v", err)
 		return
 	}
-
-	serverStore, _ := database.GetStore(db, database.SERVER_STORE)
 
 	// scheduleTask(func() {
 	// 	PutFunc(db, "playerlist", func() ([]oapi.Entity, error) {
@@ -57,7 +55,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		log.Println("[OnReady]: Running data update task...")
 
 		start := time.Now()
-		townList, staleTownList, townless, residents, err := UpdateData(db)
+		townList, staleTownList, townless, residents, err := UpdateData(mdb)
 		elapsed := time.Since(start)
 
 		fmt.Println()
@@ -82,6 +80,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	}, true, 30*time.Second)
 
 	// Updating every min should be fine. doubt people care about having /vp and /serverinfo be realtime.
+	serverStore, _ := database.GetStore(mdb, database.SERVER_STORE)
 	scheduleTask(func() {
 		info, err := SetKeyFunc(serverStore, "info", func() (oapi.ServerInfo, error) {
 			return oapi.QueryServer()
@@ -92,9 +91,9 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 		TrySendVotePartyNotif(s, info.VoteParty)
 
-		if err := db.Flush(); err != nil {
+		if err := mdb.Flush(); err != nil {
 			fmt.Println()
-			log.Printf("error occurred flushing stores in db: %s", db.Dir())
+			log.Printf("error occurred flushing stores in db: %s", mdb.Dir())
 		}
 	}, true, 60*time.Second)
 }
