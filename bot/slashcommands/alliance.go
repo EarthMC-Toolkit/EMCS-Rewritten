@@ -386,7 +386,7 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 	)
 
 	worthCalc := allianceRankInfo.Stats.Worth * WEIGHTS.Worth
-	worthStr := utils.HumanizedSprintf("Worth: `%.0f` * `%f` = **%.0f**",
+	worthStr := utils.HumanizedSprintf("Worth: `%.0f` * `%.2f` = **%.0f**",
 		allianceRankInfo.Stats.Worth, WEIGHTS.Worth, worthCalc,
 	)
 
