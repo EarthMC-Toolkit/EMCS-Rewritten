@@ -147,6 +147,9 @@ func (s *Store[T]) IsEmpty() bool {
 }
 
 func (s *Store[T]) Count() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	return len(s.data)
 }
 
