@@ -39,11 +39,13 @@ func main() {
 	fmt.Printf("Loaded ENV. Starting bot with %d threads.\n", runtime.GOMAXPROCS(-1))
 	discord, auroraDB := bot.Run(getToken())
 
+	//#region COMMENT IF YOU DO NOT WANT TO SERVE AN API.
 	mux, err := capi.NewMux(auroraDB)
 	if err != nil {
 		log.Println("failed to create api mux for aurora", err)
 	}
 	s := capi.Serve(mux)
+	//#endregion
 
 	// Wait for Ctrl+C or kill.
 	c := make(chan os.Signal, 1)
