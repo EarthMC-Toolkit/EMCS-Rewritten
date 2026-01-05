@@ -16,16 +16,17 @@ technical debt to make it worth the time and effort of updating, as well as the 
     ```console 
     export BOT_TOKEN=yourTokenHere
     ```
+   > Make sure to add **.env** to your `.gitignore` file!
 
 1. Authorize and invite your bot to a guild or install it as a user app.
 1. Start the bot with `go run main.go`.
 
 > [!WARNING]
-> If you run into issues trying to serve an API when running the bot, simply comment the code region inside of `main()` responsible for this.\
+> If you run into issues trying to serve an API when running the bot, simply comment the code region inside of `main()` responsible for this.
 > Only serve an API if you know what you are doing. Personally I use Caddy and a small Caddyfile as a reverse proxy to serve the `emcstats.bot.nu` API.
 
 ## Contributing
-If you know **Golang** and the basics of the **discordgo** library, I encourage you to create pull requests or suggest features.\
+If you know **Golang** and the basics of the **discordgo** library, I encourage you to create pull requests or suggest features.
 You can also fork this project and use it as a base if you so desire, but the GPL license requires you to keep the source code available.
 
 ## Project Structure
@@ -36,7 +37,7 @@ You can also fork this project and use it as a base if you so desire, but the GP
 >- `api` -> Contains packages relating to APIs. Contains funcs that interact with both where necessary.
 >   - `mapi` -> For interacting with the map API. (Currently Squaremap)
 >   - `oapi` -> For interacting with the Official API.
->   - `capi` -> Serves a Custom API using info from the `database` package. Remove or edit this if forking.
+>   - `capi` -> Serves a Custom API using info from the `database` package. NOT REQUIRED IF FORKING.
 >- `database` -> For all code that relates to or interacts with a DB or store/cache.
 >- `db` -> Where permanent data such as alliances are intended to be stored. Git ignored.
 >- `shared` -> For things that can be shared, e.g. constants or embed related funcs/vars.
