@@ -1,5 +1,6 @@
 # EMCS-Rewritten
-A rewritten version of the [EarthMC Stats](https://github.com/EarthMC-Toolkit/EarthMC-Stats) Discord bot in Go.
+A rewritten version of the [EarthMC Stats](https://github.com/EarthMC-Toolkit/EarthMC-Stats) Discord bot in Go.\
+This rewrite aims to make the bot self-hostable, with the [EMCS Rewritten](https://canary.discord.com/oauth2/authorize?client_id=656231016385478657) Discord bot being one of these instances. 
 
 ## Why the rewrite?
 I started this bot in hopes that it will be more powerful than **EMCS** with massive improvements to performance and stability.
@@ -18,6 +19,10 @@ technical debt to make it worth the time and effort of updating, as well as the 
 
 1. Authorize and invite your bot to a guild or install it as a user app.
 1. Start the bot with `go run main.go`.
+
+> [!WARNING]
+> If you run into issues trying to serve an API when running the bot, simply comment the code region inside of `main()` responsible for this.\
+> Only serve an API if you know what you are doing. Personally I use Caddy and a small Caddyfile as a reverse proxy to serve the `emcstats.bot.nu` API.
 
 ## Contributing
 If you know **Golang** and the basics of the **discordgo** library, I encourage you to create pull requests or suggest features.\
