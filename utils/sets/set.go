@@ -16,10 +16,18 @@ func FromSlice[K comparable](keys []K) Set[K] {
 	return s
 }
 
+func (s Set[K]) Has(key K) bool {
+	_, ok := s[key]
+	return ok
+}
+
+// Adds key to this set.
+// If the key needs to be modified or different based on condition, use AppendFunc instead.
 func (s Set[K]) Append(key K) {
 	s[key] = struct{}{}
 }
 
+// Passes the key to func f before adding it to this set.
 func (s Set[K]) AppendFunc(key K, f func(key K) K) {
 	s[f(key)] = struct{}{}
 }
