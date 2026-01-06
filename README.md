@@ -21,9 +21,36 @@ technical debt to make it worth the time and effort of updating, as well as the 
 1. Authorize and invite your bot to a guild or install it as a user app.
 1. Start the bot with `go run main.go`.
 
+### Custom API
 > [!WARNING]
-> If you run into issues trying to serve an API when running the bot, simply comment the code region inside of `main()` responsible for this.
 > Only serve an API if you know what you are doing. Personally I use Caddy and a small Caddyfile as a reverse proxy to serve the `emcstats.bot.nu` API.
+
+By default, a custom API is not served. To serve one, simply add the following variable to your `.env` file.
+After that, you must make sure you have a reverse proxy set up to port `localhost:7777` (configurable in future).
+```console
+export ENABLE_API=true
+```
+
+For example, here is a small `Caddyfile` you can use if you have `Caddy` already set up.
+```txt
+your.domain.com {
+	# Set this path to your site's directory.
+	# root * /usr/share/caddy
+
+    # where the reverse proxy should listen.
+	reverse_proxy localhost:7777
+
+	# compression
+	encode zstd gzip
+
+	# headers perms. by default a GET request is allowed from any origin
+	header {
+        Access-Control-Allow-Methods GET
+		Access-Control-Allow-Origin *
+		Access-Control-Allow-Headers *
+	}
+}
+```
 
 ## Contributing
 If you know **Golang** and the basics of the **discordgo** library, I encourage you to create pull requests or suggest features.
