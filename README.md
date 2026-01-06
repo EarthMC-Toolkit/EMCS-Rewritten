@@ -23,7 +23,8 @@ technical debt to make it worth the time and effort of updating, as well as the 
 
 ### Custom API
 > [!WARNING]
-> Only serve an API if you know what you are doing. Personally I use Caddy and a small Caddyfile as a reverse proxy to serve the `emcstats.bot.nu` API.
+> Only serve an API if you know what you are doing.
+> If your reverse proxy throws errors, ensure it is properly reloaded and the port is open!
 
 By default, a custom API is not served. To serve one, simply add the following variable to your `.env` file.
 After that, you must make sure you have a reverse proxy set up to port `localhost:7777` (configurable in future).
