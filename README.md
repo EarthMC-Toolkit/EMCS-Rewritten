@@ -13,11 +13,10 @@ technical debt to make it worth the time and effort of updating, as well as the 
 ## Development
 1. Clone this repository.
 1. Create a Discord bot and put its **Client Token** in an `.env` file in the project root like so:
-    ```console 
+
+   	```console 
     export BOT_TOKEN=yourTokenHere
     ```
-   > Make sure to add **.env** to your `.gitignore` file!
-
 1. Authorize and invite your bot to a guild or install it as a user app.
 1. Start the bot with `go run main.go`.
 
@@ -32,7 +31,7 @@ After that, you must make sure you have a reverse proxy set up to port `localhos
 export ENABLE_API=true
 ```
 
-For example, here is a small `Caddyfile` you can use if you have `Caddy` already set up.
+For example, here is a small `Caddyfile` you can use if you already have `Caddy` set up.
 ```txt
 your.domain.com {
 	# Set this path to your site's directory.
@@ -48,7 +47,7 @@ your.domain.com {
 	header {
         Access-Control-Allow-Methods GET
 		Access-Control-Allow-Origin *
-		Access-Control-Allow-Headers *
+		# Access-Control-Allow-Headers *
 	}
 }
 ```
