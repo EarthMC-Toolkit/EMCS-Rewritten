@@ -50,7 +50,7 @@ func (cmd OnlineCommand) Options() AppCommandOpts {
 
 func (cmd OnlineCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error {
 	cdata := i.ApplicationCommandData()
-	if len(cdata.Options) > 0 {
+	if len(cdata.Options) == 0 {
 		return nil
 	}
 
