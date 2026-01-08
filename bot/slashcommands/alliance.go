@@ -295,7 +295,7 @@ func allianceIdentifierAutocomplete(
 		matches = matches[:limit]
 	}
 
-	choices := discordutil.CreateAutocompleteChoices(matches, func(a database.Alliance) (string, string) {
+	choices := discordutil.CreateAutocompleteChoices(matches, func(a database.Alliance, _ int) (string, string) {
 		return fmt.Sprintf("%s | %s (%s)", a.Identifier, a.Label, a.Type.Colloquial()), a.Identifier
 	})
 

@@ -111,7 +111,7 @@ func townNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata 
 		matches = matches[:limit]
 	}
 
-	choices := discordutil.CreateAutocompleteChoices(matches, func(t oapi.TownInfo) (string, string) {
+	choices := discordutil.CreateAutocompleteChoices(matches, func(t oapi.TownInfo, _ int) (string, string) {
 		display := t.Name
 		if t.Status.Capital {
 			display = "⭐ " + t.Name

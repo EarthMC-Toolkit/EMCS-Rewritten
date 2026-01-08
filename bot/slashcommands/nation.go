@@ -115,7 +115,7 @@ func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdat
 		matches = matches[:limit]
 	}
 
-	choices := discordutil.CreateAutocompleteChoices(matches, func(n oapi.NationInfo) (string, string) {
+	choices := discordutil.CreateAutocompleteChoices(matches, func(n oapi.NationInfo, _ int) (string, string) {
 		display := fmt.Sprintf("%s (Capital: %s)", n.Name, n.Capital.Name)
 		return display, n.Name
 	})
