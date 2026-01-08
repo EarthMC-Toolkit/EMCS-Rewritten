@@ -8,7 +8,6 @@ import (
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -88,14 +87,10 @@ func townNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata 
 	var matches []oapi.TownInfo
 	if strings.TrimSpace(focused) == "" {
 		towns := townStore.Values()
-
-		// Sort alphabetically by Name.
-		// TODO: Sort by town rank first instead.
-		sort.Slice(towns, func(i, j int) bool {
-			return strings.ToLower(towns[i].Name) < strings.ToLower(towns[j].Name)
+		matches = utils.MultiKeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+			{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
+			{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
 		})
-
-		matches = towns
 	} else {
 		keyLower := strings.ToLower(focused)
 		matches = townStore.FindAll(func(t oapi.TownInfo) bool {
@@ -179,11 +174,9 @@ func executeListTowns(s *discordgo.Session, i *discordgo.Interaction) error {
 	}
 
 	towns := townStore.Values()
-
-	// Sort alphabetically by Name.
-	// TODO: Sort by town rank first instead. Also provide option to customise sort.
-	sort.Slice(towns, func(i, j int) bool {
-		return strings.ToLower(towns[i].Name) < strings.ToLower(towns[j].Name)
+	utils.MultiKeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+		{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
+		{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
 	})
 
 	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.

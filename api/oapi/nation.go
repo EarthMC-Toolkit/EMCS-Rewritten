@@ -95,6 +95,14 @@ func (n NationInfo) OutlineColourInt() int {
 	return utils.HexToInt(n.MapColourOutline)
 }
 
+func (n NationInfo) NumResidents() int {
+	return n.Stats.NumResidents
+}
+
+func (n NationInfo) NumTowns() int {
+	return n.Stats.NumTowns
+}
+
 func (n NationInfo) Size() int {
 	return n.Stats.NumTownBlocks
 }

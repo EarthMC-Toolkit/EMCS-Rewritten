@@ -17,7 +17,6 @@ import (
 	"net/url"
 	"path"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -271,8 +270,8 @@ func allianceIdentifierAutocomplete(
 
 		// Sort alphabetically by Identifier.
 		// TODO: Sort by alliance rank first instead. Need to cache ranks for that tho.
-		sort.Slice(alliances, func(i, j int) bool {
-			return strings.ToLower(alliances[i].Identifier) < strings.ToLower(alliances[j].Identifier)
+		slices.SortFunc(alliances, func(a, b database.Alliance) int {
+			return cmp.Compare(strings.ToLower(a.Identifier), strings.ToLower(b.Identifier))
 		})
 
 		matches = alliances

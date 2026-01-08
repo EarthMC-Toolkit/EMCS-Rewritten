@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -203,6 +204,42 @@ func ValidateHexColour(str string) bool {
 
 	return true
 }
+
+type KeySortOption[T any] struct {
+	Compare func(a, b T) bool // returns true if a should come before b
+}
+
+// MultiKeySort sorts arr in-place by multiple keys in order.
+func MultiKeySort[T any](arr []T, keys []KeySortOption[T]) []T {
+	slices.SortFunc(arr, func(a, b T) int {
+		for _, k := range keys {
+			if k.Compare(a, b) {
+				return -1 // a comes before b
+			}
+			if k.Compare(b, a) {
+				return 1 // b comes before a
+			}
+			// equal, continue to next key
+		}
+
+		return 0
+	})
+
+	return arr
+}
+
+// func MultiKeySort[T any](arr []T, keys []KeySortOption[T]) {
+// 	slices.SortFunc(arr, func(a, b T) int {
+// 		for _, k := range keys {
+// 			compared := k.CmpFunc(a, b)
+// 			if compared != 0 {
+// 				return compared
+// 			}
+// 		}
+
+// 		return 0
+// 	})
+// }
 
 // func DifferenceByReverse[T any, K comparable](listB []T, seenA map[K]struct{}, keyFn func(T) K) []T {
 // 	onlyB := make([]T, 0)

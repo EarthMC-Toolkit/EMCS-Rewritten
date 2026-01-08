@@ -1,12 +1,13 @@
 package database
 
 import (
+	"cmp"
 	"emcsrw/api/oapi"
 	"emcsrw/database/store"
 	"emcsrw/utils/sets"
 	"encoding/json"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -277,8 +278,8 @@ func GetRankedAlliances(
 	}
 
 	// sort by score and assign rank based on new index
-	sort.Slice(ranked, func(i, j int) bool {
-		return ranked[i].Score > ranked[j].Score
+	slices.SortFunc(ranked, func(a, b AllianceRankInfo) int {
+		return cmp.Compare(a.Score, b.Score)
 	})
 	for i := range ranked {
 		ranked[i].Rank = i + 1 // start from 1, where 1 is the best rank.

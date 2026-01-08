@@ -1,6 +1,7 @@
 package discordutil
 
 import (
+	"log"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -25,16 +26,22 @@ type Paginator struct {
 	timeout     time.Duration
 }
 
+// The total amount of pages that were determined to be required to show all existing data in this paginator.
+//
+// This number can never go below 1.
 func (p *Paginator) TotalPages() int {
+	if p.totalPages < 1 {
+		log.Printf("WARNING | invalid value '%d' for totalPages. cannot be less than 1", p.totalPages)
+		return 1
+	}
+
 	return p.totalPages
 }
 
-// Gets the start and end indexes for the items that should be on the current page. For example:
+// Gets the start and end indexes for the items that should be on the current page.
 //
-//	perPage = 50
-//	totalItems = 100
-//
-// If currentPage is 0: output is (0, 50). If currentPage is 1: output is (51, 100).
+// For example, when perPage is set to 10 and the totalItems given is 35, then every time the
+// current page is incremented, the output each time would look like so: (0, 9), (10, 19), (20, 29), (30, 34).
 func (p *Paginator) CurrentPageBounds(totalItems int) (int, int) {
 	start := *p.currentPage * p.perPage
 	return start, min(start+p.perPage, totalItems)
@@ -237,19 +244,3 @@ func (p *InteractionPaginator) startButtonListener() {
 		removeHandler()
 	}()
 }
-
-// Unlike a shallow copy or sharing the original pointer, a deep copy will prevent data of
-// paginator instances from colliding and potentially showing/editing data of an irrelevent command.
-// func deepCopyInteractionData(data *discordgo.InteractionResponseData) *discordgo.InteractionResponseData {
-// 	b, err := json.Marshal(data)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	var cpy discordgo.InteractionResponseData
-// 	if err := json.Unmarshal(b, &cpy); err != nil {
-// 		panic(err)
-// 	}
-
-// 	return &cpy
-// }

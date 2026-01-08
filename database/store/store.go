@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 )
 
@@ -83,6 +84,18 @@ func (s *Store[T]) Values() []T {
 		values = append(values, v)
 	}
 
+	return values
+}
+
+func (s *Store[T]) ValuesSorted(cmp func(a, b T) int) []T {
+	s.mu.RLock()
+	values := make([]T, 0, len(s.data))
+	for _, v := range s.data {
+		values = append(values, v)
+	}
+	s.mu.RUnlock()
+
+	slices.SortFunc(values, cmp)
 	return values
 }
 

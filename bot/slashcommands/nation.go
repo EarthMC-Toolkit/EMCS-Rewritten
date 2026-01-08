@@ -8,7 +8,6 @@ import (
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -87,15 +86,15 @@ func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdat
 
 	var matches []oapi.NationInfo
 	if strings.TrimSpace(focused) == "" {
+		// Sort by largest first.
+		// TODO: This is pretty primitive and we should prefer database.GetRankedNations()
+		// 		 when rank caching has been implemented.
 		nations := nationStore.Values()
-
-		// Sort alphabetically by Name.
-		// TODO: Sort by nation rank first instead.
-		sort.Slice(nations, func(i, j int) bool {
-			return strings.ToLower(nations[i].Name) < strings.ToLower(nations[j].Name)
+		matches = utils.MultiKeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+			{Compare: func(a, b oapi.NationInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
+			{Compare: func(a, b oapi.NationInfo) bool { return a.NumTowns() > b.NumTowns() }},
+			{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }},
 		})
-
-		matches = nations
 	} else {
 		keyLower := strings.ToLower(focused)
 		matches = nationStore.FindAll(func(n oapi.NationInfo) bool {
@@ -195,11 +194,10 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 	}
 
 	nations := nationStore.Values()
-
-	// Sort alphabetically by Name.
-	// TODO: Sort by nation rank first instead. Also provide option to customise sort.
-	sort.Slice(nations, func(i, j int) bool {
-		return strings.ToLower(nations[i].Name) < strings.ToLower(nations[j].Name)
+	utils.MultiKeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+		{Compare: func(a, b oapi.NationInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
+		{Compare: func(a, b oapi.NationInfo) bool { return a.NumTowns() > b.NumTowns() }},
+		{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }},
 	})
 
 	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
