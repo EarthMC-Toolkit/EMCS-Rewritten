@@ -23,6 +23,9 @@ type IStore interface {
 type StoreKey = string
 type StoreData[T any] map[StoreKey]T // Stores value not pointer. Use SetKey etc. to mutate data safely.
 
+// Returns a copy of the underlying map containing the store data.
+//
+// NOTE: Do not use this where a deep copy would be better suited!
 func (sd StoreData[T]) shallowCopy() StoreData[T] {
 	return utils.CopyMap(sd)
 }
@@ -103,6 +106,8 @@ func (s *Store[T]) Entries() StoreData[T] {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	// Return a snapshot of the map to avoid returning the original one,
+	// since using the same pointer could allow unwanted data mutations.
 	return s.data.shallowCopy()
 }
 
@@ -235,19 +240,6 @@ func (s *Store[T]) GetFromSet(set sets.Set[string]) (results []T) {
 	return results
 }
 
-// func (s *Store[T]) GetMulti(keys ...string) (results []T) {
-// 	s.mu.RLock()
-// 	defer s.mu.RUnlock()
-
-// 	for _, key := range keys {
-// 		if v, ok := s.data[key]; ok {
-// 			results = append(results, v)
-// 		}
-// 	}
-
-// 	return results
-// }
-
 func (s *Store[T]) Find(predicate func(value T) bool) (*T, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -300,7 +292,7 @@ func (s *Store[T]) LoadFromFile() error {
 // database (JSON file) at the path we provided when the store was initialized.
 func (s *Store[T]) WriteSnapshot() error {
 	s.mu.RLock()
-	cpy := s.data.shallowCopy()
+	cpy := s.data.shallowCopy() // TODO: Do we really need a copy if we use mutex on all ops anyway?
 	s.mu.RUnlock()
 
 	// using a copy prevents a panic if map is modified when marshal iterates it
