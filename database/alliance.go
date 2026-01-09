@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/samber/lo"
+	"github.com/samber/lo/parallel"
 )
 
 // Since `Worth` is usually a massive number, we consider it only slightly by scaling
@@ -208,24 +209,27 @@ func (a Alliance) GetLeaderNames(reslist, townlesslist *oapi.EntityList) (names 
 	return
 }
 
-func (a Alliance) GetStats(ownNations []oapi.NationInfo, childNations []oapi.NationInfo) (
+func (a Alliance) GetStats(ownNations []oapi.NationInfo, puppetNations []oapi.NationInfo) (
 	towns []oapi.Entity,
 	residents, area, worth int,
 ) {
-	residents = 0
-	area = 0
+	var mu sync.Mutex
+	compute := func(n oapi.NationInfo, _ int) {
+		r := n.Stats.NumResidents
+		ar := n.Stats.NumTownBlocks
+		ts := n.Towns
 
-	lo.ForEach(ownNations, func(n oapi.NationInfo, _ int) {
-		residents += n.Stats.NumResidents
-		area += n.Stats.NumTownBlocks
-		towns = append(towns, n.Towns...)
-	})
+		mu.Lock()
+		residents += r
+		area += ar
+		towns = append(towns, ts...)
+		mu.Unlock()
+	}
 
-	lo.ForEach(childNations, func(n oapi.NationInfo, _ int) {
-		residents += n.Stats.NumResidents
-		area += n.Stats.NumTownBlocks
-		towns = append(towns, n.Towns...)
-	})
+	parallel.ForEach(ownNations, compute)
+	if len(puppetNations) > 0 {
+		parallel.ForEach(puppetNations, compute)
+	}
 
 	townsCount := len(towns)
 

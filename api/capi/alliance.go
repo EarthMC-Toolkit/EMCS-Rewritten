@@ -58,10 +58,10 @@ func parseAlliance(
 		return n.Name
 	})
 
-	childAlliances := a.ChildAlliances(alliances)
-	childNations := nationStore.GetFromSet(childAlliances.NationIds())
+	puppetAlliances := a.ChildAlliances(alliances)
+	puppetNations := nationStore.GetFromSet(puppetAlliances.NationIds())
 
-	towns, residents, area, worth := a.GetStats(ownNations, childNations)
+	towns, residents, area, worth := a.GetStats(ownNations, puppetNations)
 	return Alliance{
 		UUID:             a.UUID,
 		Identifier:       a.Identifier,
@@ -79,8 +79,8 @@ func parseAlliance(
 			Colours:     (*AllianceColours)(a.Optional.Colours),
 		},
 		Stats: AllianceStats{
-			NumPuppetAlliances: len(childAlliances),
-			NumPuppetNations:   len(childNations),
+			NumPuppetAlliances: len(puppetAlliances),
+			NumPuppetNations:   len(puppetNations),
 			NumResidents:       residents,
 			NumTowns:           len(towns),
 			NumTownBlocks:      area,
