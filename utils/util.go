@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/samber/lo"
 	"github.com/sanity-io/litter"
@@ -228,18 +229,31 @@ func MultiKeySort[T any](arr []T, keys []KeySortOption[T]) []T {
 	return arr
 }
 
-// func MultiKeySort[T any](arr []T, keys []KeySortOption[T]) {
-// 	slices.SortFunc(arr, func(a, b T) int {
-// 		for _, k := range keys {
-// 			compared := k.CmpFunc(a, b)
-// 			if compared != 0 {
-// 				return compared
-// 			}
-// 		}
+// Takes an input string and returns a slice containing each of the elements that were seperated by whitespace or sep.
+//
+// Similar to [strings.Fields] which splits elements by whitespace, we use [strings.FieldsFunc] to also
+// check for commas, and any of the resulting empty strings elements are simply ignored.
+// This should ensure it is able to handle most edge cases when the input is malformed.
+//
+// For example, the input ",foo1  , bar2,,, baz3" should produce the output: ["foo1" "bar2" "baz3"]
+func ParseFieldsStr(input string, sep rune) ([]string, error) {
+	parts := strings.FieldsFunc(input, func(r rune) bool {
+		return r == sep || unicode.IsSpace(r)
+	})
 
-// 		return 0
-// 	})
-// }
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+
+	if len(out) == 0 {
+		return nil, fmt.Errorf("failed to parse string list: no valid elements found")
+	}
+
+	return out, nil
+}
 
 // func DifferenceByReverse[T any, K comparable](listB []T, seenA map[K]struct{}, keyFn func(T) K) []T {
 // 	onlyB := make([]T, 0)
@@ -253,7 +267,6 @@ func MultiKeySort[T any](arr []T, keys []KeySortOption[T]) []T {
 // }
 
 // type UUID4 uuid.UUID
-
 // func (u *UUID4) UnmarshalJSON(b []byte) error {
 // 	id, err := uuid.Parse(string(b[:]))
 // 	if err != nil {

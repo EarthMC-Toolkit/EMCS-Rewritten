@@ -19,7 +19,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
@@ -772,7 +771,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	var inputs = discordutil.GetModalInputs(i)
 
 	if strings.TrimSpace(inputs["remove"]) != "" {
-		removeNames, _ := parseFieldsStr(inputs["remove"])
+		removeNames, _ := utils.ParseFieldsStr(inputs["remove"], ',')
 		for _, name := range removeNames {
 			p, ok := playerByName[strings.ToLower(name)]
 			if !ok {
@@ -789,7 +788,7 @@ func handleAllianceEditorModalLeadersUpdate(
 		}
 	}
 	if strings.TrimSpace(inputs["add"]) != "" {
-		addNames, _ := parseFieldsStr(inputs["add"])
+		addNames, _ := utils.ParseFieldsStr(inputs["add"], ',')
 		for _, name := range addNames {
 			p, ok := playerByName[strings.ToLower(name)]
 			if !ok {
@@ -870,7 +869,7 @@ func handleAllianceEditorModalNationsUpdate(
 
 	var notAdded, notRemoved, alreadyPuppets []string
 	if removeInput != "" {
-		removeNames, _ := parseFieldsStr(removeInput)
+		removeNames, _ := utils.ParseFieldsStr(removeInput, ',')
 		for _, name := range removeNames {
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
@@ -884,7 +883,7 @@ func handleAllianceEditorModalNationsUpdate(
 		}
 	}
 	if addInput != "" {
-		addNames, _ := parseFieldsStr(addInput)
+		addNames, _ := utils.ParseFieldsStr(addInput, ',')
 		for _, name := range addNames {
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
@@ -1341,7 +1340,7 @@ func handleAllianceEditorModalOptional(
 
 	invalidLeaders := []string{}
 	if strings.TrimSpace(inputs["leaders"]) != "" {
-		leaders, err := parseFieldsStr(inputs["leaders"])
+		leaders, err := utils.ParseFieldsStr(inputs["leaders"], ',')
 		invalidLeaders, err = alliance.SetLeaders(playerStore, leaders...)
 		if err != nil {
 			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
@@ -1582,32 +1581,6 @@ func validateAllianceImage(rawURL string) (string, error) {
 	}
 
 	return u.String(), nil
-}
-
-// Takes an input string (expected to be list of nation names) and returns a slice containing each of the names.
-
-// Similar to [strings.Fields] which splits elements by whitespace, we use [strings.FieldsFunc] to also
-// check for commas, and any of the resulting empty strings elements are simply ignored.
-// This should ensure it is able to handle most edge cases when the input is malformed.
-//
-// For example, the input ",foo1  , bar2,,, baz3" should produce the output: ["foo1" "bar2" "baz3"]
-func parseFieldsStr(input string) ([]string, error) {
-	parts := strings.FieldsFunc(input, func(r rune) bool {
-		return r == ',' || unicode.IsSpace(r)
-	})
-
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if p != "" {
-			out = append(out, p)
-		}
-	}
-
-	if len(out) == 0 {
-		return nil, fmt.Errorf("failed to parse string list: no valid elements found")
-	}
-
-	return out, nil
 }
 
 func validateNations(nationStore *store.Store[oapi.NationInfo], input []string) (valid []oapi.NationInfo, missing []string) {
