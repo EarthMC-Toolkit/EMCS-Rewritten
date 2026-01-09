@@ -879,11 +879,6 @@ func handleAllianceEditorModalNationsUpdate(
 				continue
 			}
 
-			if _, isPuppet := puppetNationUUIDs[n.UUID]; isPuppet {
-				alreadyPuppets = append(alreadyPuppets, name)
-				continue
-			}
-
 			// If it isn't already present, this is just a safe no-op.
 			delete(nationUUIDs, n.UUID)
 		}
