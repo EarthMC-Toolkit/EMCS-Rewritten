@@ -421,9 +421,7 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 		nationJoin = fmt.Sprintf(" (Joined <t:%d:R>)", *town.Timestamps.JoinedNationAt/1000)
 	}
 
-	locX := town.Coordinates.Spawn.X
-	locY := town.Coordinates.Spawn.Y
-	locZ := town.Coordinates.Spawn.Z
+	spawn := town.Coordinates.Spawn
 
 	balanceStr := utils.HumanizedSprintf("`%.0f`G %s", town.Bal(), shared.EMOJIS.GOLD_INGOT)
 	residentsStr := utils.HumanizedSprintf("`%d`", town.Stats.NumResidents)
@@ -432,6 +430,11 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	sizeStr := utils.HumanizedSprintf("`%d`/`%d` %s (Worth: `%d` %s)",
 		town.Size(), town.MaxSize(),
 		shared.EMOJIS.CHUNK, town.Worth(), shared.EMOJIS.GOLD_INGOT,
+	)
+
+	locationLink := fmt.Sprintf(
+		"[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)",
+		spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
 	)
 
 	embed := &discordgo.MessageEmbed{
@@ -445,7 +448,7 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 			NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by `%s`", foundedTs, town.Founder), false),
 			NewEmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
 			NewEmbedField("Nation", fmt.Sprintf("`%s`%s", nationName, nationJoin), true),
-			NewEmbedField("Location (XYZ)", fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=3)", locX, locY, locZ, locX, locZ), true),
+			NewEmbedField("Location", locationLink, true),
 			NewEmbedField("Stats", fmt.Sprintf(
 				"Size: %s\nBalance: %s\nResidents: %s\nTrusted/Outlaws: %s",
 				sizeStr, balanceStr, residentsStr, trustedOutlawsStr,
@@ -454,7 +457,6 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	}
 
 	status := town.Status
-
 	AddField(embed, "Status", fmt.Sprintf(
 		"%s Open\n%s Public\n%s Neutral\n%s Can Outsiders Spawn\n%s For Sale",
 		BoolToEmoji(status.Open), BoolToEmoji(status.Public), BoolToEmoji(status.Neutral),
@@ -544,6 +546,11 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 		rankLines = append(rankLines, line)
 	}
 
+	locationLink := fmt.Sprintf(
+		"[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=4)",
+		spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
+	)
+
 	embed := &discordgo.MessageEmbed{
 		Type:        discordgo.EmbedTypeRich,
 		Title:       fmt.Sprintf("Nation Information | `%s`", nation.Name),
@@ -553,7 +560,7 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 		Fields: []*discordgo.MessageEmbedField{
 			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, shared.NAMEMC_URL+nation.King.UUID), true),
 			NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
-			NewEmbedField("Location (XZ)", fmt.Sprintf("[%.0f, %.0f](https://earthmc.net/map/aurora/?worldname=earth&mapname=flat&zoom=5&x=%f&y=%f&z=%f)", spawn.X, spawn.Z, spawn.X, spawn.Y, spawn.Z), true),
+			NewEmbedField("Location", locationLink, true),
 			NewEmbedField("Stats", statsStr, true),
 			NewEmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
 			NewEmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),

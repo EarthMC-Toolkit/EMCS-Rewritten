@@ -1,13 +1,14 @@
 package slashcommands
 
 import (
+	"cmp"
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -75,8 +76,8 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	})
 
 	// Highest -> Lowest
-	sort.Slice(qfs, func(i, j int) bool {
-		return *qfs[i].Stats.Price > *qfs[j].Stats.Price
+	slices.SortFunc(qfs, func(a, b oapi.Quarter) int {
+		return cmp.Compare(*a.Stats.Price, *b.Stats.Price)
 	})
 
 	count := len(qfs)
@@ -89,7 +90,6 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	perPage := 1
-
 	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, count, perPage).
 		WithTimeout(10 * time.Minute)
 
@@ -99,28 +99,28 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		items := qfs[start:end]
 		q := items[0]
 
-		registeredTs := q.Timestamps.Registered / 1000 // Seconds
-		registeredStr := fmt.Sprintf("<t:%d:R>", registeredTs)
-
-		var owner = "No Owner"
-		if q.Owner.Name != nil {
-			owner = *q.Owner.Name
-		}
-
-		var price float32
-		if q.Stats.Price != nil {
-			price = *q.Stats.Price
-		}
-
-		// var creator = "No Creator?"
-		// if q.Creator != nil {
-		// 	creator = *q.Creator
-		// }
-
 		affiliation := *q.Town.Name
 		if q.Nation.Name != nil {
 			affiliation += fmt.Sprintf(" (%s)", *q.Nation.Name)
 		}
+
+		owner := "No Owner"
+		if q.Owner.Name != nil {
+			owner = *q.Owner.Name
+		}
+
+		price := float32(0)
+		if q.Stats.Price != nil {
+			price = *q.Stats.Price
+		}
+
+		registeredTs := q.Timestamps.Registered / 1000 // Seconds
+		registeredStr := fmt.Sprintf("<t:%d:R>", registeredTs)
+
+		// creator := "No Creator?"
+		// if q.Creator != nil {
+		// 	creator = *q.Creator
+		// }
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
 		embed := &discordgo.MessageEmbed{

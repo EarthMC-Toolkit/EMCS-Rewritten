@@ -75,6 +75,29 @@ func RequiredStringOption(name, description string, minLen, maxLen int) *discord
 	}
 }
 
+func RequiredIntegerOption(name, description string, minVal, maxVal int) *discordgo.ApplicationCommandOption {
+	min, max := float64(minVal), float64(maxVal)
+	return &discordgo.ApplicationCommandOption{
+		Type:        discordgo.ApplicationCommandOptionInteger,
+		Name:        name,
+		Description: description,
+		MinValue:    &min,
+		MaxValue:    max,
+		Required:    true,
+	}
+}
+
+func RequiredNumberOption(name, description string, minVal, maxVal float64) *discordgo.ApplicationCommandOption {
+	return &discordgo.ApplicationCommandOption{
+		Type:        discordgo.ApplicationCommandOptionNumber,
+		Name:        name,
+		Description: description,
+		MinValue:    &minVal,
+		MaxValue:    maxVal,
+		Required:    true,
+	}
+}
+
 func AutocompleteStringOption(name, description string, minLen, maxLen int, required bool) *discordgo.ApplicationCommandOption {
 	return &discordgo.ApplicationCommandOption{
 		Type:         discordgo.ApplicationCommandOptionString,

@@ -20,11 +20,19 @@ type Timestamps struct {
 	Registered uint64 `json:"registered"`
 }
 
+type Location2D struct {
+	X float32 `json:"x"`
+	Z float32 `json:"z"`
+}
+
+type Location3D struct {
+	Location2D
+	Y float32 `json:"y"`
+}
+
 type Spawn struct {
+	Location3D
 	World string  `json:"world"`
-	X     float32 `json:"x"`
-	Y     float32 `json:"y"`
-	Z     float32 `json:"z"`
 	Pitch float32 `json:"pitch"`
 	Yaw   float32 `json:"yaw"`
 }

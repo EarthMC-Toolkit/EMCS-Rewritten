@@ -79,6 +79,10 @@ func (t TownInfo) Bal() float32 {
 	return t.Stats.Balance
 }
 
+func (t TownInfo) Spawn() Spawn {
+	return t.Coordinates.Spawn
+}
+
 func (t TownInfo) NumResidents() uint32 {
 	return t.Stats.NumResidents
 }

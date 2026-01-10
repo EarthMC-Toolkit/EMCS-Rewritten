@@ -85,6 +85,10 @@ func (n NationInfo) Bal() float32 {
 	return n.Stats.Balance
 }
 
+func (n NationInfo) Spawn() Spawn {
+	return n.Coordinates.Spawn
+}
+
 // Returns the fill colour of the nation on the map as an int instead of a HEX string.
 func (n NationInfo) FillColourInt() int {
 	return utils.HexToInt(n.MapColourFill)

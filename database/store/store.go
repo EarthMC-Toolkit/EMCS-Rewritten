@@ -266,6 +266,17 @@ func (s *Store[T]) FindAll(predicate func(value T) bool) (results []T) {
 	return
 }
 
+// Iterates over the store data, calling iteratee for every element.
+// If iteratee returns false, the current iteration is skipped and we continue to the next one.
+func (s *Store[T]) ForEach(iteratee func(k StoreKey, v T)) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for k, v := range s.data {
+		iteratee(k, v)
+	}
+}
+
 // Overwrite the current store cache state with data from the associated JSON file/database located at path.
 // This should usually be called when the cache is empty and needs fresh data, for example when the bot starts up or when we are restoring from a backup.
 // This function should never be called during normal operation as to not provide potentially stale data.

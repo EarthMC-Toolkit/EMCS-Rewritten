@@ -98,21 +98,26 @@ func Register(cmd SlashCommand) {
 
 // Called before the bot runs (just before main).
 func init() {
+	Register(DevCommand{})
+
 	Register(AllianceCommand{})
 	Register(TownCommand{})
 	Register(NationCommand{})
+	Register(RuinedCommand{})
+	//Register(FallingCommand{})
+
 	Register(PlayerCommand{})
 	Register(ResidentCommand{})
 	Register(VisibleCommand{})
 	Register(OnlineCommand{})
-	Register(RuinedCommand{})
-	//Register(FallingCommand{})
+
+	Register(RouteCommand{})
+	Register(NewDayCommand{})
+	Register(QuartersCommand{})
 	Register(MysteryMasterCommand{})
 	Register(ServerCommand{})
 	Register(VotePartyCommand{})
 	Register(UsageCommand{})
-	Register(QuartersCommand{})
-	Register(NewDayCommand{})
 }
 
 // ======================================= COMMAND TEMPLATE =======================================

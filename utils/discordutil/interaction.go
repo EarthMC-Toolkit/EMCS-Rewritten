@@ -169,6 +169,11 @@ func GetInteractionAuthor(i *discordgo.Interaction) *discordgo.User {
 }
 
 func GetModalInputs(i *discordgo.Interaction) map[string]string {
+	if i.Type != discordgo.InteractionModalSubmit {
+		// in case some retard (me) tries to use this func to get inputs for different command type
+		panic("failed to get modal inputs: expected interaction type InteractionModalSubmit")
+	}
+
 	inputs := make(map[string]string)
 	for _, row := range i.ModalSubmitData().Components {
 		actionRow, ok := row.(*discordgo.ActionsRow)
