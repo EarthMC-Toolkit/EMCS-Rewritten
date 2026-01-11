@@ -3,7 +3,6 @@ package slashcommands
 import (
 	"emcsrw/utils/config"
 	"emcsrw/utils/discordutil"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -60,64 +59,20 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 	cdata := i.ApplicationCommandData()
 	sub := cdata.GetOption("purge")
 	threshold := int(sub.GetOption("threshold").IntValue())
-	approximateOnly := sub.GetOption("approx-only").BoolValue()
+
+	approximateOnly := false
+	approxOpt := sub.GetOption("approx-only")
+	if approxOpt != nil {
+		approximateOnly = approxOpt.BoolValue()
+	}
 
 	guilds, err := collectAllGuilds(s)
 	if err != nil {
 		return err
 	}
-
 	fmt.Printf("\n/dev purge: Collected %d total guilds\n", len(guilds))
 
-	content := "Left guild(s).\n"
-	errs := []error{}
-
-	leftCount := 0
-
-	// leave all guilds at or below input threshold
-	for _, g := range guilds {
-		if g == nil {
-			continue // corrupt guild or some shit?
-		}
-
-		// don't leave obviously massive guilds.
-		// should narrow down which ones we actually need to look at
-		mc := g.ApproximateMemberCount
-		if mc > threshold {
-			continue
-		}
-
-		if !approximateOnly {
-			humans, err := getHumanMemberCount(s, g.ID, threshold)
-			if err != nil {
-				fmt.Print(err)
-				continue
-			}
-
-			mc = humans
-		}
-
-		fmt.Printf("Left %s [%d]\n", g.Name, mc)
-		err = s.GuildLeave(g.ID)
-		if err != nil {
-			errs = append(errs, err)
-		} else {
-			content += fmt.Sprintf("- %s\n", g.Name)
-			leftCount++
-		}
-	}
-
-	if len(errs) > 0 {
-		content += fmt.Sprintf("\nThe following errors occurred:\n%s", errors.Join(errs...))
-	}
-
-	firstLine := fmt.Sprintf("**Left %d guild(s)**.", leftCount)
-	if len(content) >= 4096 {
-		content = firstLine
-	} else {
-		content = strings.Replace(content, "Left guild(s).", firstLine, 1)
-	}
-
+	content, _ := leaveGuilds(s, guilds, approximateOnly, threshold)
 	_, err = discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
 		Content: content,
 		Flags:   discordgo.MessageFlagsEphemeral,
@@ -126,10 +81,8 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 	return err
 }
 
-func collectAllGuilds(s *discordgo.Session) ([]*discordgo.UserGuild, error) {
-	allGuilds := []*discordgo.UserGuild{}
+func collectAllGuilds(s *discordgo.Session) (guilds []*discordgo.UserGuild, err error) {
 	after := ""
-
 	for {
 		batch, err := s.UserGuilds(200, "", after, true) // true = get approx member counts
 		if err != nil {
@@ -139,16 +92,15 @@ func collectAllGuilds(s *discordgo.Session) ([]*discordgo.UserGuild, error) {
 			break
 		}
 
-		allGuilds = append(allGuilds, batch...)
+		guilds = append(guilds, batch...)
 		after = batch[len(batch)-1].ID
 	}
 
-	return allGuilds, nil
+	return guilds, nil
 }
 
-// Uses HTTP unlike RequestGuildMembers which uses gateway.
 func getHumanMemberCount(s *discordgo.Session, guildID string, threshold int) (int, error) {
-	members, err := s.GuildMembers(guildID, "", threshold+1)
+	members, err := s.GuildMembers(guildID, "", threshold+1) // Uses HTTP. To use Gateway, prefer RequestGuildMembers().
 	if err != nil {
 		return 0, err
 	}
@@ -164,4 +116,75 @@ func getHumanMemberCount(s *discordgo.Session, guildID string, threshold int) (i
 	}
 
 	return count, nil
+}
+
+// Leaves all guilds at or below the input threshold.
+//
+// If approx is false, both the approximate member count and real human member count are used to determine
+// whether to leave a guild. Though the latter will incur more work, it should be preferred
+// as the approximate count can be off by quite a bit.
+func leaveGuilds(
+	s *discordgo.Session, allGuilds []*discordgo.UserGuild,
+	approx bool, threshold int,
+) (content string, errs []error) {
+	content = "Left guild(s).\n"
+	leftCount, skippedCount := 0, 0
+
+	var guildsForInspection []discordgo.UserGuild
+	for _, g := range allGuilds {
+		if g == nil {
+			continue // corrupt guild or some shit?
+		}
+
+		// don't leave obviously massive guilds.
+		// should narrow down which ones we actually need to look at
+		if g.ApproximateMemberCount > MAX_THRESHOLD {
+			skippedCount++
+			continue
+		}
+
+		guildsForInspection = append(guildsForInspection, *g)
+	}
+
+	fmt.Printf("\nSkipped %d guilds over MAX_THRESHOLD.\n", skippedCount)
+
+	for _, g := range guildsForInspection {
+		memCount := g.ApproximateMemberCount
+		if !approx {
+			humans, err := getHumanMemberCount(s, g.ID, threshold)
+			if err != nil {
+				fmt.Print(err)
+				continue
+			}
+
+			fmt.Printf("Guild %s: approx=%d, humans=%d\n", g.Name, g.ApproximateMemberCount, humans)
+			memCount = humans
+		}
+		if memCount > threshold {
+			continue // approx or real mem count still higher than threshold. dont leave
+		}
+
+		err := s.GuildLeave(g.ID)
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			content += fmt.Sprintf("- %s\n", g.Name)
+			leftCount++
+
+			fmt.Printf("Left %s [%d]\n", g.Name, memCount)
+		}
+	}
+
+	if len(errs) > 0 {
+		content += fmt.Sprintf("\n%d errors occurred.", len(errs))
+	}
+
+	firstLine := fmt.Sprintf("**Left %d guild(s)**.", leftCount)
+	if len(content) > 2000 {
+		content = firstLine
+	} else {
+		content = strings.Replace(content, "Left guild(s).", firstLine, 1)
+	}
+
+	return
 }
