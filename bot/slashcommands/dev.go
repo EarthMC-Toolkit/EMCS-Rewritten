@@ -5,6 +5,7 @@ import (
 	"emcsrw/utils/discordutil"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -18,6 +19,8 @@ func (cmd DevCommand) Description() string {
 	return "Commands for bot developers only."
 }
 
+// Subcommand "purge" will only work with the GUILD_MEMBERS intent which requires
+// your bot to be verified, which you can apply for when you reach >100 servers.
 func (cmd DevCommand) Options() AppCommandOpts {
 	return AppCommandOpts{
 		{
@@ -26,6 +29,7 @@ func (cmd DevCommand) Options() AppCommandOpts {
 			Description: "Leaves guilds based on low member count. Helps combat abuse.",
 			Options: AppCommandOpts{
 				discordutil.RequiredIntegerOption("threshold", "Guilds above this member count will not be left.", 1, MAX_THRESHOLD),
+				discordutil.BoolOption("approx-only", "Determines whether to leave using only approx mem count."),
 			},
 		},
 	}
@@ -56,6 +60,7 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 	cdata := i.ApplicationCommandData()
 	sub := cdata.GetOption("purge")
 	threshold := int(sub.GetOption("threshold").IntValue())
+	approximateOnly := sub.GetOption("approx-only").BoolValue()
 
 	guilds, err := collectAllGuilds(s)
 	if err != nil {
@@ -64,20 +69,35 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 
 	fmt.Printf("\n/dev purge: Collected %d total guilds\n", len(guilds))
 
-	content := "**Left guild(s)**:\n"
+	content := "Left guild(s).\n"
 	errs := []error{}
 
 	leftCount := 0
 
 	// leave all guilds at or below input threshold
 	for _, g := range guilds {
+		if g == nil {
+			continue // corrupt guild or some shit?
+		}
+
 		// don't leave obviously massive guilds.
-		// should narrow narrow down which ones we actually need to look at
-		if g.ApproximateMemberCount > threshold {
+		// should narrow down which ones we actually need to look at
+		mc := g.ApproximateMemberCount
+		if mc > threshold {
 			continue
 		}
 
-		fmt.Printf("Left %s [%d]\n", g.Name, g.ApproximateMemberCount)
+		if !approximateOnly {
+			humans, err := getHumanMemberCount(s, g.ID, threshold)
+			if err != nil {
+				fmt.Print(err)
+				continue
+			}
+
+			mc = humans
+		}
+
+		fmt.Printf("Left %s [%d]\n", g.Name, mc)
 		err = s.GuildLeave(g.ID)
 		if err != nil {
 			errs = append(errs, err)
@@ -91,8 +111,11 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 		content += fmt.Sprintf("\nThe following errors occurred:\n%s", errors.Join(errs...))
 	}
 
+	firstLine := fmt.Sprintf("**Left %d guild(s)**.", leftCount)
 	if len(content) >= 4096 {
-		content = fmt.Sprintf("Left %d guild(s).", leftCount)
+		content = firstLine
+	} else {
+		content = strings.Replace(content, "Left guild(s).", firstLine, 1)
 	}
 
 	_, err = discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
@@ -123,23 +146,22 @@ func collectAllGuilds(s *discordgo.Session) ([]*discordgo.UserGuild, error) {
 	return allGuilds, nil
 }
 
-// func getHumanMemberCount(s *discordgo.Session, guildID string, threshold int) (int, error) {
-// 	count, limit := 0, threshold+1
+// Uses HTTP unlike RequestGuildMembers which uses gateway.
+func getHumanMemberCount(s *discordgo.Session, guildID string, threshold int) (int, error) {
+	members, err := s.GuildMembers(guildID, "", threshold+1)
+	if err != nil {
+		return 0, err
+	}
 
-// 	// Fetch a single batch; no loop needed
-// 	members, err := s.GuildMembers(guildID, "", limit)
-// 	if err != nil {
-// 		return 0, err
-// 	}
+	count := 0
+	for _, m := range members {
+		if !m.User.Bot {
+			count++
+			if count > threshold {
+				return count, nil
+			}
+		}
+	}
 
-// 	for _, m := range members {
-// 		if !m.User.Bot {
-// 			count++
-// 			if count > threshold {
-// 				return count, nil
-// 			}
-// 		}
-// 	}
-
-// 	return count, nil
-// }
+	return count, nil
+}

@@ -10,13 +10,15 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-//var dmIntents = dgo.IntentDirectMessages | dgo.IntentDirectMessageReactions
-
+// ! WARNING !
+// If you do not have some of these intents, the bot may not start correctly.
+// Remove any you do not require and restart the bot again.
+var ALL_INTENTS = discordgo.IntentMessageContent | GUILD_INTENTS
 var GUILD_INTENTS = discordgo.IntentGuilds |
 	discordgo.IntentGuildMessages |
 	discordgo.IntentGuildMessageReactions
 
-var ALL_INTENTS = discordgo.IntentMessageContent | GUILD_INTENTS
+//var DM_INTENTS = dgo.IntentDirectMessages | dgo.IntentDirectMessageReactions
 
 func Run(botToken string) (*discordgo.Session, *database.Database) {
 	// Initialize a Discord Session
