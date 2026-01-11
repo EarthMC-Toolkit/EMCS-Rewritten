@@ -60,7 +60,12 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 	cdata := i.ApplicationCommandData()
 	sub := cdata.GetOption("purge")
 	threshold := int(sub.GetOption("threshold").IntValue())
-	approximateOnly := sub.GetOption("approx-only").BoolValue()
+
+	approximateOnly := false
+	approxOpt := sub.GetOption("approx-only")
+	if approxOpt != nil {
+		approximateOnly = approxOpt.BoolValue()
+	}
 
 	guilds, err := collectAllGuilds(s)
 	if err != nil {
@@ -73,8 +78,10 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 	errs := []error{}
 
 	leftCount := 0
+	skippedCount := 0
 
 	// leave all guilds at or below input threshold
+	var guildsForInspection []discordgo.UserGuild
 	for _, g := range guilds {
 		if g == nil {
 			continue // corrupt guild or some shit?
@@ -82,11 +89,18 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 
 		// don't leave obviously massive guilds.
 		// should narrow down which ones we actually need to look at
-		mc := g.ApproximateMemberCount
-		if mc > threshold {
+		if g.ApproximateMemberCount > MAX_THRESHOLD {
+			skippedCount++
 			continue
 		}
 
+		guildsForInspection = append(guildsForInspection, *g)
+	}
+
+	fmt.Printf("\nSkipped %d guilds over MAX_THRESHOLD.\n", skippedCount)
+
+	for _, g := range guildsForInspection {
+		memCount := g.ApproximateMemberCount
 		if !approximateOnly {
 			humans, err := getHumanMemberCount(s, g.ID, threshold)
 			if err != nil {
@@ -94,16 +108,21 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 				continue
 			}
 
-			mc = humans
+			fmt.Printf("Guild %s: approx=%d, humans=%d\n", g.Name, g.ApproximateMemberCount, humans)
+			memCount = humans
+		}
+		if memCount > threshold {
+			continue // approx or real mem count still higher than threshold. dont leave
 		}
 
-		fmt.Printf("Left %s [%d]\n", g.Name, mc)
 		err = s.GuildLeave(g.ID)
 		if err != nil {
 			errs = append(errs, err)
 		} else {
 			content += fmt.Sprintf("- %s\n", g.Name)
 			leftCount++
+
+			fmt.Printf("Left %s [%d]\n", g.Name, memCount)
 		}
 	}
 
@@ -112,7 +131,7 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 	}
 
 	firstLine := fmt.Sprintf("**Left %d guild(s)**.", leftCount)
-	if len(content) >= 4096 {
+	if len(content) > 2000 {
 		content = firstLine
 	} else {
 		content = strings.Replace(content, "Left guild(s).", firstLine, 1)
