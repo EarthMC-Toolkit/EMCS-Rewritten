@@ -453,7 +453,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 	rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, database.DEFAULT_ALLIANCE_WEIGHTS)
 	slices.SortFunc(alliances, func(a, b database.Alliance) int {
 		// sort alliances via rankedAlliances map. lowest (best) rank first
-		return cmp.Compare(rankedAlliances[a.UUID].Rank, rankedAlliances[b.UUID].Rank)
+		return cmp.Compare(rankedAlliances[b.UUID].Rank, rankedAlliances[a.UUID].Rank)
 	})
 
 	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
