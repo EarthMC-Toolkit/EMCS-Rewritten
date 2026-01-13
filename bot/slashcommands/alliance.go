@@ -1354,7 +1354,19 @@ func handleAllianceEditorModalOptional(
 	//#endregion
 
 	// Update alliance fields after all validation/transformations complete.
-	alliance.Type = database.NewAllianceType(inputs["type"]) // invalid input will default to pact
+	inputType := strings.TrimSpace(inputs["discord"])
+	if inputType != "" {
+		// do not allow empty string or bogus amogus to be matched.
+		// keep using the old value of Type in that case.
+		switch strings.ToLower(inputType) {
+		case "mega", "meganation":
+			alliance.Type = database.AllianceTypeMeganation
+		case "org", "organisation", "organization":
+			alliance.Type = database.AllianceTypeOrganisation
+		case "null", "none":
+			alliance.Type = database.AllianceTypePact
+		}
+	}
 
 	if discordCode != "" {
 		alliance.Optional.DiscordCode = &discordCode
