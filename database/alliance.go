@@ -58,18 +58,18 @@ const (
 	AllianceTypePact         AllianceType = "pact"
 )
 
-func NewAllianceType(s string) AllianceType {
-	s = strings.TrimSpace(strings.ToLower(s))
+// func NewAllianceType(s string) AllianceType {
+// 	s = strings.TrimSpace(strings.ToLower(s))
 
-	switch s {
-	case "mega", "meganation":
-		return AllianceTypeMeganation
-	case "org", "organisation", "organization":
-		return AllianceTypeOrganisation
-	default:
-		return AllianceTypePact
-	}
-}
+// 	switch s {
+// 	case "mega", "meganation":
+// 		return AllianceTypeMeganation
+// 	case "org", "organisation", "organization":
+// 		return AllianceTypeOrganisation
+// 	default:
+// 		return AllianceTypePact
+// 	}
+// }
 
 // The colloquial, long name of the alliance type. Eg: "mega" becomes "Meganation".
 func (t AllianceType) Colloquial() string {
