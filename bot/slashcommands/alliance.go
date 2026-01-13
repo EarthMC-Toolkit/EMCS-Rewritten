@@ -1239,6 +1239,23 @@ func handleAllianceEditorModalOptional(
 ) error {
 	inputs := discordutil.GetModalInputs(i)
 
+	//#region Type validation
+	inputType := strings.TrimSpace(inputs["type"])
+	if inputType != "" {
+		// do not allow empty string or bogus amogus to be matched.
+		// keep using the old value of Type in that case.
+		switch strings.ToLower(inputType) {
+		case "mega", "meganation":
+			alliance.Type = database.AllianceTypeMeganation
+		case "org", "organisation", "organization":
+			alliance.Type = database.AllianceTypeOrganisation
+		case "null", "none":
+			alliance.Type = database.AllianceTypePact
+		}
+	}
+	//#endregion
+
+	//#region Image validation
 	image := strings.TrimSpace(inputs["image"])
 	if image != "" {
 		parsedUrl, err := validateAllianceImage(image)
@@ -1254,6 +1271,7 @@ func handleAllianceEditorModalOptional(
 		// Ensure we always use the original cdn link.
 		image = parsedUrl
 	}
+	//#endregion
 
 	//#region Discord invite validation
 	var discordCode string
@@ -1354,20 +1372,6 @@ func handleAllianceEditorModalOptional(
 	//#endregion
 
 	// Update alliance fields after all validation/transformations complete.
-	inputType := strings.TrimSpace(inputs["type"])
-	if inputType != "" {
-		// do not allow empty string or bogus amogus to be matched.
-		// keep using the old value of Type in that case.
-		switch strings.ToLower(inputType) {
-		case "mega", "meganation":
-			alliance.Type = database.AllianceTypeMeganation
-		case "org", "organisation", "organization":
-			alliance.Type = database.AllianceTypeOrganisation
-		case "null", "none":
-			alliance.Type = database.AllianceTypePact
-		}
-	}
-
 	if discordCode != "" {
 		alliance.Optional.DiscordCode = &discordCode
 	}
