@@ -1239,6 +1239,27 @@ func handleAllianceEditorModalOptional(
 ) error {
 	inputs := discordutil.GetModalInputs(i)
 
+	//#region Leaders validation
+	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
+	if err != nil {
+		return fmt.Errorf("error updating leaders for alliance: %s. failed to get player store from DB", alliance.Identifier)
+	}
+
+	invalidLeaders := []string{}
+	if strings.TrimSpace(inputs["leaders"]) != "" {
+		leaders, err := utils.ParseFieldsStr(inputs["leaders"], ',')
+		invalidLeaders, err = alliance.SetLeaders(playerStore, leaders...)
+		if err != nil {
+			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("An error occurred while setting alliance leaders:```%s```", err),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+
+			return nil
+		}
+	}
+	//#endregion
+
 	//#region Type validation
 	inputType := strings.TrimSpace(inputs["type"])
 	if inputType != "" {
@@ -1342,27 +1363,6 @@ func handleAllianceEditorModalOptional(
 		if !ok {
 			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 				Content: "Input for field **Colours** contains an invalid HEX code as the outline colour.",
-				Flags:   discordgo.MessageFlagsEphemeral,
-			})
-
-			return nil
-		}
-	}
-	//#endregion
-
-	//#region Leaders validation
-	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
-	if err != nil {
-		return fmt.Errorf("error updating leaders for alliance: %s. failed to get player store from DB", alliance.Identifier)
-	}
-
-	invalidLeaders := []string{}
-	if strings.TrimSpace(inputs["leaders"]) != "" {
-		leaders, err := utils.ParseFieldsStr(inputs["leaders"], ',')
-		invalidLeaders, err = alliance.SetLeaders(playerStore, leaders...)
-		if err != nil {
-			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("An error occurred while setting alliance leaders:```%s```", err),
 				Flags:   discordgo.MessageFlagsEphemeral,
 			})
 
