@@ -67,8 +67,12 @@ func (cmd OnlineCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.I
 }
 
 func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	cdata := i.ApplicationCommandData()
+	err := discordutil.DeferReply(s, i.Interaction)
+	if err != nil {
+		return err
+	}
 
+	cdata := i.ApplicationCommandData()
 	opt := cdata.GetOption("town")
 	if opt != nil {
 		return executeOnlineTown(s, i.Interaction, opt.GetOption("name").StringValue())
@@ -79,7 +83,7 @@ func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return executeOnlineNation(s, i.Interaction, opt.GetOption("name").StringValue())
 	}
 
-	_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+	_, err = discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
 		Content: "Error occurred getting sub command option. Somehow you sent none of them?",
 	})
 
@@ -87,8 +91,6 @@ func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 }
 
 func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName string) error {
-	discordutil.DeferReply(s, i)
-
 	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
 	if err != nil {
 		return err
@@ -122,8 +124,6 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 }
 
 func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) error {
-	discordutil.DeferReply(s, i)
-
 	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 	if err != nil {
 		return err

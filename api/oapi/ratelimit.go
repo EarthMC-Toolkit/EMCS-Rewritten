@@ -16,7 +16,8 @@ func init() {
 	Dispatcher = NewRequestDispatcher(NewRequestBucket(RATE_LIMIT))
 }
 
-type Request func()
+type Request func() error
+type RequestNoErr func()
 type Token struct{}
 
 // A bucket of "tokens" where each token can allow a request to be sent.
@@ -54,12 +55,12 @@ func NewRequestBucket(reqPerMin int) (bucket *RequestBucket) {
 	return
 }
 
-// Blocks the goroutine that AcquireToken was called in until a token/request is available.
+// Blocks the goroutine that this func was called in until a token/request is available.
 func (b *RequestBucket) AcquireToken() {
 	<-b.tokens
 }
 
-// Attempts to a acquire without blocking.
+// Attempts to acquire a token without blocking the goroutine, reporting whether acquisition succeeded.
 func (b *RequestBucket) TryAcquireToken() bool {
 	select {
 	case <-b.tokens:
@@ -71,7 +72,8 @@ func (b *RequestBucket) TryAcquireToken() bool {
 
 // A dispatcher is responsible for queuing and sending requests.
 // It does this by waiting for a "token" from its internal bucket.
-// If a token is available, a request is immediately sent.
+// If a token is available, a request is sent either synchronously or
+// asynchronously according to which method was used to queue it.
 type RequestDispatcher struct {
 	reqBucket *RequestBucket
 }
@@ -84,25 +86,55 @@ func NewRequestDispatcher(bucket *RequestBucket) (dispatcher *RequestDispatcher)
 	return
 }
 
-// Submit a request to the queue which will be executed in a goroutine when a token is available.
-func (d *RequestDispatcher) Queue(req Request) {
+// Executes the req synchronously after waiting to acquire a token, both of which block the caller.
+//
+// To make an async request, prefer EnqueueAsync or EnqueueAsyncErr for error logging.
+func (d *RequestDispatcher) Enqueue(req Request) error {
+	d.reqBucket.AcquireToken() // Blocks until we have a token to use.
+	return req()               // Consume token and run a request.
+}
+
+// Runs a goroutine that handles executing req once a token is acquired.
+// This is essentially an async version of Enqueue that does not block the caller.
+func (d *RequestDispatcher) EnqueueAsync(req RequestNoErr) {
 	go func() {
-		d.reqBucket.AcquireToken() // Blocks until we have a token to use.
-		req()                      // Consume token and run request.
+		d.reqBucket.AcquireToken()
+		req()
 	}()
 }
 
-// Burst executes requests as fast as this dispatcher's bucket allows, skipping the queue.
+// Like EnqueueAsync, but sends any non-nil error returned by the executed req into errChan.
+func (d *RequestDispatcher) EnqueueAsyncErr(req Request, errChan chan error) {
+	go func() {
+		if err := d.Enqueue(req); err != nil {
+			errChan <- err
+		}
+	}()
+}
+
+// Attempts to execute req immediately if a token is available.
+// Otherwise, it is queued asynchronously via EnqueueAsync.
+func (d *RequestDispatcher) EnqueueOrAsync(req RequestNoErr) {
+	if !d.reqBucket.TryAcquireToken() {
+		d.EnqueueAsync(req) // no token available, queue until there is one
+		return
+	}
+
+	req() // Got a token, just execute and block :)
+}
+
+// Burst executes reqs as fast as this dispatcher's bucket allows, draining all available tokens.
 //
-// If too little tokens were available to complete all requests with the initial burst, Queue() is called for every remaining request.
-func (d *RequestDispatcher) Burst(reqs []Request) {
+// If too little tokens were available to complete all requests with the initial burst,
+// QueueAsync() is called for every remaining request to ensure they arrive, but won't block.
+func (d *RequestDispatcher) Burst(reqs []RequestNoErr) {
 	for _, req := range reqs {
 		select {
 		case <-d.reqBucket.tokens:
-			req()
+			req() // Run immediately if token available
 		default:
-			// No more tokens available, queue remaining requests
-			go func(r Request) { d.Queue(r) }(req)
+			// Queue remaining requests asynchronously
+			d.EnqueueAsync(req)
 		}
 	}
 }

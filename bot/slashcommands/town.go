@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"cmp"
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
@@ -8,7 +9,10 @@ import (
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
+	"math"
+	"slices"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -32,6 +36,22 @@ func (cmd TownCommand) Options() AppCommandOpts {
 		},
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "activity",
+			Description: "See the last online and purge date of each resident in a town.",
+			Options: AppCommandOpts{
+				discordutil.AutocompleteStringOption("name", "The name of the town to query.", 2, 40, true),
+			},
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "online",
+			Description: "Query the online status of a town's residents. Alias of /online town",
+			Options: AppCommandOpts{
+				discordutil.AutocompleteStringOption("name", "The name of the town to query.", 2, 40, true),
+			},
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "list",
 			Description: "Sends a paginator enabling navigation through all existing towns.",
 		},
@@ -47,11 +67,23 @@ func (cmd TownCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCre
 	cdata := i.ApplicationCommandData()
 	if opt := cdata.GetOption("query"); opt != nil {
 		townNameArg := opt.GetOption("name").StringValue()
-		_, err := executeQueryTown(s, i.Interaction, townNameArg)
+		_, err := executeTownQuery(s, i.Interaction, townNameArg)
 		return err
 	}
+	if opt := cdata.GetOption("activity"); opt != nil {
+		townNameArg := opt.GetOption("name").StringValue()
+		_, err := executeTownActivity(s, i.Interaction, townNameArg)
+		if err != nil {
+			discordutil.ReplyWithError(s, i.Interaction, err)
+			return err
+		}
+	}
+	if opt := cdata.GetOption("online"); opt != nil {
+		townNameArg := opt.GetOption("name").StringValue()
+		return executeOnlineTown(s, i.Interaction, townNameArg)
+	}
 	if opt := cdata.GetOption("list"); opt != nil {
-		return executeListTowns(s, i.Interaction)
+		return executeTownList(s, i.Interaction)
 	}
 
 	return nil
@@ -66,6 +98,10 @@ func (cmd TownCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Int
 	// top-level sub cmd or group
 	subCmd := cdata.Options[0]
 	switch subCmd.Name {
+	case "activity":
+		fallthrough
+	case "online":
+		fallthrough
 	case "query":
 		return townNameAutocomplete(s, i, cdata)
 	}
@@ -131,7 +167,7 @@ func townNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata 
 	})
 }
 
-func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName string) (*discordgo.Message, error) {
+func executeTownQuery(s *discordgo.Session, i *discordgo.Interaction, townName string) (*discordgo.Message, error) {
 	var town *oapi.TownInfo
 
 	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
@@ -141,7 +177,7 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 			return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("A database error occurred and the API failed during fallback!?```%s```", err))
 		}
 	} else {
-		if len(townStore.Keys()) == 0 {
+		if townStore.Count() == 0 {
 			return discordutil.FollowupContentEphemeral(s, i, "The town database is currently empty. This is unusual, but may resolve itself.")
 		}
 
@@ -158,7 +194,7 @@ func executeQueryTown(s *discordgo.Session, i *discordgo.Interaction, townName s
 	return discordutil.FollowupEmbeds(s, i, embed)
 }
 
-func executeListTowns(s *discordgo.Session, i *discordgo.Interaction) error {
+func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
 	if err != nil {
 		return err
@@ -229,4 +265,100 @@ func executeListTowns(s *discordgo.Session, i *discordgo.Interaction) error {
 	}
 
 	return paginator.Start()
+}
+
+func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townName string) (*discordgo.Message, error) {
+	var town *oapi.TownInfo
+
+	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+	if err != nil {
+		town, err = oapi.QueryTown(townName)
+		if err != nil {
+			return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("A database error occurred and the API failed during fallback!?```%s```", err))
+		}
+	} else {
+		if townStore.Count() == 0 {
+			return discordutil.FollowupContentEphemeral(s, i, "The town database is currently empty. This is unusual, but may resolve itself.")
+		}
+
+		town, _ = townStore.Find(func(info oapi.TownInfo) bool {
+			return strings.EqualFold(townName, info.Name) || townName == info.UUID
+		})
+	}
+
+	if town == nil {
+		return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Town `%s` does not seem to exist.", townName))
+	}
+
+	// TODO: Maybe do this inside of PageFunc using residents on current page
+	residents, errs, _ := oapi.QueryConcurrentEntities(oapi.QueryPlayers, town.Residents)
+	if len(errs) > 0 {
+		return nil, errs[0]
+	}
+
+	count := len(residents)
+	slices.SortFunc(residents, func(a, b oapi.PlayerInfo) int {
+		at, bt := a.Timestamps.LastOnline, b.Timestamps.LastOnline
+		av, bv := uint64(math.MaxInt64), uint64(math.MaxInt64)
+		if at != nil {
+			av = *at
+		}
+		if bt != nil {
+			bv = *bt
+		}
+
+		return cmp.Compare(av, bv)
+	})
+
+	perPage := 10
+	paginator := discordutil.NewInteractionPaginator(s, i, count, perPage).
+		WithTimeout(5 * time.Minute)
+
+	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
+		start, end := paginator.CurrentPageBounds(count)
+
+		now := uint64(time.Now().Unix())
+
+		content := ""
+		for _, res := range residents[start:end] {
+			lo := res.Timestamps.LastOnline
+			if lo == nil {
+				content += fmt.Sprintf("**%s** - Unknown\n", res.Name)
+				continue
+			}
+
+			//daysOffline := (now - *lo/1000) / 86400
+			purgeTimeStr := formattedPurgeTime(now, *lo)
+			content += fmt.Sprintf("**%s** - <t:%d:R>.\nPurges in: %s\n\n", res.Name, *lo, purgeTimeStr)
+		}
+
+		data.Content = content
+		if paginator.TotalPages() > 1 {
+			data.Content += fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
+		}
+	}
+
+	// chinese motorcycle
+	return nil, paginator.Start()
+}
+
+const PURGE_DAYS = 42
+const PURGE_DAYS_SEC = uint64(PURGE_DAYS * 24 * 3600)
+
+// Given the current time and last online, this func outputs a formatted time (0d, 0h, 0m)
+// according to the remaining time until a player is offline for PURGE_DAYS.
+func formattedPurgeTime(now, lastOnline uint64) string {
+	elapsed := now - lastOnline
+
+	// total seconds until 42 days offline
+	remainingSec := PURGE_DAYS_SEC - elapsed // TODO: get next newday after this (when purge will happen)
+	if remainingSec <= 0 {
+		return "now"
+	}
+
+	days := remainingSec / 86400
+	hours := (remainingSec % 86400) / 3600
+	minutes := (remainingSec % 3600) / 60
+
+	return fmt.Sprintf("%dd, %dh, %dm", days, hours, minutes)
 }

@@ -117,19 +117,21 @@ func QueryConcurrent[T Identifiable](
 	wg.Add(chunkLen)
 
 	for _, chunk := range chunks {
-		chunkCopy := chunk // So that queue knows which chunk to work on.
-		Dispatcher.Queue(func() {
+		chunkCopy := chunk // capture so goroutine can access it
+		Dispatcher.EnqueueAsyncErr(func() error {
 			defer wg.Done()
 
 			results, err := queryFunc(chunkCopy...)
 			if err != nil {
-				errCh <- err
+				return err
 			}
 
 			mu.Lock()
 			all = append(all, results...)
 			mu.Unlock()
-		})
+
+			return nil
+		}, errCh)
 	}
 
 	wg.Wait()

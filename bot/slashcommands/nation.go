@@ -32,6 +32,14 @@ func (cmd NationCommand) Options() AppCommandOpts {
 		},
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "online",
+			Description: "Query the online status of a nation's residents. Alias of /online nation",
+			Options: AppCommandOpts{
+				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 40, true),
+			},
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "list",
 			Description: "Sends a paginator enabling navigation through all existing nations.",
 		},
@@ -50,6 +58,10 @@ func (cmd NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		_, err := executeQueryNation(s, i.Interaction, nationNameArg)
 		return err
 	}
+	if opt := cdata.GetOption("online"); opt != nil {
+		nationNameArg := opt.GetOption("name").StringValue()
+		return executeOnlineNation(s, i.Interaction, nationNameArg)
+	}
 	if opt := cdata.GetOption("list"); opt != nil {
 		return executeListNations(s, i.Interaction)
 	}
@@ -66,6 +78,8 @@ func (cmd NationCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.I
 	// top-level sub cmd or group
 	subCmd := cdata.Options[0]
 	switch subCmd.Name {
+	case "online":
+		fallthrough
 	case "query":
 		return nationNameAutocomplete(s, i, cdata)
 	}
