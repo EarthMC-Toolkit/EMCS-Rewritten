@@ -13,6 +13,10 @@ type BasicPlayer struct {
 	Nation *oapi.Entity `json:"nation,omitempty"`
 }
 
+func NewBasicPlayerEntity(id, n string) BasicPlayer {
+	return BasicPlayer{Entity: oapi.Entity{UUID: id, Name: n}}
+}
+
 func FindPlayerTown(name string, townStore *store.Store[oapi.TownInfo]) (*oapi.TownInfo, error) {
 	return townStore.Find(func(t oapi.TownInfo) bool {
 		for _, res := range t.Residents {

@@ -112,7 +112,8 @@ func scheduleTask(task func(), runInitial bool, interval time.Duration) {
 	}()
 }
 
-// Runs a task that returns a value, said value is then marshalled and stored in the given badger DB under the given key.
+// Runs task whos returned value is used to overwrite the data within store.
+//
 // If an error occurs during the task, the error is logged and returned, and the DB write will not occur.
 func OverwriteFunc[T any](store *store.Store[T], task func() (map[string]T, error)) (map[string]T, error) {
 	v, err := task()
@@ -186,8 +187,7 @@ func UpdateData(mdb *database.Database) (
 	}
 
 	//region ============ GATHER DATA USING TOWNS ============
-	residentList := make(oapi.EntityList)
-	nlist := make(oapi.EntityList)
+	residentList, nlist := make(oapi.EntityList), make(oapi.EntityList)
 	for _, t := range townList {
 		for _, r := range t.Residents {
 			residentList[r.UUID] = r.Name
@@ -240,17 +240,11 @@ func UpdateData(mdb *database.Database) (
 
 	OverwriteFunc(playerStore, func() (map[string]database.BasicPlayer, error) {
 		playersMap := make(map[string]database.BasicPlayer)
-
 		for uuid, name := range townlessList {
-			playersMap[uuid] = database.BasicPlayer{
-				Entity: oapi.Entity{UUID: uuid, Name: name},
-			}
+			playersMap[uuid] = database.NewBasicPlayerEntity(uuid, name)
 		}
-
 		for uuid, name := range residentList {
-			bp := database.BasicPlayer{
-				Entity: oapi.Entity{UUID: uuid, Name: name},
-			}
+			bp := database.NewBasicPlayerEntity(uuid, name)
 
 			// Get player town by their UUID. While the town should always exist,
 			// this prevents a potential panic and keeps them townless.
