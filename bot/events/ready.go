@@ -1,6 +1,13 @@
 package events
 
 import (
+	"cmp"
+	"fmt"
+	"log"
+	"slices"
+	"strings"
+	"time"
+
 	"emcsrw/api"
 	"emcsrw/api/oapi"
 	"emcsrw/bot/slashcommands"
@@ -9,15 +16,10 @@ import (
 	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
-	"fmt"
-	"log"
-	"sort"
-	"strings"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
-	lop "github.com/samber/lo/parallel"
+	"github.com/samber/lo/parallel"
 )
 
 const TFLOW_CHANNEL_ID = "1420855039357878469"
@@ -56,23 +58,17 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 		start := time.Now()
 		townList, staleTownList, townless, residents, err := UpdateData(mdb)
-		elapsed := time.Since(start)
 
-		fmt.Println()
+		fmt.Println() // use \n without log.Printf messing up date/time
 		if err != nil {
-			log.Println("[OnReady]: Failed data update task.")
-			log.Println(err)
+			log.Printf("[OnReady]: Failed data update task.\n%s\n", err)
+		} else {
+			elapsed := time.Since(start)
+			log.Printf("[OnReady]: Completed data update task. Took: %s\n", elapsed.String())
 		}
 
-		log.Println("[OnReady]: Completed data update task. Took: " + elapsed.String())
-
-		towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo {
-			return t
-		})
-
-		staleTowns := lo.MapToSlice(staleTownList, func(_ string, t oapi.TownInfo) oapi.TownInfo {
-			return t
-		})
+		towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
+		staleTowns := lo.MapToSlice(staleTownList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
 
 		TrySendLeftJoinedNotif(s, towns, staleTowns, townless, residents)
 		TrySendRuinedNotif(s, townList, staleTowns)
@@ -278,18 +274,16 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 		return t, !wasRuined && t.Status.Ruined
 	})
 
-	sort.Slice(ruined, func(i, j int) bool {
-		return *ruined[i].Timestamps.RuinedAt < *ruined[j].Timestamps.RuinedAt
+	// Sort by oldest RuinedAt (aka least amount of time until deletion)
+	slices.SortFunc(ruined, func(a, b oapi.TownInfo) int {
+		return cmp.Compare(*a.Timestamps.RuinedAt, *b.Timestamps.RuinedAt)
 	})
 
 	count := len(ruined)
 	if count > 0 {
-		desc := lop.Map(ruined, func(t oapi.TownInfo, _ int) string {
+		desc := parallel.Map(ruined, func(t oapi.TownInfo, _ int) string {
 			chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
 			balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
-
-			spawn := t.Coordinates.Spawn
-			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
 			ruinedTs := *t.Timestamps.RuinedAt
 			ruinedTime := time.UnixMilli(int64(*t.Timestamps.RuinedAt))
@@ -299,6 +293,12 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			if !nextNewDay.After(after72h) {
 				nextNewDay = nextNewDay.Add(24 * time.Hour)
 			}
+
+			spawn := t.Coordinates.Spawn
+			locationLink := fmt.Sprintf(
+				"[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)",
+				spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
+			)
 
 			return fmt.Sprintf(
 				"`%s` fell into ruin <t:%d:R> at %s. %sG %s\nDeletion on `%s` (<t:%d:R>).",
@@ -325,7 +325,7 @@ func TrySendFallenNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 
 	count := len(diff)
 	if count > 0 {
-		desc := lop.Map(diff, func(t oapi.TownInfo, _ int) string {
+		desc := parallel.Map(diff, func(t oapi.TownInfo, _ int) string {
 			spawn := t.Coordinates.Spawn
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
