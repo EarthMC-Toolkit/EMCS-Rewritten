@@ -11,8 +11,9 @@ import (
 
 type Endpoint = string
 
+const VERSION, MAP = "3", "aurora"
 const (
-	ENDPOINT_BASE           Endpoint = "https://api.earthmc.net/v3/aurora"
+	ENDPOINT_BASE           Endpoint = "https://api.earthmc.net/v" + VERSION + "/" + MAP
 	ENDPOINT_MYSTERY_MASTER Endpoint = ENDPOINT_BASE + "/mm"
 	ENDPOINT_TOWNS          Endpoint = ENDPOINT_BASE + "/towns"
 	ENDPOINT_NATIONS        Endpoint = ENDPOINT_BASE + "/nations"
@@ -23,6 +24,39 @@ const (
 	ENDPOINT_QUARTERS       Endpoint = ENDPOINT_BASE + "/quarters"
 	ENDPOINT_PLAYER_STATS   Endpoint = ENDPOINT_BASE + "/player-stats"
 )
+
+type ResponseStatus int
+
+const (
+	RESPONSE_STATUS_DOWN    ResponseStatus = iota // Request succeeded but server error code.
+	RESPONSE_STATUS_PARTIAL                       // Request went through but not success or down.
+	RESPONSE_STATUS_FAILED                        // Request failed to go through due to network or dns error.
+	RESPONSE_STATUS_OK
+)
+
+// Sends a ping, aka a HEAD request to the Official API base endpoint.
+// An enum is returned indicating the type of error we encountered, in addition to an ok
+// boolean which returns true on success (RESPONSE_STATUS_OK), anything else is false.
+func Ping() (status ResponseStatus, ok bool) {
+	resp, err := requests.Head(ENDPOINT_BASE)
+	if err != nil {
+		return RESPONSE_STATUS_FAILED, false
+	}
+
+	// 501 Not Implemented not required here due to its very nature:
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/501
+	switch resp.StatusCode {
+	case 505, 503, 502, 500, 404:
+		return RESPONSE_STATUS_DOWN, false
+	case 429, 304, 204, 200:
+		return RESPONSE_STATUS_OK, true
+	}
+
+	// Any non-error or non-success is a grey area.
+	// In this case we mark the status as "not ok" as it is probably safer to just
+	// not send a request if we aren't 100% sure we will get a body.
+	return RESPONSE_STATUS_PARTIAL, false
+}
 
 // Identifiable is a constraint for things with a UUID such as an Entity.
 type Identifiable interface {
@@ -56,40 +90,40 @@ func NewPostQueryTemplate[T any](identifiers []string, template T) *PostBodyTemp
 //
 // Do not call this function if you do not expect an [Entity] slice back. For example QueryList(oapi.SERVER_ENDPOINT) will fail.
 func QueryList(endpoint Endpoint) ([]Entity, error) {
-	return requests.JsonGetRequest[[]Entity](endpoint)
+	return requests.JsonGet[[]Entity](endpoint)
 }
 
 // Queries the Official API with a GET request to the server endpoint.
 func QueryServer() (ServerInfo, error) {
-	return requests.JsonGetRequest[ServerInfo](ENDPOINT_BASE)
+	return requests.JsonGet[ServerInfo](ENDPOINT_BASE)
 }
 
 func QueryServerPlayerStats() (ServerPlayerStats, error) {
-	return requests.JsonGetRequest[ServerPlayerStats](ENDPOINT_PLAYER_STATS)
+	return requests.JsonGet[ServerPlayerStats](ENDPOINT_PLAYER_STATS)
 }
 
 func QueryMysteryMaster() ([]MysteryMaster, error) {
-	return requests.JsonGetRequest[[]MysteryMaster](ENDPOINT_MYSTERY_MASTER)
+	return requests.JsonGet[[]MysteryMaster](ENDPOINT_MYSTERY_MASTER)
 }
 
 // Queries the Official API with a POST request providing all valid town identifier (name/uuid) strings to the body "query" key.
 func QueryTowns(identifiers ...string) ([]TownInfo, error) {
-	return requests.JsonPostRequest[[]TownInfo](ENDPOINT_TOWNS, NewPostQuery(identifiers...))
+	return requests.JsonPost[[]TownInfo](ENDPOINT_TOWNS, NewPostQuery(identifiers...))
 }
 
 // Queries the Official API with a POST request providing all valid nation identifier (name/uuid) strings to the body "query" key.
 func QueryNations(identifiers ...string) ([]NationInfo, error) {
-	return requests.JsonPostRequest[[]NationInfo](ENDPOINT_NATIONS, NewPostQuery(identifiers...))
+	return requests.JsonPost[[]NationInfo](ENDPOINT_NATIONS, NewPostQuery(identifiers...))
 }
 
 // Queries the Official API with a POST request providing all valid player identifier (name/uuid) strings to the body "query" key.
 func QueryPlayers(identifiers ...string) ([]PlayerInfo, error) {
-	return requests.JsonPostRequest[[]PlayerInfo](ENDPOINT_PLAYERS, NewPostQuery(identifiers...))
+	return requests.JsonPost[[]PlayerInfo](ENDPOINT_PLAYERS, NewPostQuery(identifiers...))
 }
 
 // Queries the Official API with a POST request providing all valid quarter identifier (name/uuid) strings to the body "query" key.
 func QueryQuarters(identifiers ...string) ([]Quarter, error) {
-	return requests.JsonPostRequest[[]Quarter](ENDPOINT_QUARTERS, NewPostQuery(identifiers...))
+	return requests.JsonPost[[]Quarter](ENDPOINT_QUARTERS, NewPostQuery(identifiers...))
 }
 
 func QuerySequential[T Identifiable](

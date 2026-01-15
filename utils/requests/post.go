@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func PostRequest(url string, contentType string, reqBody io.Reader) ([]byte, error) {
+func Post(url string, contentType string, reqBody io.Reader) ([]byte, error) {
 	http.DefaultClient.Timeout = 10 * time.Second
 
 	response, err := http.Post(url, contentType, reqBody)
@@ -26,7 +26,7 @@ func PostRequest(url string, contentType string, reqBody io.Reader) ([]byte, err
 }
 
 // Sends a POST request with a JSON body and since JSON is expected to be returned, the response is unmarshalled into the provided type.
-func JsonPostRequest[T any](url string, body any) (T, error) {
+func JsonPost[T any](url string, body any) (T, error) {
 	var data T
 
 	bodyBytes, err := json.Marshal(body)
@@ -34,7 +34,7 @@ func JsonPostRequest[T any](url string, body any) (T, error) {
 		fmt.Printf("\nfailed to marshal query body into byte slice:\n%v\n", err)
 	}
 
-	res, err := PostRequest(url, "application/json", bytes.NewBuffer(bodyBytes))
+	res, err := Post(url, "application/json", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return data, err
 	}

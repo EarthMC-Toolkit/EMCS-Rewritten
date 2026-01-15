@@ -8,5 +8,5 @@ type SettingsResponse struct {
 }
 
 func GetSettings() (any, error) {
-	return requests.JsonGetRequest[SettingsResponse](SETTINGS_URL)
+	return requests.JsonGet[SettingsResponse](SETTINGS_URL)
 }

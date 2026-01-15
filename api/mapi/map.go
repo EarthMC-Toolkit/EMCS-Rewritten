@@ -14,7 +14,7 @@ type ParsedMarker struct {
 }
 
 func GetMarkers() (map[string]ParsedMarker, error) {
-	_, err := requests.JsonGetRequest[MarkersResponse](MARKERS_URL)
+	_, err := requests.JsonGet[MarkersResponse](MARKERS_URL)
 
 	// parse markers
 

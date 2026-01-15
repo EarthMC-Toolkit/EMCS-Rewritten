@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func GetRequest(url string) ([]byte, error) {
+func Get(url string) ([]byte, error) {
 	response, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("error during GET request to %s:\n  %v", url, err)
@@ -19,10 +19,10 @@ func GetRequest(url string) ([]byte, error) {
 	return resBody, err
 }
 
-func JsonGetRequest[T any](url string) (T, error) {
+func JsonGet[T any](url string) (T, error) {
 	var data T
 
-	res, err := GetRequest(url)
+	res, err := Get(url)
 	if err != nil {
 		return data, err
 	}

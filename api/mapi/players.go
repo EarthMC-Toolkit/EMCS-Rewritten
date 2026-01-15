@@ -33,7 +33,7 @@ type PlayersResponse struct {
 
 // TODO: Maybe return map instead, using UUID as key for faster lookup?
 func GetVisiblePlayers() ([]MapPlayer, error) {
-	res, err := requests.JsonGetRequest[PlayersResponse](PLAYERS_URL)
+	res, err := requests.JsonGet[PlayersResponse](PLAYERS_URL)
 	if err != nil {
 		return nil, err
 	}
