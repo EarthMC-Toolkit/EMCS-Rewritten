@@ -9,13 +9,16 @@ import (
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
-	"math"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
+
+const PURGE_DAYS = 42
+const PURGE_DAYS_SEC = uint64(PURGE_DAYS * 24 * 3600)
+const UINT64_MAX = ^uint64(0)
 
 type TownCommand struct{}
 
@@ -168,26 +171,9 @@ func townNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata 
 }
 
 func executeTownQuery(s *discordgo.Session, i *discordgo.Interaction, townName string) (*discordgo.Message, error) {
-	var town *oapi.TownInfo
-
-	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+	town, err := tryGetTown(townName)
 	if err != nil {
-		town, err = oapi.QueryTown(townName)
-		if err != nil {
-			return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("A database error occurred and the API failed during fallback!?```%s```", err))
-		}
-	} else {
-		if townStore.Count() == 0 {
-			return discordutil.FollowupContentEphemeral(s, i, "The town database is currently empty. This is unusual, but may resolve itself.")
-		}
-
-		town, _ = townStore.Find(func(info oapi.TownInfo) bool {
-			return strings.EqualFold(townName, info.Name) || townName == info.UUID
-		})
-	}
-
-	if town == nil {
-		return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Town `%s` does not seem to exist.", townName))
+		return discordutil.FollowupContentEphemeral(s, i, err.Error())
 	}
 
 	embed := embeds.NewTownEmbed(*town)
@@ -268,26 +254,9 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 }
 
 func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townName string) (*discordgo.Message, error) {
-	var town *oapi.TownInfo
-
-	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+	town, err := tryGetTown(townName)
 	if err != nil {
-		town, err = oapi.QueryTown(townName)
-		if err != nil {
-			return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("A database error occurred and the API failed during fallback!?```%s```", err))
-		}
-	} else {
-		if townStore.Count() == 0 {
-			return discordutil.FollowupContentEphemeral(s, i, "The town database is currently empty. This is unusual, but may resolve itself.")
-		}
-
-		town, _ = townStore.Find(func(info oapi.TownInfo) bool {
-			return strings.EqualFold(townName, info.Name) || townName == info.UUID
-		})
-	}
-
-	if town == nil {
-		return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Town `%s` does not seem to exist.", townName))
+		return discordutil.FollowupContentEphemeral(s, i, err.Error())
 	}
 
 	// TODO: Maybe do this inside of PageFunc using residents on current page
@@ -299,7 +268,7 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 	count := len(residents)
 	slices.SortFunc(residents, func(a, b oapi.PlayerInfo) int {
 		at, bt := a.Timestamps.LastOnline, b.Timestamps.LastOnline
-		av, bv := uint64(math.MaxInt64), uint64(math.MaxInt64)
+		av, bv := UINT64_MAX, UINT64_MAX
 		if at != nil {
 			av = *at
 		}
@@ -342,23 +311,49 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 	return nil, paginator.Start()
 }
 
-const PURGE_DAYS = 42
-const PURGE_DAYS_SEC = uint64(PURGE_DAYS * 24 * 3600)
-
 // Given the current time and last online, this func outputs a formatted time (0d, 0h, 0m)
 // according to the remaining time until a player is offline for PURGE_DAYS.
 func formattedPurgeTime(now, lastOnline uint64) string {
-	elapsed := now - lastOnline
+	elapsedSec := now - lastOnline
 
 	// total seconds until 42 days offline
-	remainingSec := PURGE_DAYS_SEC - elapsed // TODO: get next newday after this (when purge will happen)
+	remainingSec := PURGE_DAYS_SEC - elapsedSec // TODO: get next newday after this (when purge will happen)
 	if remainingSec <= 0 {
 		return "now"
 	}
 
 	days := remainingSec / 86400
-	hours := (remainingSec % 86400) / 3600
-	minutes := (remainingSec % 3600) / 60
+	hrs := (remainingSec % 86400) / 3600
+	mins := (remainingSec % 3600) / 60
 
-	return fmt.Sprintf("%dd, %dh, %dm", days, hours, minutes)
+	return fmt.Sprintf("%dd, %dh, %dm", days, hrs, mins)
+}
+
+// Attempts to get a town from the town store for the current map, unless that
+// fails in which case we fall back to querying it via the OAPI.
+//
+// If all fails, the town will be nil and an appropriate error message will be returned.
+func tryGetTown(townName string) (*oapi.TownInfo, error) {
+	var town *oapi.TownInfo
+
+	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+	if err != nil {
+		if town, err = oapi.QueryTown(townName); err != nil {
+			return nil, fmt.Errorf("A database error occurred and the API failed during fallback!?```%s```", err)
+		}
+	} else {
+		if townStore.Count() == 0 {
+			return nil, fmt.Errorf("The town database is currently empty. This is unusual, but may resolve itself.")
+		}
+
+		town, _ = townStore.Find(func(info oapi.TownInfo) bool {
+			return strings.EqualFold(townName, info.Name) || townName == info.UUID
+		})
+	}
+
+	if town == nil {
+		return nil, fmt.Errorf("Town `%s` does not seem to exist.", townName)
+	}
+
+	return town, nil
 }

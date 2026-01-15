@@ -92,14 +92,35 @@ func QueryQuarters(identifiers ...string) ([]Quarter, error) {
 	return requests.JsonPostRequest[[]Quarter](ENDPOINT_QUARTERS, NewPostQuery(identifiers...))
 }
 
+func QuerySequential[T Identifiable](
+	queryFunc func(ids ...string) ([]T, error),
+	identifiers []string,
+	stopOnError bool,
+) ([]T, []error) {
+	all := make([]T, 0, len(identifiers))
+	errs := []error{}
+
+	chunks := lo.Chunk(identifiers, QUERY_LIMIT)
+	for _, chunk := range chunks {
+		results, err := queryFunc(chunk...)
+		if err != nil {
+			errs = append(errs, err)
+			if stopOnError {
+				return all, errs // stop immediately if requested
+			}
+
+			continue // skip this chunk. results not needed bc we errored
+		}
+
+		all = append(all, results...)
+	}
+
+	return all, errs
+}
+
 // Queries entities of type T in chunks concurrently where each chunk (request) query may only have up to QUERY_LIMIT identifiers.
 // If there are any leftover identifiers, they will be queried in a final request.
 // A [sync.WaitGroup] will catch the error that may occur during any of the requests and append it to the resulting error slice.
-//
-// The following example sends X amount of requests as necessary and sleeps for a 350ms (custom) between each request. To send requests
-// with the default dynamic amount of sleep depending on the amount of items to keep under RATE_LIMIT, pass 0. For no sleep at all, pass any negative value.
-//
-//	players, err := oapi.QueryConcurrent(names, 350, oapi.QueryPlayers)
 //
 // This func has slight overhead and calling queryFunc directly where possible is always preferred!
 func QueryConcurrent[T Identifiable](
