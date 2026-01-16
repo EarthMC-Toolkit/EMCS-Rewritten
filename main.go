@@ -4,6 +4,7 @@ import (
 	"context"
 	"emcsrw/api/capi"
 	"emcsrw/bot"
+	"emcsrw/bot/slashcommands"
 	"emcsrw/utils/config"
 	"fmt"
 	"log"
@@ -15,8 +16,22 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
+	"github.com/rogpeppe/go-internal/lockedfile"
 )
+
+const LOCK_FPATH = "/tmp/emcsrw.lock"
+
+// Creates a lock file and returns a handle to unlock it (remove the file).
+func lockProcess() func() error {
+	lock, err := lockedfile.OpenFile("/tmp/emcsrw.lock", os.O_CREATE|os.O_RDWR, 0600)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return func() error { return lock.Close() }
+}
 
 func loadEnv() {
 	err := godotenv.Load(".env")
@@ -55,20 +70,56 @@ func shouldServeAPI() bool {
 }
 
 func main() {
-	// Start the bot with the token.
-	loadEnv()
+	//#region Always runs no matter the subcommand
+	unlock := lockProcess()
+	defer unlock()
 
-	fmt.Printf("Loaded ENV. Starting bot with %d threads.\n", runtime.GOMAXPROCS(-1))
-	discord, auroraDB := bot.Run(getBotToken())
+	if len(os.Args) < 2 {
+		fmt.Println("ERROR | missing subcommand. Usage: go run . [register|start]")
+		return
+	}
+
+	loadEnv()
+	fmt.Println("Loaded .env into OS environment.")
+
+	s, err := newSession(getBotToken())
+	if err != nil {
+		os.Exit(67) // SIX SEVEEEEEEN!!!1!!1!!1
+	}
+	//#endregion
+
+	switch os.Args[1] {
+	case "register":
+		slashcommands.SyncRemote(s)
+	case "start":
+		runBot(s)
+	default:
+		fmt.Println("ERROR | unknown subcommand:", os.Args[1])
+	}
+}
+
+func newSession(token string) (*discordgo.Session, error) {
+	s, err := discordgo.New("Bot " + token)
+	if err != nil {
+		fmt.Println("failed to create session:", err)
+		return nil, err
+	}
+
+	return s, err
+}
+
+func runBot(s *discordgo.Session) {
+	fmt.Printf("\nStarting bot with %d threads.\n", runtime.GOMAXPROCS(-1))
+	discord, activeMapDB := bot.Run(s)
 
 	var server *http.Server
 	if shouldServeAPI() {
-		mux, err := capi.NewMux(auroraDB)
+		mux, err := capi.NewMux(activeMapDB)
 		if err != nil {
-			log.Println("failed to create api mux for aurora", err)
+			fmt.Printf("failed to create api mux for %s:\n%s", activeMapDB, err)
 		}
 
-		server = capi.Serve(mux)
+		server = capi.Serve(mux, "7777")
 	}
 
 	// Wait for Ctrl+C or kill.
@@ -94,7 +145,7 @@ func main() {
 	}
 
 	// Write every store to disk safely. Any store errs are combined into single error.
-	if err := auroraDB.Flush(); err != nil {
+	if err := activeMapDB.Flush(); err != nil {
 		log.Printf("error closing DB: %v", err)
 	}
 }

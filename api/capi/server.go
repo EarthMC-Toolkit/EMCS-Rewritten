@@ -88,17 +88,19 @@ func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 	return mux, nil
 }
 
-// Serves the API using a reverse proxy
-func Serve(mux *http.ServeMux) *http.Server {
+// Serves the API using on localhost at port.
+//
+// See README.md for details on how to setup a reverse proxy to a domain.
+func Serve(mux *http.ServeMux, port string) *http.Server {
 	// NOTE: If we want a clean URL without specifying port, we need use the default port.
 	// These are 443 if using HTTPS (need cert) or 80 if using HTTP.
 	s := &http.Server{
-		Addr:    ":7777",
+		Addr:    ":" + port,
 		Handler: mux,
 	}
 
 	go func() {
-		log.Println("Custom API server listening on :7777")
+		log.Println("Custom API server listening on :" + port)
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("Custom API server error: %v", err)
 		}
