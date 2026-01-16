@@ -34,10 +34,10 @@ export API_PORT=7777
 ```
 
 ### Running the bot
-`go run . register` -> Uses a temporary discord session to registers commands and exits the process immediately.
-`go run . start` -> Runs the bot and connects to Discord. Runs until the process panics or is killed via `Ctrl + C`.
+`go run . register` -> Uses a temporary Discord session to register commands, then exits the process immediately.
+`go run . start` -> Runs the bot and connects to Discord. The process runs until a panic or `Ctrl+C` (graceful exit).
 
-To register and automatically start, simply combine them like so: `go run . register && go run . start`
+To start immediately after registering, simply append it like so: `go run . register && go run . start`
 
 ⚠️ You should only ever run `register` before `start` - not after the bot already started!\
 ℹ️ The bot uses a lock file, meaning only a single instance will exist across processes.
@@ -83,8 +83,10 @@ your.domain.com {
 	}
 }
 ```
-
-You can then access the API at `https://your.domain.com/<emcMapName>/<alliances|players>`.
+You can then access the API at `https://your.domain.com/<emcMapName>/<endpoint>`.
+List of endpoints as of 16 Jan 2026:
+- `alliances`
+- `players`
 
 ## Contributing
 If you know **Golang** and the basics of the **discordgo** library, I encourage you to create pull requests or suggest features.
