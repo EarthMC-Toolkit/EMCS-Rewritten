@@ -63,6 +63,10 @@ func New(baseDir string, mapName string) (*Database, error) {
 	return db, nil
 }
 
+func (db *Database) String() string {
+	return db.Name()
+}
+
 func (db *Database) Name() string {
 	return filepath.Base(db.dirPath)
 }

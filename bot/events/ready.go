@@ -10,7 +10,6 @@ import (
 
 	"emcsrw/api"
 	"emcsrw/api/oapi"
-	"emcsrw/bot/slashcommands"
 	"emcsrw/database"
 	"emcsrw/database/store"
 	"emcsrw/shared"
@@ -31,14 +30,8 @@ var vpNotified = make(map[int]bool) // Key is each threshold, value is whether n
 var vpLastRemaining int
 var vpLastCheck time.Time
 
-// TODO: We shouldn't really be registering commands here bc of the limit.
-// Prefer a standalone script that registers via the REST API and run it when a command "definition" changes (such as description, options etc).
-// To see changes after modifying the `Execute` func, just restart the client without running said script.
-//
-// https://discordjs.guide/creating-your-bot/command-deployment.html#command-registration.
 func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	fmt.Printf("Logged in as: %s\n\n", s.State.User.Username)
-	slashcommands.SyncRemote(s)
 
 	mdb, err := database.Get(shared.ACTIVE_MAP)
 	if err != nil {
