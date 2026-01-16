@@ -25,37 +25,11 @@ const (
 	ENDPOINT_PLAYER_STATS   Endpoint = ENDPOINT_BASE + "/player-stats"
 )
 
-type ResponseStatus int
-
-const (
-	RESPONSE_STATUS_DOWN    ResponseStatus = iota // Request succeeded but server error code.
-	RESPONSE_STATUS_PARTIAL                       // Request went through but not success or down.
-	RESPONSE_STATUS_FAILED                        // Request failed to go through due to network or dns error.
-	RESPONSE_STATUS_OK
-)
-
-// Sends a ping, aka a HEAD request to the Official API base endpoint.
+// Sends a ping, aka a HEAD request to url.
 // An enum is returned indicating the type of error we encountered, in addition to an ok
 // boolean which returns true on success (RESPONSE_STATUS_OK), anything else is false.
-func Ping() (status ResponseStatus, ok bool) {
-	resp, err := requests.Head(ENDPOINT_BASE)
-	if err != nil {
-		return RESPONSE_STATUS_FAILED, false
-	}
-
-	// 501 Not Implemented not required here due to its very nature:
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/501
-	switch resp.StatusCode {
-	case 505, 503, 502, 500, 404:
-		return RESPONSE_STATUS_DOWN, false
-	case 429, 304, 204, 200:
-		return RESPONSE_STATUS_OK, true
-	}
-
-	// Any non-error or non-success is a grey area.
-	// In this case we mark the status as "not ok" as it is probably safer to just
-	// not send a request if we aren't 100% sure we will get a body.
-	return RESPONSE_STATUS_PARTIAL, false
+func Ping(url string) (requests.ResponseStatus, bool) {
+	return requests.WithResponseStatus(requests.Head(url))
 }
 
 // Identifiable is a constraint for things with a UUID such as an Entity.

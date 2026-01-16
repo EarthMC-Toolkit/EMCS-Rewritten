@@ -14,7 +14,7 @@ import (
 	"errors"
 	"fmt"
 
-	lop "github.com/samber/lo/parallel"
+	"github.com/samber/lo/parallel"
 )
 
 func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
@@ -23,7 +23,7 @@ func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
 		return nil, err
 	}
 
-	ids := lop.Map(online, func(p oapi.Entity, _ int) string {
+	ids := parallel.Map(online, func(p oapi.Entity, _ int) string {
 		return p.UUID
 	})
 
@@ -49,7 +49,7 @@ func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
 		return nil, err
 	}
 
-	ids := lop.Map(visible, func(p mapi.MapPlayer, _ int) string {
+	ids := parallel.Map(visible, func(p mapi.MapPlayer, _ int) string {
 		return p.UUID
 	})
 
@@ -73,7 +73,7 @@ func QueryAllTowns() ([]oapi.TownInfo, error) {
 		return nil, fmt.Errorf("failed to query all towns, could not get initial list\n%v", err)
 	}
 
-	ids := lop.Map(tlist, func(e oapi.Entity, _ int) string {
+	ids := parallel.Map(tlist, func(e oapi.Entity, _ int) string {
 		return e.UUID
 	})
 

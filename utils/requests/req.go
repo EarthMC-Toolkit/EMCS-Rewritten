@@ -1,6 +1,8 @@
 package requests
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,14 +23,96 @@ func Head(url string) (*http.Response, error) {
 	return r, nil
 }
 
-// Reads the response body all at once with [io.ReadAll], but with an additional check for client/server error codes so that we know the body
-// is safe to read. If the status code is <400 (successful, informational or redirectional). If the caller is not expecting an empty body,
-// they should handle it appropriately with a length check as no error will be output in such a case.
-func ReadResponseBody(response *http.Response, url string) ([]byte, error) {
-	if response.StatusCode >= 400 {
-		return nil, fmt.Errorf("failed to read response body. %s", response.Status)
+//#region GET
+
+// Sends a request with the "GET" method without a body and reads the response body.
+// It is up to the caller to know how to read the byte[].
+// If using this func just to unmarshal to JSON, prefer JsonGet().
+func Get(url string) ([]byte, error) {
+	response, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error during GET request to %s:\n  %v", url, err)
 	}
 
-	defer response.Body.Close()
-	return io.ReadAll(response.Body)
+	if _, ok := GetResponseStatus(response.StatusCode); !ok {
+		return nil, fmt.Errorf("received non-OK response status. %s", response.Status)
+	}
+
+	resBody, err := ReadResponseBody(response, url)
+	if err != nil {
+		err = fmt.Errorf("error during GET request to %s:\n  %v", url, err)
+	}
+
+	return resBody, err
 }
+
+// Sends a request without a body using the "GET" method.
+//
+// Since JSON is expected to be returned, the response is unmarshalled into T.
+func JsonGet[T any](url string) (T, error) {
+	var data T
+
+	res, err := Get(url)
+	if err != nil {
+		return data, err
+	}
+
+	err = json.Unmarshal(res, &data)
+	if err != nil {
+		fmt.Printf("\n[GET] failed to unmarshal response body into struct:\n%v\n", err)
+	}
+
+	return data, err
+}
+
+//#endregion
+
+//#region POST
+
+// Sends a request with a body using the "POST" method and reads the response body.
+// It is up to the caller to know how to read the byte[].
+//
+// If using this func only to unmarshal to JSON, prefer JsonPost().
+func Post(url string, contentType string, reqBody io.Reader) ([]byte, error) {
+	response, err := client.Post(url, contentType, reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("error during POST request to %s:\n  %v", url, err)
+	}
+
+	if _, ok := GetResponseStatus(response.StatusCode); !ok {
+		return nil, fmt.Errorf("received non-OK response status. %s", response.Status)
+	}
+
+	resBody, err := ReadResponseBody(response, url)
+	if err != nil {
+		err = fmt.Errorf("error during POST request to %s:\n  %v", url, err)
+	}
+
+	return resBody, err
+}
+
+// Sends a request with a JSON body using the "POST" method.
+//
+// Since JSON is expected to be returned, the response is unmarshalled into T.
+func JsonPost[T any](url string, body any) (T, error) {
+	var data T
+
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		fmt.Printf("\nfailed to marshal query body into byte slice:\n%v\n", err)
+	}
+
+	res, err := Post(url, "application/json", bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return data, err
+	}
+
+	err = json.Unmarshal(res, &data)
+	if err != nil {
+		fmt.Printf("\n[POST] failed to unmarshal response body into struct:\n%v\n", err)
+	}
+
+	return data, err
+}
+
+//#endregion
