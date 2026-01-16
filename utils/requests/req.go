@@ -35,7 +35,8 @@ func Get(url string) ([]byte, error) {
 	}
 
 	if _, ok := GetResponseStatus(response.StatusCode); !ok {
-		return nil, fmt.Errorf("received non-OK response status. %s", response.Status)
+		err := fmt.Errorf("%s. refused to read body of non-OK response", response.Status)
+		return nil, fmt.Errorf("error during GET request to %s:\n  %v", url, err)
 	}
 
 	resBody, err := ReadResponseBody(response, url)
@@ -80,7 +81,8 @@ func Post(url string, contentType string, reqBody io.Reader) ([]byte, error) {
 	}
 
 	if _, ok := GetResponseStatus(response.StatusCode); !ok {
-		return nil, fmt.Errorf("received non-OK response status. %s", response.Status)
+		err := fmt.Errorf("%s. refused to read body of non-OK response", response.Status)
+		return nil, fmt.Errorf("error during POST request to %s:\n  %v", url, err)
 	}
 
 	resBody, err := ReadResponseBody(response, url)
