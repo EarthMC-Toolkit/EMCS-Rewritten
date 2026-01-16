@@ -17,7 +17,7 @@ import (
 )
 
 const PURGE_DAYS = 42
-const PURGE_DAYS_SEC = uint64(PURGE_DAYS * 24 * 3600)
+const PURGE_DAYS_SEC = uint64(PURGE_DAYS * 24 * 3600) // PURGE_DAYS as seconds
 const UINT64_MAX = ^uint64(0)
 
 type TownCommand struct{}
@@ -297,8 +297,8 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 			}
 
 			//daysOffline := (now - *lo/1000) / 86400
-			purgeTimeStr := formattedPurgeTime(now, *lo)
-			content += fmt.Sprintf("**%s** - <t:%d:R>.\nPurges in: %s\n\n", res.Name, *lo, purgeTimeStr)
+			purgeTimeStr := formattedPurgeTime(now, *lo/1000)
+			content += fmt.Sprintf("**%s** - Online <t:%d:R>. Purges in: %s\n", res.Name, *lo/1000, purgeTimeStr)
 		}
 
 		data.Content = content
@@ -326,7 +326,7 @@ func formattedPurgeTime(now, lastOnline uint64) string {
 	hrs := (remainingSec % 86400) / 3600
 	mins := (remainingSec % 3600) / 60
 
-	return fmt.Sprintf("%dd, %dh, %dm", days, hrs, mins)
+	return fmt.Sprintf("`%d`d, `%d`h, `%d`m", days, hrs, mins)
 }
 
 // Attempts to get a town from the town store for the current map, unless that
