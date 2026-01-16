@@ -2,6 +2,8 @@
 A rewritten version of the [EarthMC Stats](https://github.com/EarthMC-Toolkit/EarthMC-Stats) Discord bot in Go.\
 This rewrite aims to make the bot self-hostable, with the [EMCS Rewritten](https://canary.discord.com/oauth2/authorize?client_id=656231016385478657) Discord bot being one of these instances. 
 
+To keep the bot up 24/7, I recommend running the bot in `tmux` or even `pm2` which you can detach from on a VM.
+
 ## Why the rewrite?
 I started this bot in hopes that it will be more powerful than **EMCS** with massive improvements to performance and stability.
 The database will be local, so you are responsible for upkeep of data. For 24/7 uptime, use a VPS or self-host with a Raspberry Pi etc.
@@ -14,27 +16,57 @@ technical debt to make it worth the time and effort of updating, as well as the 
 1. Clone this repository.
 1. Create a Discord bot and put its **Client Token** in an `.env` file in the project root like so:
 
-   	```console 
+   	```sh 
     export BOT_TOKEN=yourTokenHere
     ```
 1. Authorize and invite your bot to a guild or install it as a user app.
-1. Start the bot with `go run main.go`.
+1. Finish configuring `.env` and run the bot (see next sections).
+
+### Configuration
+You will want to make sure you configure the bot to ensure everything works as intended.\
+Configuring the bot is as simple as editing the `.env` file (may change in future).
+```sh
+export BOT_TOKEN=botTokenHere
+export BOT_APP_ID=botAppIdHere
+export DEV_ID=yourDiscordIdHere
+export ENABLE_API=false
+export API_PORT=7777
+```
+
+### Running the bot
+`go run . register` -> Uses a temporary discord session to registers commands and exits the process immediately.
+`go run . start` -> Runs the bot and connects to Discord. Runs until the process panics or is killed via `Ctrl + C`.
+
+To register and automatically start, simply combine them like so: `go run . register && go run . start`
+
+⚠️ You should only ever run `register` before `start` - not after the bot already started!\
+ℹ️ The bot uses a lock file, meaning only a single instance will exist across processes.
 
 ### Custom API
 > [!WARNING]
-> Only serve an API if you know what you are doing.
-> If your reverse proxy throws errors, ensure it is properly reloaded and the port is open!
+> Only serve an API if you need one and know what you are doing.
 
-By default, a custom API is not served. To serve one, simply add the following variable to your `.env` file.
-After that, you must make sure you have a reverse proxy set up to port `localhost:7777` (configurable in future).
-```console
+By default, a custom API is not served. To serve one, simply add the following variables to your `.env` file.\
+If you are not using a reverse proxy (see next section), you can access it at `localhost:<API_PORT>`.
+```sh
 export ENABLE_API=true
+export API_PORT=7777
 ```
 
-For example, here is a small `Caddyfile` you can use if you already have `Caddy` set up.
-```txt
+#### Reverse proxy
+To serve to a domain instead of `localhost`, ensure you have a reverse proxy set up.
+For example, here is a small `Caddyfile` you can use after you have installed **Caddy**.
+
+> [!NOTE]
+> If you encounter errors, ensure the following:
+> - You have opened the port you specified in .env on your machine/VM.
+> - You have ran `caddy reload --config /etc/caddy/Caddyfile` (or equivalent).
+> - You have ran `sudo ufw 80`, `sudo ufw 443` and `sudo ufw enable` to allow HTTP/S traffic.
+> - You have restarted your machine/VM after all of the above.
+```sh
 your.domain.com {
-	# Set this path to your site's directory.
+	# Set this path to your sites directory.
+	# Keep commented unless you want to also serve a static website.
 	# root * /usr/share/caddy
 
     # where the reverse proxy should listen.
@@ -52,6 +84,8 @@ your.domain.com {
 }
 ```
 
+You can then access the API at `https://your.domain.com/<emcMapName>/<alliances|players>`.
+
 ## Contributing
 If you know **Golang** and the basics of the **discordgo** library, I encourage you to create pull requests or suggest features.
 You can also fork this project and use it as a base if you so desire, but the GPL license requires you to keep the source code available.
@@ -66,6 +100,7 @@ You can also fork this project and use it as a base if you so desire, but the GP
 >   - `oapi` -> For interacting with the Official API.
 >   - `capi` -> Serves a Custom API using info from the `database` package. NOT REQUIRED IF FORKING.
 >- `database` -> For all code that relates to or interacts with a DB or store/cache.
+>	- `store` -> For interacting with stores themselves after retreiving them from the database.
 >- `db` -> Where permanent data such as alliances are intended to be stored. Git ignored.
 >- `shared` -> For things that can be shared, e.g. constants or embed related funcs/vars.
 >- `utils` -> Contains packages for reusable funcs like helpers for strings, slices, http, logging etc.

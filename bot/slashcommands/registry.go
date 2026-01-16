@@ -6,9 +6,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-// Leave empty to register commands globally
-const guildID = ""
-
 var commands = map[string]SlashCommand{}
 
 // 0 for Guild, 1 for User
@@ -60,12 +57,12 @@ func ToApplicationCommand(cmd SlashCommand) *discordgo.ApplicationCommand {
 
 // Syncs the local slash command map with the Discord remote by creating
 // them if they do not exist, or overwriting them if they do.
-func SyncRemote(s *discordgo.Session) (local []*discordgo.ApplicationCommand, created []*discordgo.ApplicationCommand) {
+func SyncRemote(s *discordgo.Session, appID, guildID string) (local []*discordgo.ApplicationCommand, created []*discordgo.ApplicationCommand) {
 	for _, cmd := range commands {
 		local = append(local, ToApplicationCommand(cmd))
 	}
 
-	created, err := s.ApplicationCommandBulkOverwrite(s.State.User.ID, guildID, local)
+	created, err := s.ApplicationCommandBulkOverwrite(appID, guildID, local)
 	if err != nil {
 		fmt.Printf("Failed to sync slash commands. Error occurred during bulk overwrite: %v\n", err)
 		return

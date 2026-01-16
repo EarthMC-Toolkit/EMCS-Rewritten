@@ -50,6 +50,25 @@ func getBotToken() string {
 	return v
 }
 
+func getBotID() string {
+	v, err := config.GetEnviroVar("BOT_APP_ID")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return v
+}
+
+func getApiPort() string {
+	v, err := config.GetEnviroVar("API_PORT")
+	if err != nil {
+		log.Println(err)
+		return "7777"
+	}
+
+	return v
+}
+
 func shouldServeAPI() bool {
 	v, err := config.GetEnviroVar("ENABLE_API")
 	if err != nil {
@@ -90,7 +109,7 @@ func main() {
 
 	switch os.Args[1] {
 	case "register":
-		slashcommands.SyncRemote(s)
+		slashcommands.SyncRemote(s, getBotID(), "") // Empty str = register globally
 	case "start":
 		runBot(s)
 	default:
@@ -119,7 +138,7 @@ func runBot(s *discordgo.Session) {
 			fmt.Printf("failed to create api mux for %s:\n%s", activeMapDB, err)
 		}
 
-		server = capi.Serve(mux, "7777")
+		server = capi.Serve(mux, getApiPort())
 	}
 
 	// Wait for Ctrl+C or kill.
