@@ -298,7 +298,12 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 
 			//daysOffline := (now - *lo/1000) / 86400
 			purgeTimeStr := formattedPurgeTime(now, *lo/1000)
-			content += fmt.Sprintf("**%s** - Online <t:%d:R>. Purges in: %s\n", res.Name, *lo/1000, purgeTimeStr)
+			balanceStr := utils.HumanizedSprintf("%s `%d`G", shared.EMOJIS.GOLD_INGOT, int(res.Stats.Balance))
+
+			content += fmt.Sprintf(
+				"**%s** (%s) - Online <t:%d:R>. Purges %s. %s\n",
+				res.Name, res.GetRank(), *lo/1000, purgeTimeStr, balanceStr,
+			)
 		}
 
 		data.Content = content
@@ -311,22 +316,15 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 	return nil, paginator.Start()
 }
 
-// Given the current time and last online, this func outputs a formatted time (0d, 0h, 0m)
+// Given the current time and last online, this func outputs a formatted time
 // according to the remaining time until a player is offline for PURGE_DAYS.
 func formattedPurgeTime(now, lastOnline uint64) string {
-	elapsedSec := now - lastOnline
-
-	// total seconds until 42 days offline
-	remainingSec := PURGE_DAYS_SEC - elapsedSec // TODO: get next newday after this (when purge will happen)
-	if remainingSec <= 0 {
-		return "now"
+	purgeAt := lastOnline + PURGE_DAYS_SEC
+	if now >= purgeAt {
+		return "`at pending newday`"
 	}
 
-	days := remainingSec / 86400
-	hrs := (remainingSec % 86400) / 3600
-	mins := (remainingSec % 3600) / 60
-
-	return fmt.Sprintf("`%d`d, `%d`h, `%d`m", days, hrs, mins)
+	return fmt.Sprintf("<t:%d:R>", purgeAt)
 }
 
 // Attempts to get a town from the town store for the current map, unless that
