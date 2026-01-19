@@ -59,14 +59,32 @@ func getBotID() string {
 	return v
 }
 
-func getApiPort() string {
-	v, err := config.GetEnviroVar("API_PORT")
-	if err != nil {
-		log.Println(err)
-		return "7777"
+func getApiPort() uint16 {
+	fail := func(reason string) uint16 {
+		fmt.Printf("\nERROR | Custom API port defaulted to 7777. Reason:\n\t%s", reason)
+		return 7777
 	}
 
-	return v
+	v, err := config.GetEnviroVar("API_PORT")
+	if err != nil {
+		return fail(err.Error())
+	}
+
+	port, err := config.ParseEnviroVar[uint16](v)
+	if err != nil {
+		return fail(err.Error())
+	}
+
+	switch port {
+	case 80, 443:
+		return port // Allow HTTP and HTTPS default ports
+	default:
+		if port < 1024 || port > 49150 {
+			return fail("environment variable API_PORT must be 80, 443 or in range 1024-49150")
+		}
+	}
+
+	return port
 }
 
 func shouldServeAPI() bool {

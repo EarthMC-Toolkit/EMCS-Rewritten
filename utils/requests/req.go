@@ -31,17 +31,17 @@ func Head(url string) (*http.Response, error) {
 func Get(url string) ([]byte, error) {
 	response, err := client.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("error during GET request to %s:\n  %v", url, err)
+		return nil, fmt.Errorf("error during GET request to %s:\n\t%s", url, err)
 	}
 
 	if _, ok := GetResponseStatus(response.StatusCode); !ok {
 		err := fmt.Errorf("%s. refused to read body of non-OK response", response.Status)
-		return nil, fmt.Errorf("error during GET request to %s:\n  %v", url, err)
+		return nil, fmt.Errorf("error during GET request to %s:\n\t%s", url, err)
 	}
 
 	resBody, err := ReadResponseBody(response, url)
 	if err != nil {
-		err = fmt.Errorf("error during GET request to %s:\n  %v", url, err)
+		err = fmt.Errorf("error during GET request to %s:\n\t%s", url, err)
 	}
 
 	return resBody, err
@@ -77,17 +77,17 @@ func JsonGet[T any](url string) (T, error) {
 func Post(url string, contentType string, reqBody io.Reader) ([]byte, error) {
 	response, err := client.Post(url, contentType, reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("error during POST request to %s:\n  %v", url, err)
+		return nil, fmt.Errorf("error during POST request to %s:\n\t%s", url, err)
 	}
 
 	if _, ok := GetResponseStatus(response.StatusCode); !ok {
 		err := fmt.Errorf("%s. refused to read body of non-OK response", response.Status)
-		return nil, fmt.Errorf("error during POST request to %s:\n  %v", url, err)
+		return nil, fmt.Errorf("error during POST request to %s:\n\t%s", url, err)
 	}
 
 	resBody, err := ReadResponseBody(response, url)
 	if err != nil {
-		err = fmt.Errorf("error during POST request to %s:\n  %v", url, err)
+		err = fmt.Errorf("error during POST request to %s:\n\t%s", url, err)
 	}
 
 	return resBody, err

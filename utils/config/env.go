@@ -11,10 +11,10 @@ import (
 func GetEnviroVar(name string) (string, error) {
 	v, found := os.LookupEnv(name)
 	if !found {
-		return "", fmt.Errorf("environment variable %q must be specified", name)
+		return "", fmt.Errorf("environment var %q must be specified", name)
 	}
 	if strings.TrimSpace(v) == "" {
-		return "", fmt.Errorf("environment variable %q must not be empty", name)
+		return "", fmt.Errorf("environment var %q must not be empty", name)
 	}
 
 	return v, nil
@@ -28,33 +28,54 @@ func ParseEnviroVar[T any](v string) (T, error) {
 	case string:
 		return any(v).(T), nil
 	case bool:
-		val, err := strconv.ParseBool(v)
+		b, err := strconv.ParseBool(v)
 		if err != nil {
-			return zero, fmt.Errorf("failed to parse %q as bool: %v", v, err)
+			return zero, fmt.Errorf("failed to parse environment var %q as bool: %v", v, err)
+		}
+		return any(b).(T), nil
+
+	// signed ints
+	case int, int32, int64:
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return zero, fmt.Errorf("failed to parse environment var %q as int: %v", v, err)
+		}
+		switch any(zero).(type) {
+		case int:
+			return any(int(n)).(T), nil
+		case int32:
+			return any(int32(n)).(T), nil
+		case int64:
+			return any(int64(n)).(T), nil
 		}
 
-		return any(val).(T), nil
-	case int:
-		val, err := strconv.Atoi(v)
+	// unsigned ints
+	case uint, uint32, uint64:
+		u, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
-			return zero, fmt.Errorf("failed to parse %q as int: %v", v, err)
+			return zero, fmt.Errorf("failed to parse environment var %q as uint: %v", v, err)
+		}
+		switch any(zero).(type) {
+		case uint:
+			return any(uint(u)).(T), nil
+		case uint32:
+			return any(uint32(u)).(T), nil
+		case uint64:
+			return any(uint64(u)).(T), nil
 		}
 
-		return any(val).(T), nil
-	case int64:
-		val, err := strconv.ParseInt(v, 10, 64)
+	// floats
+	case float32, float64:
+		f, err := strconv.ParseFloat(v, 64)
 		if err != nil {
-			return zero, fmt.Errorf("failed to parse %q as int64: %v", v, err)
+			return zero, fmt.Errorf("failed to parse environment var %q as float: %v", v, err)
 		}
-
-		return any(val).(T), nil
-	case float64:
-		val, err := strconv.ParseFloat(v, 64)
-		if err != nil {
-			return zero, fmt.Errorf("failed to parse %q as float64: %v", v, err)
+		switch any(zero).(type) {
+		case float32:
+			return any(float32(f)).(T), nil
+		case float64:
+			return any(float64(f)).(T), nil
 		}
-
-		return any(val).(T), nil
 	}
 
 	return zero, fmt.Errorf("unsupported environment variable type %T", zero)

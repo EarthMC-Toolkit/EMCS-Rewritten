@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/samber/lo"
-	lop "github.com/samber/lo/parallel"
+	"github.com/samber/lo/parallel"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -315,24 +315,19 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 
 	friendsStr := "No Friends :("
 	if player.Stats.NumFriends > 0 {
-		friends := lop.Map(player.Friends, func(e oapi.Entity, _ int) string {
-			return e.Name
-		})
-
+		friends := parallel.Map(player.Friends, func(e oapi.Entity, _ int) string { return e.Name })
 		slices.Sort(friends)
+
 		friendsStr = fmt.Sprintf("```%s```", strings.Join(friends, ", "))
 	}
 
 	title := fmt.Sprintf("Player Information | `%s`", playerName)
-
-	// Alias differs from name (has surname and/or title)
 	if alias != playerName {
+		// Alias differs from name (has surname and/or title)
 		title += fmt.Sprintf(" aka \"%s\"", alias)
 	}
 
 	townRanks := player.Ranks.Town
-	nationRanks := player.Ranks.Nation
-
 	townRanksStr := "No ranks"
 	if len(townRanks) > 0 {
 		townRanksStr = strings.Join(lo.Map(townRanks, func(r string, _ int) string {
@@ -340,7 +335,7 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 		}), ", ")
 	}
 
-	nationRanksStr := "No ranks"
+	nationRanks, nationRanksStr := player.Ranks.Nation, "No ranks"
 	if len(nationRanks) > 0 {
 		nationRanksStr = strings.Join(lo.Map(nationRanks, func(r string, _ int) string {
 			return fmt.Sprintf("`%s`", r)
@@ -444,7 +439,6 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 		Color:       colour,
 		Footer:      DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
-			//NewEmbedField("Date Founded", fmt.Sprintf("<t:%d:R>", foundedTs), true),
 			NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by `%s`", foundedTs, town.Founder), false),
 			NewEmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
 			NewEmbedField("Nation", fmt.Sprintf("`%s`%s", nationName, nationJoin), true),
@@ -506,9 +500,7 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 	public := fmt.Sprintf("%s Public", lo.Ternary(nation.Status.Public, ":green_circle:", ":red_circle:"))
 	neutral := fmt.Sprintf("%s Neutral", lo.Ternary(nation.Status.Neutral, ":green_circle:", ":red_circle:"))
 
-	townNames := lop.Map(nation.Towns, func(e oapi.Entity, _ int) string {
-		return e.Name
-	})
+	townNames := parallel.Map(nation.Towns, func(e oapi.Entity, _ int) string { return e.Name })
 	slices.Sort(townNames)
 
 	townsStr := strings.Join(townNames, ", ")
@@ -592,46 +584,48 @@ func NewTownlessPageEmbed(names []string) (*discordgo.MessageEmbed, error) {
 	return embed, nil
 }
 
-func NewStaffEmbed() (*discordgo.MessageEmbed, error) {
-	var onlineStaff []string
-	var errors []error
+// func NewStaffEmbed() (*discordgo.MessageEmbed, error) {
+// 	var onlineStaff []string
+// 	var errors []error
 
-	ids := []string{} // Fetch them from somewhere
-	players, err := oapi.QueryPlayers(ids...)
+// 	ids := []string{} // Fetch them from somewhere
+// 	players, err := oapi.QueryPlayers(ids...)
 
-	// Calls specified func for every slice element in parallel.
-	lop.ForEach(players, func(p oapi.PlayerInfo, _ int) {
-		if err != nil {
-			fmt.Println(err)
-			errors = append(errors, err)
+// 	// Calls specified func for every slice element in parallel.
+// 	parallel.ForEach(players, func(p oapi.PlayerInfo, _ int) {
+// 		if err != nil {
+// 			fmt.Println(err)
+// 			errors = append(errors, err)
 
-			return
-		}
+// 			return
+// 		}
 
-		if p.Status.IsOnline {
-			onlineStaff = append(onlineStaff, p.Name)
-		}
-	})
+// 		if p.Status.IsOnline {
+// 			onlineStaff = append(onlineStaff, p.Name)
+// 		}
+// 	})
 
-	if len(errors) > 0 {
-		return nil, errors[0]
-	}
+// 	if len(errors) > 0 {
+// 		return nil, errors[0]
+// 	}
 
-	slices.Sort(onlineStaff)
+// 	slices.Sort(onlineStaff)
 
-	content := "None"
-	if len(onlineStaff) > 0 {
-		content = strings.Join(onlineStaff, ", ")
-	}
+// 	content := "None"
+// 	if len(onlineStaff) > 0 {
+// 		content = strings.Join(onlineStaff, ", ")
+// 	}
 
-	return &discordgo.MessageEmbed{
-		Type:        discordgo.EmbedTypeRich,
-		Title:       "Staff List | Online",
-		Description: fmt.Sprintf("```%s```", content),
-		Color:       discordutil.GOLD,
-	}, nil
-}
+// 	return &discordgo.MessageEmbed{
+// 		Type:        discordgo.EmbedTypeRich,
+// 		Title:       "Staff List | Online",
+// 		Description: fmt.Sprintf("```%s```", content),
+// 		Color:       discordutil.GOLD,
+// 	}, nil
+// }
 
+// Returns a circular emoji equivalent to the value of v
+// where true becomes a green check, false a red cross.
 func BoolToEmoji(v bool) string {
 	if v {
 		return shared.EMOJIS.CIRCLE_CHECK

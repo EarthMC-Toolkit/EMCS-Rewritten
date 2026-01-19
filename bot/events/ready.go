@@ -89,7 +89,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 func scheduleTask(task func(), runInitial bool, interval time.Duration) {
 	if runInitial {
-		task()
+		go task()
 	}
 
 	ticker := time.NewTicker(interval)
@@ -257,6 +257,45 @@ func UpdateData(mdb *database.Database) (
 }
 
 // #region Channel notifs
+// TODO: Increase sample size from 2 (last check and current) with a sliding window for better rate/ETA accuracy.
+//
+// For example, recording the last 15 minutes would be done using 15 samples, each sample at 60 second intervals.
+func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
+	remaining := vp.NumRemaining
+
+	var rate float64
+	var eta float64
+	if !vpLastCheck.IsZero() {
+		deltaVotes := vpLastRemaining - remaining
+		deltaMinutes := time.Since(vpLastCheck).Minutes()
+		if deltaVotes > 0 && deltaMinutes > 0 {
+			rate = float64(deltaVotes) / deltaMinutes
+			eta = float64(remaining) / rate
+		}
+	}
+
+	for _, threshold := range vpThresholds {
+		if remaining <= threshold && !vpNotified[threshold] {
+			msg := fmt.Sprintf("VoteParty has less than `%d` votes remaining! Currently at `%d`.", threshold, remaining)
+			if rate > 0 && eta > 0 {
+				etaValue, etaUnit := utils.HumanizeDuration(eta)
+				msg += fmt.Sprintf("\n\n:chart_with_upwards_trend: **Rate**: ~%.2f votes/min,\n:timer: **ETA**: %.1f %s", rate, etaValue, etaUnit)
+			}
+
+			s.ChannelMessageSend(VP_CHANNEL_ID, msg)
+			vpNotified[threshold] = true
+		}
+	}
+
+	// finished, reset notification statuses by emptying map.
+	if remaining == 0 {
+		vpNotified = make(map[int]bool)
+	}
+
+	vpLastRemaining = remaining
+	vpLastCheck = time.Now()
+}
+
 func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
 	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
 		return t.UUID, t, t.Status.Ruined
@@ -337,45 +376,6 @@ func TrySendFallenNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			Color:       discordutil.RED,
 		})
 	}
-}
-
-// TODO: Increase sample size from 2 (last check and current) with a sliding window for better rate/ETA accuracy.
-//
-// For example, recording the last 15 minutes would be done using 15 samples, each sample at 60 second intervals.
-func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
-	remaining := vp.NumRemaining
-
-	var rate float64
-	var eta float64
-	if !vpLastCheck.IsZero() {
-		deltaVotes := vpLastRemaining - remaining
-		deltaMinutes := time.Since(vpLastCheck).Minutes()
-		if deltaVotes > 0 && deltaMinutes > 0 {
-			rate = float64(deltaVotes) / deltaMinutes
-			eta = float64(remaining) / rate
-		}
-	}
-
-	for _, threshold := range vpThresholds {
-		if remaining <= threshold && !vpNotified[threshold] {
-			msg := fmt.Sprintf("VoteParty has less than `%d` votes remaining! Currently at `%d`.", threshold, remaining)
-			if rate > 0 && eta > 0 {
-				etaValue, etaUnit := utils.HumanizeDuration(eta)
-				msg += fmt.Sprintf("\n\n:chart_with_upwards_trend: **Rate**: ~%.2f votes/min,\n:timer: **ETA**: %.1f %s", rate, etaValue, etaUnit)
-			}
-
-			s.ChannelMessageSend(VP_CHANNEL_ID, msg)
-			vpNotified[threshold] = true
-		}
-	}
-
-	// finished, reset notification statuses by emptying map.
-	if remaining == 0 {
-		vpNotified = make(map[int]bool)
-	}
-
-	vpLastRemaining = remaining
-	vpLastCheck = time.Now()
 }
 
 func TrySendLeftJoinedNotif(s *discordgo.Session, towns, staleTowns []oapi.TownInfo, townless, residents oapi.EntityList) {

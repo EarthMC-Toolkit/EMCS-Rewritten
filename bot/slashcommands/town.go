@@ -302,7 +302,7 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 
 			content += fmt.Sprintf(
 				"**%s** (%s) - Online <t:%d:R>. Purges %s. %s\n",
-				res.Name, res.GetRank(), *lo/1000, purgeTimeStr, balanceStr,
+				res.Name, res.GetRankOrRole(), *lo/1000, purgeTimeStr, balanceStr,
 			)
 		}
 
