@@ -16,7 +16,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var PLAYER_STATS_GROUP_ORDER = []string{
+var PLAYER_STATS_GROUP_ORDER = [...]string{
 	"player_kills",
 	"mob_kills",
 	"deaths",
@@ -216,9 +216,6 @@ func executeServerInfo(s *discordgo.Session, i *discordgo.Interaction) (*discord
 	return discordutil.FollowupEmbeds(s, i, embed)
 }
 
-// TODO:
-// Every time this cmd is run, we should attempt to cache stats if the last cache was more than 30s ago.
-// The cache will then be used for subsequent cmds until next expiry to reduce API calls that contribute to rate limit unnecessarily.
 func executeServerPlayerStats(s *discordgo.Session, i *discordgo.Interaction, sortArg string) (*discordgo.Message, error) {
 	pstats, err := oapi.QueryServerPlayerStats()
 	if err != nil {
@@ -258,6 +255,9 @@ func executeServerPlayerStats(s *discordgo.Session, i *discordgo.Interaction, so
 		})
 	}
 
+	link := "See why [here](https://github.com/EarthMC/EMCAPI/blob/main/docs/global-player-stats.md#player-statistics-endpoint."
+	outdated := "⚠️ As of `July 28, 2025`, the Official API no longer updates this data.\n" + link
+
 	perPage := 20
 	paginator := discordutil.NewInteractionPaginator(s, i, count, perPage).
 		WithTimeout(5 * time.Minute)
@@ -274,8 +274,8 @@ func executeServerPlayerStats(s *discordgo.Session, i *discordgo.Interaction, so
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
 		embed := &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("All-Time Player Statistics | %s", pageStr),
+			Description: fmt.Sprintf("%s```%s```", outdated, desc),
 			Footer:      embeds.DEFAULT_FOOTER,
-			Description: fmt.Sprintf("```%s```", desc),
 			Color:       discordutil.DARK_GOLD,
 		}
 

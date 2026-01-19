@@ -5,6 +5,7 @@ import (
 	"emcsrw/api/capi"
 	"emcsrw/bot"
 	"emcsrw/bot/slashcommands"
+	"emcsrw/shared"
 	"emcsrw/utils/config"
 	"fmt"
 	"log"
@@ -25,12 +26,22 @@ const LOCK_FPATH = "/tmp/emcsrw.lock"
 
 // Creates a lock file and returns a handle to unlock it (remove the file).
 func lockProcess() func() error {
-	lock, err := lockedfile.OpenFile("/tmp/emcsrw.lock", os.O_CREATE|os.O_RDWR, 0600)
+	lock, err := lockedfile.OpenFile(LOCK_FPATH, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return func() error { return lock.Close() }
+	fmt.Println("DEBUG | Acquired lock from ~" + LOCK_FPATH)
+	return func() error {
+		err := lock.Close()
+		if err != nil {
+			fmt.Println("ERROR | Failed to close lock at ~" + LOCK_FPATH)
+			return err
+		}
+
+		fmt.Println("DEBUG | Removed lock from ~" + LOCK_FPATH)
+		return nil
+	}
 }
 
 func loadEnv() {
@@ -59,9 +70,9 @@ func getBotID() string {
 	return v
 }
 
-func getApiPort() uint16 {
-	fail := func(reason string) uint16 {
-		fmt.Printf("\nERROR | Custom API port defaulted to 7777. Reason:\n\t%s", reason)
+func getApiPort() uint {
+	fail := func(reason string) uint {
+		fmt.Printf("\nERROR | Custom API port defaulted to 7777. Reason:\n\t%s\n", reason)
 		return 7777
 	}
 
@@ -70,7 +81,7 @@ func getApiPort() uint16 {
 		return fail(err.Error())
 	}
 
-	port, err := config.ParseEnviroVar[uint16](v)
+	port, err := config.ParseEnviroVar[uint](v)
 	if err != nil {
 		return fail(err.Error())
 	}
@@ -121,6 +132,7 @@ func main() {
 
 	s, err := newSession(getBotToken())
 	if err != nil {
+		fmt.Printf("\nFATAL | failed to create session:\n\t%s", err)
 		os.Exit(67) // SIX SEVEEEEEEN!!!1!!1!!1
 	}
 	//#endregion
@@ -129,7 +141,7 @@ func main() {
 	case "register":
 		slashcommands.SyncRemote(s, getBotID(), "") // Empty str = register globally
 	case "start":
-		runBot(s)
+		startBot(s)
 	default:
 		fmt.Println("ERROR | unknown subcommand:", os.Args[1])
 	}
@@ -138,16 +150,17 @@ func main() {
 func newSession(token string) (*discordgo.Session, error) {
 	s, err := discordgo.New("Bot " + token)
 	if err != nil {
-		fmt.Println("failed to create session:", err)
 		return nil, err
 	}
 
 	return s, err
 }
 
-func runBot(s *discordgo.Session) {
+func startBot(s *discordgo.Session) {
 	fmt.Printf("\nStarting bot with %d threads.\n", runtime.GOMAXPROCS(-1))
-	discord, activeMapDB := bot.Run(s)
+
+	fmt.Printf("\nInitializing databases...\n")
+	var activeMapDB = bot.InitDB(shared.ACTIVE_MAP)
 
 	var server *http.Server
 	if shouldServeAPI() {
@@ -159,6 +172,9 @@ func runBot(s *discordgo.Session) {
 		server = capi.Serve(mux, getApiPort())
 	}
 
+	fmt.Printf("\nConnecting to Discord gateway...\n")
+	var discord = bot.Connect(s)
+
 	// Wait for Ctrl+C or kill.
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
@@ -166,6 +182,7 @@ func runBot(s *discordgo.Session) {
 
 	fmt.Printf("\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
 
+	//#region Cleanup
 	// Since the `defer` keyword only works in successful exits,
 	// closing explicitly here makes sure we always properly cleanup.
 	if err := discord.Close(); err != nil {
@@ -185,4 +202,5 @@ func runBot(s *discordgo.Session) {
 	if err := activeMapDB.Flush(); err != nil {
 		log.Printf("error closing DB: %v", err)
 	}
+	//endregion
 }

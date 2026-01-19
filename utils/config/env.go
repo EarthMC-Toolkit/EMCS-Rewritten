@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// Retrieves an OS environment variable by name,
+// failing with an error if non-existent or empty.
 func GetEnviroVar(name string) (string, error) {
 	v, found := os.LookupEnv(name)
 	if !found {
@@ -20,7 +22,8 @@ func GetEnviroVar(name string) (string, error) {
 	return v, nil
 }
 
-// Parses an EnviroVar to the desired type
+// Parses an environment variable as the desired type,
+// failing with an error if not possible.
 func ParseEnviroVar[T any](v string) (T, error) {
 	var zero T
 
@@ -34,23 +37,8 @@ func ParseEnviroVar[T any](v string) (T, error) {
 		}
 		return any(b).(T), nil
 
-	// signed ints
-	case int, int32, int64:
-		n, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			return zero, fmt.Errorf("failed to parse environment var %q as int: %v", v, err)
-		}
-		switch any(zero).(type) {
-		case int:
-			return any(int(n)).(T), nil
-		case int32:
-			return any(int32(n)).(T), nil
-		case int64:
-			return any(int64(n)).(T), nil
-		}
-
 	// unsigned ints
-	case uint, uint32, uint64:
+	case uint, uint8, uint16, uint32, uint64:
 		u, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
 			return zero, fmt.Errorf("failed to parse environment var %q as uint: %v", v, err)
@@ -58,10 +46,33 @@ func ParseEnviroVar[T any](v string) (T, error) {
 		switch any(zero).(type) {
 		case uint:
 			return any(uint(u)).(T), nil
+		case uint8:
+			return any(uint8(u)).(T), nil
+		case uint16:
+			return any(uint16(u)).(T), nil
 		case uint32:
 			return any(uint32(u)).(T), nil
 		case uint64:
 			return any(uint64(u)).(T), nil
+		}
+
+	// signed ints
+	case int, int8, int16, int32, int64:
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return zero, fmt.Errorf("failed to parse environment var %q as int: %v", v, err)
+		}
+		switch any(zero).(type) {
+		case int:
+			return any(int(n)).(T), nil
+		case int8:
+			return any(int8(n)).(T), nil
+		case int16:
+			return any(int16(n)).(T), nil
+		case int32:
+			return any(int32(n)).(T), nil
+		case int64:
+			return any(int64(n)).(T), nil
 		}
 
 	// floats

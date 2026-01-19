@@ -59,7 +59,7 @@ func (p PlayerInfo) GetRank() string {
 }
 
 // In order of priority so we show "better" roles first.
-var TOWNY_ROLES = []string{"Councillor", "Assistant", "Helper", "Builder", "Recruiter"}
+var TOWNY_ROLES = [...]string{"Councillor", "Assistant", "Helper", "Builder", "Recruiter"}
 
 func (p PlayerInfo) GetRankOrRole() string {
 	if p.Status.IsKing {

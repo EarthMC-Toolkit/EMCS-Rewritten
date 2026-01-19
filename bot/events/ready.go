@@ -31,7 +31,7 @@ var vpLastRemaining int
 var vpLastCheck time.Time
 
 func OnReady(s *discordgo.Session, r *discordgo.Ready) {
-	fmt.Printf("Logged in as: %s\n\n", s.State.User.Username)
+	fmt.Printf("Logged in as: %s\n", s.State.User.Username)
 
 	mdb, err := database.Get(shared.ACTIVE_MAP)
 	if err != nil {

@@ -94,9 +94,9 @@ You can also fork this project and use it as a base if you so desire, but the GP
 
 ## Project Structure
 >- `main.go` -> Project entrypoint. Responsible for loading `env` and passing bot token to `bot.Run`.
->- `bot` -> Where the bot runs from. Contains all bot logic for commands, events, discord and db init etc.
->   - `events` -> The package where discord event handlers like `OnReady` are run and are handled.
->   - `bot.go` -> The file the bot actually runs from, responsible for setting up discord, opening connections and handling bot exit.
+>- `bot` -> Where the bot runs from. Contains all bot logic for commands, events etc.
+>   - `events` -> The package where Discord event handlers like `OnReady` are run and are handled.
+>   - `bot.go` -> The file where the bot connects to Discord, also responsible for setting event handlers and intents.
 >- `api` -> Contains packages relating to APIs. Contains funcs that interact with both where necessary.
 >   - `mapi` -> For interacting with the map API. (Currently Squaremap)
 >   - `oapi` -> For interacting with the Official API.

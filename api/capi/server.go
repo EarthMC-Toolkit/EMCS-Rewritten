@@ -91,7 +91,7 @@ func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 // Serves the API using on localhost at port.
 //
 // See README.md for details on how to setup a reverse proxy to a domain.
-func Serve(mux *http.ServeMux, port uint16) *http.Server {
+func Serve(mux *http.ServeMux, port uint) *http.Server {
 	// NOTE: If we want a clean URL without specifying port, we need use the default port.
 	// These are 443 if using HTTPS (need cert) or 80 if using HTTP.
 	s := &http.Server{
