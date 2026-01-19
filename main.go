@@ -128,7 +128,7 @@ func main() {
 	}
 
 	loadEnv()
-	fmt.Println("Loaded .env into OS environment.")
+	fmt.Println("DEBUG | Loaded .env into OS environment.")
 
 	s, err := newSession(getBotToken())
 	if err != nil {
@@ -157,9 +157,9 @@ func newSession(token string) (*discordgo.Session, error) {
 }
 
 func startBot(s *discordgo.Session) {
-	fmt.Printf("\nStarting bot with %d threads.\n", runtime.GOMAXPROCS(-1))
+	log.Printf("Starting bot with %d threads.\n", runtime.GOMAXPROCS(-1))
 
-	fmt.Printf("\nInitializing databases...\n")
+	log.Printf("Initializing databases...\n")
 	var activeMapDB = bot.InitDB(shared.ACTIVE_MAP)
 
 	var server *http.Server
@@ -172,7 +172,7 @@ func startBot(s *discordgo.Session) {
 		server = capi.Serve(mux, getApiPort())
 	}
 
-	fmt.Printf("\nConnecting to Discord gateway...\n")
+	log.Println("Connecting to Discord gateway...")
 	var discord = bot.Connect(s)
 
 	// Wait for Ctrl+C or kill.

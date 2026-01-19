@@ -45,8 +45,8 @@ func Connect(s *discordgo.Session) *discordgo.Session {
 	if err != nil {
 		log.Fatal("Cannot open Discord session: ", err)
 	}
-	log.Printf("\n\nEstablished connection to Discord.\n")
 
+	log.Println("Established connection to Discord.")
 	return s
 }
 
@@ -57,7 +57,7 @@ func InitDB(m shared.EMCMap) *database.Database {
 	if err != nil {
 		log.Fatalf("Cannot initialize database for map '%s':\n%v", m, err)
 	}
-	log.Printf("\nInitialized database for map '%s'.\n", m)
+	log.Printf("Initialized database for map '%s'.\n", m)
 
 	// Define all stores we want to exist on this database.
 	// If a store does not exist, it is created under the ./db/<mapName> dir.
