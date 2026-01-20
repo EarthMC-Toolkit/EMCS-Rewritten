@@ -25,7 +25,7 @@ const TFLOW_CHANNEL_ID = "1420855039357878469"
 const VP_CHANNEL_ID = "1420146203454083144"
 
 // VoteParty notification tracking.
-var vpThresholds = []int{500, 300, 150, 50}
+var vpThresholds = [...]int{500, 300, 150, 50}
 var vpNotified = make(map[int]bool) // Key is each threshold, value is whether notified or not.
 var vpLastRemaining int
 var vpLastCheck time.Time
@@ -68,21 +68,22 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		TrySendFallenNotif(s, townList, staleTowns)
 	}, true, 30*time.Second)
 
+	serverStore, err := database.GetStore(mdb, database.SERVER_STORE)
+	if err != nil {
+		fmt.Printf("\nERROR | cannot schedule serverinfo task:\n\t%s", err)
+		return
+	}
+
 	// Updating every min should be fine. doubt people care about having /vp and /serverinfo be realtime.
-	serverStore, _ := database.GetStore(mdb, database.SERVER_STORE)
 	scheduleTask(func() {
 		info, err := SetKeyFunc(serverStore, "info", func() (oapi.ServerInfo, error) {
 			return oapi.QueryServer()
 		})
-		if err != nil {
-			return
-		}
-
-		TrySendVotePartyNotif(s, info.VoteParty)
-
-		if err := mdb.Flush(); err != nil {
-			fmt.Println()
-			log.Printf("error occurred flushing stores in db: %s", mdb.Dir())
+		if err == nil {
+			TrySendVotePartyNotif(s, info.VoteParty)
+			if err := serverStore.WriteSnapshot(); err != nil {
+				fmt.Printf("\nERROR | server store failed to write snapshot:\n\t%s", err)
+			}
 		}
 	}, true, 60*time.Second)
 }
@@ -276,13 +277,20 @@ func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
 
 	for _, threshold := range vpThresholds {
 		if remaining <= threshold && !vpNotified[threshold] {
-			msg := fmt.Sprintf("VoteParty has less than `%d` votes remaining! Currently at `%d`.", threshold, remaining)
+			content := fmt.Sprintf("VoteParty has less than `%d` votes remaining! Currently at `%d`.", threshold, remaining)
 			if rate > 0 && eta > 0 {
 				etaValue, etaUnit := utils.HumanizeDuration(eta)
-				msg += fmt.Sprintf("\n\n:chart_with_upwards_trend: **Rate**: ~%.2f votes/min,\n:timer: **ETA**: %.1f %s", rate, etaValue, etaUnit)
+				content += fmt.Sprintf(
+					"\n\n:chart_with_upwards_trend: **Rate**: ~%.2f votes/min,\n:timer: **ETA**: %.1f %s",
+					rate, etaValue, etaUnit,
+				)
 			}
 
-			s.ChannelMessageSend(VP_CHANNEL_ID, msg)
+			// Send notif to toolkit #voteparty channel and publish to followers.
+			if msg, err := s.ChannelMessageSend(VP_CHANNEL_ID, content); err == nil {
+				s.ChannelMessageCrosspost(VP_CHANNEL_ID, msg.ID)
+			}
+
 			vpNotified[threshold] = true
 		}
 	}
