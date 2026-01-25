@@ -3,11 +3,13 @@ package capi
 import (
 	"crypto/sha1"
 	"emcsrw/database"
-	"encoding/hex"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"strings"
 )
 
 // Req/m for "<mapName>/alliances" endpoint
@@ -62,10 +64,14 @@ func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 		//rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, database.DEFAULT_ALLIANCE_WEIGHTS)
 		parsedAlliances := getParsedAlliances(alliances, nationStore, reslist, townlesslist)
 
-		// Generate SHA-1 ETag from JSON
-		data, _ := json.Marshal(parsedAlliances)
-		hash := sha1.Sum(data)
-		etag := fmt.Sprintf(`"%s"`, hex.EncodeToString(hash[:]))
+		// Generate ETag from top level alliance data
+		// to avoid sending data if nothing changed
+		h := sha1.New()
+		for _, a := range parsedAlliances {
+			h.Write([]byte(a.Identifier))
+			binary.Write(h, binary.LittleEndian, a.UpdatedTimestamp)
+		}
+		etag := fmt.Sprintf(`"%x"`, h.Sum(nil))
 
 		w.Header().Set("ETag", etag)
 		w.Header().Set("Cache-Control", "public, max-age=60")
@@ -76,12 +82,13 @@ func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 			return // cached response, don't touch limiter
 		}
 
-		limiter := getLimiter(r.RemoteAddr, alliancesEndpoint, ALLIANCES_RPM)
+		limiter := getLimiter(getClientIP(r), alliancesEndpoint, ALLIANCES_RPM)
 		if !limiter.Allow() {
 			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 			return
 		}
 
+		data, _ := json.Marshal(parsedAlliances)
 		w.Write(data)
 	})
 
@@ -107,4 +114,20 @@ func Serve(mux *http.ServeMux, port uint) *http.Server {
 	}()
 
 	return s
+}
+
+func getClientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// X-Forwarded-For can contain multiple IPs, we just need the first
+		ips := strings.Split(xff, ",")
+		return strings.TrimSpace(ips[0])
+	}
+
+	// Fallback to RemoteAddr and strip port
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr // unlikely, but just in case
+	}
+
+	return host
 }

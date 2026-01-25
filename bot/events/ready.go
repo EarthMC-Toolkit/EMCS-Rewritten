@@ -89,12 +89,12 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 }
 
 func scheduleTask(task func(), runInitial bool, interval time.Duration) {
-	if runInitial {
-		go task()
-	}
-
 	ticker := time.NewTicker(interval)
 	go func() {
+		if runInitial {
+			go task()
+		}
+
 		//defer ticker.Stop()
 		for range ticker.C {
 			task()
@@ -414,15 +414,15 @@ func TrySendLeftJoinedNotif(s *discordgo.Session, towns, staleTowns []oapi.TownI
 //#endregion
 
 func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.EntityList) (left, joined []string) {
-	// resident -> town mapping for stale/outdated residents
-	staleResidents := make(map[string]oapi.TownInfo)
+	// For resident -> town lookup (stale)
+	staleResMap := make(map[string]oapi.TownInfo)
 	for _, t := range staleTowns {
 		for _, r := range t.Residents {
-			staleResidents[r.UUID] = t
+			staleResMap[r.UUID] = t
 		}
 	}
 
-	// resident -> town mapping for fresh resident list
+	// For resident -> town lookup (fresh not stale)
 	resMap := make(map[string]oapi.TownInfo)
 	for _, t := range towns {
 		for _, r := range t.Residents {
@@ -431,16 +431,17 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 	}
 
 	// who left
-	for uuid, town := range staleResidents {
+	for uuid, town := range staleResMap {
 		if _, ok := resMap[uuid]; !ok {
-			name := townless[uuid]
+			name, ok := townless[uuid]
+			if !ok {
+				continue // Left a town but not townless. Likely purged?
+			}
 
 			nation := "No Nation"
 			if town.Nation.Name != nil {
 				nation = *town.Nation.Name
 			}
-
-			//left = append(left, fmt.Sprintf("`%s` left %s (**%s**)", name, oldTown.Name, nation))
 
 			ruined := lo.Ternary(town.Status.Ruined, ":white_check_mark:", ":x:")
 			overclaimable := lo.Ternary(
@@ -451,14 +452,15 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 			left = append(joined, utils.HumanizedSprintf(
 				"`%s` left %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s\nRuined %s Overclaimable %s",
 				name, town.Name, nation,
-				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT, ruined, overclaimable,
+				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT,
+				ruined, overclaimable,
 			))
 		}
 	}
 
 	// who joined
 	for uuid, town := range resMap {
-		if _, ok := staleResidents[uuid]; !ok {
+		if _, ok := staleResMap[uuid]; !ok {
 			name := residents[uuid]
 
 			nation := "No Nation"
@@ -475,7 +477,8 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 			joined = append(joined, utils.HumanizedSprintf(
 				"`%s` joined %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s\nRuined %s Overclaimable %s",
 				name, town.Name, nation,
-				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT, ruined, overclaimable,
+				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT,
+				ruined, overclaimable,
 			))
 		}
 	}
