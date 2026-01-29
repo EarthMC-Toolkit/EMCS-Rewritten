@@ -111,9 +111,9 @@ func (s *Store[T]) Entries() StoreData[T] {
 	return s.data.shallowCopy()
 }
 
-// Similar to Entries(), this func will return a map, with the key being customizable based on keyFunc.
+// Similar to Entries(), this func will return a map, with the new keys being customizable based on keyFunc.
 // However, unlike Entries(), no shallow copy is made since the keys are being re-mapped anyway.
-// This is useful for creating a new map where the key is based on a specific field of the stored value type.
+// This is useful for creating a new map where the key is based on a specific field of value.
 func (s *Store[T]) EntriesFunc(f func(value T) string) map[string]T {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -127,19 +127,26 @@ func (s *Store[T]) EntriesFunc(f func(value T) string) map[string]T {
 }
 
 // Gets both entries and values in a single pass.
-func (s *Store[T]) EntriesAndValues() (entries StoreData[T], values []T) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+// func (s *Store[T]) EntriesAndValues() (entries StoreData[T], values []T) {
+// 	s.mu.RLock()
+// 	defer s.mu.RUnlock()
 
-	entries = make(StoreData[T], s.Count())
-	values = make([]T, 0, s.Count())
-	for k, v := range s.data {
-		entries[k] = v
-		values = append(values, v)
-	}
+// 	entries = make(StoreData[T], s.Count())
+// 	values = make([]T, 0, s.Count())
+// 	for k, v := range s.data {
+// 		entries[k] = v
+// 		values = append(values, v)
+// 	}
 
-	return
-}
+// 	return
+// }
+
+// func RunLockedWithResult[T any, R any](s *Store[T], f func(store map[StoreKey]T) R) R {
+// 	s.mu.RLock()
+// 	defer s.mu.RUnlock()
+
+// 	return f(s.data)
+// }
 
 func (s *Store[T]) Overwrite(value StoreData[T]) {
 	s.mu.Lock()

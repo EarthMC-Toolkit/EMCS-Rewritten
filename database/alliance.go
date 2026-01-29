@@ -213,8 +213,10 @@ func (a Alliance) GetStats(ownNations []oapi.NationInfo, puppetNations []oapi.Na
 	towns []oapi.Entity,
 	residents, area, worth int,
 ) {
-	var mu sync.Mutex
-	compute := func(n oapi.NationInfo, _ int) {
+	nations := append(ownNations, puppetNations...)
+
+	mu := sync.Mutex{}
+	parallel.ForEach(nations, func(n oapi.NationInfo, _ int) {
 		r := n.Stats.NumResidents
 		ar := n.Stats.NumTownBlocks
 		ts := n.Towns
@@ -224,12 +226,7 @@ func (a Alliance) GetStats(ownNations []oapi.NationInfo, puppetNations []oapi.Na
 		area += ar
 		towns = append(towns, ts...)
 		mu.Unlock()
-	}
-
-	parallel.ForEach(ownNations, compute)
-	if len(puppetNations) > 0 {
-		parallel.ForEach(puppetNations, compute)
-	}
+	})
 
 	townsCount := len(towns)
 

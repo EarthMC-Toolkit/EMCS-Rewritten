@@ -153,7 +153,12 @@ func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdat
 func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) (*discordgo.Message, error) {
 	var nation *oapi.NationInfo
 
-	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
+	mdb, err := database.Get(shared.ACTIVE_MAP)
+	if err != nil {
+		return nil, err
+	}
+
+	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
 	if err != nil {
 		nation, err = oapi.QueryNation(nationName)
 		if err != nil {
@@ -188,7 +193,9 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 	// 	Components: []discordgo.MessageComponent{row},
 	// })
 
-	embed := embeds.NewNationEmbed(*nation)
+	allianceStore, _ := database.GetStore(mdb, database.ALLIANCES_STORE)
+
+	embed := embeds.NewNationEmbed(*nation, allianceStore)
 	return discordutil.FollowupEmbeds(s, i, embed)
 }
 

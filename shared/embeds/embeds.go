@@ -7,6 +7,7 @@ import (
 	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/sets"
 	"fmt"
 	"slices"
 	"strings"
@@ -478,7 +479,7 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	return embed
 }
 
-func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
+func NewNationEmbed(nation oapi.NationInfo, allianceStore *store.Store[database.Alliance]) *discordgo.MessageEmbed {
 	foundedTs := nation.Timestamps.Registered / 1000 // Seconds
 	dateFounded := fmt.Sprintf("<t:%d:R>", foundedTs)
 
@@ -503,13 +504,7 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 	townNames := parallel.Map(nation.Towns, func(e oapi.Entity, _ int) string { return e.Name })
 	slices.Sort(townNames)
 
-	townsStr := strings.Join(townNames, ", ")
-	if len(townsStr) > discordutil.EMBED_FIELD_VALUE_LIMIT {
-		townsStr = "Too many towns to display!\nClick the **View All Towns** button to see the full list."
-	} else {
-		townsStr = fmt.Sprintf("```%s```", townsStr)
-	}
-
+	townsStr := utils.HumanizedSprintf("`%d`", stats.NumTowns)
 	residentsStr := utils.HumanizedSprintf("`%d`", stats.NumResidents)
 	balanceStr := utils.HumanizedSprintf("`%.0f` %s", stats.Balance, shared.EMOJIS.GOLD_INGOT)
 	//bonusStr := utils.HumanizedSprintf("`%d`")
@@ -520,8 +515,8 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 	)
 
 	statsStr := fmt.Sprintf(
-		"Size: %s\nBalance: %s\nResidents: %s\nAllies/Enemies: %s",
-		sizeStr, balanceStr, residentsStr, alliesEnemiesStr,
+		"Size: %s\nBalance: %s\nResidents: %s\nTowns: %s\nAllies/Enemies: %s",
+		sizeStr, balanceStr, residentsStr, townsStr, alliesEnemiesStr,
 	)
 
 	rankLines := []string{}
@@ -564,7 +559,45 @@ func NewNationEmbed(nation oapi.NationInfo) *discordgo.MessageEmbed {
 		AddField(embed, "Ranks", ranksStr, false)
 	}
 
-	AddField(embed, fmt.Sprintf("Towns [%d]", stats.NumTowns), townsStr, false)
+	townListStr := strings.Join(townNames, ", ")
+	if len(townListStr) <= discordutil.EMBED_FIELD_VALUE_LIMIT {
+		townListStr = fmt.Sprintf("```%s```", townListStr)
+		AddField(embed, fmt.Sprintf("Towns [%d]", stats.NumTowns), townListStr, false)
+	}
+
+	//#region alliances field
+	if allianceStore != nil {
+		allianceByID := allianceStore.EntriesFunc(func(a database.Alliance) string {
+			return a.Identifier
+		})
+
+		seen := sets.Set[string]{}
+		allianceStore.ForEach(func(_ string, a database.Alliance) {
+			// direct membership
+			if a.OwnNations.Has(nation.UUID) {
+				if _, ok := seen[a.Label]; !ok {
+					seen.Append(a.Label)
+				}
+			}
+
+			// parent membership
+			if a.Parent != nil {
+				if parent, ok := allianceByID[*a.Parent]; ok {
+					if _, ok := seen[parent.Label]; !ok {
+						seen.Append(parent.Label)
+					}
+				}
+			}
+		})
+
+		if len(seen) > 0 {
+			related := seen.Keys()
+			relatedAlliancesStr := fmt.Sprintf("```%s```", strings.Join(related, ", "))
+			AddField(embed, fmt.Sprintf("Alliances [%d]", len(related)), relatedAlliancesStr, false)
+		}
+	}
+	//#endregion
+
 	AddField(embed, "Founded", dateFounded, true)
 
 	if nation.Wiki != "" {
@@ -583,46 +616,6 @@ func NewTownlessPageEmbed(names []string) (*discordgo.MessageEmbed, error) {
 
 	return embed, nil
 }
-
-// func NewStaffEmbed() (*discordgo.MessageEmbed, error) {
-// 	var onlineStaff []string
-// 	var errors []error
-
-// 	ids := []string{} // Fetch them from somewhere
-// 	players, err := oapi.QueryPlayers(ids...)
-
-// 	// Calls specified func for every slice element in parallel.
-// 	parallel.ForEach(players, func(p oapi.PlayerInfo, _ int) {
-// 		if err != nil {
-// 			fmt.Println(err)
-// 			errors = append(errors, err)
-
-// 			return
-// 		}
-
-// 		if p.Status.IsOnline {
-// 			onlineStaff = append(onlineStaff, p.Name)
-// 		}
-// 	})
-
-// 	if len(errors) > 0 {
-// 		return nil, errors[0]
-// 	}
-
-// 	slices.Sort(onlineStaff)
-
-// 	content := "None"
-// 	if len(onlineStaff) > 0 {
-// 		content = strings.Join(onlineStaff, ", ")
-// 	}
-
-// 	return &discordgo.MessageEmbed{
-// 		Type:        discordgo.EmbedTypeRich,
-// 		Title:       "Staff List | Online",
-// 		Description: fmt.Sprintf("```%s```", content),
-// 		Color:       discordutil.GOLD,
-// 	}, nil
-// }
 
 // Returns a circular emoji equivalent to the value of v
 // where true becomes a green check, false a red cross.
