@@ -573,17 +573,10 @@ func NewNationEmbed(nation oapi.NationInfo, allianceStore *store.Store[database.
 
 		seen := sets.Set[string]{}
 		allianceStore.ForEach(func(_ string, a database.Alliance) {
-			// direct membership
 			if a.OwnNations.Has(nation.UUID) {
-				if _, ok := seen[a.Label]; !ok {
-					seen.Append(a.Label)
-				}
-			}
-
-			// parent membership
-			if a.Parent != nil {
-				if parent, ok := allianceByID[*a.Parent]; ok {
-					if _, ok := seen[parent.Label]; !ok {
+				seen.Append(a.Label)
+				if a.Parent != nil {
+					if parent, ok := allianceByID[*a.Parent]; ok {
 						seen.Append(parent.Label)
 					}
 				}
