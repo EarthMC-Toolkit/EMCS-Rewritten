@@ -209,6 +209,28 @@ func GetFocusedValue[T any](options []*discordgo.ApplicationCommandInteractionDa
 	return
 }
 
+func traverseCommandOption(opt *discordgo.ApplicationCommandInteractionDataOption) *discordgo.ApplicationCommandInteractionDataOption {
+	if len(opt.Options) == 0 {
+		return opt
+	}
+
+	// Check if the first child is a subcommand or group. Otherwise it's an argument
+	optType := opt.Options[0].Type
+	if optType != 1 && optType != 2 {
+		return opt
+	}
+
+	return traverseCommandOption(opt.Options[0])
+}
+
+func GetActiveSubCommand(cdata discordgo.ApplicationCommandInteractionData) *discordgo.ApplicationCommandInteractionDataOption {
+	if len(cdata.Options) == 0 {
+		return nil
+	}
+
+	return traverseCommandOption(cdata.Options[0])
+}
+
 type FormatFunc[T any, V any] = func(item T, index int) (name string, value V)
 
 // Creates a slice of [discordgo.ApplicationCommandOptionChoice] by transforming the given items slice.

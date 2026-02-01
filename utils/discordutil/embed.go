@@ -124,3 +124,17 @@ func TextInputActionRow(input discordgo.TextInput) discordgo.ActionsRow {
 		Components: []discordgo.MessageComponent{input},
 	}
 }
+
+func SelectMenuActionRow(selectMenu discordgo.SelectMenu) discordgo.ActionsRow {
+	return discordgo.ActionsRow{
+		Components: []discordgo.MessageComponent{selectMenu},
+	}
+}
+
+func Label(label string, description string, component discordgo.MessageComponent) discordgo.Label {
+	return discordgo.Label{
+		Label:       label,
+		Description: description,
+		Component:   component,
+	}
+}

@@ -81,8 +81,13 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 			Options: AppCommandOpts{
 				{
 					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Name:        "multi",
+					Description: "Add/remove >=1 nation(s) from >=1 alliances at once.",
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
 					Name:        "nations",
-					Description: "Add or remove nations from an alliance.",
+					Description: "Add/remove >=1 nation(s) from a single alliance.",
 					Options: AppCommandOpts{
 						discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
 					},
@@ -90,7 +95,7 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 				{
 					Type:        discordgo.ApplicationCommandOptionSubCommand,
 					Name:        "leaders",
-					Description: "Add or remove leaders from an alliance.",
+					Description: "Add/remove leaders from an alliance.",
 					Options: AppCommandOpts{
 						discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
 					},
@@ -150,10 +155,10 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	if opt = cdata.GetOption("update"); opt != nil {
-		return editAlliance(s, i.Interaction, opt)
+		return editAlliance(s, i.Interaction)
 	}
 	if opt = cdata.GetOption("edit"); opt != nil {
-		return editAlliance(s, i.Interaction, opt)
+		return editAlliance(s, i.Interaction)
 	}
 
 	if opt = cdata.GetOption("create"); opt != nil {
@@ -203,6 +208,15 @@ func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Intera
 	if strings.HasPrefix(customID, "alliance_editor") {
 		allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
 		if err != nil {
+			return err
+		}
+
+		if strings.EqualFold(customID, "alliance_editor_multi") {
+			err := handleAllianceEditorModalMultiUpdate(s, i, allianceStore)
+			if err != nil {
+				discordutil.ReplyWithError(s, i, err)
+			}
+
 			return err
 		}
 
@@ -641,7 +655,7 @@ func disbandAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata disco
 	return err
 }
 
-func editAlliance(s *discordgo.Session, i *discordgo.Interaction, opt *discordgo.ApplicationCommandInteractionDataOption) error {
+func editAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 	isEditor, _ := discordutil.HasRole(i.Member, EDITOR_ROLE)
 	if !isEditor && !discordutil.IsDev(i) {
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
@@ -652,29 +666,18 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, opt *discordgo
 		return err
 	}
 
+	// get the sub cmd currently being used
+	subCmd := discordutil.GetActiveSubCommand(i.ApplicationCommandData())
+	if subCmd == nil {
+		return fmt.Errorf("no valid option found for editAlliance")
+	}
+	if subCmd.Name == "multi" {
+		return openEditorModalMultiUpdate(s, i)
+	}
+
 	allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
 	if err != nil {
 		return err
-	}
-
-	// get the sub cmd currently being used
-	// TODO: Replace this bollocks with a func that searches for active subcmd.
-	subCmd := opt
-	if opt.Name == "edit" {
-		functional := opt.GetOption("functional")
-		if functional != nil {
-			subCmd = functional
-		} else {
-			subCmd = opt.GetOption("optional")
-		}
-	}
-	if opt.Name == "update" {
-		nations := opt.GetOption("nations")
-		if nations != nil {
-			subCmd = nations
-		} else {
-			subCmd = opt.GetOption("leaders")
-		}
 	}
 
 	ident := subCmd.GetOption("identifier").StringValue()
@@ -690,17 +693,63 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction, opt *discordgo
 	}
 
 	switch subCmd.Name {
+	// /alliance edit
 	case "functional":
 		return openEditorModalFunctional(s, i, alliance)
 	case "optional":
 		return openEditorModalOptional(s, i, alliance)
+	// /alliance update
 	case "nations":
 		return openEditorModalNationsUpdate(s, i, alliance)
 	case "leaders":
 		return openEditorModalLeadersUpdate(s, i, alliance)
 	}
 
-	return fmt.Errorf("no valid option found for editAlliance")
+	return nil // unreachable
+}
+
+func openEditorModalMultiUpdate(s *discordgo.Session, i *discordgo.Interaction) error {
+	requireSelectMenu := false
+	return discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
+		CustomID: "alliance_editor_multi",
+		Title:    "Alliance Editor - Multi",
+		Flags:    discordgo.MessageFlagsIsComponentsV2,
+		Components: []discordgo.MessageComponent{
+			discordutil.Label("Add nations to puppets?", "Include puppet alliances when adding nations", discordgo.SelectMenu{
+				CustomID: "alliances-add-include-puppets",
+				MenuType: discordgo.StringSelectMenu,
+				Required: &requireSelectMenu,
+				Options: []discordgo.SelectMenuOption{
+					{Label: "Yes", Value: "yes", Default: true},
+					{Label: "No", Value: "no"},
+				},
+			}),
+			discordutil.Label("Alliances to add the nations to", "Please use a comma-seperated list", discordgo.TextInput{
+				CustomID:    "alliances-add",
+				Placeholder: "Enter list of alliance identifiers..",
+				Style:       discordgo.TextInputParagraph,
+				MinLength:   2,
+			}),
+			discordutil.Label("Nations to add", "Please use a comma-seperated list", discordgo.TextInput{
+				CustomID:    "nations-add",
+				Placeholder: "Enter list of nation names...",
+				Style:       discordgo.TextInputParagraph,
+				MinLength:   2,
+			}),
+			discordutil.Label("Alliances to remove the nations from", "Please use a comma-seperated list", discordgo.TextInput{
+				CustomID:    "alliances-remove",
+				Placeholder: "Enter list of alliance identifiers..",
+				Style:       discordgo.TextInputParagraph,
+				MinLength:   2,
+			}),
+			discordutil.Label("Nations to remove", "Please use a comma-seperated list", discordgo.TextInput{
+				CustomID:    "nations-remove",
+				Placeholder: "Enter list of nation names...",
+				Style:       discordgo.TextInputParagraph,
+				MinLength:   2,
+			}),
+		},
+	})
 }
 
 func openEditorModalNationsUpdate(s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance) error {
@@ -747,6 +796,220 @@ func openEditorModalLeadersUpdate(s *discordgo.Session, i *discordgo.Interaction
 			}),
 		},
 	})
+}
+
+func handleAllianceEditorModalMultiUpdate(
+	s *discordgo.Session, i *discordgo.Interaction,
+	allianceStore *store.Store[database.Alliance],
+) error {
+	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
+	if err != nil {
+		return err
+	}
+
+	// build maps for O(1) lookups
+	nationByName := nationStore.EntriesFunc(func(n oapi.NationInfo) string { return strings.ToLower(n.Name) })
+	allianceByIdent := allianceStore.EntriesFunc(func(a database.Alliance) string { return strings.ToLower(a.Identifier) })
+
+	inputs := discordutil.GetModalInputs(i)
+	nationRemoveNames, _ := utils.ParseFieldsStr(strings.TrimSpace(inputs["nations-remove"]), ',')
+	allianceRemoveNames, _ := utils.ParseFieldsStr(strings.TrimSpace(inputs["alliances-remove"]), ',')
+
+	invalidNations := []string{}
+	validNations := make(map[string]oapi.NationInfo)
+	for _, name := range nationRemoveNames {
+		if n, ok := nationByName[strings.ToLower(name)]; !ok {
+			invalidNations = append(invalidNations, name)
+		} else {
+			validNations[n.Name] = n
+		}
+	}
+	if len(validNations) == 0 {
+		_, err := discordutil.FollowupContentEphemeral(s, i, "No valid nations were specified to remove.")
+		return err
+	}
+
+	var write = false
+	var invalidAlliances, modifiedAlliances []string
+	for _, allianceName := range allianceRemoveNames {
+		a, ok := allianceByIdent[strings.ToLower(allianceName)]
+		if !ok {
+			invalidAlliances = append(invalidAlliances, allianceName)
+			continue
+		}
+
+		changed := false // Whether we actually made changes
+		nationUUIDs := utils.CopyMap(a.OwnNations)
+		for _, n := range validNations {
+			if _, exists := nationUUIDs[n.UUID]; exists {
+				delete(nationUUIDs, n.UUID)
+				changed = true
+			}
+		}
+
+		if changed {
+			a.OwnNations = nationUUIDs
+			a.SetUpdated()
+			allianceStore.Set(strings.ToLower(a.Identifier), a)
+
+			modifiedAlliances = append(modifiedAlliances, a.Identifier)
+			write = true // Allow writing a snapshot since we have changes.
+		}
+	}
+
+	if write {
+		if err := allianceStore.WriteSnapshot(); err != nil {
+			return fmt.Errorf("error writing alliances after multi update. failed to write snapshot\n%v", err)
+		}
+	}
+
+	//#region Build info output messages
+	parts := []string{}
+	if len(modifiedAlliances) > 0 {
+		removedNationNames := make([]string, 0, len(validNations))
+		for _, n := range validNations {
+			removedNationNames = append(removedNationNames, n.Name)
+		}
+		parts = append(parts, fmt.Sprintf(
+			"Successfully removed the following nations:```%s``` from the following alliances: ```%s```",
+			strings.Join(removedNationNames, ", "), strings.Join(modifiedAlliances, ", "),
+		))
+	}
+	if len(invalidNations) > 0 {
+		str := fmt.Sprintf("The following nations were invalid or non-existent:```%s```", strings.Join(invalidNations, ", "))
+		parts = append(parts, str)
+	}
+	if len(invalidAlliances) > 0 {
+		str := fmt.Sprintf("The following alliances were invalid or non-existent:```%s```", strings.Join(invalidAlliances, ", "))
+		parts = append(parts, str)
+	}
+	if len(parts) > 0 {
+		_, err := discordutil.FollowupContentEphemeral(s, i, strings.Join(parts, "\n\n"))
+		return err
+	}
+	//#endregion
+
+	return nil
+}
+
+// TODO: Create a scheduled job that loops through alliances, removing nations that no longer exist.
+// /alliance update nations
+func handleAllianceEditorModalNationsUpdate(
+	s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance,
+	allianceStore *store.Store[database.Alliance],
+) error {
+	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
+	if err != nil {
+		return err
+	}
+
+	// build map of Name -> NationInfo for O(1) lookups
+	nationByName := nationStore.EntriesFunc(func(n oapi.NationInfo) string {
+		return strings.ToLower(n.Name)
+	})
+
+	// start with a set of existing UUIDs for easier add/remove
+	nationUUIDs := utils.CopyMap(alliance.OwnNations)
+
+	puppetAlliances := alliance.ChildAlliances(allianceStore.Values())
+	puppetNationUUIDs := puppetAlliances.NationIds()
+
+	inputs := discordutil.GetModalInputs(i)
+	removeInput := strings.TrimSpace(inputs["remove"])
+	addInput := strings.TrimSpace(inputs["add"])
+
+	var notAdded, notRemoved, alreadyPuppets []string
+	if removeInput != "" {
+		removeNames, _ := utils.ParseFieldsStr(removeInput, ',')
+		for _, name := range removeNames {
+			n, ok := nationByName[strings.ToLower(name)]
+			if !ok {
+				// Can't remove dis input name bc it isn't even a nation.
+				notRemoved = append(notRemoved, name)
+				continue
+			}
+
+			// If it isn't already present, this is just a safe no-op.
+			delete(nationUUIDs, n.UUID)
+		}
+	}
+	if addInput != "" {
+		addNames, _ := utils.ParseFieldsStr(addInput, ',')
+		for _, name := range addNames {
+			n, ok := nationByName[strings.ToLower(name)]
+			if !ok {
+				// Can't add dis input name bc it isn't even a nation.
+				notAdded = append(notAdded, name)
+				continue
+			}
+
+			if _, isPuppet := puppetNationUUIDs[n.UUID]; isPuppet {
+				alreadyPuppets = append(alreadyPuppets, name)
+				continue
+			}
+
+			nationUUIDs.Append(n.UUID)
+		}
+	}
+
+	allNationsAmt := len(nationUUIDs) + len(puppetNationUUIDs)
+	if allNationsAmt < 2 {
+		return fmt.Errorf("An alliance cannot have a single nation or no nations!\n" +
+			"There must be a total of two nations either directly, via puppet alliances, or both.",
+		)
+	}
+
+	//#region Build info output messages
+	var messages []string
+	if len(notRemoved) > 0 {
+		messages = append(messages, fmt.Sprintf(
+			"The following nations were not removed as they do not exist:```%s```",
+			strings.Join(notRemoved, ", "),
+		))
+	}
+	if len(notAdded) > 0 {
+		messages = append(messages, fmt.Sprintf(
+			"The following nations were not added as they do not exist:```%s```",
+			strings.Join(notAdded, ", "),
+		))
+	}
+	if len(alreadyPuppets) > 0 {
+		messages = append(messages, fmt.Sprintf(
+			"The following nations were skipped as they are already puppets:```%s```",
+			strings.Join(alreadyPuppets, ", "),
+		))
+	}
+	//#endregion
+
+	if len(messages) < 1 && utils.MapKeysEqual(alliance.OwnNations, nationUUIDs) {
+		return fmt.Errorf("Alliance not edited. No changes were made to the nation list.")
+	}
+
+	// Update alliance with new nation list
+	alliance.OwnNations = nationUUIDs
+	alliance.SetUpdated()
+
+	// Persist changes
+	allianceStore.Set(strings.ToLower(alliance.Identifier), *alliance)
+	err = allianceStore.WriteSnapshot()
+	if err != nil {
+		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
+	}
+
+	content := "Successfully edited alliance. Result:"
+	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil)
+	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		Content: content,
+		Embeds:  []*discordgo.MessageEmbed{embed},
+	})
+
+	//#region Send feedback messages if any
+	if len(messages) > 0 {
+		discordutil.FollowupContentEphemeral(s, i, strings.Join(messages, "\n"))
+	}
+	//#endregion
+
+	return nil
 }
 
 // /alliance update leaders
@@ -833,126 +1096,6 @@ func handleAllianceEditorModalLeadersUpdate(
 		))
 	}
 
-	if len(messages) > 0 {
-		discordutil.FollowupContentEphemeral(s, i, strings.Join(messages, "\n"))
-	}
-	//#endregion
-
-	return nil
-}
-
-// TODO: Create a scheduled job that loops through alliances, removing nations that no longer exist.
-// /alliance update nations
-func handleAllianceEditorModalNationsUpdate(
-	s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance,
-	allianceStore *store.Store[database.Alliance],
-) error {
-	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
-	if err != nil {
-		return err
-	}
-
-	// build map of Name -> NationInfo for O(1) lookups
-	nationByName := nationStore.EntriesFunc(func(n oapi.NationInfo) string {
-		return strings.ToLower(n.Name)
-	})
-
-	// start with a set of existing UUIDs for easier add/remove
-	nationUUIDs := utils.CopyMap(alliance.OwnNations)
-
-	puppetAlliances := alliance.ChildAlliances(allianceStore.Values())
-	puppetNationUUIDs := puppetAlliances.NationIds()
-
-	inputs := discordutil.GetModalInputs(i)
-	removeInput := strings.TrimSpace(inputs["remove"])
-	addInput := strings.TrimSpace(inputs["add"])
-
-	var notAdded, notRemoved, alreadyPuppets []string
-	if removeInput != "" {
-		removeNames, _ := utils.ParseFieldsStr(removeInput, ',')
-		for _, name := range removeNames {
-			n, ok := nationByName[strings.ToLower(name)]
-			if !ok {
-				// Can't remove dis input name bc it isn't even a nation.
-				notRemoved = append(notRemoved, name)
-				continue
-			}
-
-			// If it isn't already present, this is just a safe no-op.
-			delete(nationUUIDs, n.UUID)
-		}
-	}
-	if addInput != "" {
-		addNames, _ := utils.ParseFieldsStr(addInput, ',')
-		for _, name := range addNames {
-			n, ok := nationByName[strings.ToLower(name)]
-			if !ok {
-				// Can't add dis input name bc it isn't even a nation.
-				notAdded = append(notAdded, name)
-				continue
-			}
-
-			if _, isPuppet := puppetNationUUIDs[n.UUID]; isPuppet {
-				alreadyPuppets = append(alreadyPuppets, name)
-				continue
-			}
-
-			nationUUIDs.Append(n.UUID)
-		}
-	}
-
-	allNationsAmt := len(nationUUIDs) + len(puppetNationUUIDs)
-	if allNationsAmt < 2 {
-		return fmt.Errorf("An alliance cannot have a single nation or no nations!\n" +
-			"There must be a total of two nations either directly, via puppet alliances, or both.",
-		)
-	}
-
-	//#region Build feedback messages
-	var messages []string
-	if len(notRemoved) > 0 {
-		messages = append(messages, fmt.Sprintf(
-			"The following nations were not removed as they do not exist:```%s```",
-			strings.Join(notRemoved, ", "),
-		))
-	}
-	if len(notAdded) > 0 {
-		messages = append(messages, fmt.Sprintf(
-			"The following nations were not added as they do not exist:```%s```",
-			strings.Join(notAdded, ", "),
-		))
-	}
-	if len(alreadyPuppets) > 0 {
-		messages = append(messages, fmt.Sprintf(
-			"The following nations were skipped as they are already puppets:```%s```",
-			strings.Join(alreadyPuppets, ", "),
-		))
-	}
-	//#endregion
-
-	if len(messages) < 1 && utils.MapKeysEqual(alliance.OwnNations, nationUUIDs) {
-		return fmt.Errorf("Alliance not edited. No changes were made to the nation list.")
-	}
-
-	// Update alliance with new nation list
-	alliance.OwnNations = nationUUIDs
-	alliance.SetUpdated()
-
-	// Persist changes
-	allianceStore.Set(strings.ToLower(alliance.Identifier), *alliance)
-	err = allianceStore.WriteSnapshot()
-	if err != nil {
-		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
-	}
-
-	content := "Successfully edited alliance. Result:"
-	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil)
-	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
-		Content: content,
-		Embeds:  []*discordgo.MessageEmbed{embed},
-	})
-
-	//#region Send feedback messages if any
 	if len(messages) > 0 {
 		discordutil.FollowupContentEphemeral(s, i, strings.Join(messages, "\n"))
 	}

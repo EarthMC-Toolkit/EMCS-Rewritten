@@ -72,7 +72,7 @@ func NewAllianceEmbed(
 	leadersValue := "`None`"
 	leaders, err := a.GetLeaders(playerStore)
 	if err != nil {
-		fmt.Printf("ERROR | Could not get leaders for alliance %s:\n%v", a.Identifier, err)
+		fmt.Printf("ERROR | Could not get leaders for alliance %s:\n\t%v", a.Identifier, err)
 	} else {
 		leadersValue = GetAffiliationLines(leaders)
 	}
