@@ -870,11 +870,10 @@ func MultiUpdateAlliances(
 			continue
 		}
 
-		addedNames := []string{}
-		alreadyPuppetNames := []string{}
 		nationUUIDs := utils.CopyMap(a.OwnNations)
 		puppetUUIDs := a.ChildAlliances(alliances).NationIds()
 
+		var addedNames, alreadyPuppetNames []string
 		for _, name := range nationNames {
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
@@ -916,22 +915,29 @@ func handleAllianceEditorModalMultiUpdate(
 	allianceStore *store.Store[database.Alliance],
 ) error {
 	inputs := discordutil.GetModalInputs(i)
+	if len(inputs) == 0 {
+		if _, err := discordutil.FollowupContentEphemeral(s, i, "No inputs entered in the modal. Are you high?"); err != nil {
+			return err
+		}
+	}
 
 	addInput := make(map[string][]string)
 	if v := strings.TrimSpace(inputs["alliances-add"]); v != "" {
-		alliances, _ := utils.ParseFieldsStr(v, ',')
-		nations, _ := utils.ParseFieldsStr(strings.TrimSpace(inputs["nations-add"]), ',')
-		for _, a := range alliances {
-			addInput[a] = nations
+		if alliances, err := utils.ParseFieldsStr(v, ','); err == nil {
+			nations, _ := utils.ParseFieldsStr(strings.TrimSpace(inputs["nations-add"]), ',')
+			for _, a := range alliances {
+				addInput[a] = nations
+			}
 		}
 	}
 
 	removeInput := make(map[string][]string)
 	if v := strings.TrimSpace(inputs["alliances-remove"]); v != "" {
-		alliances, _ := utils.ParseFieldsStr(v, ',')
-		nations, _ := utils.ParseFieldsStr(strings.TrimSpace(inputs["nations-remove"]), ',')
-		for _, a := range alliances {
-			removeInput[a] = nations
+		if alliances, err := utils.ParseFieldsStr(v, ','); err == nil {
+			nations, _ := utils.ParseFieldsStr(strings.TrimSpace(inputs["nations-remove"]), ',')
+			for _, a := range alliances {
+				removeInput[a] = nations
+			}
 		}
 	}
 
@@ -942,8 +948,10 @@ func handleAllianceEditorModalMultiUpdate(
 
 	result := MultiUpdateAlliances(allianceStore, nationStore, addInput, removeInput)
 	if result.ChangesWritten {
-		fmt.Printf("\nDEBUG | Changes written during alliances multi update. Editor: %s\n", discordutil.GetInteractionAuthor(i).Username)
 		if err := allianceStore.WriteSnapshot(); err != nil {
+			editorName := discordutil.GetInteractionAuthor(i).Username
+			fmt.Printf("\nDEBUG | Changes written during alliances multi update. Editor: %s\n", editorName)
+
 			return fmt.Errorf("error writing alliances after multi update. failed to write snapshot\n%v", err)
 		}
 	}

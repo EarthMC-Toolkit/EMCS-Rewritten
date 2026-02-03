@@ -42,7 +42,12 @@ func (s Set[K]) AppendFunc(key K, f func(key K) K) {
 
 // Returns all elements in this set as a slice.
 func (s Set[K]) Keys() []K {
-	keys := make([]K, 0, len(s))
+	count := len(s)
+	if count == 0 {
+		return make([]K, 0)
+	}
+
+	keys := make([]K, 0, count)
 	for k := range s {
 		keys = append(keys, k)
 	}

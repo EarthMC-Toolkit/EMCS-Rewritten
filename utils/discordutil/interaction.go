@@ -75,28 +75,6 @@ func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *disco
 // 	})
 // }
 
-// func EditOrSendReplyFetch(s *discordgo.Session, i *discordgo.Interaction, fetch bool, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
-// 	if err := SendReply(s, i, data); err == nil {
-// 		if !fetch {
-// 			return nil, nil
-// 		}
-
-// 		msg, err := s.InteractionResponse(i)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		return msg, nil
-// 	}
-
-// 	msg, err := EditReply(s, i, data)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return msg, nil
-// }
-
 func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err any) {
 	// NOTE: This could panic itself. Maybe handle it or just send generic text.
 	content := fmt.Sprintf("Bot encountered a non-fatal error during this command.```%s```", err)
@@ -168,6 +146,10 @@ func GetInteractionAuthor(i *discordgo.Interaction) *discordgo.User {
 	return i.Member.User
 }
 
+// This function attemps to find and save the value of every TextInput on the components array of the modal submit data.
+//
+// In Message Components V2, it will go through the component of every Label, for legacy components (V2),
+// it will look for it within an ActionsRow. The input values are then stored in map keyed by CustomID of the TextInput.
 func GetModalInputs(i *discordgo.Interaction) map[string]string {
 	if i.Type != discordgo.InteractionModalSubmit {
 		// in case some retard (me) tries to use this func to get inputs for different command type
@@ -200,7 +182,6 @@ func GetFocusedValue[T any](options []*discordgo.ApplicationCommandInteractionDa
 			v, ok = opt.Value.(T)
 			return
 		}
-
 		if len(opt.Options) > 0 {
 			if v, ok = GetFocusedValue[T](opt.Options); ok {
 				return
