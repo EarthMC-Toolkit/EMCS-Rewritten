@@ -186,13 +186,10 @@ func (p *InteractionPaginator) startButtonListener() {
 		if ic.Type != discordgo.InteractionMessageComponent {
 			return
 		}
-
 		if ic.Message == nil || ic.Message.ID != p.messageID {
 			return
 		}
-
-		author := GetInteractionAuthor(ic.Interaction)
-		if author.ID != p.authorID {
+		if author := GetInteractionAuthor(ic.Interaction); author.ID != p.authorID {
 			return
 		}
 

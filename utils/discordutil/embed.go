@@ -30,12 +30,13 @@ const (
 	DARK        = 0x2c2f33
 )
 
-type LabelledValue struct {
-	Label string `json:"label"`
-	Value string `json:"value"`
-}
+// type LabelledValue struct {
+// 	Label string `json:"label"`
+// 	Value string `json:"value"`
+// }
 
 // TODO: Maybe create a CustomEmbed that wraps MessageEmbed and adds these methods?
+// --START--
 
 func NewEmbedField(name string, value string, inline bool) *discordgo.MessageEmbedField {
 	return &discordgo.MessageEmbedField{
@@ -53,12 +54,13 @@ func PrependField(embed *discordgo.MessageEmbed, name string, value string, inli
 	embed.Fields = append([]*discordgo.MessageEmbedField{NewEmbedField(name, value, inline)}, embed.Fields...)
 }
 
+// --END--
+
 func BoolOption(name, description string) *discordgo.ApplicationCommandOption {
 	return &discordgo.ApplicationCommandOption{
 		Type:        discordgo.ApplicationCommandOptionBoolean,
 		Name:        name,
 		Description: description,
-		Required:    false,
 	}
 }
 
@@ -69,19 +71,20 @@ func StringOption(name, description string, minLen *int, maxLen int) *discordgo.
 		Description: description,
 		MinLength:   minLen,
 		MaxLength:   maxLen,
-		Required:    false,
 	}
 }
 
 func RequiredStringOption(name, description string, minLen, maxLen int) *discordgo.ApplicationCommandOption {
-	return &discordgo.ApplicationCommandOption{
-		Type:        discordgo.ApplicationCommandOptionString,
-		Name:        name,
-		Description: description,
-		MinLength:   &minLen,
-		MaxLength:   maxLen,
-		Required:    true,
-	}
+	opt := StringOption(name, description, &minLen, maxLen)
+	opt.Required = true
+	return opt
+}
+
+func AutocompleteStringOption(name, description string, minLen, maxLen int, required bool) *discordgo.ApplicationCommandOption {
+	opt := StringOption(name, description, &minLen, maxLen)
+	opt.Required = required
+	opt.Autocomplete = true
+	return opt
 }
 
 func RequiredIntegerOption(name, description string, minVal, maxVal int) *discordgo.ApplicationCommandOption {
@@ -107,30 +110,13 @@ func RequiredNumberOption(name, description string, minVal, maxVal float64) *dis
 	}
 }
 
-func AutocompleteStringOption(name, description string, minLen, maxLen int, required bool) *discordgo.ApplicationCommandOption {
-	return &discordgo.ApplicationCommandOption{
-		Type:         discordgo.ApplicationCommandOptionString,
-		Name:         name,
-		Description:  description,
-		MinLength:    &minLen,
-		MaxLength:    maxLen,
-		Required:     required,
-		Autocomplete: true,
-	}
-}
-
 func TextInputActionRow(input discordgo.TextInput) discordgo.ActionsRow {
 	return discordgo.ActionsRow{
 		Components: []discordgo.MessageComponent{input},
 	}
 }
 
-func SelectMenuActionRow(selectMenu discordgo.SelectMenu) discordgo.ActionsRow {
-	return discordgo.ActionsRow{
-		Components: []discordgo.MessageComponent{selectMenu},
-	}
-}
-
+// Flags: IsMessageComponentsV2 must also be set when using this new label component.
 func Label(label string, description string, component discordgo.MessageComponent) discordgo.Label {
 	return discordgo.Label{
 		Label:       label,

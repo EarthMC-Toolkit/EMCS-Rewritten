@@ -90,9 +90,7 @@ func NewAllianceEmbed(
 	nationStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 
 	ownNations := nationStore.GetFromSet(a.OwnNations)
-	ownNationNames := lo.Map(ownNations, func(n oapi.NationInfo, _ int) string {
-		return n.Name
-	})
+	ownNationNames := lo.Map(ownNations, func(n oapi.NationInfo, _ int) string { return n.Name })
 	if len(ownNationNames) > 0 {
 		slices.Sort(ownNationNames) // Alphabet sort
 	}
