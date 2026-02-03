@@ -146,7 +146,7 @@ func (a *Alliance) SetLeaders(playerStore *store.Store[BasicPlayer], igns ...str
 	})
 
 	// Report names of any leader igns that weren't valid (not found in the player store).
-	leaderSet := make(sets.Set[string])
+	leaderSet := sets.New[string]()
 	for _, ign := range igns {
 		p, ok := playerByName[strings.ToLower(ign)]
 		if !ok {
@@ -241,8 +241,8 @@ func GetRankedAlliances(
 	allianceStore *store.Store[Alliance],
 	nationStore *store.Store[oapi.NationInfo],
 	w AllianceWeights,
-) RankedAlliances {
-	alliances := allianceStore.Values()
+) (alliancesRankInfo map[uint64]AllianceRankInfo, alliances []Alliance) {
+	alliances = allianceStore.Values()
 	allianceCount := len(alliances)
 
 	stats := make([]AllianceStats, allianceCount)
@@ -250,14 +250,13 @@ func GetRankedAlliances(
 		// collect own nations
 		ownNations := nationStore.GetFromSet(a.OwnNations)
 
-		// collect child nations
-		childNationIDs := a.ChildAlliances(alliances).NationIds()
-		childNations := nationStore.GetFromSet(childNationIDs)
+		puppetNationIDs := a.ChildAlliances(alliances).NationIds()
+		puppetNations := nationStore.GetFromSet(puppetNationIDs)
 
-		towns, residents, _, worth := a.GetStats(ownNations, childNations)
+		towns, residents, _, worth := a.GetStats(ownNations, puppetNations)
 		s := AllianceStats{
 			Residents: float64(residents),
-			Nations:   float64(len(ownNations) + len(childNations)),
+			Nations:   float64(len(ownNations) + len(puppetNations)),
 			Towns:     float64(len(towns)),
 			Worth:     float64(worth),
 		}
@@ -286,18 +285,18 @@ func GetRankedAlliances(
 		ranked[i].Rank = i + 1 // start from 1, where 1 is the best rank.
 	}
 
-	out := make(RankedAlliances, allianceCount)
+	alliancesRankInfo = make(map[uint64]AllianceRankInfo, allianceCount)
 	for _, info := range ranked {
-		out[info.UUID] = info
+		alliancesRankInfo[info.UUID] = info
 	}
 
-	return out
+	return
 }
 
 type ChildAlliances []Alliance
 
 func (a ChildAlliances) NationIds() sets.Set[string] {
-	s := make(sets.Set[string])
+	s := sets.New[string]()
 	for _, child := range a {
 		for uuid := range child.OwnNations {
 			s.Append(uuid)

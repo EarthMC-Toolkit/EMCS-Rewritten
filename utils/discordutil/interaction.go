@@ -175,16 +175,18 @@ func GetModalInputs(i *discordgo.Interaction) map[string]string {
 	}
 
 	inputs := make(map[string]string)
-	for _, row := range i.ModalSubmitData().Components {
-		actionRow, ok := row.(*discordgo.ActionsRow)
-		if !ok {
-			continue // Must not be an action row, we don't care.
-		}
-
-		// Gather values of all text input components in this row.
-		for _, comp := range actionRow.Components {
-			if input, ok := comp.(*discordgo.TextInput); ok {
+	for _, modalComp := range i.ModalSubmitData().Components {
+		switch modalComp.Type() {
+		case discordgo.LabelComponent:
+			if input, ok := modalComp.(*discordgo.Label).Component.(*discordgo.TextInput); ok {
 				inputs[input.CustomID] = input.Value
+			}
+		case discordgo.ActionsRowComponent:
+			// Gather values of all text input components in this row.
+			for _, comp := range modalComp.(*discordgo.ActionsRow).Components {
+				if input, ok := comp.(*discordgo.TextInput); ok {
+					inputs[input.CustomID] = input.Value
+				}
 			}
 		}
 	}

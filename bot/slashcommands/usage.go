@@ -6,6 +6,7 @@ import (
 	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/sets"
 	"fmt"
 	"strings"
 	"time"
@@ -75,20 +76,20 @@ func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 	// Get stats for all time and convert to formatted string.
 	statsAllTime := usage.GetCommandStats()
 	top := min(20, len(statsAllTime)) // How many "most used commands" to display.
-	mostUsed := make([]string, 0, top)
+	mostUsed := sets.Make[string](top)
 	for _, stat := range statsAllTime[:top] {
-		mostUsed = append(mostUsed, utils.HumanizedSprintf("/%s - `%d` times", stat.Name, stat.Count))
+		mostUsed.Append(utils.HumanizedSprintf("/%s - `%d` times", stat.Name, stat.Count))
 	}
-	mostUsedStr := strings.Join(mostUsed, "\n")
+	mostUsedStr := strings.Join(mostUsed.Keys(), "\n")
 
 	// Get stats for last 30d and convert to formatted string.
 	statsLast30Days := usage.GetCommandStatsSince(time.Now().AddDate(0, 0, -30))
 	top = min(20, len(statsLast30Days)) // How many "most used commands" to display.
-	mostUsed = make([]string, 0, top)
+	mostUsed = sets.Make[string](top)
 	for _, stat := range statsLast30Days[:top] {
-		mostUsed = append(mostUsed, utils.HumanizedSprintf("/%s - `%d` times", stat.Name, stat.Count))
+		mostUsed.Append(utils.HumanizedSprintf("/%s - `%d` times", stat.Name, stat.Count))
 	}
-	mostUsed30DaysStr := strings.Join(mostUsed, "\n")
+	mostUsed30DaysStr := strings.Join(mostUsed.Keys(), "\n")
 
 	totalAllTime := utils.HumanizedSprintf("Total: `%d`", usage.CalculateTotal(statsAllTime))
 	total30Days := utils.HumanizedSprintf("Total: `%d`", usage.CalculateTotal(statsLast30Days))

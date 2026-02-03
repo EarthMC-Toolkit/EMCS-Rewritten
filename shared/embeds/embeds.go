@@ -565,13 +565,13 @@ func NewNationEmbed(nation oapi.NationInfo, allianceStore *store.Store[database.
 		AddField(embed, fmt.Sprintf("Towns [%d]", stats.NumTowns), townListStr, false)
 	}
 
-	//#region alliances field
+	//#region Alliances field
 	if allianceStore != nil {
 		allianceByID := allianceStore.EntriesFunc(func(a database.Alliance) string {
 			return a.Identifier
 		})
 
-		seen := sets.Set[string]{}
+		seen := sets.New[string]()
 		allianceStore.ForEach(func(_ string, a database.Alliance) {
 			if a.OwnNations.Has(nation.UUID) {
 				seen.Append(a.Label)
@@ -583,10 +583,10 @@ func NewNationEmbed(nation oapi.NationInfo, allianceStore *store.Store[database.
 			}
 		})
 
-		if len(seen) > 0 {
-			related := seen.Keys()
-			relatedAlliancesStr := fmt.Sprintf("```%s```", strings.Join(related, ", "))
-			AddField(embed, fmt.Sprintf("Alliances [%d]", len(related)), relatedAlliancesStr, false)
+		seenCount := len(seen)
+		if seenCount > 0 {
+			relatedAlliancesStr := fmt.Sprintf("```%s```", strings.Join(seen.Keys(), ", "))
+			AddField(embed, fmt.Sprintf("Alliances [%d]", seenCount), relatedAlliancesStr, false)
 		}
 	}
 	//#endregion

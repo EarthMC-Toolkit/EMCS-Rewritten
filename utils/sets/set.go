@@ -7,6 +7,14 @@ import (
 
 type Set[K comparable] map[K]struct{}
 
+func New[K comparable]() Set[K] {
+	return make(Set[K])
+}
+
+func Make[K comparable](capacity int) Set[K] {
+	return make(Set[K], capacity)
+}
+
 func FromSlice[K comparable](keys []K) Set[K] {
 	s := make(Set[K], len(keys))
 	for _, k := range keys {

@@ -19,12 +19,9 @@ type MapBounds struct {
 	Left, Right, Top, Bottom float64
 }
 
-// TODO: Move to `shared` package?
 var MAP_BOUNDS = MapBounds{
-	Left:   -33280,
-	Right:  33080,
-	Top:    -16640,
-	Bottom: 16508,
+	Left: -33280, Right: 33080,
+	Top: -16640, Bottom: 16508,
 }
 
 type RouteCommand struct{}
@@ -41,8 +38,12 @@ func (cmd RouteCommand) Options() AppCommandOpts {
 			Name:        "fastest",
 			Description: "Retrieve the most optimal route, without filtering out flags like PVP.",
 			Options: AppCommandOpts{
-				discordutil.RequiredNumberOption("x", "The map coordinate on the X axis (left/right).", MAP_BOUNDS.Left, MAP_BOUNDS.Right),
-				discordutil.RequiredNumberOption("z", "The map coordinate on the Z axis (top/bottom).", MAP_BOUNDS.Top, MAP_BOUNDS.Bottom),
+				discordutil.RequiredNumberOption("x", "The map coordinate on the X axis (left/right).",
+					MAP_BOUNDS.Left, MAP_BOUNDS.Right,
+				),
+				discordutil.RequiredNumberOption("z", "The map coordinate on the Z axis (top/bottom).",
+					MAP_BOUNDS.Top, MAP_BOUNDS.Bottom,
+				),
 			},
 		},
 		{
@@ -50,8 +51,12 @@ func (cmd RouteCommand) Options() AppCommandOpts {
 			Name:        "safest",
 			Description: "Retrieve the safest route, avoiding PVP enabled towns.",
 			Options: AppCommandOpts{
-				discordutil.RequiredNumberOption("x", "The map coordinate on the X axis (left/right).", MAP_BOUNDS.Left, MAP_BOUNDS.Right),
-				discordutil.RequiredNumberOption("z", "The map coordinate on the Z axis (top/bottom).", MAP_BOUNDS.Top, MAP_BOUNDS.Bottom),
+				discordutil.RequiredNumberOption("x", "The map coordinate on the X axis (left/right).",
+					MAP_BOUNDS.Left, MAP_BOUNDS.Right,
+				),
+				discordutil.RequiredNumberOption("z", "The map coordinate on the Z axis (top/bottom).",
+					MAP_BOUNDS.Top, MAP_BOUNDS.Bottom,
+				),
 			},
 		},
 	}
