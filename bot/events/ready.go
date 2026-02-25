@@ -6,6 +6,7 @@ import (
 	"log"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"emcsrw/api"
@@ -30,6 +31,8 @@ var vpNotified = make(map[int]bool) // Key is each threshold, value is whether n
 var vpLastRemaining int
 var vpLastCheck time.Time
 
+var readyOnce sync.Once // This prevents running tasks more than once if OnReady is called multiple times.
+
 func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	log.Printf("Logged in as: %s\n", s.State.User.Username)
 
@@ -39,12 +42,12 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		return
 	}
 
-	// scheduleTask(func() {
-	// 	PutFunc(db, "playerlist", func() ([]oapi.Entity, error) {
-	// 		return oapi.QueryList(oapi.ENDPOINT_PLAYERS)
-	// 	})
-	// }, true, 20*time.Second)
+	readyOnce.Do(func() {
+		startTasks(s, mdb)
+	})
+}
 
+func startTasks(s *discordgo.Session, mdb *database.Database) {
 	scheduleTask(func() {
 		fmt.Println()
 		log.Println("[OnReady]: Running data update task...")
@@ -95,7 +98,7 @@ func scheduleTask(task func(), runInitial bool, interval time.Duration) {
 			go task()
 		}
 
-		//defer ticker.Stop()
+		// defer ticker.Stop()
 		for range ticker.C {
 			task()
 		}
@@ -182,7 +185,6 @@ func UpdateData(mdb *database.Database) (
 		for _, r := range t.Residents {
 			residentList[r.UUID] = r.Name
 		}
-
 		if t.Nation.UUID != nil {
 			nlist[*t.Nation.UUID] = *t.Nation.Name
 		}

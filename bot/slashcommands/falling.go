@@ -1,8 +1,13 @@
 package slashcommands
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"emcsrw/utils/discordutil"
+	"errors"
 
-// TODO: Implement
+	"github.com/bwmarrin/discordgo"
+)
+
+// TODO: Implement this command
 type FallingCommand struct{}
 
 func (cmd FallingCommand) Name() string { return "falling" }
@@ -15,5 +20,6 @@ func (cmd FallingCommand) Options() AppCommandOpts {
 }
 
 func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	discordutil.ReplyWithError(s, i.Interaction, errors.New("Command not implemented yet."))
 	return nil
 }

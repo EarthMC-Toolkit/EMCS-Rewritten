@@ -75,7 +75,7 @@ func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *disco
 // 	})
 // }
 
-func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err any) {
+func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err error) {
 	// NOTE: This could panic itself. Maybe handle it or just send generic text.
 	content := fmt.Sprintf("Bot encountered a non-fatal error during this command.```%s```", err)
 
@@ -84,7 +84,6 @@ func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err any) {
 		Flags:   discordgo.MessageFlagsEphemeral,
 		Content: content,
 	})
-
 	if err != nil {
 		// Must be deferred, send follow up.
 		FollowupContentEphemeral(s, i, content)

@@ -6,6 +6,7 @@ import (
 	"emcsrw/shared"
 	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -52,6 +53,10 @@ func (cmd PlayerCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		playerNameArg := opt.GetOption("name").StringValue()
 		_, err = executeQueryPlayer(s, i.Interaction, playerNameArg)
 		return err
+	}
+	if opt := cdata.GetOption("compare"); opt != nil {
+		discordutil.ReplyWithError(s, i.Interaction, errors.New("Command not implemented yet."))
+		return nil
 	}
 
 	return nil

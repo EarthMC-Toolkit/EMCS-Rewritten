@@ -7,6 +7,7 @@ import (
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/sets"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -109,6 +110,7 @@ func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 	})
 }
 
-func executeLeaderboard(_ *discordgo.Session, _ *discordgo.Interaction) error {
+func executeLeaderboard(s *discordgo.Session, i *discordgo.Interaction) error {
+	discordutil.ReplyWithError(s, i, errors.New("Command not implemented yet."))
 	return nil
 }
