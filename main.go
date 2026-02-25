@@ -159,10 +159,11 @@ func newSession(token string) (*discordgo.Session, error) {
 func startBot(s *discordgo.Session) {
 	log.Printf("Starting bot with %d threads.\n", runtime.GOMAXPROCS(-1))
 
-	log.Printf("Initializing databases...\n")
-	var activeMapDB = bot.InitDB(shared.ACTIVE_MAP)
+	activeMapDB := bot.InitDB(shared.ACTIVE_MAP)
+	log.Printf("Initialized databases: %s\n", strings.Join([]string{shared.ACTIVE_MAP}, ","))
 
-	var server *http.Server
+	server := &http.Server{}
+
 	if shouldServeAPI() {
 		mux, err := capi.NewMux(activeMapDB)
 		if err != nil {

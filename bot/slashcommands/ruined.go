@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -33,7 +34,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	townsStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+	ruined, err := GetRuinedTowns()
 	if err != nil {
 		log.Printf("failed to get towns from db:\n%v", err)
 		_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
@@ -43,28 +44,20 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	towns := townsStore.Entries()
-	ruined := lo.FilterMapToSlice(towns, func(_ string, t oapi.TownInfo) (oapi.TownInfo, bool) {
-		return t, t.Status.Ruined
-	})
-
-	sort.Slice(ruined, func(i, j int) bool {
-		return *ruined[i].Timestamps.RuinedAt < *ruined[j].Timestamps.RuinedAt
-	})
-
-	count := len(ruined)
+	totalCount := len(ruined)
 	perPage := 10
 
-	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, len(ruined), perPage).
+	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, totalCount, perPage).
 		WithTimeout(10 * time.Minute)
 
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
-		start, end := paginator.CurrentPageBounds(count)
+		start, end := paginator.CurrentPageBounds(totalCount)
 
-		desc := ""
 		items := ruined[start:end]
-		count := len(items)
+		pageCount := len(items)
 
+		// Used to build the description for this page of the embed.
+		desc := strings.Builder{}
 		for idx, t := range items {
 			ruinedTs := *t.Timestamps.RuinedAt
 			ruinedTime := time.UnixMilli(int64(*t.Timestamps.RuinedAt))
@@ -80,20 +73,20 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
 			balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 
-			spawn := t.Coordinates.Spawn
-			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
+			X, Y, Z := t.SpawnLocation()
+			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", X, Y, Z, X, Z)
 
-			desc += fmt.Sprintf(
-				"%d. **%s** fell into ruin <t:%d:R> at %s. %sG %s\nDeletion on `%s` (<t:%d:R>).\n\n",
-				start+idx+1, t.Name, ruinedTs/1000, locationLink, balance, chunks, utils.FormatTime(nextNewDay), nextNewDay.Unix(),
+			fmt.Fprintf(&desc, "%d. **%s** fell into ruin <t:%d:R> at %s. %sG %s\nDeletion on `%s` (<t:%d:R>).\n\n",
+				start+idx+1, t.Name, ruinedTs/1000, locationLink, balance, chunks,
+				utils.FormatTime(nextNewDay), nextNewDay.Unix(),
 			)
 		}
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
 		embed := &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("[%d] List of Ruined Towns | %s", count, pageStr),
+			Title:       fmt.Sprintf("[%d] List of Ruined Towns | %s", pageCount, pageStr),
 			Footer:      embeds.DEFAULT_FOOTER,
-			Description: desc,
+			Description: desc.String(),
 			Color:       discordutil.DARK_GOLD,
 		}
 
@@ -101,4 +94,22 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	}
 
 	return paginator.Start()
+}
+
+func GetRuinedTowns() ([]oapi.TownInfo, error) {
+	townsStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+	if err != nil {
+		return nil, err
+	}
+
+	towns := townsStore.Entries()
+	ruined := lo.FilterMapToSlice(towns, func(_ string, t oapi.TownInfo) (oapi.TownInfo, bool) {
+		return t, t.Status.Ruined
+	})
+
+	sort.Slice(ruined, func(i, j int) bool {
+		return *ruined[i].Timestamps.RuinedAt < *ruined[j].Timestamps.RuinedAt
+	})
+
+	return ruined, nil
 }

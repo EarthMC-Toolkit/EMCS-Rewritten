@@ -247,6 +247,7 @@ func (s *Store[T]) GetFromSet(set sets.Set[string]) (results []T) {
 	return results
 }
 
+// Finds and immediately returns the first value in the store that pass the predicate.
 func (s *Store[T]) Find(predicate func(value T) bool) (*T, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -260,6 +261,7 @@ func (s *Store[T]) Find(predicate func(value T) bool) (*T, error) {
 	return nil, fmt.Errorf("no matching value found in store: %s", s.CleanPath())
 }
 
+// Like Find(), but returns all values that pass the predicate instead of just one.
 func (s *Store[T]) FindAll(predicate func(value T) bool) (results []T) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

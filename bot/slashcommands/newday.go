@@ -66,7 +66,7 @@ func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 		Title: "New Day | Time Information",
 		Description: fmt.Sprintf(
 			"The next Towny new day occurs in <t:%d:R>.\nExactly %s from now.",
-			sec, formatDuration(secUntilNewDay),
+			sec, FormatDuration(secUntilNewDay),
 		),
 		Footer: embeds.DEFAULT_FOOTER,
 		Color:  discordutil.DARK_PURPLE,
@@ -79,21 +79,19 @@ func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 	return nil
 }
 
-func formatDuration(seconds int64) string {
-	hours := seconds / 3600
-	minutes := (seconds % 3600) / 60
-	secs := seconds % 60
+func FormatDuration(secs int64) string {
+	hours := secs / 3600
+	minutes := (secs % 3600) / 60
 
 	if hours > 0 {
-		return fmt.Sprintf("`%dhrs`, `%dm` and `%ds`", hours, minutes, secs)
+		return fmt.Sprintf("`%dhrs`, `%dm` and `%ds`", hours, minutes, secs%60)
 	}
-
 	if minutes > 0 {
-		return fmt.Sprintf("`%dm` and `%ds`", minutes, secs)
+		return fmt.Sprintf("`%dm` and `%ds`", minutes, secs%60)
 	}
 
-	return fmt.Sprintf("`%ds`", secs)
+	return fmt.Sprintf("`%ds`", secs%60)
 }
 
 // Minecraft ticks until next in-game day
-//ticksUntilMCNewDay := (newDayTime - timePassed + newDayTime) % newDayTime
+// ticksUntilMCNewDay := (newDayTime - timePassed + newDayTime) % newDayTime

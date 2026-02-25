@@ -83,6 +83,15 @@ func (t TownInfo) Spawn() Spawn {
 	return t.Coordinates.Spawn
 }
 
+func (t TownInfo) SpawnLocation() (float32, float32, float32) {
+	spawn := t.Coordinates.Spawn
+	return spawn.X, spawn.Y, spawn.Z
+}
+
+func (t TownInfo) IsRuined() bool {
+	return t.Status.Ruined
+}
+
 func (t TownInfo) NumResidents() uint32 {
 	return t.Stats.NumResidents
 }
