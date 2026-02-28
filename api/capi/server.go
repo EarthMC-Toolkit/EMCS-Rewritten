@@ -1,10 +1,7 @@
 package capi
 
 import (
-	"crypto/sha1"
 	"emcsrw/database"
-	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -12,99 +9,32 @@ import (
 	"strings"
 )
 
+type NewsEntry struct {
+	database.NewsEntry
+	ID string `json:"id"`
+}
+
 // Req/m for "<mapName>/alliances" endpoint
 const ALLIANCES_RPM = 5
 const PLAYERS_RPM = 3
 
-func NewMux(mdb *database.Database) (*http.ServeMux, error) {
-	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
+func NewMux(mdb *database.Database) (mux *http.ServeMux, err error) {
+	mux = http.NewServeMux()
+
+	err = ServeAlliances(mux, mdb)
 	if err != nil {
 		return nil, err
 	}
 
-	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
+	err = ServePlayers(mux, mdb)
 	if err != nil {
 		return nil, err
 	}
 
-	entitiesStore, err := database.GetStore(mdb, database.ENTITIES_STORE)
+	err = ServeNews(mux, mdb)
 	if err != nil {
 		return nil, err
 	}
-
-	mux := http.NewServeMux()
-
-	alliancesEndpoint := fmt.Sprintf("/%s/alliances", mdb.Name())
-	mux.HandleFunc(alliancesEndpoint, func(w http.ResponseWriter, r *http.Request) {
-		// Pre-cache common data
-		reslist, _ := entitiesStore.Get("residentlist")
-		townlesslist, _ := entitiesStore.Get("townlesslist")
-
-		alliances := allianceStore.Values()
-		//rankedAlliances := database.GetRankedAlliances(allianceStore, nationStore, database.DEFAULT_ALLIANCE_WEIGHTS)
-		parsedAlliances := getParsedAlliances(alliances, nationStore, reslist, townlesslist)
-
-		// Generate ETag from top level alliance data
-		// to avoid sending data if nothing changed
-		h := sha1.New()
-		for _, a := range parsedAlliances {
-			h.Write([]byte(a.Identifier))
-			binary.Write(h, binary.LittleEndian, a.UpdatedTimestamp)
-		}
-		etag := fmt.Sprintf(`"%x"`, h.Sum(nil))
-
-		w.Header().Set("ETag", etag)
-		w.Header().Set("Cache-Control", "public, max-age=60")
-		w.Header().Set("Content-Type", "application/json")
-
-		if match := r.Header.Get("If-None-Match"); match != "" && match == etag {
-			w.WriteHeader(http.StatusNotModified)
-			return // cached response, don't touch limiter
-		}
-
-		limiter := getLimiter(getClientIP(r), alliancesEndpoint, ALLIANCES_RPM)
-		if !limiter.Allow() {
-			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-			return
-		}
-
-		data, _ := json.Marshal(parsedAlliances)
-		w.Write(data)
-	})
-
-	playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
-	if err != nil {
-		return nil, err
-	}
-
-	playersEndpoint := fmt.Sprintf("/%s/players", mdb.Name())
-	mux.HandleFunc(playersEndpoint, func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=30")
-		w.Header().Set("Content-Type", "application/json")
-
-		limiter := getLimiter(r.RemoteAddr, playersEndpoint, PLAYERS_RPM)
-		if !limiter.Allow() {
-			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-			return
-		}
-
-		data, _ := json.Marshal(playerStore.Values())
-		w.Write(data)
-	})
-
-	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
-	if err != nil {
-		return nil, err
-	}
-
-	newsEndpoint := fmt.Sprintf("/%s/news", mdb.Name())
-	mux.HandleFunc(newsEndpoint, func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=120")
-		w.Header().Set("Content-Type", "application/json")
-
-		data, _ := json.Marshal(newsStore.Entries())
-		w.Write(data)
-	})
 
 	return mux, nil
 }

@@ -163,7 +163,6 @@ func startBot(s *discordgo.Session) {
 	log.Printf("Initialized databases: %s\n", strings.Join([]string{shared.ACTIVE_MAP}, ","))
 
 	server := &http.Server{}
-
 	if shouldServeAPI() {
 		mux, err := capi.NewMux(activeMapDB)
 		if err != nil {

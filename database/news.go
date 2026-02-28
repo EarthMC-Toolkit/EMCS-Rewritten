@@ -46,7 +46,7 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 		headline = strings.TrimSpace(IMAGE_REGEX.ReplaceAllString(headline, ""))
 	}
 
-	entry.Headline = extractHeadline(headline)
+	entry.Headline = strings.TrimSpace(extractHeadline(headline))
 	return entry
 }
 

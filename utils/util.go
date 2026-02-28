@@ -262,6 +262,14 @@ func DefaultIfEmpty(value, fallback string) string {
 	return value
 }
 
+func MapValues[T any, R any](m map[string]T, fn func(string, T) R) []R {
+	result := make([]R, 0, len(m))
+	for k, v := range m {
+		result = append(result, fn(k, v))
+	}
+	return result
+}
+
 // func DifferenceByReverse[T any, K comparable](listB []T, seenA map[K]struct{}, keyFn func(T) K) []T {
 // 	onlyB := make([]T, 0)
 // 	for _, v := range listB {

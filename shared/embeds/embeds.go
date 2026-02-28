@@ -556,7 +556,7 @@ func NewNationEmbed(
 		Color:       nation.FillColourInt(),
 		Footer:      DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
-			NewEmbedField("Leadership", fmt.Sprintf("Founded %s. Current Leader: `%s`", dateFounded, leaderName), false),
+			//NewEmbedField("Leadership", fmt.Sprintf("Leader: `%s`\nFounded %s", dateFounded, leaderName), false),
 			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, shared.NAMEMC_URL+nation.King.UUID), true),
 			NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
 			NewEmbedField("Location", locationLink, true),
@@ -576,8 +576,10 @@ func NewNationEmbed(
 		ranksStr = strings.Join(rankLines, "\n\n")
 	}
 	if len(ranksStr) < discordutil.EMBED_FIELD_VALUE_LIMIT {
-		AddField(embed, "Ranks", ranksStr, false)
+		AddField(embed, "Ranks", ranksStr, true)
 	}
+
+	AddField(embed, "Founded", dateFounded, true)
 
 	townListStr := strings.Join(townNames, ", ")
 	if len(townListStr) <= discordutil.EMBED_FIELD_VALUE_LIMIT {
@@ -611,16 +613,15 @@ func NewNationEmbed(
 	}
 	//#endregion
 
-	if newsStore != nil {
+	if newsStore == nil {
 		return embed
 	}
 
 	//#region News store exists, try add "Recent News" field
 	nationNews := newsStore.FindAll(func(e database.NewsEntry) bool {
 		name, msg := strings.ToLower(nation.Name), strings.ToLower(e.Message)
-		return strings.Contains(name, msg) || strings.Contains(strings.ReplaceAll(name, "_", " "), msg)
+		return strings.Contains(msg, name) || strings.Contains(msg, strings.ReplaceAll(name, "_", " "))
 	})
-
 	if len(nationNews) > 0 {
 		slices.SortFunc(nationNews, func(a, b database.NewsEntry) int {
 			return cmp.Compare(b.Timestamp, a.Timestamp) // sort news by acsending (newest first)
@@ -628,7 +629,7 @@ func NewNationEmbed(
 
 		lines := []string{}
 		for i, n := range nationNews {
-			if i >= 2 {
+			if i == 2 {
 				break
 			}
 
@@ -638,7 +639,7 @@ func NewNationEmbed(
 				for j, img := range n.Images {
 					imgs[j] = fmt.Sprintf("[Image](%s)", img)
 				}
-				msg += " (" + strings.Join(imgs, ", ") + ")"
+				msg += fmt.Sprintf(" (%s)", strings.Join(imgs, ", "))
 			}
 
 			lines = append(lines, msg)
