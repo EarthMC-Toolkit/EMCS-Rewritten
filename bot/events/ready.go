@@ -24,7 +24,8 @@ import (
 
 // max amount of messages to fetch from news channel during its scheduled task.
 // should be enough to cover at least a few days/weeks of news depending on activity.
-const NEWS_CHANNEL_MSG_AMOUNT = 500
+const NEWS_CHANNEL_MAX_MSGS = 100
+const NEWS_CHANNEL_BATCH_MSGS = 5
 
 const NEWS_CHANNEL_ID = "970962878486183958"
 const TFLOW_CHANNEL_ID = "1420855039357878469"
@@ -99,7 +100,7 @@ func startTasks(s *discordgo.Session, mdb *database.Database) {
 	}
 	scheduleTask(func() {
 		if _, err := OverwriteFunc(newsStore, func() (map[string]database.NewsEntry, error) {
-			newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID, NEWS_CHANNEL_MSG_AMOUNT, 3)
+			newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID, NEWS_CHANNEL_MAX_MSGS, NEWS_CHANNEL_BATCH_MSGS)
 			if err != nil {
 				return nil, err
 			}
