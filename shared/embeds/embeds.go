@@ -528,6 +528,7 @@ func NewNationEmbed(
 	ranksContainingPlayers := 0
 	for rank, players := range nation.Ranks {
 		if len(players) == 0 {
+			rankLines = append(rankLines, fmt.Sprintf("[0] %s", rank))
 			continue
 		}
 		ranksContainingPlayers++
