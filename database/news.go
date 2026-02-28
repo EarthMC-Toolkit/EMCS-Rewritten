@@ -53,6 +53,10 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 func MessagesToNewsEntries(msgs []*discordgo.Message) map[string]NewsEntry {
 	entries := make(map[string]NewsEntry, len(msgs))
 	for _, msg := range msgs {
+		if msg.Content == "[Original Message Deleted]" {
+			continue
+		}
+
 		entries[msg.ID] = NewNewsEntry(msg)
 	}
 

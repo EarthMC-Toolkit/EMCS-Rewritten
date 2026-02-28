@@ -1,6 +1,7 @@
 package capi
 
 import (
+	"cmp"
 	"crypto/sha1"
 	"emcsrw/database"
 	"emcsrw/utils"
@@ -8,7 +9,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 )
+
+const BASE_WELCOME_STR = `
+Welcome to the Custom API! All info here is only available originally by the EarthMC Stats Discord bot.
+
+To access data for a specific map, navigate to "https://emcstats.bot.nu/mapName/endpoint".
+For example, "/aurora/alliances" for alliance data on the Aurora map.
+
+The following endpoints are available:
+- /alliances
+- /players
+- /news
+`
+
+func ServeBase(mux *http.ServeMux) error {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte(BASE_WELCOME_STR))
+	})
+
+	return nil
+}
 
 func ServeAlliances(mux *http.ServeMux, mdb *database.Database) error {
 	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
@@ -104,6 +127,9 @@ func ServeNews(mux *http.ServeMux, mdb *database.Database) error {
 
 		newsValues := utils.MapValues(newsStore.Entries(), func(id string, n database.NewsEntry) NewsEntry {
 			return NewsEntry{NewsEntry: n, ID: id}
+		})
+		slices.SortFunc(newsValues, func(a, b NewsEntry) int {
+			return cmp.Compare(b.Timestamp, a.Timestamp) // sort news by acsending (newest first)
 		})
 
 		data, _ := json.Marshal(newsValues)

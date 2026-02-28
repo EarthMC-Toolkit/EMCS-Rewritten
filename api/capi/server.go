@@ -21,18 +21,16 @@ const PLAYERS_RPM = 3
 func NewMux(mdb *database.Database) (mux *http.ServeMux, err error) {
 	mux = http.NewServeMux()
 
-	err = ServeAlliances(mux, mdb)
-	if err != nil {
+	if err = ServeBase(mux); err != nil {
 		return nil, err
 	}
-
-	err = ServePlayers(mux, mdb)
-	if err != nil {
+	if err = ServeAlliances(mux, mdb); err != nil {
 		return nil, err
 	}
-
-	err = ServeNews(mux, mdb)
-	if err != nil {
+	if err = ServePlayers(mux, mdb); err != nil {
+		return nil, err
+	}
+	if err = ServeNews(mux, mdb); err != nil {
 		return nil, err
 	}
 
