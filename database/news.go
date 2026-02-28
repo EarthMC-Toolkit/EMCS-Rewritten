@@ -50,10 +50,11 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 	return entry
 }
 
-func MessagesToNewsEntries(msgs []*discordgo.Message) []NewsEntry {
-	entries := make([]NewsEntry, 0, len(msgs))
+func MessagesToNewsEntries(msgs []*discordgo.Message) map[string]NewsEntry {
+	entries := make(map[string]NewsEntry, len(msgs))
 	for _, msg := range msgs {
-		entries = append(entries, NewNewsEntry(msg))
+		entry := NewNewsEntry(msg)
+		entries[entry.ID] = entry
 	}
 	return entries
 }

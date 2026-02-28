@@ -12,21 +12,32 @@ import (
 
 // Looks a lil pointless, but this wraps the store's name together with its type
 // so you can't accidentally open the wrong store for a given data type.
-//
 // It also prevents hard-coded strings littering the codebase and hurting maintenance.
+//
+// T is the value type; the actual Store stores map[[string]]T
 type StoreDefinition[T any] struct {
-	Name string
-	//Type T
+	Name          string              // The name of the store, which is also the name of the file it is persisted to (with .json suffix).
+	StoreType     *store.Store[T]     // typed nil pointer for convenience / reflection
+	StoreDataType *store.StoreData[T] // typed nil pointer for convenience / reflection
+}
+
+func NewStoreDefinition[T any](name string) StoreDefinition[T] {
+	return StoreDefinition[T]{
+		Name:          name,
+		StoreType:     (*store.Store[T])(nil),
+		StoreDataType: (*store.StoreData[T])(nil),
+	}
 }
 
 var (
-	SERVER_STORE      = StoreDefinition[oapi.ServerInfo]{Name: "server"}
-	TOWNS_STORE       = StoreDefinition[oapi.TownInfo]{Name: "towns"}
-	NATIONS_STORE     = StoreDefinition[oapi.NationInfo]{Name: "nations"}
-	ENTITIES_STORE    = StoreDefinition[oapi.EntityList]{Name: "entities"}
-	PLAYERS_STORE     = StoreDefinition[BasicPlayer]{Name: "players"}
-	ALLIANCES_STORE   = StoreDefinition[Alliance]{Name: "alliances"}
-	USAGE_USERS_STORE = StoreDefinition[UserUsage]{Name: "usage-users"}
+	SERVER_STORE      = NewStoreDefinition[oapi.ServerInfo]("server")
+	TOWNS_STORE       = NewStoreDefinition[oapi.TownInfo]("towns")
+	NATIONS_STORE     = NewStoreDefinition[oapi.NationInfo]("nations")
+	ENTITIES_STORE    = NewStoreDefinition[oapi.EntityList]("entities")
+	PLAYERS_STORE     = NewStoreDefinition[BasicPlayer]("players")
+	ALLIANCES_STORE   = NewStoreDefinition[Alliance]("alliances")
+	NEWS_STORE        = NewStoreDefinition[NewsEntry]("news")
+	USAGE_USERS_STORE = NewStoreDefinition[UserUsage]("usage-users")
 )
 
 var databases = make(map[string]*Database)
@@ -130,7 +141,7 @@ func GetStore[T any](db *Database, storeDef StoreDefinition[T]) (*store.Store[T]
 	if !ok {
 		return nil, fmt.Errorf(
 			"store '%s' exists but with a different type: expected *Store[%T], got %T",
-			storeDef.Name, (*store.Store[T])(nil), si,
+			storeDef.Name, storeDef.StoreType, si,
 		)
 	}
 

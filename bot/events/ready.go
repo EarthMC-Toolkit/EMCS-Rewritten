@@ -22,6 +22,7 @@ import (
 	"github.com/samber/lo/parallel"
 )
 
+const NEWS_CHANNEL_ID = "970962878486183958"
 const TFLOW_CHANNEL_ID = "1420855039357878469"
 const VP_CHANNEL_ID = "1420146203454083144"
 
@@ -76,19 +77,36 @@ func startTasks(s *discordgo.Session, mdb *database.Database) {
 		fmt.Printf("\nERROR | cannot schedule serverinfo task:\n\t%s", err)
 		return
 	}
-
-	// Updating every min should be fine. doubt people care about having /vp and /serverinfo be realtime.
 	scheduleTask(func() {
-		info, err := SetKeyFunc(serverStore, "info", func() (oapi.ServerInfo, error) {
+		if info, err := SetKeyFunc(serverStore, "info", func() (oapi.ServerInfo, error) {
 			return oapi.QueryServer()
-		})
-		if err == nil {
+		}); err == nil {
 			TrySendVotePartyNotif(s, info.VoteParty)
 			if err := serverStore.WriteSnapshot(); err != nil {
 				fmt.Printf("\nERROR | server store failed to write snapshot:\n\t%s", err)
 			}
 		}
-	}, true, 60*time.Second)
+	}, true, 1*time.Minute) // Updating every min should be fine. doubt people care about having /vp and /serverinfo be realtime.
+
+	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
+	if err != nil {
+		fmt.Printf("\nERROR | cannot schedule news task:\n\t%s", err)
+		return
+	}
+	scheduleTask(func() {
+		if _, err := OverwriteFunc(newsStore, func() (map[string]database.NewsEntry, error) {
+			newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID, 100, 3)
+			if err != nil {
+				return nil, err
+			}
+
+			return database.MessagesToNewsEntries(newsMsgs), nil
+		}); err == nil {
+			if err := newsStore.WriteSnapshot(); err != nil {
+				fmt.Printf("\nERROR | news store failed to write snapshot:\n\t%s", err)
+			}
+		}
+	}, true, 2*time.Minute)
 }
 
 func scheduleTask(task func(), runInitial bool, interval time.Duration) {

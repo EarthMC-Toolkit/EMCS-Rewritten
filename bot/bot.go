@@ -67,6 +67,7 @@ func InitDB(m shared.EMCMap) *database.Database {
 	database.AssignStore(mdb, database.ENTITIES_STORE) // Store keys: residentlist, townlesslist
 	database.AssignStore(mdb, database.PLAYERS_STORE)
 	database.AssignStore(mdb, database.ALLIANCES_STORE)
+	database.AssignStore(mdb, database.NEWS_STORE)
 	database.AssignStore(mdb, database.USAGE_USERS_STORE)
 	//database.AssignStoreToDB[map[string]any](mdb, database.USAGE_LEADERBOARD_STORE)
 

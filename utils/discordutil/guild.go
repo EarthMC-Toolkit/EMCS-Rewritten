@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -82,4 +84,56 @@ func ValidateInviteCode(code string, s *discordgo.Session) (*discordgo.Invite, e
 	}
 
 	return invite, nil
+}
+
+func FetchMessages(s *discordgo.Session, channelID string, batchSize, numBatches int) ([]*discordgo.Message, error) {
+	all := []*discordgo.Message{}
+	lastID := ""
+	for range numBatches {
+		msgs, err := s.ChannelMessages(channelID, batchSize, lastID, "", "")
+		if err != nil {
+			return all, err
+		}
+		if len(msgs) == 0 {
+			return all, nil
+		}
+
+		all = append(all, msgs...)
+		lastID = msgs[len(msgs)-1].ID
+	}
+
+	return all, nil
+}
+
+func FetchMessagesBlocking(s *discordgo.Session, channelID string, batchSize, numBatches int) ([]*discordgo.Message, error) {
+	all := []*discordgo.Message{}
+	lastID := ""
+	for range numBatches {
+		for {
+			msgs, err := s.ChannelMessages(channelID, batchSize, lastID, "", "")
+			if err != nil {
+				// check if it's a rate-limit error
+				if re, ok := err.(*discordgo.RESTError); ok && re.Message != nil && re.Message.Code == 429 {
+					retrySec, err := strconv.ParseFloat(re.Response.Header.Get("Retry-After"), 64)
+					if err != nil {
+						retrySec = 1.0 // fallback 1 second
+					}
+
+					time.Sleep(time.Duration(retrySec * float64(time.Second)))
+					continue // retry this batch
+				}
+
+				return all, err
+			}
+			if len(msgs) == 0 {
+				return all, nil
+			}
+
+			all = append(all, msgs...)
+			lastID = msgs[len(msgs)-1].ID
+			break
+		}
+	}
+
+	return all, nil
 }
