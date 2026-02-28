@@ -247,8 +247,14 @@ func UpdateData(mdb *database.Database) (
 	playerTownLookup := make(map[string]*oapi.TownInfo, len(residentList))
 	for _, town := range townList {
 		for _, r := range town.Residents {
-			t := town
-			playerTownLookup[r.UUID] = &t
+			playerTownLookup[r.UUID] = &town
+		}
+	}
+
+	playerNationLookup := make(map[string]*oapi.NationInfo, len(residentList))
+	for _, nation := range nationList {
+		for _, r := range nation.Residents {
+			playerNationLookup[r.UUID] = &nation
 		}
 	}
 
@@ -259,16 +265,27 @@ func UpdateData(mdb *database.Database) (
 		}
 		for uuid, name := range residentList {
 			bp := database.NewBasicPlayerEntity(uuid, name)
+			rank := database.RankTypeResident
 
 			// Get player town by their UUID. While the town should always exist,
 			// this prevents a potential panic and keeps them townless.
 			if t, ok := playerTownLookup[uuid]; ok {
 				bp.Town = &t.Entity
+				if t.Mayor.UUID == uuid {
+					rank = database.RankTypeMayor
+				}
+
 				if t.Nation.UUID != nil {
 					bp.Nation = &oapi.Entity{Name: *t.Nation.Name, UUID: *t.Nation.UUID}
+					if n, ok := playerNationLookup[uuid]; ok {
+						if n.King.UUID == uuid {
+							rank = database.RankTypeLeader
+						}
+					}
 				}
 			}
 
+			bp.Rank = &rank
 			playersMap[uuid] = bp
 		}
 

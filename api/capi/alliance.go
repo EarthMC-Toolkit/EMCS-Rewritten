@@ -4,6 +4,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/database/store"
+	"slices"
 	"sort"
 	"sync"
 
@@ -16,7 +17,7 @@ type AllianceColours struct {
 }
 
 type AllianceOptionals struct {
-	Leaders     []string         `json:"leaders"` // All UUIDs of alliance leaders that exist on EMC.
+	Leaders     []string         `json:"leaders"`
 	ImageURL    *string          `json:"imageURL"`
 	DiscordCode *string          `json:"discordCode"`
 	Colours     *AllianceColours `json:"colours"`
@@ -51,8 +52,6 @@ func parseAlliance(
 	nationStore *store.Store[oapi.NationInfo],
 	reslist, townlesslist *oapi.EntityList,
 ) Alliance {
-	leaderNames := a.GetLeaderNames(reslist, townlesslist)
-
 	ownNations := nationStore.GetFromSet(a.OwnNations)
 	ownNationNames := lo.Map(ownNations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
@@ -73,7 +72,7 @@ func parseAlliance(
 		UpdatedTimestamp: a.UpdatedTimestamp,
 		CreatedTimestamp: a.CreatedTimestamp(),
 		Optional: AllianceOptionals{
-			Leaders:     leaderNames,
+			Leaders:     a.GetLeaderNames(reslist, townlesslist),
 			ImageURL:    a.Optional.ImageURL,
 			DiscordCode: a.Optional.DiscordCode,
 			Colours:     (*AllianceColours)(a.Optional.Colours),
@@ -110,6 +109,11 @@ func getParsedAlliances(
 	}
 
 	wg.Wait()
+
+	for _, a := range parsedAlliances {
+		slices.Sort(a.OwnNations)
+		slices.Sort(a.Optional.Leaders)
+	}
 
 	// Persist alphabetical order through requests.
 	sort.Slice(parsedAlliances, func(i, j int) bool {

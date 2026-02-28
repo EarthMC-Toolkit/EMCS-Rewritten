@@ -287,12 +287,11 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 		start, end := paginator.CurrentPageBounds(count)
 
 		now := uint64(time.Now().Unix())
-
-		content := ""
+		content := strings.Builder{}
 		for _, res := range residents[start:end] {
 			lo := res.Timestamps.LastOnline
 			if lo == nil {
-				content += fmt.Sprintf("**%s** - Unknown\n", res.Name)
+				fmt.Fprintf(&content, "**%s** - Unknown\n", res.Name)
 				continue
 			}
 
@@ -300,13 +299,13 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 			purgeTimeStr := formattedPurgeTime(now, *lo/1000)
 			balanceStr := utils.HumanizedSprintf("%s `%d`G", shared.EMOJIS.GOLD_INGOT, int(res.Stats.Balance))
 
-			content += fmt.Sprintf(
+			fmt.Fprintf(&content,
 				"**%s** (%s) - Online <t:%d:R>. Purges %s. %s\n",
 				res.Name, res.GetRankOrRole(), *lo/1000, purgeTimeStr, balanceStr,
 			)
 		}
 
-		data.Content = content
+		data.Content = content.String()
 		if paginator.TotalPages() > 1 {
 			data.Content += fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
 		}

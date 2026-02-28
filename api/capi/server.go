@@ -9,15 +9,6 @@ import (
 	"strings"
 )
 
-type NewsEntry struct {
-	database.NewsEntry
-	ID string `json:"id"`
-}
-
-// Req/m for "<mapName>/alliances" endpoint
-const ALLIANCES_RPM = 5
-const PLAYERS_RPM = 3
-
 func NewMux(mdb *database.Database) (mux *http.ServeMux, err error) {
 	mux = http.NewServeMux()
 
