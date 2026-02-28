@@ -639,7 +639,9 @@ func NewNationEmbed(
 				for j, img := range n.Images {
 					imgs[j] = fmt.Sprintf("[Image](%s)", img)
 				}
+
 				msg += fmt.Sprintf(" (%s)", strings.Join(imgs, ", "))
+				msg += fmt.Sprintf(" <t:%d:R>", n.Timestamp/1000)
 			}
 
 			lines = append(lines, msg)

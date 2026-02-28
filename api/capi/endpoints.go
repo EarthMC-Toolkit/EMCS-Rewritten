@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 )
 
 const BASE_WELCOME_STR = `
@@ -27,7 +28,7 @@ The following endpoints are available:
 func ServeBase(mux *http.ServeMux) error {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte(BASE_WELCOME_STR))
+		w.Write([]byte(strings.TrimPrefix(BASE_WELCOME_STR, "\n")))
 	})
 
 	return nil

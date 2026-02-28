@@ -86,19 +86,30 @@ func ValidateInviteCode(code string, s *discordgo.Session) (*discordgo.Invite, e
 	return invite, nil
 }
 
-func FetchMessages(s *discordgo.Session, channelID string, batchSize, numBatches int) ([]*discordgo.Message, error) {
+func FetchMessages(s *discordgo.Session, channelID string, max int) ([]*discordgo.Message, error) {
 	all := []*discordgo.Message{}
 	lastID := ""
-	for range numBatches {
+	for len(all) < max {
+		batchSize := min(max-len(all), 100) // Discord max batch size is 100
 		msgs, err := s.ChannelMessages(channelID, batchSize, lastID, "", "")
 		if err != nil {
 			return all, err
 		}
 		if len(msgs) == 0 {
-			return all, nil
+			break
 		}
 
-		all = append(all, msgs...)
+		for _, m := range msgs {
+			if m.Content == "[Original Message Deleted]" {
+				continue
+			}
+
+			all = append(all, m)
+			if len(all) >= max {
+				break
+			}
+		}
+
 		lastID = msgs[len(msgs)-1].ID
 	}
 
