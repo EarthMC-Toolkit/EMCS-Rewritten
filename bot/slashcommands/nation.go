@@ -194,8 +194,9 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 	// })
 
 	allianceStore, _ := database.GetStore(mdb, database.ALLIANCES_STORE)
+	newsStore, _ := database.GetStore(mdb, database.NEWS_STORE)
 
-	embed := embeds.NewNationEmbed(*nation, allianceStore)
+	embed := embeds.NewNationEmbed(*nation, newsStore, allianceStore)
 	return discordutil.FollowupEmbeds(s, i, embed)
 }
 

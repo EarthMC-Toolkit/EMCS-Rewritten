@@ -1,6 +1,7 @@
 package embeds
 
 import (
+	"cmp"
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/database/store"
@@ -123,11 +124,13 @@ func NewAllianceEmbed(
 	}
 
 	embed := &discordgo.MessageEmbed{
-		Color:  embedColour,
-		Footer: DEFAULT_FOOTER,
-		Title:  title,
+		Color:       embedColour,
+		Footer:      DEFAULT_FOOTER,
+		Title:       title,
+		Description: fmt.Sprintf("**Leaders(s)**\n%s\n\n**Discord Representative**\n%s", leadersValue, representativeValue),
 		Fields: []*discordgo.MessageEmbedField{
-			NewEmbedField("Leader(s)", leadersValue, false),
+			//NewEmbedField("Leader(s)", leadersValue, false),
+			//NewEmbedField(embed, "Discord Representative", representativeValue, true),
 			NewEmbedField("Stats", stats, true),
 		},
 	}
@@ -182,7 +185,7 @@ func NewAllianceEmbed(
 		AddField(embed, childNationsKey, childNationsValue, false)
 	}
 
-	AddField(embed, "Discord Representative", representativeValue, false)
+	//AddField(embed, "Recent News", , false)
 
 	flag := a.Optional.ImageURL
 	if flag != nil {
@@ -477,7 +480,11 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	return embed
 }
 
-func NewNationEmbed(nation oapi.NationInfo, allianceStore *store.Store[database.Alliance]) *discordgo.MessageEmbed {
+func NewNationEmbed(
+	nation oapi.NationInfo,
+	newsStore *store.Store[database.NewsEntry],
+	allianceStore *store.Store[database.Alliance],
+) *discordgo.MessageEmbed {
 	foundedTs := nation.Timestamps.Registered / 1000 // Seconds
 	dateFounded := fmt.Sprintf("<t:%d:R>", foundedTs)
 
@@ -513,12 +520,18 @@ func NewNationEmbed(nation oapi.NationInfo, allianceStore *store.Store[database.
 	)
 
 	statsStr := fmt.Sprintf(
-		"Size: %s\nBalance: %s\nResidents: %s\nTowns: %s\nAllies/Enemies: %s",
-		sizeStr, balanceStr, residentsStr, townsStr, alliesEnemiesStr,
+		"Size: %s\nBalance: %s\nTowns: %s\nResidents: %s\nAllies/Enemies: %s",
+		sizeStr, balanceStr, townsStr, residentsStr, alliesEnemiesStr,
 	)
 
 	rankLines := []string{}
+	ranksContainingPlayers := 0
 	for rank, players := range nation.Ranks {
+		if len(players) == 0 {
+			continue
+		}
+		ranksContainingPlayers++
+
 		names := lo.Map(players, func(e oapi.Entity, _ int) string {
 			return fmt.Sprintf("`%s`", e.Name)
 		})
@@ -543,6 +556,7 @@ func NewNationEmbed(nation oapi.NationInfo, allianceStore *store.Store[database.
 		Color:       nation.FillColourInt(),
 		Footer:      DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
+			NewEmbedField("Leadership", fmt.Sprintf("Founded %s. Current Leader: `%s`", dateFounded, leaderName), false),
 			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, shared.NAMEMC_URL+nation.King.UUID), true),
 			NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
 			NewEmbedField("Location", locationLink, true),
@@ -552,7 +566,15 @@ func NewNationEmbed(nation oapi.NationInfo, allianceStore *store.Store[database.
 		},
 	}
 
-	ranksStr := strings.Join(rankLines, "\n\n")
+	if nation.Wiki != "" {
+		embed.URL = nation.Wiki
+		embed.Title = fmt.Sprintf("Nation Information | %s", nation.Name)
+	}
+
+	ranksStr := strings.Join(rankLines, "\n")
+	if ranksContainingPlayers > 0 {
+		ranksStr = strings.Join(rankLines, "\n\n")
+	}
 	if len(ranksStr) < discordutil.EMBED_FIELD_VALUE_LIMIT {
 		AddField(embed, "Ranks", ranksStr, false)
 	}
@@ -589,11 +611,42 @@ func NewNationEmbed(nation oapi.NationInfo, allianceStore *store.Store[database.
 	}
 	//#endregion
 
-	AddField(embed, "Founded", dateFounded, true)
-
-	if nation.Wiki != "" {
-		AddField(embed, "Wiki", fmt.Sprintf("[Visit wiki page](%s)", nation.Wiki), true)
+	if newsStore != nil {
+		return embed
 	}
+
+	//#region News store exists, try add "Recent News" field
+	nationNews := newsStore.FindAll(func(e database.NewsEntry) bool {
+		name, msg := strings.ToLower(nation.Name), strings.ToLower(e.Message)
+		return strings.Contains(name, msg) || strings.Contains(strings.ReplaceAll(name, "_", " "), msg)
+	})
+
+	if len(nationNews) > 0 {
+		slices.SortFunc(nationNews, func(a, b database.NewsEntry) int {
+			return cmp.Compare(b.Timestamp, a.Timestamp) // sort news by acsending (newest first)
+		})
+
+		lines := []string{}
+		for i, n := range nationNews {
+			if i >= 2 {
+				break
+			}
+
+			msg := n.Message
+			if len(n.Images) > 0 {
+				imgs := make([]string, len(n.Images))
+				for j, img := range n.Images {
+					imgs[j] = fmt.Sprintf("[Image](%s)", img)
+				}
+				msg += " (" + strings.Join(imgs, ", ") + ")"
+			}
+
+			lines = append(lines, msg)
+		}
+
+		AddField(embed, fmt.Sprintf("Recent News [%d]", len(nationNews)), strings.Join(lines, "\n\n"), false)
+	}
+	//#endregion
 
 	return embed
 }

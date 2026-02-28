@@ -32,27 +32,7 @@ func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 		return nil, err
 	}
 
-	playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
-	if err != nil {
-		return nil, err
-	}
-
 	mux := http.NewServeMux()
-
-	playersEndpoint := fmt.Sprintf("/%s/players", mdb.Name())
-	mux.HandleFunc(playersEndpoint, func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=30")
-		w.Header().Set("Content-Type", "application/json")
-
-		limiter := getLimiter(r.RemoteAddr, playersEndpoint, PLAYERS_RPM)
-		if !limiter.Allow() {
-			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-			return
-		}
-
-		data, _ := json.Marshal(playerStore.Values())
-		w.Write(data)
-	})
 
 	alliancesEndpoint := fmt.Sprintf("/%s/alliances", mdb.Name())
 	mux.HandleFunc(alliancesEndpoint, func(w http.ResponseWriter, r *http.Request) {
@@ -89,6 +69,40 @@ func NewMux(mdb *database.Database) (*http.ServeMux, error) {
 		}
 
 		data, _ := json.Marshal(parsedAlliances)
+		w.Write(data)
+	})
+
+	playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
+	if err != nil {
+		return nil, err
+	}
+
+	playersEndpoint := fmt.Sprintf("/%s/players", mdb.Name())
+	mux.HandleFunc(playersEndpoint, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=30")
+		w.Header().Set("Content-Type", "application/json")
+
+		limiter := getLimiter(r.RemoteAddr, playersEndpoint, PLAYERS_RPM)
+		if !limiter.Allow() {
+			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+			return
+		}
+
+		data, _ := json.Marshal(playerStore.Values())
+		w.Write(data)
+	})
+
+	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
+	if err != nil {
+		return nil, err
+	}
+
+	newsEndpoint := fmt.Sprintf("/%s/news", mdb.Name())
+	mux.HandleFunc(newsEndpoint, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=120")
+		w.Header().Set("Content-Type", "application/json")
+
+		data, _ := json.Marshal(newsStore.Entries())
 		w.Write(data)
 	})
 

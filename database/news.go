@@ -16,7 +16,7 @@ var TBI_LOGO_REPLACER = strings.NewReplacer(
 )
 
 type NewsEntry struct {
-	ID        string   `json:"id"`
+	//ID        string   `json:"id"`
 	Message   string   `json:"message"`
 	Headline  string   `json:"headline"`
 	Images    []string `json:"images"`
@@ -25,7 +25,7 @@ type NewsEntry struct {
 
 func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 	entry := NewsEntry{
-		ID:        msg.ID,
+		//ID:        msg.ID,
 		Message:   msg.Content,
 		Timestamp: msg.Timestamp.UnixMilli(),
 	}
@@ -53,9 +53,9 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 func MessagesToNewsEntries(msgs []*discordgo.Message) map[string]NewsEntry {
 	entries := make(map[string]NewsEntry, len(msgs))
 	for _, msg := range msgs {
-		entry := NewNewsEntry(msg)
-		entries[entry.ID] = entry
+		entries[msg.ID] = NewNewsEntry(msg)
 	}
+
 	return entries
 }
 

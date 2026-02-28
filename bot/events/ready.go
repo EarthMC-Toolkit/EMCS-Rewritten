@@ -22,6 +22,10 @@ import (
 	"github.com/samber/lo/parallel"
 )
 
+// max amount of messages to fetch from news channel during its scheduled task.
+// should be enough to cover at least a few days/weeks of news depending on activity.
+const NEWS_CHANNEL_MSG_AMOUNT = 500
+
 const NEWS_CHANNEL_ID = "970962878486183958"
 const TFLOW_CHANNEL_ID = "1420855039357878469"
 const VP_CHANNEL_ID = "1420146203454083144"
@@ -95,7 +99,7 @@ func startTasks(s *discordgo.Session, mdb *database.Database) {
 	}
 	scheduleTask(func() {
 		if _, err := OverwriteFunc(newsStore, func() (map[string]database.NewsEntry, error) {
-			newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID, 100, 3)
+			newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID, NEWS_CHANNEL_MSG_AMOUNT, 3)
 			if err != nil {
 				return nil, err
 			}

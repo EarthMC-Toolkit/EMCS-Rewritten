@@ -35,8 +35,8 @@ type NationTimestamps struct {
 
 type NationInfo struct {
 	Entity
-	Board            string              `json:"board"` // Could be nil, but we want it to default to zero value anyway.
-	Wiki             string              `json:"wiki"`  // Could be nil, but we want it to default to zero value anyway.
+	Board            string              `json:"board"` // Could be nil in response, but default to zero value anyway.
+	Wiki             string              `json:"wiki"`  // Could be nil in response, but default to zero value anyway.
 	King             Entity              `json:"king"`
 	MapColourFill    string              `json:"dynmapColour"`
 	MapColourOutline string              `json:"dynmapOutline"`
