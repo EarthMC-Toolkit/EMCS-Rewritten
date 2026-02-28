@@ -255,6 +255,13 @@ func ParseFieldsStr(input string, sep rune) ([]string, error) {
 	return out, nil
 }
 
+func DefaultIfEmpty(value, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	return value
+}
+
 // func DifferenceByReverse[T any, K comparable](listB []T, seenA map[K]struct{}, keyFn func(T) K) []T {
 // 	onlyB := make([]T, 0)
 // 	for _, v := range listB {
