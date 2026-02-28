@@ -218,11 +218,15 @@ func NewAllianceEmbed(
 //
 // Should be preferred when the user is annoying and has opted-out of the Official API.
 func NewBasicPlayerEmbed(player database.BasicPlayer, description string) *discordgo.MessageEmbed {
-	townsStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
-	town, _ := townsStore.Get(player.Town.UUID)
+	var town *oapi.TownInfo
+	if player.Town != nil {
+		townsStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+		town, _ = townsStore.Get(player.Town.UUID)
+	}
 
-	townName := lo.Ternary(town == nil, "No Town", town.Name)
-	nationName := lo.TernaryF(town.Nation.Name == nil,
+	townName := lo.TernaryF(town == nil, func() string { return "No Town" }, func() string { return town.Name })
+	nationName := lo.TernaryF(
+		town == nil || town.Nation.Name == nil,
 		func() string { return "No Nation" },
 		func() string { return *town.Nation.Name },
 	)
@@ -248,16 +252,8 @@ func NewBasicPlayerEmbed(player database.BasicPlayer, description string) *disco
 		},
 	}
 
-	if town != nil {
-		rank := "Resident"
-		if town.Mayor.Name == player.Name {
-			rank = "Mayor"
-		}
-
-		AddField(embed, "Rank", rank, true)
-	}
-
 	// TODO: Add town ranks using player.Town.Ranks
+	AddField(embed, "Rank", player.RankString(), true)
 
 	AddField(embed, "Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false)
 
