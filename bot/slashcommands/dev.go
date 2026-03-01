@@ -24,6 +24,11 @@ func (cmd DevCommand) Options() AppCommandOpts {
 	return AppCommandOpts{
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "reload",
+			Description: "Reloads the bot by refreshing command 'Execute' definitions.",
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "purge",
 			Description: "Leaves guilds based on low member count. Helps combat abuse.",
 			Options: AppCommandOpts{
@@ -57,11 +62,35 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 	}
 
 	cdata := i.ApplicationCommandData()
-	sub := cdata.GetOption("purge")
-	threshold := int(sub.GetOption("threshold").IntValue())
+
+	// top-level sub cmd or group
+	subCmd := cdata.Options[0]
+	switch subCmd.Name {
+	case "reload":
+		return executeReload(s, i.Interaction)
+	case "purge":
+		return executePurge(s, i.Interaction, subCmd)
+	}
+
+	return nil
+}
+
+func executeReload(s *discordgo.Session, i *discordgo.Interaction) error {
+	registerAllCommands()
+
+	_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		Content: "Successfully reloaded EMCS. All command were definitions updated.",
+		Flags:   discordgo.MessageFlagsEphemeral,
+	})
+
+	return err
+}
+
+func executePurge(s *discordgo.Session, i *discordgo.Interaction, subCmd *discordgo.ApplicationCommandInteractionDataOption) error {
+	threshold := int(subCmd.GetOption("threshold").IntValue())
 
 	approximateOnly := false
-	approxOpt := sub.GetOption("approx-only")
+	approxOpt := subCmd.GetOption("approx-only")
 	if approxOpt != nil {
 		approximateOnly = approxOpt.BoolValue()
 	}
@@ -70,10 +99,11 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 	if err != nil {
 		return err
 	}
+
 	fmt.Printf("\n/dev purge: Collected %d total guilds\n", len(guilds))
 
 	content, _ := leaveGuilds(s, guilds, approximateOnly, threshold)
-	_, err = discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+	_, err = discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 		Content: content,
 		Flags:   discordgo.MessageFlagsEphemeral,
 	})

@@ -6,7 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var commands = map[string]SlashCommand{}
+var commands map[string]SlashCommand
 
 // 0 for Guild, 1 for User
 var integrationTypes = []discordgo.ApplicationIntegrationType{
@@ -95,6 +95,12 @@ func Register(cmd SlashCommand) {
 
 // Called before the bot runs (just before main).
 func init() {
+	registerAllCommands()
+}
+
+func registerAllCommands() {
+	commands = make(map[string]SlashCommand)
+
 	Register(DevCommand{})
 
 	Register(AllianceCommand{})

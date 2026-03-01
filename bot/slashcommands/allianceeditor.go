@@ -543,10 +543,9 @@ func handleAllianceEditorModalLeadersUpdate(
 
 	// start with a set of existing UUIDs for easier add/remove
 	leaderUUIDs := utils.CopyMap(alliance.Optional.Leaders)
+	inputs := discordutil.GetModalInputs(i)
 
 	var notAdded, notRemoved []string
-	var inputs = discordutil.GetModalInputs(i)
-
 	if strings.TrimSpace(inputs["remove"]) != "" {
 		removeNames, _ := utils.ParseFieldsStr(inputs["remove"], ',')
 		for _, name := range removeNames {
@@ -596,7 +595,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	})
 
 	//#region Build & send feedback message
-	var messages []string
+	messages := []string{}
 	if len(notRemoved) > 0 {
 		messages = append(messages, fmt.Sprintf(
 			"The following leaders were not removed as they are not present:```%s```",
