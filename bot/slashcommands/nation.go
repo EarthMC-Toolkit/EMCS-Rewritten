@@ -98,8 +98,10 @@ func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdat
 		return err
 	}
 
-	var matches []oapi.NationInfo
-	if strings.TrimSpace(focused) == "" {
+	matches := []oapi.NationInfo{}
+	focusedTrimmed := strings.TrimSpace(focused)
+
+	if focusedTrimmed == "" {
 		// Sort by largest first.
 		// TODO: This is pretty primitive and we should prefer database.GetRankedNations()
 		// 		 when rank caching has been implemented.
@@ -110,12 +112,12 @@ func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdat
 			{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }},
 		})
 	} else {
-		focusedLower := strings.TrimSpace(strings.ToLower(focused))
+		focusedLower := strings.ToLower(focusedTrimmed)
 		matches = nationStore.FindAll(func(n oapi.NationInfo) bool {
 			if n.Name != "" && strings.Contains(strings.ToLower(n.Name), focusedLower) {
 				return true
 			}
-			if n.UUID != "" && n.UUID == focused {
+			if n.UUID != "" && n.UUID == focusedTrimmed {
 				return true
 			}
 

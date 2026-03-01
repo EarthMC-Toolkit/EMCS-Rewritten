@@ -274,8 +274,10 @@ func allianceIdentifierAutocomplete(
 		return err
 	}
 
-	var matches []database.Alliance
-	if strings.TrimSpace(focused) == "" {
+	matches := []database.Alliance{}
+	focusedTrimmed := strings.TrimSpace(focused)
+
+	if focusedTrimmed == "" {
 		// Sort alphabetically by Identifier.
 		// TODO: Sort by alliance rank first instead. Need to cache ranks for that tho.
 		alliances := allianceStore.ValuesSorted(func(a, b database.Alliance) int {
@@ -284,7 +286,7 @@ func allianceIdentifierAutocomplete(
 
 		matches = alliances
 	} else {
-		focusedLower := strings.ToLower(strings.TrimSpace(focused))
+		focusedLower := strings.ToLower(focusedTrimmed)
 		matches = allianceStore.FindAll(func(a database.Alliance) bool {
 			if a.Label != "" && strings.Contains(strings.ToLower(a.Label), focusedLower) {
 				return true

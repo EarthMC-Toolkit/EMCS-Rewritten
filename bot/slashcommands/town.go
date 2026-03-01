@@ -123,20 +123,22 @@ func townNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata 
 		return err
 	}
 
-	var matches []oapi.TownInfo
-	if strings.TrimSpace(focused) == "" {
+	matches := []oapi.TownInfo{}
+	focusedTrimmed := strings.TrimSpace(focused)
+
+	if focusedTrimmed == "" {
 		towns := townStore.Values()
 		matches = utils.MultiKeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
 			{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
 			{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
 		})
 	} else {
-		focusedLower := strings.TrimSpace(strings.ToLower(focused))
+		focusedLower := strings.ToLower(focusedTrimmed)
 		matches = townStore.FindAll(func(t oapi.TownInfo) bool {
 			if t.Name != "" && strings.Contains(strings.ToLower(t.Name), focusedLower) {
 				return true
 			}
-			if t.UUID != "" && t.UUID == focused {
+			if t.UUID != "" && t.UUID == focusedTrimmed {
 				return true
 			}
 
