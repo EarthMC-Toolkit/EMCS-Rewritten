@@ -131,9 +131,9 @@ func townNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata 
 			{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
 		})
 	} else {
-		keyLower := strings.ToLower(focused)
+		focusedLower := strings.TrimSpace(strings.ToLower(focused))
 		matches = townStore.FindAll(func(t oapi.TownInfo) bool {
-			if t.Name != "" && strings.Contains(strings.ToLower(t.Name), keyLower) {
+			if t.Name != "" && strings.Contains(strings.ToLower(t.Name), focusedLower) {
 				return true
 			}
 			if t.UUID != "" && t.UUID == focused {

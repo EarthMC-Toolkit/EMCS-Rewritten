@@ -284,12 +284,12 @@ func allianceIdentifierAutocomplete(
 
 		matches = alliances
 	} else {
-		keyLower := strings.ToLower(focused)
+		focusedLower := strings.ToLower(strings.TrimSpace(focused))
 		matches = allianceStore.FindAll(func(a database.Alliance) bool {
-			if a.Label != "" && strings.Contains(strings.ToLower(a.Label), keyLower) {
+			if a.Label != "" && strings.Contains(strings.ToLower(a.Label), focusedLower) {
 				return true
 			}
-			if a.Identifier != "" && strings.Contains(strings.ToLower(a.Identifier), keyLower) {
+			if a.Identifier != "" && strings.Contains(strings.ToLower(a.Identifier), focusedLower) {
 				return true
 			}
 

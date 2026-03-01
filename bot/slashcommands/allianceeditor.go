@@ -993,7 +993,7 @@ func UpdateAllianceNations(
 	}
 
 	if len(nationUUIDS)+len(puppetNationUUIDs) < 2 {
-		return nil, fmt.Errorf("Alliance must have at least two total nations.")
+		return nil, fmt.Errorf("Alliance must have at least 2 total nations between its self and puppet nations.")
 	}
 
 	alliance.OwnNations = nationUUIDS
