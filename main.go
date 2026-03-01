@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/joho/godotenv"
 	"github.com/rogpeppe/go-internal/lockedfile"
 )
 
@@ -44,79 +43,6 @@ func lockProcess() func() error {
 	}
 }
 
-func loadEnv() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func getBotToken() string {
-	v, err := config.GetEnviroVar("BOT_TOKEN")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Don't rly need to parse since we already have string
-	return v
-}
-
-func getBotID() string {
-	v, err := config.GetEnviroVar("BOT_APP_ID")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return v
-}
-
-func getApiPort() uint {
-	fail := func(reason string) uint {
-		fmt.Printf("\nERROR | Custom API port defaulted to 7777. Reason:\n\t%s\n", reason)
-		return 7777
-	}
-
-	v, err := config.GetEnviroVar("API_PORT")
-	if err != nil {
-		return fail(err.Error())
-	}
-
-	port, err := config.ParseEnviroVar[uint](v)
-	if err != nil {
-		return fail(err.Error())
-	}
-
-	switch port {
-	case 80, 443:
-		return port // Allow HTTP and HTTPS default ports
-	default:
-		if port < 1024 || port > 49150 {
-			return fail("environment variable API_PORT must be 80, 443 or in range 1024-49150")
-		}
-	}
-
-	return port
-}
-
-func shouldServeAPI() bool {
-	v, err := config.GetEnviroVar("ENABLE_API")
-	if err != nil {
-		if strings.Contains(err.Error(), "must be specified") {
-			return false // By default, we don't want to serve if var is missing.
-		}
-
-		log.Fatal(err)
-	}
-
-	// String exists and not empty. Check it is a valid bool value
-	parsed, err := config.ParseEnviroVar[bool](v)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return parsed
-}
-
 func main() {
 	//#region Always runs no matter the subcommand
 	unlock := lockProcess()
@@ -127,10 +53,10 @@ func main() {
 		return
 	}
 
-	loadEnv()
+	config.LoadEnv()
 	fmt.Println("DEBUG | Loaded .env into OS environment.")
 
-	s, err := newSession(getBotToken())
+	s, err := newSession(config.GetBotToken())
 	if err != nil {
 		fmt.Printf("\nFATAL | failed to create session:\n\t%s", err)
 		os.Exit(67) // SIX SEVEEEEEEN!!!1!!1!!1
@@ -139,7 +65,7 @@ func main() {
 
 	switch os.Args[1] {
 	case "register":
-		slashcommands.SyncRemote(s, getBotID(), "") // Empty str = register globally
+		slashcommands.SyncRemote(s, config.GetBotID(), "") // Empty str = register globally
 	case "start":
 		startBot(s)
 	default:
@@ -163,13 +89,13 @@ func startBot(s *discordgo.Session) {
 	log.Printf("Initialized databases: %s\n", strings.Join([]string{shared.ACTIVE_MAP}, ","))
 
 	server := &http.Server{}
-	if shouldServeAPI() {
+	if config.ShouldServeAPI() {
 		mux, err := capi.NewMux(activeMapDB)
 		if err != nil {
 			fmt.Printf("failed to create api mux for %s:\n%s", activeMapDB, err)
 		}
 
-		server = capi.Serve(mux, getApiPort())
+		server = capi.Serve(mux, config.GetApiPort())
 	}
 
 	log.Println("Connecting to Discord gateway...")

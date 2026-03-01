@@ -76,10 +76,11 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 }
 
 func executeReload(s *discordgo.Session, i *discordgo.Interaction) error {
-	registerAllCommands()
+	RegisterAllCommands()
+	SyncRemote(s, config.GetBotID(), "")
 
 	_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
-		Content: "Successfully reloaded EMCS. All command were definitions updated.",
+		Content: "Successfully reloaded EMC. All command were definitions updated.",
 		Flags:   discordgo.MessageFlagsEphemeral,
 	})
 

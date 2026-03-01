@@ -3,9 +3,12 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 // Retrieves an OS environment variable by name,
@@ -90,4 +93,77 @@ func ParseEnviroVar[T any](v string) (T, error) {
 	}
 
 	return zero, fmt.Errorf("unsupported environment variable type %T", zero)
+}
+
+func LoadEnv() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func GetBotToken() string {
+	v, err := GetEnviroVar("BOT_TOKEN")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Don't rly need to parse since we already have string
+	return v
+}
+
+func GetBotID() string {
+	v, err := GetEnviroVar("BOT_APP_ID")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return v
+}
+
+func GetApiPort() uint {
+	fail := func(reason string) uint {
+		fmt.Printf("\nERROR | Custom API port defaulted to 7777. Reason:\n\t%s\n", reason)
+		return 7777
+	}
+
+	v, err := GetEnviroVar("API_PORT")
+	if err != nil {
+		return fail(err.Error())
+	}
+
+	port, err := ParseEnviroVar[uint](v)
+	if err != nil {
+		return fail(err.Error())
+	}
+
+	switch port {
+	case 80, 443:
+		return port // Allow HTTP and HTTPS default ports
+	default:
+		if port < 1024 || port > 49150 {
+			return fail("environment variable API_PORT must be 80, 443 or in range 1024-49150")
+		}
+	}
+
+	return port
+}
+
+func ShouldServeAPI() bool {
+	v, err := GetEnviroVar("ENABLE_API")
+	if err != nil {
+		if strings.Contains(err.Error(), "must be specified") {
+			return false // By default, we don't want to serve if var is missing.
+		}
+
+		log.Fatal(err)
+	}
+
+	// String exists and not empty. Check it is a valid bool value
+	parsed, err := ParseEnviroVar[bool](v)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return parsed
 }
