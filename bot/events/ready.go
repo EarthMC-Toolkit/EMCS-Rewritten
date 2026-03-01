@@ -52,6 +52,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	})
 }
 
+// TODO: Create a scheduled task that loops through alliances, removing nations that no longer exist.
 func startTasks(s *discordgo.Session, mdb *database.Database) {
 	scheduleTask(func() {
 		fmt.Println()

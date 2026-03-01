@@ -40,6 +40,10 @@ func (s Set[K]) AppendFunc(key K, f func(key K) K) {
 	s[f(key)] = struct{}{}
 }
 
+func (s Set[K]) Remove(key K) {
+	delete(s, key)
+}
+
 // Returns all elements in this set as a slice.
 func (s Set[K]) Keys() []K {
 	count := len(s)
