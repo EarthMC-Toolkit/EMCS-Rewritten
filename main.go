@@ -4,6 +4,7 @@ import (
 	"context"
 	"emcsrw/api/capi"
 	"emcsrw/bot"
+	"emcsrw/bot/scheduler"
 	"emcsrw/bot/slashcommands"
 	"emcsrw/database"
 	"emcsrw/shared"
@@ -90,7 +91,7 @@ func startBot(s *discordgo.Session, activeMapDB *database.Database) {
 	log.Printf("Starting bot with %d threads.\n", runtime.GOMAXPROCS(-1))
 
 	// Init a scheduler that we can use to schedule tasks (ie. in OnReady)
-	//scheduler.Instance = scheduler.New()
+	scheduler.Instance = scheduler.New()
 
 	log.Println("Connecting to Discord gateway...")
 	discord := bot.Connect(s)
@@ -101,6 +102,10 @@ func startBot(s *discordgo.Session, activeMapDB *database.Database) {
 	sig := <-c
 
 	fmt.Printf("\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
+
+	// Gracefully stop scheduled tasks by waiting for all to finish.
+	msg := scheduler.Instance.Shutdown(30 * time.Second)
+	log.Println("[Scheduler]: " + msg)
 
 	//#region Cleanup
 	// Since the `defer` keyword only works in successful exits,

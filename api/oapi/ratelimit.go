@@ -26,17 +26,17 @@ type RequestBucket struct {
 	tokens chan Token
 }
 
+// Allocates a new [RequestBucket] and initializes it by prefilling the bucket with tokens.
+// It then starts a ticker which slowly refills the bucket with tokens at the refill rate specified by reqPerMin (converted to req/s).
 func NewRequestBucket(reqPerMin int) (bucket *RequestBucket) {
 	reqPerMin = min(RATE_LIMIT, reqPerMin)
 	reqPerSec := reqPerMin / 60 // Eg: 180req/m becomes 3req/s
-
 	bucket = &RequestBucket{
 		tokens: make(chan Token, reqPerSec),
 	}
 
-	// Pre-fill
 	for range reqPerSec {
-		bucket.tokens <- Token{}
+		bucket.tokens <- Token{} // pre-fill
 	}
 
 	// Token refill rate. Eg: 3req/s becomes 333ms between ticks.
@@ -127,17 +127,17 @@ func (d *RequestDispatcher) EnqueueOrAsync(req RequestNoErr) {
 //
 // If too little tokens were available to complete all requests with the initial burst,
 // QueueAsync() is called for every remaining request to ensure they arrive, but won't block.
-func (d *RequestDispatcher) Burst(reqs []RequestNoErr) {
-	for _, req := range reqs {
-		select {
-		case <-d.reqBucket.tokens:
-			req() // Run immediately if token available
-		default:
-			// Queue remaining requests asynchronously
-			d.EnqueueAsync(req)
-		}
-	}
-}
+// func (d *RequestDispatcher) Burst(reqs []RequestNoErr) {
+// 	for _, req := range reqs {
+// 		select {
+// 		case <-d.reqBucket.tokens:
+// 			req() // Run immediately if token available
+// 		default:
+// 			// Queue remaining requests asynchronously
+// 			d.EnqueueAsync(req)
+// 		}
+// 	}
+// }
 
 func (d *RequestDispatcher) GetBucketTokens() chan Token {
 	return d.reqBucket.tokens

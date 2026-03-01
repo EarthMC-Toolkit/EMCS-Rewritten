@@ -11,6 +11,7 @@ import (
 
 	"emcsrw/api"
 	"emcsrw/api/oapi"
+	"emcsrw/bot/scheduler"
 	"emcsrw/database"
 	"emcsrw/database/store"
 	"emcsrw/shared"
@@ -41,91 +42,78 @@ var readyOnce sync.Once // This prevents running tasks more than once if OnReady
 func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	log.Printf("Logged in as: %s\n", s.State.User.Username)
 
-	mdb, err := database.Get(shared.ACTIVE_MAP)
-	if err != nil {
-		fmt.Printf("\n[OnReady]: wtf happened? error fetching db:\n%v", err)
-		return
-	}
-
 	readyOnce.Do(func() {
-		startTasks(s, mdb)
+		mdb, err := database.Get(shared.ACTIVE_MAP)
+		if err != nil {
+			fmt.Printf("\n[OnReady]: wtf happened? error fetching db:\n%v", err)
+			return
+		}
+
+		scheduler.Instance.Schedule("DataUpdate", func() { dataUpdateTask(s, mdb) }, true, 30*time.Second)
+		scheduler.Instance.Schedule("ServerInfo", func() { serverInfoTask(s, mdb) }, true, 1*time.Minute)
+		scheduler.Instance.Schedule("NewsEntries", func() { newsTask(s, mdb) }, true, 2*time.Minute)
+
+		// TODO: Create a scheduled task that loops through alliances, removing nations that no longer exist.
 	})
 }
 
-// TODO: Create a scheduled task that loops through alliances, removing nations that no longer exist.
-func startTasks(s *discordgo.Session, mdb *database.Database) {
-	scheduleTask(func() {
-		fmt.Println()
-		log.Println("[OnReady]: Running data update task...")
+func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
+	fmt.Println()
+	log.Println("[OnReady]: Running data update task...")
 
-		start := time.Now()
-		townList, staleTownList, townless, residents, err := UpdateData(mdb)
+	start := time.Now()
+	townList, staleTownList, townless, residents, err := UpdateData(mdb)
 
-		fmt.Println() // use \n without log.Printf messing up date/time
-		if err != nil {
-			log.Printf("[OnReady]: Failed data update task.\n%s\n", err)
-		} else {
-			elapsed := time.Since(start)
-			log.Printf("[OnReady]: Completed data update task. Took: %s\n", elapsed.String())
-		}
+	fmt.Println() // use \n without log.Printf messing up date/time
+	if err != nil {
+		log.Printf("[OnReady]: Failed data update task.\n%s\n", err)
+	} else {
+		elapsed := time.Since(start)
+		log.Printf("[OnReady]: Finished data update task. Took: %s\n", elapsed.String())
+	}
 
-		towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
-		staleTowns := lo.MapToSlice(staleTownList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
+	towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
+	staleTowns := lo.MapToSlice(staleTownList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
 
-		TrySendLeftJoinedNotif(s, towns, staleTowns, townless, residents)
-		TrySendRuinedNotif(s, townList, staleTowns)
-		TrySendFallenNotif(s, townList, staleTowns)
-	}, true, 30*time.Second)
+	TrySendLeftJoinedNotif(s, towns, staleTowns, townless, residents)
+	TrySendRuinedNotif(s, townList, staleTowns)
+	TrySendFallenNotif(s, townList, staleTowns)
+}
 
+func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 	serverStore, err := database.GetStore(mdb, database.SERVER_STORE)
 	if err != nil {
 		fmt.Printf("\nERROR | cannot schedule serverinfo task:\n\t%s", err)
 		return
 	}
-	scheduleTask(func() {
-		if info, err := SetKeyFunc(serverStore, "info", func() (oapi.ServerInfo, error) {
-			return oapi.QueryServer()
-		}); err == nil {
-			TrySendVotePartyNotif(s, info.VoteParty)
-			if err := serverStore.WriteSnapshot(); err != nil {
-				fmt.Printf("\nERROR | server store failed to write snapshot:\n\t%s", err)
-			}
+	if info, err := SetKeyFunc(serverStore, "info", func() (oapi.ServerInfo, error) {
+		return oapi.QueryServer()
+	}); err == nil {
+		TrySendVotePartyNotif(s, info.VoteParty)
+		if err := serverStore.WriteSnapshot(); err != nil {
+			fmt.Printf("\nERROR | server store failed to write snapshot:\n\t%s", err)
 		}
-	}, true, 1*time.Minute) // Updating every min should be fine. doubt people care about having /vp and /serverinfo be realtime.
+	}
+}
 
+func newsTask(s *discordgo.Session, mdb *database.Database) {
 	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
 	if err != nil {
 		fmt.Printf("\nERROR | cannot schedule news task:\n\t%s", err)
 		return
 	}
-	scheduleTask(func() {
-		if _, err := OverwriteFunc(newsStore, func() (map[string]database.NewsEntry, error) {
-			newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID, NEWS_CHANNEL_MAX_FETCH)
-			if err != nil {
-				return nil, err
-			}
-
-			return database.MessagesToNewsEntries(newsMsgs), nil
-		}); err == nil {
-			if err := newsStore.WriteSnapshot(); err != nil {
-				fmt.Printf("\nERROR | news store failed to write snapshot:\n\t%s", err)
-			}
-		}
-	}, true, 2*time.Minute)
-}
-
-func scheduleTask(task func(), runInitial bool, interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	go func() {
-		if runInitial {
-			go task()
+	if _, err := OverwriteFunc(newsStore, func() (map[string]database.NewsEntry, error) {
+		newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID, NEWS_CHANNEL_MAX_FETCH)
+		if err != nil {
+			return nil, err
 		}
 
-		// defer ticker.Stop()
-		for range ticker.C {
-			task()
+		return database.MessagesToNewsEntries(newsMsgs), nil
+	}); err == nil {
+		if err := newsStore.WriteSnapshot(); err != nil {
+			fmt.Printf("\nERROR | news store failed to write snapshot:\n\t%s", err)
 		}
-	}()
+	}
 }
 
 // Runs task whos returned value is used to overwrite the data within store.

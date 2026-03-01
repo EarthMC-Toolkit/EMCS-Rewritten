@@ -13,20 +13,20 @@ import (
 
 // Looks a lil pointless, but this wraps the store's name together with its type
 // so you can't accidentally open the wrong store for a given data type.
-// It also prevents hard-coded strings littering the codebase and hurting maintenance.
+// It also prevents hard-coded strings which litter the codebase and make maintenance a pain.
 //
-// T is the value type; the actual Store stores map[[string]]T
+// T is the value type; the actual Store always stores map[[string]]T never T itself.
 type StoreDefinition[T any] struct {
-	Name          string              // The name of the store, which is also the name of the file it is persisted to (with .json suffix).
-	StoreType     *store.Store[T]     // typed nil pointer for convenience / reflection
-	StoreDataType *store.StoreData[T] // typed nil pointer for convenience / reflection
+	Name      string          // The name of the store, which is also the name of the file it is persisted to (with .json suffix).
+	StoreType *store.Store[T] // typed nil pointer for convenience / reflection
+	//StoreDataType *store.StoreData[T] // typed nil pointer for convenience / reflection
 }
 
 func NewStoreDefinition[T any](name string) StoreDefinition[T] {
 	return StoreDefinition[T]{
-		Name:          name,
-		StoreType:     (*store.Store[T])(nil),
-		StoreDataType: (*store.StoreData[T])(nil),
+		Name:      name,
+		StoreType: (*store.Store[T])(nil),
+		//StoreDataType: (*store.StoreData[T])(nil),
 	}
 }
 

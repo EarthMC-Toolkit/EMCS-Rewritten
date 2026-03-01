@@ -166,7 +166,7 @@ func QueryConcurrent[T Identifiable](
 	wg.Wait()
 	close(errCh)
 
-	var errs []error
+	errs := []error{}
 	for err := range errCh {
 		errs = append(errs, err)
 	}
