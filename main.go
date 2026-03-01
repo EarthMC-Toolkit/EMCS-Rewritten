@@ -99,7 +99,7 @@ func startBot(s *discordgo.Session) {
 	}
 
 	log.Println("Connecting to Discord gateway...")
-	var discord = bot.Connect(s)
+	discord := bot.Connect(s)
 
 	// Wait for Ctrl+C or kill.
 	c := make(chan os.Signal, 1)

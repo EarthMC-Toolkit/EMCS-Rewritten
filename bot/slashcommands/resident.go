@@ -20,14 +20,13 @@ func (cmd ResidentCommand) Options() AppCommandOpts {
 }
 
 func (cmd ResidentCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	err := discordutil.DeferReply(s, i.Interaction)
-	if err != nil {
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
 		return err
 	}
 
 	cdata := i.ApplicationCommandData()
 	playerNameArg := cdata.GetOption("name").StringValue()
 
-	_, err = executeQueryPlayer(s, i.Interaction, playerNameArg)
+	_, err := executeQueryPlayer(s, i.Interaction, playerNameArg)
 	return err
 }

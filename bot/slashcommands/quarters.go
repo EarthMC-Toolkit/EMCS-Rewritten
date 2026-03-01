@@ -39,7 +39,9 @@ func (cmd QuartersCommand) Options() AppCommandOpts {
 }
 
 func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	discordutil.DeferReply(s, i.Interaction)
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+		return err
+	}
 
 	data := i.ApplicationCommandData()
 

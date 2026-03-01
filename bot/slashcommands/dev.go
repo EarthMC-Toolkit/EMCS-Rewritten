@@ -22,11 +22,11 @@ func (cmd DevCommand) Description() string {
 // your bot to be verified, which you can apply for when you reach >100 servers.
 func (cmd DevCommand) Options() AppCommandOpts {
 	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "reload",
-			Description: "Reloads the bot by refreshing command 'Execute' definitions.",
-		},
+		// {
+		// 	Type:        discordgo.ApplicationCommandOptionSubCommand,
+		// 	Name:        "reload",
+		// 	Description: "Reloads the bot by refreshing command 'Execute' definitions.",
+		// },
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "purge",
@@ -40,8 +40,7 @@ func (cmd DevCommand) Options() AppCommandOpts {
 }
 
 func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	err := discordutil.DeferReply(s, i.Interaction)
-	if err != nil {
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
 		return err
 	}
 
@@ -66,8 +65,8 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 	// top-level sub cmd or group
 	subCmd := cdata.Options[0]
 	switch subCmd.Name {
-	case "reload":
-		return executeReload(s, i.Interaction)
+	// case "reload":
+	// 	return executeReload(s, i.Interaction)
 	case "purge":
 		return executePurge(s, i.Interaction, subCmd)
 	}
@@ -75,17 +74,43 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 	return nil
 }
 
-func executeReload(s *discordgo.Session, i *discordgo.Interaction) error {
-	RegisterAllCommands()
-	SyncRemote(s, config.GetBotID(), "")
+// func executeReload(s *discordgo.Session, i *discordgo.Interaction) error {
+// 	_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+// 		Content: "Creating new EMCS process and exiting current one.",
+// 		Flags:   discordgo.MessageFlagsEphemeral,
+// 	})
 
-	_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
-		Content: "Successfully reloaded EMC. All command were definitions updated.",
-		Flags:   discordgo.MessageFlagsEphemeral,
-	})
+// 	reloadSelf()
+// 	return err
+// }
 
-	return err
-}
+// func reloadSelf() error {
+// 	executablePath, err := os.Executable()
+// 	if err != nil {
+// 		fmt.Println("Error:", err)
+// 		return err
+// 	}
+
+// 	cwd, err := os.Getwd()
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+
+// 	fmt.Printf("\n\n---------------!! RELOAD INITIATED !!---------------\n\n")
+
+// 	cmd := exec.Command(executablePath, "start")
+// 	cmd.Stdout = os.Stdout
+// 	cmd.Stderr = os.Stderr
+// 	cmd.Stdin = os.Stdin
+// 	cmd.Dir = cwd // use dir where we originally ran the bot to avoid it running in bumfuck nowhere
+
+// 	if err := cmd.Start(); err != nil {
+// 		return fmt.Errorf("failed to start bot: %w", err)
+// 	}
+
+// 	os.Exit(0)
+// 	return nil
+// }
 
 func executePurge(s *discordgo.Session, i *discordgo.Interaction, subCmd *discordgo.ApplicationCommandInteractionDataOption) error {
 	threshold := int(subCmd.GetOption("threshold").IntValue())
@@ -128,25 +153,6 @@ func collectAllGuilds(s *discordgo.Session) (guilds []*discordgo.UserGuild, err 
 	}
 
 	return guilds, nil
-}
-
-func getHumanMemberCount(s *discordgo.Session, guildID string, threshold int) (int, error) {
-	members, err := s.GuildMembers(guildID, "", threshold+1) // Uses HTTP. To use Gateway, prefer RequestGuildMembers().
-	if err != nil {
-		return 0, err
-	}
-
-	count := 0
-	for _, m := range members {
-		if !m.User.Bot {
-			count++
-			if count > threshold {
-				return count, nil
-			}
-		}
-	}
-
-	return count, nil
 }
 
 // Leaves all guilds at or below the input threshold.
@@ -218,4 +224,23 @@ func leaveGuilds(
 	}
 
 	return
+}
+
+func getHumanMemberCount(s *discordgo.Session, guildID string, threshold int) (int, error) {
+	members, err := s.GuildMembers(guildID, "", threshold+1) // Uses HTTP. To use Gateway, prefer RequestGuildMembers().
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+	for _, m := range members {
+		if !m.User.Bot {
+			count++
+			if count > threshold {
+				return count, nil
+			}
+		}
+	}
+
+	return count, nil
 }

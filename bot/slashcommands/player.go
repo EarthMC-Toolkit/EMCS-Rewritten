@@ -43,15 +43,14 @@ func (cmd PlayerCommand) Options() AppCommandOpts {
 }
 
 func (cmd PlayerCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	err := discordutil.DeferReply(s, i.Interaction)
-	if err != nil {
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
 		return err
 	}
 
 	cdata := i.ApplicationCommandData()
 	if opt := cdata.GetOption("query"); opt != nil {
 		playerNameArg := opt.GetOption("name").StringValue()
-		_, err = executeQueryPlayer(s, i.Interaction, playerNameArg)
+		_, err := executeQueryPlayer(s, i.Interaction, playerNameArg)
 		return err
 	}
 	if opt := cdata.GetOption("compare"); opt != nil {

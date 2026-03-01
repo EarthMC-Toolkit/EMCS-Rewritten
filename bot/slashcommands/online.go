@@ -67,8 +67,7 @@ func (cmd OnlineCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.I
 }
 
 func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	err := discordutil.DeferReply(s, i.Interaction)
-	if err != nil {
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
 		return err
 	}
 
@@ -83,7 +82,7 @@ func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return executeOnlineNation(s, i.Interaction, opt.GetOption("name").StringValue())
 	}
 
-	_, err = discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+	_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
 		Content: "Error occurred getting sub command option. Somehow you sent none of them?",
 	})
 

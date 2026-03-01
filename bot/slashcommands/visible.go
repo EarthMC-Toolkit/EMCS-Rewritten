@@ -22,8 +22,7 @@ func (cmd VisibleCommand) Options() AppCommandOpts {
 }
 
 func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	err := discordutil.DeferReply(s, i.Interaction)
-	if err != nil {
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
 		return err
 	}
 

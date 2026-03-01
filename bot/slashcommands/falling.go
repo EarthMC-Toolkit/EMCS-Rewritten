@@ -22,6 +22,10 @@ func (cmd FallingCommand) Options() AppCommandOpts {
 func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	discordutil.ReplyWithError(s, i.Interaction, errors.New("Command not implemented yet."))
 
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+		return err
+	}
+
 	// Get names of all mayors
 
 	return nil
