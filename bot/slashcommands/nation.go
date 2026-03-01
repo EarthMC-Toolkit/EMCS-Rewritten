@@ -110,9 +110,9 @@ func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdat
 			{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }},
 		})
 	} else {
-		keyLower := strings.ToLower(focused)
+		focusedLower := strings.TrimSpace(strings.ToLower(focused))
 		matches = nationStore.FindAll(func(n oapi.NationInfo) bool {
-			if n.Name != "" && strings.Contains(strings.ToLower(n.Name), keyLower) {
+			if n.Name != "" && strings.Contains(strings.ToLower(n.Name), focusedLower) {
 				return true
 			}
 			if n.UUID != "" && n.UUID == focused {
