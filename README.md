@@ -29,18 +29,19 @@ Configuring the bot is as simple as editing the `.env` file (may change in futur
 export BOT_TOKEN=botTokenHere
 export BOT_APP_ID=botAppIdHere
 export DEV_ID=yourDiscordIdHere
-export ENABLE_API=false
 export API_PORT=7777
 ```
 
 ### Running the bot
 `go run . register` -> Uses a temporary Discord session to register commands, then exits the process immediately.
-`go run . start` -> Runs the bot and connects to Discord. The process runs until a panic or `Ctrl+C` (graceful exit).
+`go run . bot` -> Runs the bot and connects to Discord. The process runs until a panic or `Ctrl+C` (graceful exit).
+`go run . api` -> Starts an API and listens to the port specified in `.env` (see next section).
 
-To start immediately after registering, simply append it like so: `go run . register && go run . start`
+To start immediately after registering, simply append it like so: `go run . register && go run . bot`
 
-⚠️ You should only ever run `register` before `start` - not after the bot already started!\
+⚠️ You should only ever run `register` before `bot` - not after the bot already started!\
 ℹ️ The bot uses a lock file, meaning only a single instance will exist across processes.
+ℹ️ The API should be run in a seperate session/process so it continues while the bot is down.
 
 ### Custom API
 > [!WARNING]
@@ -49,11 +50,10 @@ To start immediately after registering, simply append it like so: `go run . regi
 By default, a custom API is not served. To serve one, simply add the following variables to your `.env` file.\
 If you are not using a reverse proxy (see next section), you can access it at `localhost:<API_PORT>`.
 ```sh
-export ENABLE_API=true
 export API_PORT=7777
 ```
 
-#### Reverse proxy
+#### Reverse Proxy
 To serve to a domain instead of `localhost`, ensure you have a reverse proxy set up.
 For example, here is a small `Caddyfile` you can use after you have installed **Caddy**.
 

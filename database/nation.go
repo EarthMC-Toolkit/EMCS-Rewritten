@@ -5,6 +5,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database/store"
 	"slices"
+	"strings"
 )
 
 var DEFAULT_NATION_WEIGHTS = NationStats{
@@ -73,4 +74,16 @@ func GetRankedNations(
 	}
 
 	return out
+}
+
+func GetNationNews(newsStore *store.Store[NewsEntry], nation oapi.NationInfo) []NewsEntry {
+	nationNews := newsStore.FindAll(func(e NewsEntry) bool {
+		msg, name := strings.ToLower(e.Message), strings.ToLower(nation.Name)
+		return strings.Contains(msg, name) || strings.Contains(msg, strings.ReplaceAll(name, "_", " "))
+	})
+	slices.SortFunc(nationNews, func(a, b NewsEntry) int {
+		return cmp.Compare(b.Timestamp, a.Timestamp) // sort news by acsending (newest first)
+	})
+
+	return nationNews
 }

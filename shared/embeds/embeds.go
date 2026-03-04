@@ -1,7 +1,6 @@
 package embeds
 
 import (
-	"cmp"
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/database/store"
@@ -185,7 +184,14 @@ func NewAllianceEmbed(
 		AddField(embed, childNationsKey, childNationsValue, false)
 	}
 
-	//AddField(embed, "Recent News", , false)
+	newsStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NEWS_STORE)
+	if err == nil {
+		allianceNews := database.GetAllianceNews(newsStore, a)
+		if len(allianceNews) > 0 {
+			recentNewsStr := BuildRecentNewsString(allianceNews)
+			AddField(embed, fmt.Sprintf("Recent News [%d]", len(allianceNews)), recentNewsStr, false)
+		}
+	}
 
 	flag := a.Optional.ImageURL
 	if flag != nil {
@@ -612,41 +618,13 @@ func NewNationEmbed(
 	}
 	//#endregion
 
-	if newsStore == nil {
-		return embed
-	}
-
-	//#region News store exists, try add "Recent News" field
-	nationNews := newsStore.FindAll(func(e database.NewsEntry) bool {
-		name, msg := strings.ToLower(nation.Name), strings.ToLower(e.Message)
-		return strings.Contains(msg, name) || strings.Contains(msg, strings.ReplaceAll(name, "_", " "))
-	})
-	if len(nationNews) > 0 {
-		slices.SortFunc(nationNews, func(a, b database.NewsEntry) int {
-			return cmp.Compare(b.Timestamp, a.Timestamp) // sort news by acsending (newest first)
-		})
-
-		lines := []string{}
-		for i, n := range nationNews {
-			if i == 2 {
-				break
-			}
-
-			msg := n.Message
-			if len(n.Images) > 0 {
-				imgs := make([]string, len(n.Images))
-				for j, img := range n.Images {
-					imgs[j] = fmt.Sprintf("[Image](%s)", img)
-				}
-
-				msg += fmt.Sprintf(" (%s)", strings.Join(imgs, ", "))
-				msg += fmt.Sprintf(" <t:%d:R>", n.Timestamp/1000)
-			}
-
-			lines = append(lines, msg)
+	//#region Try add "Recent News" field
+	if newsStore != nil {
+		nationNews := database.GetNationNews(newsStore, nation)
+		if len(nationNews) > 0 {
+			recentNewsStr := BuildRecentNewsString(nationNews)
+			AddField(embed, fmt.Sprintf("Recent News [%d]", len(nationNews)), recentNewsStr, false)
 		}
-
-		AddField(embed, fmt.Sprintf("Recent News [%d]", len(nationNews)), strings.Join(lines, "\n\n"), false)
 	}
 	//#endregion
 
@@ -671,4 +649,30 @@ func BoolToEmoji(v bool) string {
 	}
 
 	return shared.EMOJIS.CIRCLE_CROSS
+}
+
+// Given a slice of news entries, this func builds a string
+func BuildRecentNewsString(news []database.NewsEntry) string {
+	lines := []string{}
+	for i, n := range news {
+		if i == 2 {
+			break
+		}
+
+		msg := n.Message
+		imgCount := len(n.Images)
+		if imgCount > 0 {
+			imgs := make([]string, imgCount)
+			for j, img := range n.Images {
+				imgs[j] = fmt.Sprintf("[Image](%s)", img)
+			}
+
+			msg += fmt.Sprintf(" (%s)", strings.Join(imgs, ", "))
+			msg += fmt.Sprintf(" <t:%d:R>", n.Timestamp/1000)
+		}
+
+		lines = append(lines, msg)
+	}
+
+	return strings.Join(lines, "\n\n")
 }
