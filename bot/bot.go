@@ -2,8 +2,6 @@ package bot
 
 import (
 	"emcsrw/bot/events"
-	"emcsrw/database"
-	"emcsrw/shared"
 	"log"
 
 	"github.com/bwmarrin/discordgo"
@@ -48,28 +46,4 @@ func Connect(s *discordgo.Session) *discordgo.Session {
 
 	log.Println("Established connection to Discord.")
 	return s
-}
-
-// Initializes a Database for known map m by creating it at ~cwd/db/<mapName>, then assigning all
-// Stores (persisent caches) that should exist on it by creating their files inside said dir.
-func InitDB(m shared.EMCMap) *database.Database {
-	mdb, err := database.New("./db", m)
-	if err != nil {
-		log.Fatalf("Cannot initialize database for map '%s':\n%v", m, err)
-	}
-	log.Printf("Initialized database for map '%s'.\n", m)
-
-	// Define all stores we want to exist on this database.
-	// If a store does not exist, it is created under the ./db/<mapName> dir.
-	database.AssignStore(mdb, database.SERVER_STORE)
-	database.AssignStore(mdb, database.TOWNS_STORE)
-	database.AssignStore(mdb, database.NATIONS_STORE)
-	database.AssignStore(mdb, database.ENTITIES_STORE) // Store keys: residentlist, townlesslist
-	database.AssignStore(mdb, database.PLAYERS_STORE)
-	database.AssignStore(mdb, database.ALLIANCES_STORE)
-	database.AssignStore(mdb, database.NEWS_STORE)
-	database.AssignStore(mdb, database.USAGE_USERS_STORE)
-	//database.AssignStoreToDB[map[string]any](mdb, database.USAGE_LEADERBOARD_STORE)
-
-	return mdb
 }

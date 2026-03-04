@@ -135,7 +135,7 @@ func NewAllianceEmbed(
 		},
 	}
 
-	var coloursStr = "No colours set."
+	coloursStr := "No colours set."
 	if a.Optional.Colours != nil && a.Optional.Colours.Fill != nil {
 		fill := *a.Optional.Colours.Fill
 
@@ -199,7 +199,9 @@ func NewAllianceEmbed(
 	if a.Parent != nil {
 		parentAlliance, err := allianceStore.Get(strings.ToLower(*a.Parent))
 		if err == nil {
-			embed.Description = fmt.Sprintf("*This alliance is a puppet of `%s` / `%s`*.", parentAlliance.Identifier, parentAlliance.Label)
+			existingDesc := embed.Description
+			puppetStr := fmt.Sprintf("*This alliance is a puppet of `%s` / `%s`*.", parentAlliance.Identifier, parentAlliance.Label)
+			embed.Description = fmt.Sprintf("%s\n\n%s", puppetStr, existingDesc)
 		}
 	}
 

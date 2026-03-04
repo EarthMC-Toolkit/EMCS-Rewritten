@@ -11,7 +11,6 @@ import (
 
 func NewMux(mdb *database.Database) (mux *http.ServeMux, err error) {
 	mux = http.NewServeMux()
-
 	if err = ServeBase(mux); err != nil {
 		return nil, err
 	}
@@ -40,7 +39,7 @@ func Serve(mux *http.ServeMux, port uint) *http.Server {
 	}
 
 	go func() {
-		log.Println("Custom API server listening on :" + fmt.Sprint(port))
+		log.Printf("Custom API server listening on :%d", port)
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("Custom API server error: %v", err)
 		}
@@ -63,4 +62,14 @@ func getClientIP(r *http.Request) string {
 	}
 
 	return host
+}
+
+func IsRunning(port uint) bool {
+	conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	if err != nil {
+		return false // cannot connect → API not running
+	}
+
+	conn.Close()
+	return true
 }

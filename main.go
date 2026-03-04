@@ -5,11 +5,11 @@ import (
 	"emcsrw/api/capi"
 	"emcsrw/bot"
 	"emcsrw/bot/slashcommands"
+	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils/config"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
@@ -45,11 +45,8 @@ func lockProcess() func() error {
 
 func main() {
 	//#region Always runs no matter the subcommand
-	unlock := lockProcess()
-	defer unlock()
-
 	if len(os.Args) < 2 {
-		fmt.Println("ERROR | missing subcommand. Usage: go run . [register|start]")
+		fmt.Println("ERROR | missing subcommand. Usage: go run . [register|start|start-api]")
 		return
 	}
 
@@ -63,11 +60,18 @@ func main() {
 	}
 	//#endregion
 
+	activeMapDB := database.TryInit(shared.ACTIVE_MAP)
+
 	switch os.Args[1] {
 	case "register":
 		slashcommands.SyncRemote(s, config.GetBotID(), "") // Empty str = register globally
-	case "start":
-		startBot(s)
+	case "bot":
+		unlock := lockProcess()
+		defer unlock()
+
+		startBot(s, activeMapDB)
+	case "api":
+		startAPI(activeMapDB)
 	default:
 		fmt.Println("ERROR | unknown subcommand:", os.Args[1])
 	}
@@ -82,21 +86,11 @@ func newSession(token string) (*discordgo.Session, error) {
 	return s, err
 }
 
-func startBot(s *discordgo.Session) {
+func startBot(s *discordgo.Session, activeMapDB *database.Database) {
 	log.Printf("Starting bot with %d threads.\n", runtime.GOMAXPROCS(-1))
 
-	activeMapDB := bot.InitDB(shared.ACTIVE_MAP)
-	log.Printf("Initialized databases: %s\n", strings.Join([]string{shared.ACTIVE_MAP}, ","))
-
-	server := &http.Server{}
-	if config.ShouldServeAPI() {
-		mux, err := capi.NewMux(activeMapDB)
-		if err != nil {
-			fmt.Printf("failed to create api mux for %s:\n%s", activeMapDB, err)
-		}
-
-		server = capi.Serve(mux, config.GetApiPort())
-	}
+	// Init a scheduler that we can use to schedule tasks (ie. in OnReady)
+	//scheduler.Instance = scheduler.New()
 
 	log.Println("Connecting to Discord gateway...")
 	discord := bot.Connect(s)
@@ -115,18 +109,37 @@ func startBot(s *discordgo.Session) {
 		log.Printf("error closing Discord session: %v", err)
 	}
 
-	// Gracefully shutdown HTTP server that serves the Custom API.
-	if server != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := server.Shutdown(ctx); err != nil {
-			log.Printf("error shutting down HTTP server: %v", err)
-		}
-	}
-
 	// Write every store to disk safely. Any store errs are combined into single error.
 	if err := activeMapDB.Flush(); err != nil {
 		log.Printf("error closing DB: %v", err)
 	}
 	//endregion
+}
+
+func startAPI(activeMapDB *database.Database) {
+	port := config.GetApiPort()
+	if capi.IsRunning(port) {
+		log.Fatalf("Custom API server already listening on :%d", port)
+		return
+	}
+
+	mux, err := capi.NewMux(activeMapDB)
+	if err != nil {
+		log.Fatalf("failed to start Custom API. failed to init mux for %s:\n%s", activeMapDB, err)
+	}
+
+	server := capi.Serve(mux, config.GetApiPort())
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	sig := <-c
+
+	fmt.Printf("\nshutting down Custom API with signal: %s\n", strings.ToUpper(sig.String()))
+
+	// Gracefully shutdown HTTP server that serves the Custom API.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("error shutting down Custom API: %v", err)
+	}
 }

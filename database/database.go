@@ -5,6 +5,7 @@ import (
 	"emcsrw/database/store"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -112,7 +113,38 @@ func (db *Database) Flush() error {
 func Register(name string, mdb *Database) {
 	mu.Lock()
 	defer mu.Unlock()
+
 	databases[name] = mdb
+}
+
+// Attempts to initialize a Database for known map m by creating it at ~cwd/db/<mapName>, then assigning all
+// Stores (persisent caches) that should exist on it by creating their files inside said dir.
+//
+// If the database has already been initialized it will just be returned early.
+func TryInit(mapName string) *Database {
+	if mdb, err := Get(mapName); err == nil {
+		return mdb
+	}
+
+	mdb, err := New("./db", mapName)
+	if err != nil {
+		log.Fatalf("Cannot initialize database for map '%s':\n%v", mapName, err)
+	}
+
+	// Define all stores we want to exist on this
+	// If a store does not exist, it is created under the ./db/<mapName> dir.
+	AssignStore(mdb, SERVER_STORE)
+	AssignStore(mdb, TOWNS_STORE)
+	AssignStore(mdb, NATIONS_STORE)
+	AssignStore(mdb, ENTITIES_STORE) // Store keys: residentlist, townlesslist
+	AssignStore(mdb, PLAYERS_STORE)
+	AssignStore(mdb, ALLIANCES_STORE)
+	AssignStore(mdb, NEWS_STORE)
+	AssignStore(mdb, USAGE_USERS_STORE)
+	//AssignStoreToDB[map[string]any](mdb, USAGE_LEADERBOARD_STORE)
+
+	log.Printf("Initialized database for map '%s'.\n", mapName)
+	return mdb
 }
 
 func Get(name string) (*Database, error) {

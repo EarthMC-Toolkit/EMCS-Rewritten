@@ -125,12 +125,12 @@ func (a *Alliance) SetUpdated() {
 
 // TODO: Precompute a parent → children map once when loading/updating alliances.
 func (a *Alliance) ChildAlliances(alliances []Alliance) (children ChildAlliances) {
-	for _, child := range alliances {
-		if child.Identifier == a.Identifier || child.Parent == nil {
+	for _, cur := range alliances {
+		if cur.Identifier == a.Identifier || cur.Parent == nil {
 			continue // skip self and alliances without parent
 		}
-		if *child.Parent == a.Identifier {
-			children = append(children, child)
+		if *cur.Parent == a.Identifier {
+			children = append(children, cur)
 		}
 	}
 
@@ -279,7 +279,7 @@ func GetRankedAlliances(
 
 	// sort by score and assign rank based on new index
 	slices.SortFunc(ranked, func(a, b AllianceRankInfo) int {
-		return cmp.Compare(a.Score, b.Score)
+		return cmp.Compare(b.Score, a.Score)
 	})
 	for i := range ranked {
 		ranked[i].Rank = i + 1 // start from 1, where 1 is the best rank.
