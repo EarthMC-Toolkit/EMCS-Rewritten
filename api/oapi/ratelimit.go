@@ -1,6 +1,8 @@
 package oapi
 
-import "time"
+import (
+	"time"
+)
 
 const RATE_LIMIT = 180  // Amt req/min
 const QUERY_LIMIT = 100 // Amt identifiers in single req/query
@@ -13,7 +15,7 @@ const QUERY_LIMIT = 100 // Amt identifiers in single req/query
 var Dispatcher *RequestDispatcher
 
 func init() {
-	Dispatcher = NewRequestDispatcher(NewRequestBucket(RATE_LIMIT))
+	Dispatcher = NewRequestDispatcher(RATE_LIMIT)
 }
 
 type Request func() error
@@ -28,40 +30,43 @@ type RequestBucket struct {
 
 // Allocates a new [RequestBucket] and initializes it by prefilling the bucket with tokens.
 // It then starts a ticker which slowly refills the bucket with tokens at the refill rate specified by reqPerMin (converted to req/s).
-func NewRequestBucket(reqPerMin int) (bucket *RequestBucket) {
-	reqPerMin = min(RATE_LIMIT, reqPerMin)
+func NewRequestBucket(reqPerMin int) *RequestBucket {
+	reqPerMin = min(reqPerMin, RATE_LIMIT)
 	reqPerSec := reqPerMin / 60 // Eg: 180req/m becomes 3req/s
-	bucket = &RequestBucket{
+
+	bucket := &RequestBucket{
 		tokens: make(chan Token, reqPerSec),
 	}
-
 	for range reqPerSec {
-		bucket.tokens <- Token{} // pre-fill
+		bucket.tokens <- Token{}
 	}
 
 	// Token refill rate. Eg: 3req/s becomes 333ms between ticks.
-	refillRate := time.Second / time.Duration(reqPerSec)
-	ticker := time.NewTicker(refillRate + (time.Millisecond * 10)) // Extra 10ms for safety.
-
+	refillRate := (time.Second / time.Duration(reqPerSec))
+	ticker := time.NewTicker(refillRate + (time.Millisecond * 5)) // Add a 5ms safety margin.
 	go func() {
 		for range ticker.C {
 			select {
 			case bucket.tokens <- Token{}:
-			default: // full, skip adding token.
+			default:
 			}
 		}
 	}()
 
-	return
+	return bucket
 }
 
-// Blocks the goroutine that this func was called in until a token/request is available.
-func (b *RequestBucket) AcquireToken() {
+// Blocks the goroutine that this func was called in until a token/request is available and consumes it.
+func (b *RequestBucket) WaitForToken() {
+	// if len(b.tokens) == 0 {
+	// 	fmt.Println("DEBUG | Request bucket empty — waiting for token")
+	// }
+
 	<-b.tokens
 }
 
 // Attempts to acquire a token without blocking the goroutine, reporting whether acquisition succeeded.
-func (b *RequestBucket) TryAcquireToken() bool {
+func (b *RequestBucket) TryWaitForToken() bool {
 	select {
 	case <-b.tokens:
 		return true
@@ -78,67 +83,26 @@ type RequestDispatcher struct {
 	reqBucket *RequestBucket
 }
 
-func NewRequestDispatcher(bucket *RequestBucket) (dispatcher *RequestDispatcher) {
-	dispatcher = &RequestDispatcher{
-		reqBucket: bucket,
-	}
+func NewRequestDispatcher(rateLimit int) *RequestDispatcher {
+	return &RequestDispatcher{reqBucket: NewRequestBucket(rateLimit)}
+}
 
-	return
+func (d *RequestDispatcher) GetBucketTokens() chan Token {
+	return d.reqBucket.tokens
 }
 
 // Executes the req synchronously after waiting to acquire a token, both of which block the caller.
 //
 // To make an async request, prefer EnqueueAsync or EnqueueAsyncErr for error logging.
 func (d *RequestDispatcher) Enqueue(req Request) error {
-	d.reqBucket.AcquireToken() // Blocks until we have a token to use.
-	return req()               // Consume token and run a request.
+	d.reqBucket.WaitForToken()
+	return req()
 }
 
 // Runs a goroutine that handles executing req once a token is acquired.
 // This is essentially an async version of Enqueue that does not block the caller.
-func (d *RequestDispatcher) EnqueueAsync(req RequestNoErr) {
+func (d *RequestDispatcher) EnqueueAsync(req Request) {
 	go func() {
-		d.reqBucket.AcquireToken()
-		req()
+		d.Enqueue(req)
 	}()
-}
-
-// Like EnqueueAsync, but sends any non-nil error returned by the executed req into errChan.
-func (d *RequestDispatcher) EnqueueAsyncErr(req Request, errChan chan error) {
-	go func() {
-		if err := d.Enqueue(req); err != nil {
-			errChan <- err
-		}
-	}()
-}
-
-// Attempts to execute req immediately if a token is available.
-// Otherwise, it is queued asynchronously via EnqueueAsync.
-func (d *RequestDispatcher) EnqueueOrAsync(req RequestNoErr) {
-	if !d.reqBucket.TryAcquireToken() {
-		d.EnqueueAsync(req) // no token available, queue until there is one
-		return
-	}
-
-	req() // Got a token, just execute and block :)
-}
-
-// Burst executes reqs as fast as this dispatcher's bucket allows, draining all available tokens.
-//
-// If too little tokens were available to complete all requests with the initial burst,
-// QueueAsync() is called for every remaining request to ensure they arrive, but won't block.
-// func (d *RequestDispatcher) Burst(reqs []RequestNoErr) {
-// 	for _, req := range reqs {
-// 		select {
-// 		case <-d.reqBucket.tokens:
-// 			req() // Run immediately if token available
-// 		default:
-// 			// Queue remaining requests asynchronously
-// 			d.EnqueueAsync(req)
-// 		}
-// 	}
-// }
-
-func (d *RequestDispatcher) GetBucketTokens() chan Token {
-	return d.reqBucket.tokens
 }

@@ -1,6 +1,7 @@
 package oapi
 
 import (
+	"emcsrw/utils/sets"
 	"slices"
 	"strconv"
 
@@ -141,25 +142,24 @@ func (t TownInfo) GetResidentNames(alphabetical bool) []string {
 }
 
 func (t TownInfo) GetOnlineResidents() ([]Entity, error) {
-	online, err := QueryList(ENDPOINT_ONLINE)
+	online, err := QueryList(ENDPOINT_ONLINE).Execute()
 	if err != nil {
 		return nil, err
 	}
 
-	residentUUIDs := make(map[string]struct{}, len(t.Residents))
+	residentUUIDs := sets.Make[string](len(t.Residents))
 	for _, r := range t.Residents {
-		residentUUIDs[r.UUID] = struct{}{}
+		residentUUIDs.Append(r.UUID)
 	}
 
-	idx := 0
+	filtered := online[:0]
 	for _, op := range online {
-		if _, ok := residentUUIDs[op.UUID]; ok {
-			online[idx] = op
-			idx++
+		if residentUUIDs.Has(op.UUID) {
+			filtered = append(filtered, op)
 		}
 	}
 
-	return online[:idx], nil
+	return filtered, nil
 }
 
 // type Resident struct {

@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"emcsrw/api"
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
@@ -152,16 +153,15 @@ func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdat
 // }
 
 func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) (*discordgo.Message, error) {
-	var nation *oapi.NationInfo
-
 	mdb, err := database.Get(shared.ACTIVE_MAP)
 	if err != nil {
 		return nil, err
 	}
 
+	var nation *oapi.NationInfo
 	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
 	if err != nil {
-		nation, err = oapi.QueryNation(nationName)
+		nation, err = api.QueryNation(nationName)
 		if err != nil {
 			return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("DB error occurred and the OAPI failed during fallback!?```%s```", err))
 		}

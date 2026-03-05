@@ -2,6 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/utils/discordutil"
+	"errors"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -18,9 +19,10 @@ func (cmd TownlessCommand) Options() AppCommandOpts {
 }
 
 func (cmd TownlessCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
-		return err
-	}
+	// if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+	// 	return err
+	// }
 
+	discordutil.ReplyWithError(s, i.Interaction, errors.New("Command not implemented yet."))
 	return nil
 }

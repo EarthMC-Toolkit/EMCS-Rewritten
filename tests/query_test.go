@@ -5,12 +5,13 @@ import (
 	"emcsrw/api/mapi"
 	"emcsrw/api/oapi"
 	"emcsrw/utils"
+	"errors"
 	"slices"
 	"testing"
 	"time"
 
 	"github.com/samber/lo"
-	lop "github.com/samber/lo/parallel"
+	"github.com/samber/lo/parallel"
 )
 
 func isBetweenNowAndDuration(tsMilli *uint64, ago time.Duration) bool {
@@ -22,14 +23,27 @@ func isBetweenNowAndDuration(tsMilli *uint64, ago time.Duration) bool {
 	return ts.After(time.Now().Add(-ago)) && ts.Before(time.Now())
 }
 
-func TestGetOnlinePlayers(t *testing.T) {
+func TestExecuteConcurrent(t *testing.T) {
+	nation, _ := api.QueryNation("Cascadia") // ~2k residents
+	ids := parallel.Map(nation.Residents, func(e oapi.Entity, _ int) string {
+		return e.UUID
+	})
+
+	start := time.Now()
+	players, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
+	t.Logf("Querying %d entities concurrently took %s", len(players), time.Since(start))
+
+	utils.CustomLog(t, players[0], errors.Join(errs...))
+}
+
+func TestGetVisiblePlayers(t *testing.T) {
 	//t.SkipNow()
 
 	res, err := mapi.GetVisiblePlayers()
 	utils.CustomLog(t, res, err)
 }
 
-func TestQueryAllOnlinePlayers(t *testing.T) {
+func TestQueryVisiblePlayers(t *testing.T) {
 	//t.SkipNow()
 
 	players, err := api.QueryVisiblePlayers()
@@ -56,22 +70,22 @@ func TestQueryAllTowns(t *testing.T) {
 func TestQueryTown(t *testing.T) {
 	//t.SkipNow()
 
-	towns, err := oapi.QueryTowns("Venice")
-	utils.CustomLog(t, towns[0], err)
+	town, err := api.QueryTown("Venice")
+	utils.CustomLog(t, town, err)
 }
 
 func TestQueryNation(t *testing.T) {
 	//t.SkipNow()
 
-	nations, err := oapi.QueryNations("Venice")
-	utils.CustomLog(t, nations[0], err)
+	nation, err := api.QueryNation("Venice")
+	utils.CustomLog(t, nation, err)
 }
 
 func TestQueryPlayer(t *testing.T) {
 	//t.SkipNow()
 
-	players, err := oapi.QueryPlayers("Fruitloopins")
-	utils.CustomLog(t, players[0], err)
+	player, err := api.QueryPlayer("Fruitloopins")
+	utils.CustomLog(t, player, err)
 }
 
 // To run this test with higher timeout, execute the following:
@@ -80,8 +94,8 @@ func TestQueryPlayer(t *testing.T) {
 func TestQueryPlayersList(t *testing.T) {
 	//t.SkipNow()
 
-	plist, _ := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
-	ids := lop.Map(plist, func(p oapi.Entity, _ int) string {
+	plist, _ := oapi.QueryList(oapi.ENDPOINT_PLAYERS).Execute()
+	ids := parallel.Map(plist, func(p oapi.Entity, _ int) string {
 		return p.UUID
 	})
 	if len(ids) < 1 {
@@ -90,8 +104,13 @@ func TestQueryPlayersList(t *testing.T) {
 
 	t.Logf("Starting QueryConcurrent. Expect %d players. Tokens: %d", len(plist), len(oapi.Dispatcher.GetBucketTokens()))
 
+	template := map[string]bool{"name": true, "timestamps": true, "status": true}
+
 	start := time.Now()
-	players, _, reqAmt := oapi.QueryConcurrent(oapi.QueryPlayers, ids)
+	players, errs, reqAmt := oapi.QueryPlayers(ids...).WithTemplate(template).ExecuteConcurrent()
+	if len(errs) > 0 {
+		t.Fatal(errors.Join(errs...))
+	}
 
 	t.Logf("Sent %d requests for %d players. Took %s", reqAmt, len(players), time.Since(start))
 
@@ -109,28 +128,28 @@ func TestQueryPlayersList(t *testing.T) {
 	t.Logf("Online Last 72h: %d\nNames: %v", len(opNames72h), opNames72h)
 }
 
-func TestQueryPlayersConcurrent(t *testing.T) {
-	//t.SkipNow()
+// func TestQueryPlayersConcurrent(t *testing.T) {
+// 	//t.SkipNow()
 
-	ops, err := mapi.GetVisiblePlayers()
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	ops, err := mapi.GetVisiblePlayers()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	ids := lop.Map(ops, func(p mapi.MapPlayer, _ int) string {
-		return p.UUID
-	})
-	if len(ids) < 1 {
-		t.Fatal("invalid array len for player list")
-	}
+// 	ids := lop.Map(ops, func(p mapi.MapPlayer, _ int) string {
+// 		return p.UUID
+// 	})
+// 	if len(ids) < 1 {
+// 		t.Fatal("invalid array len for player list")
+// 	}
 
-	start := time.Now()
-	players, errs, reqAmt := oapi.QueryConcurrent(oapi.QueryPlayers, ids)
+// 	start := time.Now()
 
-	errCount := len(errs)
-	if errCount > 0 {
-		t.Fatalf("Encountered %d errors during requests:", errCount)
-	}
+// 	players, errs, reqAmt := oapi.QueryPlayers(ids...).ExecuteConcurrent()
+// 	errCount := len(errs)
+// 	if errCount > 0 {
+// 		t.Fatalf("Encountered %d errors during requests:", errCount)
+// 	}
 
-	t.Logf("QueryPlayersConcurrent took %s. Sent %d requests containing %d players", time.Since(start), reqAmt, len(players))
-}
+// 	t.Logf("QueryPlayersConcurrent took %s. Sent %d requests containing %d players", time.Since(start), reqAmt, len(players))
+// }

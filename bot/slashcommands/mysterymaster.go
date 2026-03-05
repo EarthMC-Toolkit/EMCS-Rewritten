@@ -31,7 +31,7 @@ func (cmd MysteryMasterCommand) Execute(s *discordgo.Session, i *discordgo.Inter
 }
 
 func SendMysteryMasterList(s *discordgo.Session, i *discordgo.Interaction) (*discordgo.Message, error) {
-	mmList, err := oapi.QueryMysteryMaster()
+	mmList, err := oapi.QueryMysteryMaster().Execute()
 	if err != nil {
 		return discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 			Content: "An error occurred retrieving town information :(",

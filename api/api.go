@@ -13,12 +13,13 @@ import (
 	"emcsrw/api/oapi"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/samber/lo/parallel"
 )
 
 func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
-	online, err := oapi.QueryList(oapi.ENDPOINT_ONLINE)
+	online, err := oapi.QueryList(oapi.ENDPOINT_ONLINE).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -27,12 +28,12 @@ func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
 		return p.UUID
 	})
 
-	players, errs, _ := oapi.QueryConcurrent(oapi.QueryPlayers, ids)
+	players, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
 	if len(players) == 0 {
-		return nil, errors.New("failed to query all players, received 0 players from QueryConcurrent")
+		return nil, errors.New("failed to query online players, received 0 players from QueryConcurrent")
 	}
 
 	return players, nil
@@ -53,12 +54,12 @@ func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
 		return p.UUID
 	})
 
-	players, errs, _ := oapi.QueryConcurrent(oapi.QueryPlayers, ids)
+	players, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
 	if len(players) == 0 {
-		return nil, errors.New("failed to query all players, received 0 players from QueryConcurrent")
+		return nil, errors.New("failed to query visible players, received 0 players from QueryConcurrent")
 	}
 
 	return players, nil
@@ -68,7 +69,7 @@ func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
 //
 // Total number of requests sent should be 1+(total towns/QUERY_LIMIT).
 func QueryAllTowns() ([]oapi.TownInfo, error) {
-	tlist, err := oapi.QueryList(oapi.ENDPOINT_TOWNS)
+	tlist, err := oapi.QueryList(oapi.ENDPOINT_TOWNS).Execute()
 	if err != nil {
 		return nil, fmt.Errorf("failed to query all towns, could not get initial list\n%v", err)
 	}
@@ -77,7 +78,7 @@ func QueryAllTowns() ([]oapi.TownInfo, error) {
 		return e.UUID
 	})
 
-	towns, errs, _ := oapi.QueryConcurrent(oapi.QueryTowns, ids)
+	towns, errs, _ := oapi.QueryTowns(ids...).ExecuteConcurrent()
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
@@ -88,18 +89,38 @@ func QueryAllTowns() ([]oapi.TownInfo, error) {
 	return towns, nil
 }
 
-// TODO: Might not even need this since we can just do QueryConcurrent for nations
-// using gathered data we got from doing QueryConcurrent for towns previously.
-// func QueryAllNations() ([]oapi.NationInfo, error) {
-// 	nlist, err := oapi.QueryList(oapi.ENDPOINT_NATIONS)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to query all nations, could not get initial list\n%v", err)
-// 	}
+func QueryTown(townName string) (*oapi.TownInfo, error) {
+	towns, err := oapi.QueryTowns(strings.ToLower(townName)).Execute()
+	if err != nil {
+		return nil, err
+	}
+	if len(towns) == 0 {
+		return nil, nil
+	}
 
-// 	identifiers := lop.Map(nlist, func(e oapi.Entity, _ int) string {
-// 		return e.UUID
-// 	})
+	return &towns[0], nil
+}
 
-// 	nations, _, _ := oapi.QueryConcurrent(identifiers, oapi.QueryNations)
-// 	return nations, nil
-// }
+func QueryNation(nationName string) (*oapi.NationInfo, error) {
+	nations, err := oapi.QueryNations(strings.ToLower(nationName)).Execute()
+	if err != nil {
+		return nil, err
+	}
+	if len(nations) == 0 {
+		return nil, nil
+	}
+
+	return &nations[0], nil
+}
+
+func QueryPlayer(playerName string) (*oapi.PlayerInfo, error) {
+	players, err := oapi.QueryPlayers(strings.ToLower(playerName)).Execute()
+	if err != nil {
+		return nil, err
+	}
+	if len(players) == 0 {
+		return nil, nil
+	}
+
+	return &players[0], nil
+}

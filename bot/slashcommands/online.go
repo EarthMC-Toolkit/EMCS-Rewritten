@@ -13,6 +13,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
+	"github.com/samber/lo/parallel"
 )
 
 type OnlineCommand struct{}
@@ -80,6 +81,11 @@ func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	opt = cdata.GetOption("nation")
 	if opt != nil {
 		return executeOnlineNation(s, i.Interaction, opt.GetOption("name").StringValue())
+	}
+
+	opt = cdata.GetOption("list")
+	if opt != nil {
+		return executeOnlineList(s, i.Interaction)
 	}
 
 	_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
@@ -154,8 +160,17 @@ func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationN
 	})
 }
 
+func executeOnlineList(s *discordgo.Session, i *discordgo.Interaction) error {
+	discordutil.ReplyWithError(s, i, errors.New("Command not implemented yet."))
+	return nil
+}
+
 func getOnlineResidents(entities ...oapi.Entity) ([]oapi.PlayerInfo, error) {
-	residents, errs, _ := oapi.QueryConcurrentEntities(oapi.QueryPlayers, entities)
+	ids := parallel.Map(entities, func(e oapi.Entity, _ int) string {
+		return e.UUID
+	})
+
+	residents, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
 	online := lo.Filter(residents, func(p oapi.PlayerInfo, _ int) bool {
 		return p.Status.IsOnline
 	})

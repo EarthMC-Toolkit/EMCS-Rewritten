@@ -216,7 +216,7 @@ func executeServerInfo(s *discordgo.Session, i *discordgo.Interaction) (*discord
 }
 
 func executeServerPlayerStats(s *discordgo.Session, i *discordgo.Interaction, sortArg string) (*discordgo.Message, error) {
-	pstats, err := oapi.QueryServerPlayerStats()
+	pstats, err := oapi.QueryServerPlayerStats().Execute()
 	if err != nil {
 		log.Printf("failed to get server player stats:\n%v", err)
 		return discordutil.FollowupContentEphemeral(s, i, "An error occurred retrieving server player stats. Check the console.")
@@ -254,7 +254,7 @@ func executeServerPlayerStats(s *discordgo.Session, i *discordgo.Interaction, so
 		})
 	}
 
-	link := "See why [here](https://github.com/EarthMC/EMCAPI/blob/main/docs/global-player-stats.md#player-statistics-endpoint."
+	link := "See why [here](https://github.com/EarthMC/EMCAPI/blob/main/docs/global-player-stats.md#player-statistics-endpoint)."
 	outdated := "⚠️ As of `July 28, 2025`, the Official API no longer updates this data.\n" + link
 
 	perPage := 20
@@ -264,16 +264,16 @@ func executeServerPlayerStats(s *discordgo.Session, i *discordgo.Interaction, so
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(count)
 
-		desc := ""
+		desc := strings.Builder{}
 		items := keys[start:end] // cur page items
 		for _, k := range items {
-			desc += fmt.Sprintf("%s: %d\n", k, pstats[k])
+			fmt.Fprint(&desc, utils.HumanizedSprintf("%s: %d\n", k, pstats[k]))
 		}
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
 		embed := &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("All-Time Player Statistics | %s", pageStr),
-			Description: fmt.Sprintf("%s```%s```", outdated, desc),
+			Description: fmt.Sprintf("%s```%s```", outdated, desc.String()),
 			Footer:      embeds.DEFAULT_FOOTER,
 			Color:       discordutil.DARK_GOLD,
 		}

@@ -26,7 +26,7 @@ func GetResponseStatus(code int) (status ResponseStatus, ok bool) {
 	// 501 Not Implemented not required here due to its very nature:
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/501
 	switch code {
-	case 429, 304, 204, 200:
+	case 304, 204, 200:
 		return RESPONSE_STATUS_OK, true
 	case 505, 503, 502, 500, 404:
 		return RESPONSE_STATUS_DOWN, false

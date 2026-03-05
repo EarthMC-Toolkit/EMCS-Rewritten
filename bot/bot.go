@@ -32,7 +32,7 @@ var EVENT_HANDLERS = []any{
 // Uses session s to open a WebSocket connection to the Discord gateway.
 func Connect(s *discordgo.Session) *discordgo.Session {
 	s.Identify.Intents = ALL_INTENTS
-	s.SyncEvents = false // Never run handlers synchronously, always run them in a goroutine.
+	s.SyncEvents = false // Run handlers in a goroutine to prevent a users command from blocking other users.
 
 	for _, e := range EVENT_HANDLERS {
 		s.AddHandler(e)

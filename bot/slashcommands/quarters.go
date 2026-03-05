@@ -14,6 +14,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
+	"github.com/samber/lo/parallel"
 )
 
 var NewEmbedField = discordutil.NewEmbedField
@@ -72,7 +73,11 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return err
 	}
 
-	townQuarters, _, _ := oapi.QueryConcurrentEntities(oapi.QueryQuarters, town.Quarters)
+	ids := parallel.Map(town.Residents, func(e oapi.Entity, _ int) string {
+		return e.UUID
+	})
+
+	townQuarters, _, _ := oapi.QueryQuarters(ids...).ExecuteConcurrent()
 	qfs := lo.Filter(townQuarters, func(q oapi.Quarter, _ int) bool {
 		return q.Status.IsForSale
 	})

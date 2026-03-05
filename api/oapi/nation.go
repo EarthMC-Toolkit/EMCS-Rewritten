@@ -2,6 +2,7 @@ package oapi
 
 import (
 	"emcsrw/utils"
+	"emcsrw/utils/sets"
 	"slices"
 	"strings"
 
@@ -117,4 +118,25 @@ func (n NationInfo) Worth() int {
 	extra := (n.Size() - numTowns) * 16 // remaining claimed chunks
 
 	return base + extra
+}
+
+func (n NationInfo) GetOnlineResidents() ([]Entity, error) {
+	online, err := QueryList(ENDPOINT_ONLINE).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	residentUUIDs := sets.Make[string](len(n.Residents))
+	for _, r := range n.Residents {
+		residentUUIDs.Append(r.UUID)
+	}
+
+	filtered := online[:0]
+	for _, op := range online {
+		if residentUUIDs.Has(op.UUID) {
+			filtered = append(filtered, op)
+		}
+	}
+
+	return filtered, nil
 }

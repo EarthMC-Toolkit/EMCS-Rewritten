@@ -87,7 +87,8 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 		return
 	}
 	if info, err := SetKeyFunc(serverStore, "info", func() (oapi.ServerInfo, error) {
-		return oapi.QueryServer()
+		info, err := oapi.QueryServer().Execute()
+		return info, err
 	}); err == nil {
 		TrySendVotePartyNotif(s, info.VoteParty)
 		if err := serverStore.WriteSnapshot(); err != nil {
@@ -206,7 +207,8 @@ func UpdateData(mdb *database.Database) (
 	})
 
 	nationList, _ := OverwriteFunc(nationStore, func() (map[string]oapi.NationInfo, error) {
-		res, _, _ := oapi.QueryConcurrent(oapi.QueryNations, lo.Keys(nlist))
+		uuids := lo.Keys(nlist)
+		res, _, _ := oapi.QueryNations(uuids...).ExecuteConcurrent()
 		return lo.SliceToMap(res, func(n oapi.NationInfo) (string, oapi.NationInfo) {
 			return n.UUID, n
 		}), nil
@@ -214,7 +216,7 @@ func UpdateData(mdb *database.Database) (
 	//endregion
 
 	//region ============ SPLIT RESIDENTS FROM TOWNLESS ============
-	players, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS)
+	players, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS).Execute()
 	if err != nil {
 		return townList, staleTowns, nil, residentList, err
 	}

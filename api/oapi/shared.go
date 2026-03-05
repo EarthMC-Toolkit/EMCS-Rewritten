@@ -2,19 +2,18 @@ package oapi
 
 var rnao = [4]byte{'r', 'n', 'a', 'o'}
 
-// Takes a single permission (slice of bools) and outputs a string in the RNAO (Resident, Nation, Ally, Outsider) format.
-func encodePerm(perm [4]bool) string {
-	b := make([]byte, 4)
-	for i, v := range perm {
-		if v {
-			b[i] = rnao[i]
-		} else {
-			b[i] = '-'
-		}
-	}
-
-	return string(b)
+type Entity struct {
+	Name string `json:"name"`
+	UUID string `json:"uuid"`
 }
+
+type EntityNullableValues struct {
+	Name *string `json:"name"`
+	UUID *string `json:"uuid"`
+}
+
+// Maps an entity's UUID -> Name. Alternative to []oapi.Entity and usually preferred.
+type EntityList = map[string]string
 
 type Timestamps struct {
 	Registered uint64 `json:"registered"`
@@ -62,15 +61,16 @@ func (p Perms) GetPermStrings() (string, string, string, string) {
 	return encodePerm(p.Build), encodePerm(p.Destroy), encodePerm(p.Switch), encodePerm(p.ItemUse)
 }
 
-type EntityNullableValues struct {
-	Name *string `json:"name"`
-	UUID *string `json:"uuid"`
-}
+// Takes a single permission (slice of bools) and outputs a string in the RNAO (Resident, Nation, Ally, Outsider) format.
+func encodePerm(perm [4]bool) string {
+	b := make([]byte, 4)
+	for i, v := range perm {
+		if v {
+			b[i] = rnao[i]
+		} else {
+			b[i] = '-'
+		}
+	}
 
-type Entity struct {
-	Name string `json:"name"`
-	UUID string `json:"uuid"`
+	return string(b)
 }
-
-// Maps an entity's UUID -> Name. Alternative to []oapi.Entity and usually preferred.
-type EntityList = map[string]string

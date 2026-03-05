@@ -2,6 +2,7 @@ package slashcommands
 
 import (
 	"cmp"
+	"emcsrw/api"
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo/parallel"
 )
 
 const PURGE_DAYS = 42
@@ -260,8 +262,12 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 		return discordutil.FollowupContentEphemeral(s, i, err.Error())
 	}
 
+	ids := parallel.Map(town.Residents, func(e oapi.Entity, _ int) string {
+		return e.UUID
+	})
+
 	// TODO: Maybe do this inside of PageFunc using residents on current page
-	residents, errs, _ := oapi.QueryConcurrentEntities(oapi.QueryPlayers, town.Residents)
+	residents, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
 	if len(errs) > 0 {
 		return nil, errs[0]
 	}
@@ -336,7 +342,8 @@ func tryGetTown(townName string) (*oapi.TownInfo, error) {
 
 	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
 	if err != nil {
-		if town, err = oapi.QueryTown(townName); err != nil {
+		town, err = api.QueryTown(townName)
+		if err != nil {
 			return nil, fmt.Errorf("A database error occurred and the API failed during fallback!?```%s```", err)
 		}
 	} else {
