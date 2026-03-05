@@ -2,6 +2,11 @@ package oapi
 
 import "slices"
 
+type OnlineResponse struct {
+	Count   uint16   `json:"count"`
+	Players []Entity `json:"players"`
+}
+
 type PlayerTimestamps struct {
 	Timestamps
 	JoinedTownAt *uint64 `json:"joinedTownAt"`

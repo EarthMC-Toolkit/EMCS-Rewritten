@@ -159,6 +159,10 @@ func QueryServer() *GetQuery[ServerInfo] {
 	return NewGetQuery[ServerInfo](ENDPOINT_BASE)
 }
 
+func QueryOnline() *GetQuery[OnlineResponse] {
+	return NewGetQuery[OnlineResponse](ENDPOINT_ONLINE)
+}
+
 func QueryServerPlayerStats() *GetQuery[ServerPlayerStats] {
 	return NewGetQuery[ServerPlayerStats](ENDPOINT_PLAYER_STATS)
 }

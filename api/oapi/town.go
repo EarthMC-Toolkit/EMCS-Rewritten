@@ -142,7 +142,7 @@ func (t TownInfo) GetResidentNames(alphabetical bool) []string {
 }
 
 func (t TownInfo) GetOnlineResidents() ([]Entity, error) {
-	online, err := QueryList(ENDPOINT_ONLINE).Execute()
+	res, err := QueryOnline().Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +152,8 @@ func (t TownInfo) GetOnlineResidents() ([]Entity, error) {
 		residentUUIDs.Append(r.UUID)
 	}
 
-	filtered := online[:0]
-	for _, op := range online {
+	filtered := res.Players[:0]
+	for _, op := range res.Players {
 		if residentUUIDs.Has(op.UUID) {
 			filtered = append(filtered, op)
 		}

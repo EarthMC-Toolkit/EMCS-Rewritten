@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/samber/lo"
 	"github.com/samber/lo/parallel"
 )
 
@@ -113,12 +112,19 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 		return err
 	}
 
-	online, _ := getOnlineResidents(town.Residents...)
-	if len(online) < 1 {
+	onlineResidents, _ := town.GetOnlineResidents()
+	if len(onlineResidents) < 1 {
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("No players online in town: `%s`.", townName),
 		})
 
+		return err
+	}
+
+	// TODO: Instead of wasting tokens doing concurrent requests for all residents, we should
+	// 		 query every time time we turn the page for just the page players.
+	online, err := queryResidents(onlineResidents)
+	if err != nil {
 		return err
 	}
 
@@ -145,12 +151,19 @@ func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationN
 		return err
 	}
 
-	online, _ := getOnlineResidents(nation.Residents...)
-	if len(online) < 1 {
+	onlineResidents, _ := nation.GetOnlineResidents()
+	if len(onlineResidents) < 1 {
 		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("No players online in nation: `%s`.", nationName),
 		})
 
+		return err
+	}
+
+	// TODO: Instead of wasting tokens doing concurrent requests for all residents, we should
+	// 		 query every time time we turn the page for just the page players.
+	online, err := queryResidents(onlineResidents)
+	if err != nil {
 		return err
 	}
 
@@ -165,17 +178,13 @@ func executeOnlineList(s *discordgo.Session, i *discordgo.Interaction) error {
 	return nil
 }
 
-func getOnlineResidents(entities ...oapi.Entity) ([]oapi.PlayerInfo, error) {
+func queryResidents(entities []oapi.Entity) ([]oapi.PlayerInfo, error) {
 	ids := parallel.Map(entities, func(e oapi.Entity, _ int) string {
 		return e.UUID
 	})
 
 	residents, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
-	online := lo.Filter(residents, func(p oapi.PlayerInfo, _ int) bool {
-		return p.Status.IsOnline
-	})
-
-	return online, errors.Join(errs...)
+	return residents, errors.Join(errs...)
 }
 
 func sendPaginator(
