@@ -13,7 +13,6 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/bot/scheduler"
 	"emcsrw/database"
-	"emcsrw/database/store"
 	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
@@ -86,7 +85,7 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 		fmt.Printf("\nERROR | cannot schedule serverinfo task:\n\t%s", err)
 		return
 	}
-	if info, err := SetKeyFunc(serverStore, "info", func() (oapi.ServerInfo, error) {
+	if info, err := serverStore.SetKeyFunc("info", func() (oapi.ServerInfo, error) {
 		info, err := oapi.QueryServer().Execute()
 		return info, err
 	}); err == nil {
@@ -103,7 +102,7 @@ func newsTask(s *discordgo.Session, mdb *database.Database) {
 		fmt.Printf("\nERROR | cannot schedule news task:\n\t%s", err)
 		return
 	}
-	if _, err := OverwriteFunc(newsStore, func() (map[string]database.NewsEntry, error) {
+	if _, err := newsStore.OverwriteFunc(func() (map[string]database.NewsEntry, error) {
 		newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID, NEWS_CHANNEL_MAX_FETCH)
 		if err != nil {
 			return nil, err
@@ -115,39 +114,6 @@ func newsTask(s *discordgo.Session, mdb *database.Database) {
 			fmt.Printf("\nERROR | news store failed to write snapshot:\n\t%s", err)
 		}
 	}
-}
-
-// Runs task whos returned value is used to overwrite the data within store.
-//
-// If an error occurs during the task, the error is logged and returned, and the DB write will not occur.
-func OverwriteFunc[T any](store *store.Store[T], task func() (map[string]T, error)) (map[string]T, error) {
-	v, err := task()
-	if err != nil {
-		log.Printf("error overwriting data in db at %s:\n%v", store.CleanPath(), err)
-		return v, err
-	}
-
-	if len(v) < 1 {
-		return nil, fmt.Errorf("error overwriting data in db at %s:\nretrieved value is empty", store.CleanPath())
-	}
-
-	store.Overwrite(v)
-	//log.Printf("put '%s' into db at %s\n", key, dbDir)
-
-	return v, err
-}
-
-func SetKeyFunc[T any](store *store.Store[T], key string, task func() (T, error)) (T, error) {
-	res, err := task()
-	if err != nil {
-		log.Printf("error putting '%s' into db at %s:\n%v", key, store.CleanPath(), err)
-		return res, err
-	}
-
-	store.Set(key, res)
-	//log.Printf("put '%s' into db at %s\n", key, dbDir)
-
-	return res, err
 }
 
 func UpdateData(mdb *database.Database) (
@@ -177,7 +143,7 @@ func UpdateData(mdb *database.Database) (
 	staleTowns = townStore.Entries()
 	fmt.Printf("DEBUG | Stale towns: %d", len(staleTowns))
 
-	townList, err := OverwriteFunc(townStore, func() (map[string]oapi.TownInfo, error) {
+	townList, err := townStore.OverwriteFunc(func() (map[string]oapi.TownInfo, error) {
 		res, err := api.QueryAllTowns()
 		if err != nil {
 			return nil, err
@@ -202,11 +168,11 @@ func UpdateData(mdb *database.Database) (
 		}
 	}
 
-	SetKeyFunc(entityStore, "residentlist", func() (entities oapi.EntityList, err error) {
+	entityStore.SetKeyFunc("residentlist", func() (entities oapi.EntityList, err error) {
 		return residentList, nil
 	})
 
-	nationList, _ := OverwriteFunc(nationStore, func() (map[string]oapi.NationInfo, error) {
+	nationList, _ := nationStore.OverwriteFunc(func() (map[string]oapi.NationInfo, error) {
 		uuids := lo.Keys(nlist)
 		res, _, _ := oapi.QueryNations(uuids...).ExecuteConcurrent()
 		return lo.SliceToMap(res, func(n oapi.NationInfo) (string, oapi.NationInfo) {
@@ -221,7 +187,7 @@ func UpdateData(mdb *database.Database) (
 		return townList, staleTowns, nil, residentList, err
 	}
 
-	townlessList, _ := SetKeyFunc(entityStore, "townlesslist", func() (oapi.EntityList, error) {
+	townlessList, _ := entityStore.SetKeyFunc("townlesslist", func() (oapi.EntityList, error) {
 		entities := lo.FilterMap(players, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
 			_, ok := residentList[p.UUID]
 			return p, !ok
@@ -249,7 +215,7 @@ func UpdateData(mdb *database.Database) (
 		}
 	}
 
-	OverwriteFunc(playerStore, func() (map[string]database.BasicPlayer, error) {
+	playerStore.OverwriteFunc(func() (map[string]database.BasicPlayer, error) {
 		playersMap := make(map[string]database.BasicPlayer)
 		for uuid, name := range townlessList {
 			playersMap[uuid] = database.NewBasicPlayerEntity(uuid, name)
