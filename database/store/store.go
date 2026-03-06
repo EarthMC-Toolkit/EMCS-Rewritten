@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -155,6 +156,24 @@ func (s *Store[T]) Overwrite(value StoreData[T]) {
 	s.data = value
 }
 
+// Runs func f whos returned value is used to overwrite the data within store.
+//
+// If an error occurs during the func, the error is logged and returned, and the DB write will not occur.
+func (s *Store[T]) OverwriteFunc(f func() (map[string]T, error)) (map[string]T, error) {
+	v, err := f()
+	if err != nil {
+		log.Printf("error overwriting data in db at %s:\n%v", s.CleanPath(), err)
+		return v, err
+	}
+
+	if len(v) < 1 {
+		return nil, fmt.Errorf("error overwriting data in db at %s:\nretrieved value is empty", s.CleanPath())
+	}
+
+	s.Overwrite(v)
+	return v, err
+}
+
 func (s *Store[T]) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -204,6 +223,17 @@ func (s *Store[T]) Set(key string, value T) {
 	defer s.mu.Unlock()
 
 	s.data[key] = value
+}
+
+func (s *Store[T]) SetKeyFunc(key string, f func() (T, error)) (T, error) {
+	res, err := f()
+	if err != nil {
+		log.Printf("error putting '%s' into db at %s:\n%v", key, s.CleanPath(), err)
+		return res, err
+	}
+
+	s.Set(key, res)
+	return res, err
 }
 
 // Retrieves a value from this store that is associated with the key.
