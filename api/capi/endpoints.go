@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"crypto/sha1"
 	"emcsrw/database"
-	"emcsrw/utils"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -14,7 +13,28 @@ import (
 	"slices"
 	"strings"
 	"sync"
+
+	"github.com/samber/lo"
 )
+
+// Req/m for each endpoint
+const (
+	ALLIANCES_RPM = 8
+	NEWS_RPM      = 6
+	PLAYERS_RPM   = 3
+)
+
+const BASE_WELCOME_STR = `
+Welcome to the Custom API! All info here is only available originally by the EarthMC Stats Discord bot.
+
+To access data for a specific map, navigate to "https://emcstats.bot.nu/mapName/endpoint".
+For example, "/aurora/alliances" for alliance data on the Aurora map.
+
+The following endpoints are available:
+- /alliances
+- /news
+- /players
+`
 
 type BasicPlayer struct {
 	Name   string             `json:"name"`
@@ -35,27 +55,11 @@ type ResponseCache struct {
 	ETag           string // like hash, but intended to match what the client still has
 }
 
-var alliancesCacheMu sync.RWMutex
 var alliancesCache = &ResponseCache{}
+var alliancesCacheMu = sync.RWMutex{}
 
-// Req/m for each endpoint
-const (
-	ALLIANCES_RPM = 8
-	NEWS_RPM      = 6
-	PLAYERS_RPM   = 3
-)
-
-const BASE_WELCOME_STR = `
-Welcome to the Custom API! All info here is only available originally by the EarthMC Stats Discord bot.
-
-To access data for a specific map, navigate to "https://emcstats.bot.nu/mapName/endpoint".
-For example, "/aurora/alliances" for alliance data on the Aurora map.
-
-The following endpoints are available:
-- /alliances
-- /news
-- /players
-`
+var newsCache = &ResponseCache{}
+var newsCacheMu = sync.RWMutex{}
 
 func ServeBase(mux *http.ServeMux) error {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -87,12 +91,9 @@ func ServeAlliances(mux *http.ServeMux, mdb *database.Database) error {
 		alliances := allianceStore.Values()
 
 		// compute lightweight hash of alliance identifiers + timestamps
-		h := sha1.New()
-		for _, a := range alliances {
-			h.Write([]byte(a.Identifier))
-			binary.Write(h, binary.LittleEndian, a.UpdatedTimestamp)
-		}
-		currentHash := fmt.Sprintf("%x", h.Sum(nil))
+		currentHash := computeHash(alliances, func(a database.Alliance) (string, int64) {
+			return a.Identifier, int64(*a.UpdatedTimestamp)
+		})
 
 		alliancesCacheMu.RLock()
 		cacheHit := alliancesCache.Hash == currentHash
@@ -149,6 +150,64 @@ func ServeAlliances(mux *http.ServeMux, mdb *database.Database) error {
 	return nil
 }
 
+func ServeNews(mux *http.ServeMux, mdb *database.Database) error {
+	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
+	if err != nil {
+		return err
+	}
+
+	newsEndpoint := fmt.Sprintf("/%s/news", mdb.Name())
+	mux.HandleFunc(newsEndpoint, func(w http.ResponseWriter, r *http.Request) {
+		newsValues := lo.MapToSlice(newsStore.Entries(), func(key string, n database.NewsEntry) NewsEntry {
+			return NewsEntry{NewsEntry: n, ID: key}
+		})
+		slices.SortFunc(newsValues, func(a, b NewsEntry) int {
+			return cmp.Compare(b.Timestamp, a.Timestamp) // newest first
+		})
+
+		// gzip JSON to a buffer first
+		var buf bytes.Buffer
+		gz, err := gzip.NewWriterLevel(&buf, 2)
+		if err != nil {
+			http.Error(w, "Error during gzip compression", http.StatusInternalServerError)
+			return
+		}
+
+		if err := json.NewEncoder(gz).Encode(newsValues); err != nil {
+			gz.Close()
+			http.Error(w, "Error encoding JSON", http.StatusInternalServerError)
+			return
+		}
+		gz.Close()
+		data := buf.Bytes()
+
+		// generate ETag from gzipped JSON
+		etag := fmt.Sprintf(`"%x"`, sha1.Sum(data))
+
+		// 304 if client already has current snapshot
+		if r.Header.Get("If-None-Match") == etag && etag != "" {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+
+		// rate limit applies only when serving data
+		limiter := getLimiter(getClientIP(r), newsEndpoint, NEWS_RPM)
+		if !limiter.Allow() {
+			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+			return
+		}
+
+		w.Header().Set("ETag", etag)
+		w.Header().Set("Cache-Control", "public, max-age=120")
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Vary", "Accept-Encoding")
+		w.Write(data)
+	})
+
+	return nil
+}
+
 func ServePlayers(mux *http.ServeMux, mdb *database.Database) error {
 	playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
 	if err != nil {
@@ -176,7 +235,7 @@ func ServePlayers(mux *http.ServeMux, mdb *database.Database) error {
 		defer gz.Close()
 
 		// Condense town and nation fields from entity object to array to reduce payload size
-		playerStoreValues := utils.MapValues(playerStore.Entries(), func(key string, p database.BasicPlayer) BasicPlayer {
+		playerStoreValues := lo.MapToSlice(playerStore.Entries(), func(key string, p database.BasicPlayer) BasicPlayer {
 			var town, nation *[2]string
 			if p.Town != nil {
 				t := [2]string{p.Town.Name, p.Town.UUID}
@@ -202,45 +261,6 @@ func ServePlayers(mux *http.ServeMux, mdb *database.Database) error {
 	return nil
 }
 
-func ServeNews(mux *http.ServeMux, mdb *database.Database) error {
-	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
-	if err != nil {
-		return err
-	}
-
-	newsEndpoint := fmt.Sprintf("/%s/news", mdb.Name())
-	mux.HandleFunc(newsEndpoint, func(w http.ResponseWriter, r *http.Request) {
-		limiter := getLimiter(getClientIP(r), newsEndpoint, NEWS_RPM)
-		if !limiter.Allow() {
-			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-			return
-		}
-
-		w.Header().Set("Cache-Control", "public, max-age=120")
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Vary", "Accept-Encoding")
-
-		gz, err := gzip.NewWriterLevel(w, 2)
-		if err != nil {
-			http.Error(w, "Error during gzip data compression", http.StatusInternalServerError)
-			return
-		}
-		defer gz.Close()
-
-		newsValues := utils.MapValues(newsStore.Entries(), func(key string, n database.NewsEntry) NewsEntry {
-			return NewsEntry{NewsEntry: n, ID: key}
-		})
-		slices.SortFunc(newsValues, func(a, b NewsEntry) int {
-			return cmp.Compare(b.Timestamp, a.Timestamp) // sort news by acsending (newest first)
-		})
-
-		json.NewEncoder(gz).Encode(newsValues)
-	})
-
-	return nil
-}
-
 func gzipJSON[T any](v T, level int) ([]byte, error) {
 	buf := bytes.Buffer{}
 	gz, err := gzip.NewWriterLevel(&buf, level)
@@ -256,4 +276,17 @@ func gzipJSON[T any](v T, level int) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func computeHash[T any](items []T, keyFn func(T) (id string, timestamp int64)) string {
+	h := sha1.New()
+	for _, item := range items {
+		id, ts := keyFn(item)
+		h.Write([]byte(id))
+		var buf [8]byte
+		binary.LittleEndian.PutUint64(buf[:], uint64(ts))
+		h.Write(buf[:])
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
