@@ -88,14 +88,12 @@ List of endpoints as of 16 Jan 2026:
 - `alliances`
 - `players`
 
-## Contributing
-If you know **Golang** and the basics of the **discordgo** library, I encourage you to create pull requests or suggest features.
-You can also fork this project and use it as a base if you so desire, but the GPL license requires you to keep the source code available.
-
 ## Project Structure
 >- `main.go` -> Project entrypoint. Responsible for loading `env` and passing bot token to `bot.Run`.
 >- `bot` -> Where the bot runs from. Contains all bot logic for commands, events etc.
 >   - `events` -> The package where Discord event handlers like `OnReady` are run and are handled.
+> 	- `scheduler` -> Task scheduler logic for running tasks at an interval which can gracefully shutdown.
+> 	- `slashcommands` -> Self explanatory. Contains all slash commands as seperate files which handle their own execution.
 >   - `bot.go` -> The file where the bot connects to Discord, also responsible for setting event handlers and intents.
 >- `api` -> Contains packages relating to APIs. Contains funcs that interact with both where necessary.
 >   - `mapi` -> For interacting with the map API. (Currently Squaremap)
@@ -106,3 +104,69 @@ You can also fork this project and use it as a base if you so desire, but the GP
 >- `db` -> Where permanent data such as alliances are intended to be stored. Git ignored.
 >- `shared` -> For things that can be shared, e.g. constants or embed related funcs/vars.
 >- `utils` -> Contains packages for reusable funcs like helpers for strings, slices, http, logging etc.
+
+## Contributing
+If you know **Golang** and the basics of the **discordgo** library, I encourage you to create pull requests or suggest features.
+You can also fork this project and use it as a base if you so desire, but the GPL license requires you to keep the source code available.
+
+Creating a new command is as simple as adding it to `RegisterAllCommands()` and then creating a file which satisfies the `SlashCommand` interface (see code below). Finally, run the command `go run . register && go run . bot` and refresh Discord (Ctrl+R).
+
+```go
+type ExampleCommand struct{}
+
+func (cmd ExampleCommand) Name() string { return "example" }
+func (cmd ExampleCommand) Description() string {
+	return "This is an example description for a slash command."
+}
+
+func (cmd ExampleCommand) Options() AppCommandOpts {
+	return AppCommandOpts{
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "query",
+			Description: "Query information about XYZ.",
+			Options: AppCommandOpts{
+				discordutil.AutocompleteStringOption("name", "The name of the thing to query.", 2, 36, true),
+			},
+		},
+	}
+}
+
+// Allows this command to handle its own execution once registered (via an interface).
+func (cmd ExampleCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	// Indicates that the command will take >3s so it does not timeout.
+	// Displays the "bot is thinking..." text.
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+		return err
+	}
+
+ 	// Do some stuff according to chosen subcmd.
+	// If no subcommands exist, we can skip the option and execute.
+	cdata := i.ApplicationCommandData()
+	if opt := cdata.GetOption("query"); opt != nil {
+		nationNameArg := opt.GetOption("name").StringValue()
+		_, err := executeExampleQueryFunc(s, i.Interaction, nationNameArg)
+		return err
+	}
+
+	return nil
+}
+
+// =============================================================================================
+// The following are optional and can be removed if desired.
+// You can find example usage of these across files within the `./bot/slashcommands/` directory.
+
+func (cmd ExampleCommand) HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
+	return nil
+}
+
+func (cmd ExampleCommand) HandleButton(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
+	return nil
+}
+
+func (cmd ExampleCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error {
+	return nil
+}
+
+// =============================================================================================
+```

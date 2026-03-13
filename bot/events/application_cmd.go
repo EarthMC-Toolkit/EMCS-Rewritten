@@ -44,8 +44,9 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 		// TODO: Maybe send error message here like we do with panic
 	}
 
+	// Update usage for this cmd regardless of success/failure.
 	if cmdName != "usage" {
-		mdb, err := database.Get(shared.ACTIVE_MAP)
+		usageStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.USAGE_USERS_STORE)
 		if err != nil {
 			fmt.Println()
 			log.Printf("error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)
@@ -58,7 +59,7 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 			Success:   success,
 		}
 
-		if err := database.UpdateUsageForUser(mdb, author, cmdName, e); err != nil {
+		if err := database.UpdateUserUsage(usageStore, author, cmdName, e); err != nil {
 			fmt.Println()
 			log.Printf("error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)
 			return

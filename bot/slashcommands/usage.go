@@ -1,14 +1,15 @@
 package slashcommands
 
 import (
+	"cmp"
 	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
-	"emcsrw/utils/sets"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -61,48 +62,30 @@ func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 
 	author := discordutil.GetInteractionAuthor(i)
 	usage, _ := usageStore.Get(author.ID)
-	// if err != nil {
-	// 	log.Printf("failed to get user usage for %s (%s):\n%v", author.Username, author.ID, err)
-	// 	discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
-	// 		Content: "Error occurred getting usage statistics from db.",
-	// 	})
-	// }
-
 	if usage == nil {
 		return discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
 			Content: "No usage recorded.",
 		})
 	}
 
-	// Get stats for all time and convert to formatted string.
-	statsAllTime := usage.GetCommandStats()
-	top := min(20, len(statsAllTime)) // How many "most used commands" to display.
-	mostUsed := sets.Make[string](top)
-	for _, stat := range statsAllTime[:top] {
-		mostUsed.Append(utils.HumanizedSprintf("/%s - `%d` times", stat.Name, stat.Count))
-	}
-	mostUsedStr := strings.Join(mostUsed.Keys(), "\n")
+	// Get stats for each time window and convert to formatted string.
+	mostUsedStr, totalAllTime := formatCommandStats(usage, nil, 20)
 
-	// Get stats for last 30d and convert to formatted string.
-	statsLast30Days := usage.GetCommandStatsSince(time.Now().AddDate(0, 0, -30))
-	top = min(20, len(statsLast30Days)) // How many "most used commands" to display.
-	mostUsed = sets.Make[string](top)
-	for _, stat := range statsLast30Days[:top] {
-		mostUsed.Append(utils.HumanizedSprintf("/%s - `%d` times", stat.Name, stat.Count))
-	}
-	mostUsed30DaysStr := strings.Join(mostUsed.Keys(), "\n")
+	since3m := time.Now().AddDate(0, -3, 0)
+	mostUsed3mStr, total3Months := formatCommandStats(usage, &since3m, 20)
 
-	totalAllTime := utils.HumanizedSprintf("Total: `%d`", usage.CalculateTotal(statsAllTime))
-	total30Days := utils.HumanizedSprintf("Total: `%d`", usage.CalculateTotal(statsLast30Days))
+	since30d := time.Now().AddDate(0, 0, -30)
+	mostUsed30dStr, total30Days := formatCommandStats(usage, &since30d, 20)
 
 	embed := &discordgo.MessageEmbed{
 		Title:  fmt.Sprintf("Bot Usage Statistics | `%s`", author.Username),
+		Color:  discordutil.WHITE,
 		Footer: embeds.DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
-			discordutil.NewEmbedField("Top Commands (All Time)", totalAllTime+"\n\n"+mostUsedStr, true),
-			discordutil.NewEmbedField("Top Commands (Last 30 Days)", total30Days+"\n\n"+mostUsed30DaysStr, true),
+			discordutil.NewEmbedField("Top Commands (All Time)", fmt.Sprintf("%s\n\n%s", totalAllTime, mostUsedStr), true),
+			discordutil.NewEmbedField("Top Commands (Last 3 Months)", fmt.Sprintf("%s\n\n%s", total3Months, mostUsed3mStr), true),
+			discordutil.NewEmbedField("Top Commands (Last 30 Days)", fmt.Sprintf("%s\n\n%s", total30Days, mostUsed30dStr), true),
 		},
-		Color: discordutil.WHITE,
 	}
 
 	return discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
@@ -113,4 +96,28 @@ func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 func executeLeaderboard(s *discordgo.Session, i *discordgo.Interaction) error {
 	discordutil.ReplyWithError(s, i, errors.New("Command not implemented yet."))
 	return nil
+}
+
+func formatCommandStats(usage *database.UserUsage, since *time.Time, limit int) (string, string) {
+	stats := []database.UsageCommandStat{}
+	if since == nil {
+		stats = usage.GetCommandStats()
+	} else {
+		stats = usage.GetCommandStatsSince(*since)
+	}
+
+	slices.SortFunc(stats, func(a, b database.UsageCommandStat) int {
+		return cmp.Compare(b.Count, a.Count)
+	})
+
+	limit = min(limit, len(stats))
+	mostUsed := make([]string, 0, limit)
+	for _, stat := range stats[:limit] {
+		cmdUsageStr := utils.HumanizedSprintf("/%s - `%d` times", stat.Name, stat.Count)
+		mostUsed = append(mostUsed, cmdUsageStr)
+	}
+
+	list := strings.Join(mostUsed, "\n")
+	total := utils.HumanizedSprintf("Total: `%d`", usage.CalculateTotal(stats))
+	return list, total
 }

@@ -8,7 +8,6 @@ import (
 	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
-	"emcsrw/utils/sets"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -474,7 +473,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 		start, end := paginator.CurrentPageBounds(allianceCount)
 
 		pageAlliances := alliances[start:end]
-		allianceStrings := sets.Make[string](len(pageAlliances))
+		allianceStrings := make([]string, 0, len(pageAlliances))
 		for idx, a := range pageAlliances {
 			allianceName := a.Identifier
 			if a.Optional.DiscordCode == nil {
@@ -493,12 +492,10 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 			if err != nil {
 				fmt.Printf("%s an error occurred getting leaders for alliance %s:\n%v", time.Now().Format(time.Stamp), a.Identifier, err)
 				leaderStr = "`Unknown/Error`"
-			} else {
-				if len(leaders) > 0 {
-					leaderStr = strings.Join(lo.Map(leaders, func(leader string, _ int) string {
-						return fmt.Sprintf("`%s`", leader)
-					}), ", ")
-				}
+			} else if len(leaders) > 0 {
+				leaderStr = strings.Join(lo.Map(leaders, func(leader string, _ int) string {
+					return fmt.Sprintf("`%s`", leader)
+				}), ", ")
 			}
 
 			representativeName := "`Unknown/Error`"
@@ -513,7 +510,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 			childNations := nationStore.GetFromSet(childNationIds)
 
 			towns, residents, area, worth := a.GetStats(ownNations, childNations)
-			allianceStrings.Append(fmt.Sprintf(
+			allianceStrings = append(allianceStrings, fmt.Sprintf(
 				"%d. %s (%s)\nLeader(s): %s\nRepresentative: `%s`\nNations: %s\nTowns: %s\nResidents: %s\nSize: %s", start+idx+1,
 				allianceName, a.Type.Colloquial(), leaderStr, representativeName,
 				utils.HumanizedSprintf("`%d`", len(childNations)+len(ownNations)),
@@ -526,7 +523,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
 		embed := &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("[%d] List of Alliances | %s", allianceCount, pageStr),
-			Description: strings.Join(allianceStrings.Keys(), "\n\n"),
+			Description: strings.Join(allianceStrings, "\n\n"),
 			Color:       discordutil.DARK_AQUA,
 		}
 

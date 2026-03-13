@@ -1,6 +1,7 @@
 package database
 
 import (
+	"emcsrw/database/store"
 	"maps"
 	"slices"
 	"sort"
@@ -90,15 +91,10 @@ func (u *UserUsage) GetCommandStatsSince(t time.Time) []UsageCommandStat {
 	return stats
 }
 
-// ================================== DATABASE INTERACTION ==================================
+//#region ==================== DATABASE INTERACTION ====================
 
-func UpdateUsageForUser(db *Database, user *discordgo.User, cmdName string, entry UsageCommandEntry) error {
-	usageStore, err := GetStore(db, USAGE_USERS_STORE)
-	if err != nil {
-		return err
-	}
-
-	usage, _ := usageStore.Get(user.ID)
+func UpdateUserUsage(s *store.Store[UserUsage], user *discordgo.User, cmdName string, entry UsageCommandEntry) error {
+	usage, _ := s.Get(user.ID)
 	if usage == nil {
 		usage = &UserUsage{
 			CommandHistory: make(map[string][]UsageCommandEntry),
@@ -106,7 +102,8 @@ func UpdateUsageForUser(db *Database, user *discordgo.User, cmdName string, entr
 	}
 
 	usage.CommandHistory[cmdName] = append(usage.CommandHistory[cmdName], entry)
-	usageStore.Set(user.ID, *usage)
-
+	s.Set(user.ID, *usage)
 	return nil
 }
+
+//#endregion
