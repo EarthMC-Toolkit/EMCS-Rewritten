@@ -21,7 +21,7 @@ var GUILD_INTENTS = discordgo.IntentGuilds |
 // Make sure we actually listen and respond to them once specified to avoid errors!
 //
 // https://discord.com/developers/docs/events/gateway-events#receive-events
-var EVENT_HANDLERS = []any{
+var EVENT_HANDLERS = [...]any{
 	events.OnReady,
 	events.OnInteractionCreateApplicationCommand,
 	events.OnInteractionCreateModalSubmit,
@@ -32,7 +32,7 @@ var EVENT_HANDLERS = []any{
 // Uses session s to open a WebSocket connection to the Discord gateway.
 func Connect(s *discordgo.Session) *discordgo.Session {
 	s.Identify.Intents = ALL_INTENTS
-	s.SyncEvents = false // Run handlers in a goroutine to prevent a users command from blocking other users.
+	s.SyncEvents = false // Run handlers in a goroutine to prevent a command waiting on another user's command.
 
 	for _, e := range EVENT_HANDLERS {
 		s.AddHandler(e)
