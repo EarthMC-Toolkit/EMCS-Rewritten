@@ -23,6 +23,10 @@ func (cmd VotePartyCommand) Options() AppCommandOpts {
 }
 
 func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+		return err
+	}
+
 	serverStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.SERVER_STORE)
 	if err != nil {
 		return err
@@ -31,7 +35,7 @@ func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.Interacti
 	info, err := serverStore.Get("info")
 	if err != nil {
 		err := fmt.Errorf("failed to execute /serverinfo. could not find 'info' key in 'server' store")
-		discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+		discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 			Content: err.Error(),
 		})
 
@@ -50,11 +54,6 @@ func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.Interacti
 		Footer: embeds.DEFAULT_FOOTER,
 	}
 
-	// Should generally respond in 3 seconds. May need to defer in future?
-	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Embeds: []*discordgo.MessageEmbed{embed},
-		},
-	})
+	_, err = discordutil.FollowupEmbeds(s, i.Interaction, embed)
+	return err
 }

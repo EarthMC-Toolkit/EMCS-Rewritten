@@ -52,7 +52,7 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 
 	author := discordutil.GetInteractionAuthor(i.Interaction)
 	if author.ID != devID {
-		_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 			Content: "You are not a developer silly.",
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -75,7 +75,7 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 }
 
 // func executeReload(s *discordgo.Session, i *discordgo.Interaction) error {
-// 	_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+// 	_, err := discordutil.SendOrEditReply(s, i, &discordgo.InteractionResponseData{
 // 		Content: "Creating new EMCS process and exiting current one.",
 // 		Flags:   discordgo.MessageFlagsEphemeral,
 // 	})
@@ -129,7 +129,7 @@ func executePurge(s *discordgo.Session, i *discordgo.Interaction, subCmd *discor
 	fmt.Printf("\n/dev purge: Collected %d total guilds\n", len(guilds))
 
 	content, _ := leaveGuilds(s, guilds, approximateOnly, threshold)
-	_, err = discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+	_, err = discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content: content,
 		Flags:   discordgo.MessageFlagsEphemeral,
 	})

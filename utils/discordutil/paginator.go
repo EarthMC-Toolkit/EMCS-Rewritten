@@ -1,6 +1,7 @@
 package discordutil
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -138,11 +139,11 @@ func (p *InteractionPaginator) WithTimeout(t time.Duration) *InteractionPaginato
 func (p *InteractionPaginator) Start() error {
 	data := p.getPageData(*p.currentPage)
 
-	msg, err := EditOrSendReply(p.session, p.interaction, data)
+	msg, err := EditReply(p.session, p.interaction, data)
 	if err != nil {
+		ReplyWithError(p.session, p.interaction, fmt.Errorf("Could not reply to interaction during paginator start.\n\n%v", err))
 		return err
 	}
-
 	if msg == nil {
 		msg, err = p.session.InteractionResponse(p.interaction)
 		if err != nil {
@@ -151,9 +152,7 @@ func (p *InteractionPaginator) Start() error {
 	}
 
 	p.messageID = msg.ID
-
-	// TODO: This could overlap with the global button handler we setup in bot.Run()
-	go p.startButtonListener()
+	go p.startButtonListener() // TODO: This could overlap with the global button handler we setup in bot.Run()
 
 	return nil
 }

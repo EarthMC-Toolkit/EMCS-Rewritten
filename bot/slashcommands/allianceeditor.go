@@ -63,7 +63,7 @@ func NewMultiUpdateResult() *MultiUpdateResult {
 func editAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 	isEditor, _ := discordutil.HasRole(i.Member, EDITOR_ROLE)
 	if !isEditor && !discordutil.IsDev(i) {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: "Stop trying.",
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -89,7 +89,7 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 	alliance, err := allianceStore.Get(strings.ToLower(ident))
 	if err != nil {
 		//fmt.Printf("failed to get alliance by identifier '%s' from db: %v", ident, err)
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident),
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -514,7 +514,7 @@ func handleAllianceEditorModalNationsUpdate(
 	}
 
 	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil)
-	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully edited alliance. Result:",
 		Embeds:  []*discordgo.MessageEmbed{embed},
 	})
@@ -572,7 +572,7 @@ func handleAllianceEditorModalLeadersUpdate(
 				continue
 			}
 
-			leaderUUIDs[p.UUID] = struct{}{}
+			leaderUUIDs.Append(p.UUID)
 		}
 	}
 
@@ -589,7 +589,7 @@ func handleAllianceEditorModalLeadersUpdate(
 
 	content := "Successfully edited alliance. Result:"
 	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil)
-	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content: content,
 		Embeds:  []*discordgo.MessageEmbed{embed},
 	})
@@ -641,7 +641,7 @@ func handleAllianceEditorModalFunctional(
 	} else if parentInput != "" {
 		parent, err := allianceStore.Get(parentInputLower)
 		if err != nil {
-			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Parent alliance `%s` does not exist.", parentInput),
 				Flags:   discordgo.MessageFlagsEphemeral,
 			})
@@ -658,7 +658,7 @@ func handleAllianceEditorModalFunctional(
 		// Validate representative is existing Discord user.
 		representativeUser, err := s.User(representative)
 		if err != nil {
-			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 				Content: "Representative ID does not point to a valid Discord user.",
 				Flags:   discordgo.MessageFlagsEphemeral,
 			})
@@ -679,7 +679,7 @@ func handleAllianceEditorModalFunctional(
 		//#region Check nations name inputs are valid and grab their UUIDs.
 		validNations, missing := validateNations(nationStore, inputNations)
 		if len(validNations) < 1 {
-			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Could not edit alliance `%s`.\nNone of the input nation names were valid nations.\n", oldIdent),
 				Flags:   discordgo.MessageFlagsEphemeral,
 			})
@@ -726,7 +726,7 @@ func handleAllianceEditorModalFunctional(
 		)
 	}
 
-	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content: content,
 		Embeds:  []*discordgo.MessageEmbed{embed},
 	})
@@ -751,7 +751,7 @@ func handleAllianceEditorModalOptional(
 		leaders, err := utils.ParseFieldsStr(inputs["leaders"], ',')
 		invalidLeaders, err = alliance.SetLeaders(playerStore, leaders...)
 		if err != nil {
-			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("An error occurred while setting alliance leaders:```%s```", err),
 				Flags:   discordgo.MessageFlagsEphemeral,
 			})
@@ -782,7 +782,7 @@ func handleAllianceEditorModalOptional(
 	if image != "" {
 		parsedUrl, err := validateAllianceImage(image)
 		if err != nil {
-			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Input for field **Image/Flag URL** could not be parsed correctly. Reason:\n```%s```", err.Error()),
 				Flags:   discordgo.MessageFlagsEphemeral,
 			})
@@ -805,7 +805,7 @@ func handleAllianceEditorModalOptional(
 	if discordInput != "" {
 		code, err := discordutil.ExtractInviteCode(discordInput)
 		if err != nil {
-			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 				Content: "Input for field **Discord Invite** could not be parsed correctly. Provide a link or code.",
 				Flags:   discordgo.MessageFlagsEphemeral,
 			})
@@ -815,7 +815,7 @@ func handleAllianceEditorModalOptional(
 
 		_, err = discordutil.ValidateInviteCode(code, s)
 		if err != nil {
-			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Input for field **Discord Invite** was parsed correctly but could not be used. Reason:\n```%s```", err.Error()),
 				Flags:   discordgo.MessageFlagsEphemeral,
 			})
@@ -852,7 +852,7 @@ func handleAllianceEditorModalOptional(
 
 		ok := utils.ValidateHexColour(fillColour)
 		if !ok {
-			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 				Content: "Input for field **Colours** contains an invalid HEX code as the fill colour.",
 				Flags:   discordgo.MessageFlagsEphemeral,
 			})
@@ -862,7 +862,7 @@ func handleAllianceEditorModalOptional(
 
 		ok = utils.ValidateHexColour(outlineColour)
 		if !ok {
-			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 				Content: "Input for field **Colours** contains an invalid HEX code as the outline colour.",
 				Flags:   discordgo.MessageFlagsEphemeral,
 			})
@@ -904,7 +904,7 @@ func handleAllianceEditorModalOptional(
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully edited alliance. Result:",
 		Embeds: []*discordgo.MessageEmbed{
 			embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil),

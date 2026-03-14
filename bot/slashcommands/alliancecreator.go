@@ -34,7 +34,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 
 	ident := inputs["identifier"]
 	if allianceStore.HasKey(strings.ToLower(ident)) {
-		discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Could not create alliance `%s`.\nAn alliance with this identifier already exists.", ident),
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -44,7 +44,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 
 	representativeUser, err := s.User(inputs["representative"])
 	if err != nil {
-		discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Could not create alliance `%s`.\nRepresentative ID does point to a valid Discord user.", ident),
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -54,7 +54,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 
 	inputNations := strings.Split(strings.ReplaceAll(inputs["nations"], " ", ""), ",")
 	if len(inputNations) < 2 {
-		discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Could not create alliance `%s`.\nOnly one nation input specified, minimum two required.\n", ident),
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -65,7 +65,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	//#region Check nations name inputs are valid and grab their UUIDs.
 	validNations, missingNations := validateNations(nationStore, inputNations)
 	if len(validNations) < 1 {
-		discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Could not create alliance `%s`.\nNone of the input nation names were valid nations.\n", ident),
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -84,7 +84,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 	if parentInput != "" {
 		pa, err := allianceStore.Get(strings.ToLower(parentInput))
 		if err != nil {
-			discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+			discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("Parent alliance `%s` does not exist.", parentInput),
 				Flags:   discordgo.MessageFlagsEphemeral,
 			})
@@ -129,7 +129,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		)
 	}
 
-	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content: content,
 		Embeds:  []*discordgo.MessageEmbed{embed},
 	})
@@ -140,7 +140,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 	isEditor, _ := discordutil.HasRole(i.Member, EDITOR_ROLE)
 	if !isEditor && !discordutil.IsDev(i) {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: "Stop trying.",
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -205,7 +205,7 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 func disbandAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
 	isSrEditor, _ := discordutil.HasRole(i.Member, SR_EDITOR_ROLE)
 	if !isSrEditor && !discordutil.IsDev(i) {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: "Only senior editors can disband alliances.",
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -225,7 +225,7 @@ func disbandAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata disco
 		return strings.EqualFold(a.Identifier, ident)
 	})
 	if a == nil {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Cannot disband alliance `%s` as it does not exist.", ident),
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -245,7 +245,7 @@ func disbandAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata disco
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", a.Identifier, err)
 	}
 
-	_, err = discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+	_, err = discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content: fmt.Sprintf("Successfully disbanded alliance `%s` aka `%s`.", a.Label, a.Identifier),
 	})
 

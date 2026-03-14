@@ -87,7 +87,7 @@ func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return executeOnlineList(s, i.Interaction)
 	}
 
-	_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+	_, err := discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 		Content: "Error occurred getting sub command option. Somehow you sent none of them?",
 	})
 
@@ -104,7 +104,7 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 		return strings.EqualFold(t.Name, townName)
 	})
 	if err != nil {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Failed to get online players. Town `%s` does not exist.", townName),
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -114,7 +114,7 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 
 	onlineResidents, _ := town.GetOnlineResidents()
 	if len(onlineResidents) < 1 {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("No players online in town: `%s`.", townName),
 		})
 
@@ -128,7 +128,7 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 		return err
 	}
 
-	return sendPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
+	return sendPlayersPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
 		balStr := fmt.Sprintf("%s `%0.f`G", shared.EMOJIS.GOLD_INGOT, p.Stats.Balance)
 		return fmt.Sprintf("`%s` (%s) %s\n", p.Name, p.GetRank(), balStr)
 	})
@@ -144,7 +144,7 @@ func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationN
 		return strings.EqualFold(n.Name, nationName)
 	})
 	if err != nil {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Failed to get online players. Nation `%s` does not exist.", nationName),
 		})
 
@@ -153,7 +153,7 @@ func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationN
 
 	onlineResidents, _ := nation.GetOnlineResidents()
 	if len(onlineResidents) < 1 {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("No players online in nation: `%s`.", nationName),
 		})
 
@@ -167,7 +167,7 @@ func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationN
 		return err
 	}
 
-	return sendPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
+	return sendPlayersPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
 		balStr := fmt.Sprintf("%s `%0.f`G", shared.EMOJIS.GOLD_INGOT, p.Stats.Balance)
 		return fmt.Sprintf("`%s` of **%s** (%s) %s\n", p.Name, *p.Town.Name, p.GetRank(), balStr)
 	})
@@ -187,7 +187,7 @@ func queryResidents(entities []oapi.Entity) ([]oapi.PlayerInfo, error) {
 	return residents, errors.Join(errs...)
 }
 
-func sendPaginator(
+func sendPlayersPaginator(
 	s *discordgo.Session, i *discordgo.Interaction,
 	players []oapi.PlayerInfo, perPage int,
 	contentFunc func(p oapi.PlayerInfo) string,
@@ -209,12 +209,12 @@ func sendPaginator(
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(count)
 
-		content := ""
+		content := strings.Builder{}
 		for _, p := range players[start:end] {
-			content += contentFunc(p)
+			content.WriteString(contentFunc(p))
 		}
 
-		data.Content = content
+		data.Content = content.String()
 		if paginator.TotalPages() > 1 {
 			data.Content += fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
 		}

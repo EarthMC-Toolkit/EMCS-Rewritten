@@ -123,22 +123,18 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 }
 
 func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+		return err
+	}
+
 	cdata := i.ApplicationCommandData()
 
 	opt := cdata.GetOption("query")
 	if opt != nil {
-		if err := discordutil.DeferReply(s, i.Interaction); err != nil {
-			return err
-		}
-
 		return queryAlliance(s, i.Interaction, cdata)
 	}
 
 	if opt = cdata.GetOption("score"); opt != nil {
-		if err := discordutil.DeferReply(s, i.Interaction); err != nil {
-			return err
-		}
-
 		return queryAllianceScore(s, i.Interaction, cdata)
 	}
 
@@ -189,6 +185,10 @@ func (cmd AllianceCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo
 }
 
 func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
+	if err := discordutil.DeferReply(s, i); err != nil {
+		return err
+	}
+
 	if customID == "alliance_creator" {
 		err := handleAllianceCreatorModal(s, i)
 		if err != nil {
@@ -203,11 +203,7 @@ func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Intera
 			return err
 		}
 
-		if strings.EqualFold(customID, "alliance_editor_multi") {
-			if err := discordutil.DeferReply(s, i); err != nil {
-				return err
-			}
-
+		if customID == "alliance_editor_multi" {
 			err := handleAllianceEditorModalMultiUpdate(s, i, allianceStore)
 			if err != nil {
 				discordutil.ReplyWithError(s, i, err)
@@ -216,38 +212,35 @@ func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Intera
 			return err
 		}
 
-		ident := strings.Split(customID, "@")[1]
+		prefix, ident, _ := strings.Cut(customID, "@")
 		alliance, err := allianceStore.Get(strings.ToLower(ident))
 		if err != nil {
 			discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
 			return err
 		}
 
-		if strings.HasPrefix(customID, "alliance_editor_functional") {
+		if prefix == "alliance_editor_functional" {
 			err := handleAllianceEditorModalFunctional(s, i, alliance, allianceStore)
 			if err != nil {
 				discordutil.ReplyWithError(s, i, err)
 				return err
 			}
 		}
-
-		if strings.Contains(customID, "alliance_editor_optional") {
+		if prefix == "alliance_editor_optional" {
 			err := handleAllianceEditorModalOptional(s, i, alliance, allianceStore)
 			if err != nil {
 				discordutil.ReplyWithError(s, i, err)
 				return err
 			}
 		}
-
-		if strings.HasPrefix(customID, "alliance_editor_nations") {
+		if prefix == "alliance_editor_nations" {
 			err := handleAllianceEditorModalNationsUpdate(s, i, alliance, allianceStore)
 			if err != nil {
 				discordutil.ReplyWithError(s, i, err)
 				return err
 			}
 		}
-
-		if strings.Contains(customID, "alliance_editor_leaders") {
+		if prefix == "alliance_editor_leaders" {
 			err := handleAllianceEditorModalLeadersUpdate(s, i, alliance, allianceStore)
 			if err != nil {
 				discordutil.ReplyWithError(s, i, err)
@@ -438,7 +431,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 
 	allianceCount := allianceStore.Count()
 	if allianceCount == 0 {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: "No alliances seem to exist? Something may have gone wrong with the database or alliance store.",
 		})
 

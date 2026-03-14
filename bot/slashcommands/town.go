@@ -174,7 +174,12 @@ func townNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata 
 }
 
 func executeTownQuery(s *discordgo.Session, i *discordgo.Interaction, townName string) (*discordgo.Message, error) {
-	town, err := tryGetTown(townName)
+	mdb, err := database.Get(shared.ACTIVE_MAP)
+	if err != nil {
+		return nil, err
+	}
+
+	town, err := tryGetTown(mdb, townName)
 	if err != nil {
 		return discordutil.FollowupContentEphemeral(s, i, err.Error())
 	}
@@ -191,7 +196,7 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 
 	townCount := townStore.Count()
 	if townCount == 0 {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: "No towns seem to exist? Something may have gone wrong with the database or town store.",
 		})
 
@@ -257,7 +262,12 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 }
 
 func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townName string) (*discordgo.Message, error) {
-	town, err := tryGetTown(townName)
+	mdb, err := database.Get(shared.ACTIVE_MAP)
+	if err != nil {
+		return nil, err
+	}
+
+	town, err := tryGetTown(mdb, townName)
 	if err != nil {
 		return discordutil.FollowupContentEphemeral(s, i, err.Error())
 	}
@@ -337,10 +347,10 @@ func formattedPurgeTime(now, lastOnline uint64) string {
 // fails in which case we fall back to querying it via the OAPI.
 //
 // If all fails, the town will be nil and an appropriate error message will be returned.
-func tryGetTown(townName string) (*oapi.TownInfo, error) {
+func tryGetTown(mdb *database.Database, townName string) (*oapi.TownInfo, error) {
 	var town *oapi.TownInfo
 
-	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+	townStore, err := database.GetStore(mdb, database.TOWNS_STORE)
 	if err != nil {
 		town, err = api.QueryTown(townName)
 		if err != nil {

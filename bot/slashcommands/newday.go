@@ -72,7 +72,7 @@ func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 		Color:  discordutil.DARK_PURPLE,
 	}
 
-	discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+	discordutil.SendOrEditReply(s, i, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	})
 

@@ -5,6 +5,7 @@ import (
 	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -28,7 +29,7 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 	visible, err := mapi.GetVisiblePlayers()
 	if err != nil {
-		_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 			Content: "An error occurred during the map request or response parsing :(",
 		})
 
@@ -37,7 +38,7 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 	count := len(visible)
 	if count == 0 {
-		_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 			Content: "An error occurred. Players array is empty (server may be partially down).",
 		})
 
@@ -51,16 +52,16 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(count)
 
-		desc := ""
+		desc := strings.Builder{}
 		for idx, p := range visible[start:end] {
 			loc := fmt.Sprintf("%d, %d, %d", p.X, p.Y, p.Z)
-			desc += fmt.Sprintf("%d. **%s** | `%s`\n", start+idx+1, p.Name, loc)
+			fmt.Fprintf(&desc, "%d. **%s** | `%s`\n", start+idx+1, p.Name, loc)
 		}
 
 		embed := &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("List of Visible Players [%d]", count),
 			Footer:      embeds.DEFAULT_FOOTER,
-			Description: desc + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages()),
+			Description: desc.String() + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages()),
 		}
 
 		data.Embeds = append(data.Embeds, embed)

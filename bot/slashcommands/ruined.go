@@ -36,7 +36,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	ruined, err := GetRuinedTowns()
 	if err != nil {
 		log.Printf("failed to get towns from db:\n%v", err)
-		_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 			Content: "An error occurred retrieving towns from the database. Check the console.",
 		})
 

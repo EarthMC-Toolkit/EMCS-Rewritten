@@ -128,7 +128,7 @@ func (cmd RouteCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 		},
 	}
 
-	_, err = discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+	_, err = discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	})
 

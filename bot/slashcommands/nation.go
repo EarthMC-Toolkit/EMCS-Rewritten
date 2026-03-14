@@ -1,6 +1,7 @@
 package slashcommands
 
 import (
+	"cmp"
 	"emcsrw/api"
 	"emcsrw/api/oapi"
 	"emcsrw/database"
@@ -9,9 +10,12 @@ import (
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"fmt"
+	"slices"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo/parallel"
 )
 
 type NationCommand struct{}
@@ -29,6 +33,14 @@ func (cmd NationCommand) Options() AppCommandOpts {
 			Description: "Query information about a nation. Similar to /n in-game.",
 			Options: AppCommandOpts{
 				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 36, true),
+			},
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "activity",
+			Description: "See the last online and purge date of each resident in a town.",
+			Options: AppCommandOpts{
+				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 40, true),
 			},
 		},
 		{
@@ -58,6 +70,11 @@ func (cmd NationCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		_, err := executeQueryNation(s, i.Interaction, nationNameArg)
 		return err
 	}
+	if opt := cdata.GetOption("activity"); opt != nil {
+		nationNameArg := opt.GetOption("name").StringValue()
+		_, err := executeNationActivity(s, i.Interaction, nationNameArg)
+		return err
+	}
 	if opt := cdata.GetOption("online"); opt != nil {
 		nationNameArg := opt.GetOption("name").StringValue()
 		return executeOnlineNation(s, i.Interaction, nationNameArg)
@@ -78,6 +95,8 @@ func (cmd NationCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.I
 	// top-level sub cmd or group
 	subCmd := cdata.Options[0]
 	switch subCmd.Name {
+	case "activity":
+		fallthrough
 	case "online":
 		fallthrough
 	case "query":
@@ -158,25 +177,9 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 		return nil, err
 	}
 
-	var nation *oapi.NationInfo
-	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
+	nation, err := tryGetNation(mdb, nationName)
 	if err != nil {
-		nation, err = api.QueryNation(nationName)
-		if err != nil {
-			return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("DB error occurred and the OAPI failed during fallback!?```%s```", err))
-		}
-	} else {
-		if len(nationStore.Keys()) == 0 {
-			return discordutil.FollowupContentEphemeral(s, i, "The nation database is currently empty. This is unusual, but may resolve itself.")
-		}
-
-		nation, _ = nationStore.Find(func(info oapi.NationInfo) bool {
-			return strings.EqualFold(nationName, info.Name) || nationName == info.UUID
-		})
-	}
-
-	if nation == nil {
-		return discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Nation `%s` does not seem to exist.", nationName))
+		return discordutil.FollowupContentEphemeral(s, i, err.Error())
 	}
 
 	// button := discordgo.Button{
@@ -209,7 +212,7 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 
 	nationCount := nationStore.Count()
 	if nationCount == 0 {
-		_, err := discordutil.EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: "No nations seem to exist? Something may have gone wrong with the database or nation store.",
 		})
 
@@ -235,7 +238,6 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 			balance := utils.HumanizedSprintf("`%0.f`G %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
 			towns := utils.HumanizedSprintf("`%d`", n.Stats.NumTowns)
 			residents := utils.HumanizedSprintf("`%d`", n.Stats.NumResidents)
-
 			size := utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)",
 				n.Size(), shared.EMOJIS.CHUNK,
 				n.Worth(), shared.EMOJIS.GOLD_INGOT,
@@ -258,4 +260,99 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 	}
 
 	return paginator.Start()
+}
+
+func executeNationActivity(s *discordgo.Session, i *discordgo.Interaction, nationName string) (*discordgo.Message, error) {
+	mdb, err := database.Get(shared.ACTIVE_MAP)
+	if err != nil {
+		return nil, err
+	}
+
+	nation, err := tryGetNation(mdb, nationName)
+	if err != nil {
+		return discordutil.FollowupContentEphemeral(s, i, err.Error())
+	}
+
+	ids := parallel.Map(nation.Residents, func(e oapi.Entity, _ int) string {
+		return e.UUID
+	})
+
+	residents, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
+	if len(errs) > 0 {
+		return nil, errs[0]
+	}
+
+	count := len(residents)
+	slices.SortFunc(residents, func(a, b oapi.PlayerInfo) int {
+		at, bt := a.Timestamps.LastOnline, b.Timestamps.LastOnline
+		av, bv := UINT64_MAX, UINT64_MAX
+		if at != nil {
+			av = *at
+		}
+		if bt != nil {
+			bv = *bt
+		}
+
+		return cmp.Compare(av, bv)
+	})
+
+	perPage := 10
+	paginator := discordutil.NewInteractionPaginator(s, i, count, perPage).
+		WithTimeout(5 * time.Minute)
+
+	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
+		start, end := paginator.CurrentPageBounds(count)
+
+		now := uint64(time.Now().Unix())
+		content := strings.Builder{}
+		for _, res := range residents[start:end] {
+			lo := res.Timestamps.LastOnline
+			if lo == nil {
+				fmt.Fprintf(&content, "**%s** - Unknown\n", res.Name)
+				continue
+			}
+
+			//daysOffline := (now - *lo/1000) / 86400
+			purgeTimeStr := formattedPurgeTime(now, *lo/1000)
+			balanceStr := utils.HumanizedSprintf("%s `%d`G", shared.EMOJIS.GOLD_INGOT, int(res.Stats.Balance))
+
+			fmt.Fprintf(&content,
+				"**%s** (%s) - Online <t:%d:R>. Purges %s. %s\n",
+				res.Name, res.GetRankOrRole(), *lo/1000, purgeTimeStr, balanceStr,
+			)
+		}
+
+		data.Content = content.String()
+		if paginator.TotalPages() > 1 {
+			data.Content += fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
+		}
+	}
+
+	return nil, paginator.Start()
+}
+
+func tryGetNation(mdb *database.Database, nationName string) (*oapi.NationInfo, error) {
+	var nation *oapi.NationInfo
+
+	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
+	if err != nil {
+		nation, err = api.QueryNation(nationName)
+		if err != nil {
+			return nil, fmt.Errorf("DB error occurred and the OAPI failed during fallback!?```%s```", err)
+		}
+	} else {
+		if len(nationStore.Keys()) == 0 {
+			return nil, fmt.Errorf("The nation database is currently empty. This is unusual, but may resolve itself.")
+		}
+
+		nation, _ = nationStore.Find(func(info oapi.NationInfo) bool {
+			return strings.EqualFold(nationName, info.Name) || nationName == info.UUID
+		})
+	}
+
+	if nation == nil {
+		return nil, fmt.Errorf("Nation `%s` does not seem to exist.", nationName)
+	}
+
+	return nation, nil
 }

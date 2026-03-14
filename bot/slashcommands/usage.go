@@ -47,7 +47,7 @@ func (cmd UsageCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 		return executeLeaderboard(s, i.Interaction)
 	}
 
-	_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+	_, err := discordutil.SendOrEditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 		Content: "Error occurred getting sub command option. Somehow you sent none of them?",
 	})
 

@@ -18,6 +18,7 @@ import (
 )
 
 var NewEmbedField = discordutil.NewEmbedField
+var NewEmbedFieldSpacer = discordutil.NewEmbedFieldSpacer
 
 type QuartersCommand struct{}
 
@@ -65,7 +66,7 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return strings.EqualFold(t.Name, townOpt.StringValue())
 	})
 	if err != nil {
-		discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+		discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("Failed to get quarters. Town `%s` does not exist.", townOpt.StringValue()),
 			Flags:   discordgo.MessageFlagsEphemeral,
 		})
@@ -89,7 +90,7 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 
 	count := len(qfs)
 	if count < 1 {
-		_, err := discordutil.EditOrSendReply(s, i.Interaction, &discordgo.InteractionResponseData{
+		_, err := discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("No quarters for sale in town: `%s`", town.Name),
 		})
 

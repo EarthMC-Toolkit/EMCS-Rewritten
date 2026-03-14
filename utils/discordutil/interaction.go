@@ -30,6 +30,15 @@ func DeferReply(s *discordgo.Session, i *discordgo.Interaction) error {
 	})
 }
 
+// SendReply sends the initial response to an interaction.
+//
+// This must only be used if the interaction has NOT already been acknowledged.
+// If the interaction was previously deferred (via DeferReply) or already
+// responded to, this call will fail with "interaction already acknowledged".
+//
+// Typical usage:
+//   - Fast commands that can respond immediately (<3 seconds)
+//   - When you do NOT call DeferReply beforehand
 func SendReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) error {
 	return s.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -37,6 +46,16 @@ func SendReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.I
 	})
 }
 
+// EditReply edits the original interaction response message.
+//
+// This should be used when the interaction has already been acknowledged,
+// most commonly after calling DeferReply. It modifies the original message
+// rather than creating a new one.
+//
+// Typical usage:
+//   - After DeferReply
+//   - Updating paginated responses
+//   - Updating content after performing longer operations
 func EditReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
 	return s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
 		Content:         &data.Content,
@@ -47,7 +66,16 @@ func EditReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.I
 	})
 }
 
-func EditOrSendReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
+// SendOrEditReply attempts to send an initial interaction response, and if
+// that fails (because the interaction was already acknowledged), falls back
+// to editing the existing response.
+//
+// This is useful when the calling code does not know whether the interaction
+// was previously deferred or replied to.
+//
+// Note: If you always call DeferReply at the start of a command, you should
+// prefer calling EditReply directly instead of using this helper.
+func SendOrEditReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {
 	if err := SendReply(s, i, data); err == nil {
 		return nil, nil
 	}
@@ -79,8 +107,8 @@ func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err error) {
 	// NOTE: This could panic itself. Maybe handle it or just send generic text.
 	content := fmt.Sprintf("Bot encountered a non-fatal error during this command.```%s```", err)
 
-	// Not already deferred, reply.
-	_, err = EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+	// Try reply if not already deferred.
+	_, err = SendOrEditReply(s, i, &discordgo.InteractionResponseData{
 		Flags:   discordgo.MessageFlagsEphemeral,
 		Content: content,
 	})
@@ -95,7 +123,7 @@ func ReplyWithPanicError(s *discordgo.Session, i *discordgo.Interaction, err any
 	content := "Bot attempted to fatally crash during this command! Please report the following error.\n" + errStr
 
 	// Not already deferred, reply.
-	_, err = EditOrSendReply(s, i, &discordgo.InteractionResponseData{
+	_, err = SendOrEditReply(s, i, &discordgo.InteractionResponseData{
 		Flags:   discordgo.MessageFlagsEphemeral,
 		Content: content,
 	})

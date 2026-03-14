@@ -40,9 +40,8 @@ func (cmd TownlessCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return err
 	}
 
+	townlessCount := len(*townlessEntities)
 	townlessNames := lo.Values(*townlessEntities)
-	townlessCount := len(townlessNames)
-
 	slices.Sort(townlessNames)
 
 	perField := 20
@@ -74,13 +73,13 @@ func (cmd TownlessCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 			Title: utils.HumanizedSprintf("[%d] List of Townless Players | %s", townlessCount, pageStr),
 			Fields: []*discordgo.MessageEmbedField{
 				// first row
-				{Name: "", Value: formatColumn(col1, 0), Inline: true},
-				{Name: "", Value: "", Inline: true}, // spacer
-				{Name: "", Value: formatColumn(col2, perField*2), Inline: true},
+				NewEmbedField("", formatColumn(col1, 0), true),
+				NewEmbedFieldSpacer(true),
+				NewEmbedField("", formatColumn(col2, perField*2), true),
 				// second row
-				{Name: "", Value: formatColumn(col3, perField), Inline: true},
-				{Name: "", Value: "", Inline: true}, // spacer
-				{Name: "", Value: formatColumn(col4, perField*3), Inline: true},
+				NewEmbedField("", formatColumn(col3, perField), true),
+				NewEmbedFieldSpacer(true),
+				NewEmbedField("", formatColumn(col4, perField*3), true),
 			},
 		}
 
