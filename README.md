@@ -40,7 +40,7 @@ export API_PORT=7777
 To start immediately after registering, simply append it like so: `go run . register && go run . bot`
 
 ⚠️ You should only ever run `register` before `bot` - not after the bot already started!\
-ℹ️ The bot uses a lock file, meaning only a single instance will exist across processes.
+ℹ️ The bot uses a lock file, meaning only a single instance will exist across processes.\
 ℹ️ The API should be run in a seperate session/process so it continues while the bot is down.
 
 ### Custom API
