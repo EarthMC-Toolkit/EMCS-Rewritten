@@ -40,7 +40,7 @@ func (p *Paginator) TotalPages() int {
 
 // Gets the start and end indexes for the items that should be on the current page.
 //
-// For example, when perPage is set to 10 and the totalItems given is 35, then every time the
+// For example, if perPage was initialized as 10 and the totalItems arg specified is 35, then every time the
 // current page is incremented, the output each time would look like so: (0, 9), (10, 19), (20, 29), (30, 34).
 func (p *Paginator) CurrentPageBounds(totalItems int) (int, int) {
 	start := *p.currentPage * p.perPage

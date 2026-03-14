@@ -131,7 +131,7 @@ func TryInit(mapName string) *Database {
 		log.Fatalf("Cannot initialize database for map '%s':\n%v", mapName, err)
 	}
 
-	// Define all stores we want to exist on this
+	// Define all stores we want to exist on this new database.
 	// If a store does not exist, it is created under the ./db/<mapName> dir.
 	AssignStore(mdb, SERVER_STORE)
 	AssignStore(mdb, TOWNS_STORE)

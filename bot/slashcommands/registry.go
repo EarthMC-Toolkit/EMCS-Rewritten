@@ -110,6 +110,7 @@ func RegisterAllCommands() {
 	Register(PlayerCommand{})
 	Register(ResidentCommand{})
 	Register(VisibleCommand{})
+	Register(TownlessCommand{})
 	Register(OnlineCommand{})
 
 	Register(RouteCommand{})
