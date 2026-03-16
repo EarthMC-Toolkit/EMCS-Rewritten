@@ -126,16 +126,20 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	cdata := i.ApplicationCommandData()
 	opt := cdata.GetOption("query")
 	if opt != nil {
+		if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+			return err
+		}
+
 		return queryAlliance(s, i.Interaction, cdata)
 	}
 
+	// Don't defer for these as they may call OpenModal which would throw Unknown Interaction if deferred.
 	if opt = cdata.GetOption("update"); opt != nil {
 		return editAlliance(s, i.Interaction)
 	}
 	if opt = cdata.GetOption("edit"); opt != nil {
 		return editAlliance(s, i.Interaction)
 	}
-
 	if opt = cdata.GetOption("create"); opt != nil {
 		return createAlliance(s, i.Interaction)
 	}
@@ -143,10 +147,10 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return disbandAlliance(s, i.Interaction, cdata)
 	}
 
+	// The following may take a while and are safe to defer as they are slash commands.
 	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
 		return err
 	}
-
 	if opt = cdata.GetOption("score"); opt != nil {
 		return queryAllianceScore(s, i.Interaction, cdata)
 	}
