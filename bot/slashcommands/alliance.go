@@ -123,23 +123,10 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 }
 
 func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
-		return err
-	}
-
 	cdata := i.ApplicationCommandData()
-
 	opt := cdata.GetOption("query")
 	if opt != nil {
 		return queryAlliance(s, i.Interaction, cdata)
-	}
-
-	if opt = cdata.GetOption("score"); opt != nil {
-		return queryAllianceScore(s, i.Interaction, cdata)
-	}
-
-	if opt = cdata.GetOption("list"); opt != nil {
-		return listAlliances(s, i.Interaction)
 	}
 
 	if opt = cdata.GetOption("update"); opt != nil {
@@ -154,6 +141,17 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	}
 	if opt = cdata.GetOption("disband"); opt != nil {
 		return disbandAlliance(s, i.Interaction, cdata)
+	}
+
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+		return err
+	}
+
+	if opt = cdata.GetOption("score"); opt != nil {
+		return queryAllianceScore(s, i.Interaction, cdata)
+	}
+	if opt = cdata.GetOption("list"); opt != nil {
+		return listAlliances(s, i.Interaction)
 	}
 
 	return nil
