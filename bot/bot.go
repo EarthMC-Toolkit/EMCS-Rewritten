@@ -34,8 +34,8 @@ func Connect(s *discordgo.Session) *discordgo.Session {
 	s.Identify.Intents = ALL_INTENTS
 	s.SyncEvents = false // Run handlers in a goroutine to prevent a command waiting on another user's command.
 
-	for _, e := range EVENT_HANDLERS {
-		s.AddHandler(e)
+	for _, eh := range EVENT_HANDLERS {
+		s.AddHandler(eh)
 	}
 
 	// Open websocket connection to Discord gateway.

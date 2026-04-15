@@ -9,19 +9,27 @@ import (
 	"strings"
 )
 
-func NewMux(mdb *database.Database) (mux *http.ServeMux, err error) {
+func NewMux(mdbs []*database.Database) (mux *http.ServeMux, err error) {
 	mux = http.NewServeMux()
 	if err = ServeBase(mux); err != nil {
 		return nil, err
 	}
-	if err = ServeAlliances(mux, mdb); err != nil {
-		return nil, err
-	}
-	if err = ServePlayers(mux, mdb); err != nil {
-		return nil, err
-	}
-	if err = ServeNews(mux, mdb); err != nil {
-		return nil, err
+
+	for _, mdb := range mdbs {
+		if mdb == nil {
+			log.Print("ERR | attempted to serve Custom API endpoints for a nil map database")
+			continue
+		}
+
+		if err = ServeAlliances(mux, mdb); err != nil {
+			return nil, err
+		}
+		if err = ServePlayers(mux, mdb); err != nil {
+			return nil, err
+		}
+		if err = ServeNews(mux, mdb); err != nil {
+			return nil, err
+		}
 	}
 
 	return mux, nil

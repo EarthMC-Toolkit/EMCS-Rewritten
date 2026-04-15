@@ -9,7 +9,7 @@ import (
 
 type Endpoint = string
 
-const VERSION, MAP = "3", "aurora"
+const VERSION, MAP = "4", "nostra" // this should match shared.ACTIVE_MAP
 const (
 	ENDPOINT_BASE           Endpoint = "https://api.earthmc.net/v" + VERSION + "/" + MAP
 	ENDPOINT_MYSTERY_MASTER Endpoint = ENDPOINT_BASE + "/mm"

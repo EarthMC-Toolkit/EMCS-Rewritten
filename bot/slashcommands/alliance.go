@@ -22,8 +22,6 @@ const EDITOR_ROLE = "966359842417705020"
 const SR_EDITOR_ROLE = "1143253762039873646"
 const ALLIANCE_BACKUP_CHANNEL = "1438592337335947314"
 
-var REMOVE_KEYWORDS = []string{"null", "none", "remove", "delete"}
-
 type AllianceCommand struct{}
 
 func (cmd AllianceCommand) Name() string { return "alliance" }
@@ -133,7 +131,7 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return queryAlliance(s, i.Interaction, cdata)
 	}
 
-	// Don't defer for these as they may call OpenModal which would throw Unknown Interaction if deferred.
+	// Don't defer for these as they may call OpenModal which would throw Unknown Interaction.
 	if opt = cdata.GetOption("update"); opt != nil {
 		return editAlliance(s, i.Interaction)
 	}

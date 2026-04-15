@@ -47,7 +47,7 @@ func lockProcess() func() error {
 func main() {
 	//#region Always runs no matter the subcommand
 	if len(os.Args) < 2 {
-		fmt.Println("ERROR | missing subcommand. Usage: go run . [register|start|start-api]")
+		fmt.Println("ERROR | missing subcommand. Usage: go run . [register|bot|api]")
 		return
 	}
 
@@ -61,20 +61,24 @@ func main() {
 	}
 	//#endregion
 
-	activeMapDB := database.TryInit(shared.ACTIVE_MAP)
-
-	switch os.Args[1] {
-	case "register":
+	subCmd := os.Args[1]
+	if subCmd == "register" {
 		slashcommands.SyncRemote(s, config.GetBotID(), "") // Empty str = register globally
-	case "bot":
-		unlock := lockProcess()
-		defer unlock()
+	} else {
+		activeMapDB := database.TryInit(shared.ACTIVE_MAP)
 
-		startBot(s, activeMapDB)
-	case "api":
-		startAPI(activeMapDB)
-	default:
-		fmt.Println("ERROR | unknown subcommand:", os.Args[1])
+		switch subCmd {
+		case "bot":
+			unlock := lockProcess()
+			defer unlock()
+
+			startBot(s, activeMapDB)
+		case "api":
+			auroraDB := database.TryInit(shared.SUPPORTED_MAPS.AURORA)
+			startAPI([]*database.Database{activeMapDB, auroraDB})
+		default:
+			fmt.Println("ERROR | unknown subcommand:", subCmd)
+		}
 	}
 }
 
@@ -121,16 +125,16 @@ func startBot(s *discordgo.Session, activeMapDB *database.Database) {
 	//endregion
 }
 
-func startAPI(activeMapDB *database.Database) {
+func startAPI(mdbs []*database.Database) {
 	port := config.GetApiPort()
 	if capi.IsRunning(port) {
 		log.Fatalf("Custom API server already listening on :%d", port)
 		return
 	}
 
-	mux, err := capi.NewMux(activeMapDB)
+	mux, err := capi.NewMux(mdbs)
 	if err != nil {
-		log.Fatalf("failed to start Custom API. failed to init mux for %s:\n%s", activeMapDB, err)
+		log.Fatalf("failed to start Custom API. failed to init mux.\n%s", err)
 	}
 
 	server := capi.Serve(mux, config.GetApiPort())

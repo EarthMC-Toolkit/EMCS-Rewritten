@@ -22,6 +22,8 @@ import (
 	"github.com/samber/lo"
 )
 
+var REMOVE_KEYWORDS = []string{"none", "remove", "delete"}
+
 // TODO: Track conflicts also? (Nations specified in both remove and add)
 type UpdateResult struct {
 	AddedTo        sets.Set[string] // nation names
