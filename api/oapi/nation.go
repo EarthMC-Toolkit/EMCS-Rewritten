@@ -21,6 +21,7 @@ type NationStats struct {
 	NumTowns      int     `json:"numTowns"`
 	NumAllies     int     `json:"numAllies"`
 	NumEnemies    int     `json:"numEnemies"`
+	NationBonus   int     `json:"nationBonus"`
 	Balance       float32 `json:"balance"`
 }
 
