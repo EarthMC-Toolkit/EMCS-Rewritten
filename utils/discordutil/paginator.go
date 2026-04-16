@@ -32,7 +32,7 @@ type Paginator struct {
 // This number can never go below 1.
 func (p *Paginator) TotalPages() int {
 	if p.totalPages < 1 {
-		log.Printf("WARNING | invalid value '%d' for totalPages. cannot be less than 1", p.totalPages)
+		log.Printf("WARN | invalid value '%d' for totalPages. cannot be less than 1", p.totalPages)
 		return 1
 	}
 

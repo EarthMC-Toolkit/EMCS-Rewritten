@@ -6,11 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"slices"
 	"sync"
+
+	colour "github.com/fatih/color"
+)
+
+var (
+	RED    = colour.New(colour.FgHiRed)
+	YELLOW = colour.New(colour.FgYellow)
+	HIDDEN = colour.New(colour.FgWhite, colour.Concealed)
 )
 
 // The interface that a generic store must implement to retain basic functionality that is common across all stores.
@@ -56,7 +63,7 @@ func New[T any](path string) (*Store[T], error) {
 	}
 
 	if !s.IsEmpty() {
-		fmt.Printf("DEBUG | Loaded store from file at: %s\n", s.CleanPath())
+		utils.Printf(HIDDEN, "DEBUG | Loaded store from file at: %s\n", s.CleanPath())
 	}
 
 	//fmt.Printf("\nDEBUG | Loaded store from file at: %s\n", s.CleanPath())
@@ -162,7 +169,8 @@ func (s *Store[T]) Overwrite(value StoreData[T]) {
 func (s *Store[T]) OverwriteFunc(f func() (map[string]T, error)) (map[string]T, error) {
 	v, err := f()
 	if err != nil {
-		log.Printf("error overwriting data in db at %s:\n%v", s.CleanPath(), err)
+		utils.Logf(RED.Add(colour.Bold), "error overwriting data in db at %s:\n%v", s.CleanPath(), err)
+		RED = colour.New(colour.FgHiRed)
 		return v, err
 	}
 
@@ -228,7 +236,7 @@ func (s *Store[T]) Set(key string, value T) {
 func (s *Store[T]) SetKeyFunc(key string, f func() (T, error)) (T, error) {
 	res, err := f()
 	if err != nil {
-		log.Printf("error putting '%s' into db at %s:\n%v", key, s.CleanPath(), err)
+		utils.Logf(RED, "error putting '%s' into db at %s:\n%v", key, s.CleanPath(), err)
 		return res, err
 	}
 

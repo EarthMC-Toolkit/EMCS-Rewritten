@@ -8,8 +8,8 @@ import (
 	"emcsrw/bot/slashcommands"
 	"emcsrw/database"
 	"emcsrw/shared"
+	"emcsrw/utils"
 	"emcsrw/utils/config"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -20,6 +20,16 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/rogpeppe/go-internal/lockedfile"
+
+	colour "github.com/fatih/color"
+)
+
+var (
+	HIDDEN = colour.New(colour.FgWhite, colour.Concealed)
+	WHITE  = colour.New(colour.Bold, colour.FgWhite)
+	RED    = colour.New(colour.FgHiRed)
+	GREEN  = colour.New(colour.FgGreen)
+	YELLOW = colour.New(colour.FgYellow)
 )
 
 const LOCK_FPATH = "/tmp/emcsrw.lock"
@@ -31,15 +41,15 @@ func lockProcess() func() error {
 		log.Fatal(err)
 	}
 
-	fmt.Println("DEBUG | Acquired lock from ~" + LOCK_FPATH)
+	utils.Println(HIDDEN, "DEBUG | Acquired lock from ~"+LOCK_FPATH)
 	return func() error {
 		err := lock.Close()
 		if err != nil {
-			fmt.Println("ERROR | Failed to close lock at ~" + LOCK_FPATH)
+			utils.Println(RED, "ERROR | Failed to close lock at ~"+LOCK_FPATH)
 			return err
 		}
 
-		fmt.Println("DEBUG | Removed lock from ~" + LOCK_FPATH)
+		utils.Println(HIDDEN, "DEBUG | Removed lock from ~"+LOCK_FPATH)
 		return nil
 	}
 }
@@ -47,16 +57,16 @@ func lockProcess() func() error {
 func main() {
 	//#region Always runs no matter the subcommand
 	if len(os.Args) < 2 {
-		fmt.Println("ERROR | missing subcommand. Usage: go run . [register|bot|api]")
+		utils.Println(RED, "ERROR | missing subcommand. Usage: go run . [register|bot|api]")
 		return
 	}
 
 	config.LoadEnv()
-	fmt.Println("DEBUG | Loaded .env into OS environment.")
+	utils.Println(HIDDEN, "DEBUG | Loaded .env into OS environment.")
 
 	s, err := newSession(config.GetBotToken())
 	if err != nil {
-		fmt.Printf("\nFATAL | failed to create session:\n\t%s", err)
+		utils.Printf(RED, "\nFATAL | failed to create session:\n\t%s", err)
 		os.Exit(67) // SIX SEVEEEEEEN!!!1!!1!!1
 	}
 	//#endregion
@@ -76,7 +86,7 @@ func main() {
 		auroraDB := database.TryInit(shared.SUPPORTED_MAPS.AURORA)
 		startAPI([]*database.Database{activeMapDB, auroraDB})
 	default:
-		fmt.Println("ERROR | unknown subcommand:", subCmd)
+		utils.Println(RED, "ERROR | unknown subcommand:", subCmd)
 	}
 }
 
@@ -111,24 +121,24 @@ func startBot(s *discordgo.Session, activeMapDB *database.Database) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	sig := <-c
 
-	fmt.Printf("\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
+	utils.Printf(YELLOW, "\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
 
 	//stopSSE()
 
 	// Gracefully stop scheduled tasks by waiting for all to finish.
 	msg := scheduler.Instance.Shutdown(30 * time.Second)
-	log.Println("[Scheduler]: " + msg)
+	utils.Println(YELLOW, "[Scheduler]: "+msg)
 
 	//#region Cleanup
 	// Since the `defer` keyword only works in successful exits,
 	// closing explicitly here makes sure we always properly cleanup.
 	if err := discord.Close(); err != nil {
-		log.Printf("error closing Discord session: %v", err)
+		utils.Logf(RED, "error closing Discord session: %v", err)
 	}
 
 	// Write every store to disk safely. Any store errs are combined into single error.
 	if err := activeMapDB.Flush(); err != nil {
-		log.Printf("error closing DB: %v", err)
+		utils.Logf(RED, "error closing DB: %v", err)
 	}
 	//endregion
 }
@@ -151,12 +161,12 @@ func startAPI(mdbs []*database.Database) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	sig := <-c
 
-	fmt.Printf("\nshutting down Custom API with signal: %s\n", strings.ToUpper(sig.String()))
+	utils.Printf(WHITE, "\nShutting down Custom API with signal: %s\n", strings.ToUpper(sig.String()))
 
 	// Gracefully shutdown HTTP server that serves the Custom API.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		log.Printf("error shutting down Custom API: %v", err)
+		utils.Logf(RED, "ERROR | could not gracefully shut down Custom API: %v", err)
 	}
 }

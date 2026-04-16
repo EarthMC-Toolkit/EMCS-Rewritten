@@ -16,6 +16,12 @@ import (
 	"github.com/samber/lo/parallel"
 
 	"github.com/bwmarrin/discordgo"
+
+	colour "github.com/fatih/color"
+)
+
+var (
+	YELLOW = colour.New(colour.FgYellow)
 )
 
 // NOTE: Potential import cycle. Consider just duplicating necessary funcs rather than importing discordutil.
@@ -64,7 +70,7 @@ func NewAllianceEmbed(
 ) *discordgo.MessageEmbed {
 	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
 	if err != nil {
-		fmt.Printf("ERROR | Could not get player store for map %s:\n%v", shared.ACTIVE_MAP, err)
+		utils.Printf(YELLOW, "ERROR | Could not get player store for map %s:\n%v", shared.ACTIVE_MAP, err)
 		return nil
 	}
 
@@ -72,7 +78,7 @@ func NewAllianceEmbed(
 	leadersValue := "`None`"
 	leaders, err := a.GetLeaders(playerStore)
 	if err != nil {
-		fmt.Printf("ERROR | Could not get leaders for alliance %s:\n\t%v", a.Identifier, err)
+		utils.Printf(YELLOW, "ERROR | Could not get leaders for alliance %s:\n\t%v", a.Identifier, err)
 	} else {
 		leadersValue = GetAffiliationLines(leaders)
 	}

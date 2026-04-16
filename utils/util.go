@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"maps"
 	"regexp"
 	"slices"
@@ -14,6 +15,8 @@ import (
 	"github.com/sanity-io/litter"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
+
+	colour "github.com/fatih/color"
 )
 
 //const DateTimeFormat = "Jan 2 3PM MST"
@@ -23,6 +26,22 @@ var printer = message.NewPrinter(language.BritishEnglish)
 
 func PrettyPrint(v any) (int, error) {
 	return printer.Print(Prettify(v))
+}
+
+func Printf(col *colour.Color, format string, args ...any) {
+	fmt.Print(col.Sprintf(format, args...))
+}
+
+func Println(col *colour.Color, args ...any) {
+	fmt.Println(col.Sprint(args...))
+}
+
+func Logf(col *colour.Color, format string, args ...any) {
+	log.Print(col.Sprintf(format, args...))
+}
+
+func Logln(col *colour.Color, args ...any) {
+	log.Println(col.Sprint(args...))
 }
 
 // Calls Sprintf like usual, but in a humanized way. For example:

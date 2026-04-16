@@ -2,13 +2,19 @@
 package config
 
 import (
+	"emcsrw/utils"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 
+	colour "github.com/fatih/color"
 	"github.com/joho/godotenv"
+)
+
+var (
+	YELLOW = colour.New(colour.FgYellow)
 )
 
 // Retrieves an OS environment variable by name,
@@ -123,7 +129,7 @@ func GetBotID() string {
 
 func GetApiPort() uint {
 	fail := func(reason string) uint {
-		fmt.Printf("\nERROR | Custom API port defaulted to 7777. Reason:\n\t%s\n", reason)
+		utils.Logf(YELLOW, "\nWARN | Custom API port defaulted to 7777. Reason:\n\t%s\n", reason)
 		return 7777
 	}
 

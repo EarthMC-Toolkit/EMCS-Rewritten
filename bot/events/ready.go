@@ -18,8 +18,17 @@ import (
 	"emcsrw/utils/discordutil"
 
 	"github.com/bwmarrin/discordgo"
+	colour "github.com/fatih/color"
 	"github.com/samber/lo"
 	"github.com/samber/lo/parallel"
+)
+
+var (
+	HIDDEN = colour.New(colour.FgWhite, colour.Concealed)
+	WHITE  = colour.New(colour.Bold, colour.FgWhite)
+	RED    = colour.New(colour.FgHiRed)
+	GREEN  = colour.New(colour.FgGreen)
+	YELLOW = colour.New(colour.FgYellow)
 )
 
 // max amount of messages to fetch from news channel during its scheduled task.
@@ -44,7 +53,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	readyOnce.Do(func() {
 		mdb, err := database.Get(shared.ACTIVE_MAP)
 		if err != nil {
-			fmt.Printf("\n[OnReady]: wtf happened? error fetching db:\n%v", err)
+			fmt.Printf("\n%s\n%v", colour.RedString("[OnReady]: wtf happened? error fetching db:"), err)
 			return
 		}
 
@@ -58,17 +67,17 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 	fmt.Println()
-	log.Println("[OnReady]: Running data update task...")
+	utils.Logln(WHITE, "[OnReady]: Running data update task...")
 
 	start := time.Now()
 	townList, staleTownList, townless, residents, err := UpdateData(mdb)
 
 	fmt.Println() // use \n without log.Printf messing up date/time
 	if err != nil {
-		log.Printf("[OnReady]: Failed data update task.\n%s\n", err)
+		utils.Logf(RED, "[OnReady]: Failed data update task.\n%s\n", err)
 	} else {
 		elapsed := time.Since(start)
-		log.Printf("[OnReady]: Finished data update task. Took: %s\n", elapsed.String())
+		utils.Logf(GREEN, "[OnReady]: Finished data update task. Took: %s\n", elapsed.String())
 	}
 
 	towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
@@ -82,7 +91,7 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 	serverStore, err := database.GetStore(mdb, database.SERVER_STORE)
 	if err != nil {
-		fmt.Printf("\nERROR | cannot schedule serverinfo task:\n\t%s", err)
+		utils.Printf(RED, "\nERROR | cannot schedule serverinfo task:\n\t%s", err)
 		return
 	}
 	if info, err := serverStore.SetKeyFunc("info", func() (oapi.ServerInfo, error) {
@@ -91,7 +100,7 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 	}); err == nil {
 		TrySendVotePartyNotif(s, info.VoteParty)
 		if err := serverStore.WriteSnapshot(); err != nil {
-			fmt.Printf("\nERROR | server store failed to write snapshot:\n\t%s", err)
+			utils.Printf(RED, "\nERROR | server store failed to write snapshot:\n\t%s", err)
 		}
 	}
 }
@@ -99,7 +108,7 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 func newsTask(s *discordgo.Session, mdb *database.Database) {
 	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
 	if err != nil {
-		fmt.Printf("\nERROR | cannot schedule news task:\n\t%s", err)
+		utils.Printf(RED, "\nERROR | cannot schedule news task:\n\t%s", err)
 		return
 	}
 	if _, err := newsStore.OverwriteFunc(func() (map[string]database.NewsEntry, error) {
@@ -111,7 +120,7 @@ func newsTask(s *discordgo.Session, mdb *database.Database) {
 		return database.MessagesToNewsEntries(newsMsgs), nil
 	}); err == nil {
 		if err := newsStore.WriteSnapshot(); err != nil {
-			fmt.Printf("\nERROR | news store failed to write snapshot:\n\t%s", err)
+			utils.Printf(RED, "\nERROR | news store failed to write snapshot:\n\t%s", err)
 		}
 	}
 }
@@ -141,7 +150,7 @@ func UpdateData(mdb *database.Database) (
 	}
 
 	staleTowns = townStore.Entries()
-	fmt.Printf("DEBUG | Stale towns: %d", len(staleTowns))
+	utils.Printf(HIDDEN, "DEBUG | Stale towns: %d\n", len(staleTowns))
 
 	townList, err := townStore.OverwriteFunc(func() (map[string]oapi.TownInfo, error) {
 		res, err := api.QueryAllTowns()
@@ -249,8 +258,8 @@ func UpdateData(mdb *database.Database) (
 		return playersMap, nil
 	})
 
-	fmt.Printf("\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
-	fmt.Printf("\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))
+	utils.Printf(HIDDEN, "\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
+	utils.Printf(HIDDEN, "\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))
 
 	return townList, staleTowns, townlessList, residentList, err
 }

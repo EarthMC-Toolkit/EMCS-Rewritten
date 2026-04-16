@@ -3,12 +3,21 @@ package database
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/database/store"
+	"emcsrw/utils"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"sync"
+
+	colour "github.com/fatih/color"
+)
+
+var (
+	RED    = colour.New(colour.FgHiRed)
+	YELLOW = colour.New(colour.FgYellow)
+	HIDDEN = colour.New(colour.FgWhite, colour.Concealed)
 )
 
 // Looks a lil pointless, but this wraps the store's name together with its type
@@ -106,7 +115,7 @@ func (db *Database) Flush() error {
 		return errors.Join(errs...)
 	}
 
-	fmt.Printf("\nDEBUG | Successfully flushed all stores to disk.\n")
+	utils.Printf(HIDDEN, "\nDEBUG | Successfully flushed all stores to disk.\n")
 	return nil
 }
 
@@ -195,14 +204,14 @@ func AssignStore[T any](db *Database, storeDef StoreDefinition[T]) *store.Store[
 	defer db.storeMu.Unlock()
 
 	if s, ok := db.stores[storeDef.Name]; ok {
-		fmt.Printf("\nstore '%s' already defined", storeDef.Name)
+		utils.Printf(YELLOW, "\nWARN | store '%s' already defined", storeDef.Name)
 		return s.(*store.Store[T])
 	}
 
 	fpath := filepath.Join(db.dirPath, storeDef.Name+".json")
 	store, err := store.New[T](fpath)
 	if err != nil {
-		fmt.Printf("\nfailed to create store '%s': %v", storeDef.Name, err)
+		utils.Printf(RED, "\nERROR | failed to create store '%s': %v", storeDef.Name, err)
 		return nil
 	}
 

@@ -2,11 +2,18 @@ package requests
 
 import (
 	"bytes"
+	"emcsrw/utils"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
+
+	colour "github.com/fatih/color"
+)
+
+var (
+	RED = colour.New(colour.FgHiRed)
 )
 
 var pingClient = http.Client{Timeout: 2 * time.Second} // Use when performing HEAD requests.
@@ -60,7 +67,7 @@ func JsonGet[T any](url string) (T, error) {
 
 	err = json.Unmarshal(res, &data)
 	if err != nil {
-		fmt.Printf("\n[GET] failed to unmarshal response body into struct:\n%v\n", err)
+		utils.Printf(RED, "\n[GET] failed to unmarshal response body into struct:\n%v\n", err)
 	}
 
 	return data, err
@@ -101,7 +108,7 @@ func JsonPost[T any](url string, body any) (T, error) {
 
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
-		fmt.Printf("\nfailed to marshal query body into byte slice:\n%v\n", err)
+		utils.Printf(RED, "\nfailed to marshal query body into byte slice:\n%v\n", err)
 	}
 
 	res, err := Post(url, "application/json", bytes.NewBuffer(bodyBytes))
@@ -111,7 +118,7 @@ func JsonPost[T any](url string, body any) (T, error) {
 
 	err = json.Unmarshal(res, &data)
 	if err != nil {
-		fmt.Printf("\n[POST] failed to unmarshal response body into struct:\n%v\n", err)
+		utils.Printf(RED, "\n[POST] failed to unmarshal response body into struct:\n%v\n", err)
 	}
 
 	return data, err
