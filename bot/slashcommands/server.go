@@ -113,8 +113,9 @@ func executeServerInfo(s *discordgo.Session, i *discordgo.Interaction) (*discord
 		Inline: false,
 	}
 
+	mapName := string(shared.ACTIVE_MAP)
 	embed := &discordgo.MessageEmbed{
-		Title:  "Server Info",
+		Title:  "Server Info | " + strings.ToUpper(mapName),
 		Fields: []*discordgo.MessageEmbedField{timestampsField, vpField, statsField},
 		Color:  discordutil.BLURPLE,
 		Footer: embeds.DEFAULT_FOOTER,

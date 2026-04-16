@@ -13,10 +13,10 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func OnApplicationCommandInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("handler OnInteractionCreateApplicationCommand recovered from a panic.\n%v\n%s", err, debug.Stack())
+			log.Printf("handler OnApplicationCommandInteractionCreate recovered from a panic.\n%v\n%s", err, debug.Stack())
 			discordutil.ReplyWithPanicError(s, i.Interaction, err)
 		}
 	}()
@@ -67,10 +67,10 @@ func OnInteractionCreateApplicationCommand(s *discordgo.Session, i *discordgo.In
 	}
 }
 
-func OnInteractionCreateAutocomplete(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func OnAutocompleteInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("handler OnInteractionCreateAutocomplete recovered from a panic.\n%v\n%s", err, debug.Stack())
+			log.Printf("handler OnAutocompleteInteractionCreate recovered from a panic.\n%v\n%s", err, debug.Stack())
 			discordutil.ReplyWithPanicError(s, i.Interaction, err)
 		}
 	}()

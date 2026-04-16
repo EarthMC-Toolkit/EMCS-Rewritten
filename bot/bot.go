@@ -23,10 +23,11 @@ var GUILD_INTENTS = discordgo.IntentGuilds |
 // https://discord.com/developers/docs/events/gateway-events#receive-events
 var EVENT_HANDLERS = [...]any{
 	events.OnReady,
-	events.OnInteractionCreateApplicationCommand,
-	events.OnInteractionCreateModalSubmit,
-	events.OnInteractionCreateButton,
-	events.OnInteractionCreateAutocomplete,
+	events.OnApplicationCommandInteractionCreate,
+	events.OnModalSubmitInteractionCreate,
+	events.OnSelectMenuInteractionCreate,
+	events.OnButtonInteractionCreate,
+	events.OnAutocompleteInteractionCreate,
 }
 
 // Uses session s to open a WebSocket connection to the Discord gateway.

@@ -26,6 +26,10 @@ func HasRole(m *discordgo.Member, roleID string) (bool, error) {
 	return slices.Contains(m.Roles, roleID), nil
 }
 
+func HasChannelPerm(m *discordgo.Member, perm int64) bool {
+	return m.Permissions&perm != 0
+}
+
 // Returns a Discord invite code by parsing the input string.
 //
 // If input is a link, this func validates that it is a correct Discord domain, and then extracts the code from it.

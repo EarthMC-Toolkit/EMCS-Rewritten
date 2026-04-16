@@ -62,23 +62,21 @@ func main() {
 	//#endregion
 
 	subCmd := os.Args[1]
-	if subCmd == "register" {
+	switch subCmd {
+	case "register":
 		slashcommands.SyncRemote(s, config.GetBotID(), "") // Empty str = register globally
-	} else {
+	case "bot":
+		unlock := lockProcess()
+		defer unlock()
+
 		activeMapDB := database.TryInit(shared.ACTIVE_MAP)
-
-		switch subCmd {
-		case "bot":
-			unlock := lockProcess()
-			defer unlock()
-
-			startBot(s, activeMapDB)
-		case "api":
-			auroraDB := database.TryInit(shared.SUPPORTED_MAPS.AURORA)
-			startAPI([]*database.Database{activeMapDB, auroraDB})
-		default:
-			fmt.Println("ERROR | unknown subcommand:", subCmd)
-		}
+		startBot(s, activeMapDB)
+	case "api":
+		activeMapDB := database.TryInit(shared.ACTIVE_MAP)
+		auroraDB := database.TryInit(shared.SUPPORTED_MAPS.AURORA)
+		startAPI([]*database.Database{activeMapDB, auroraDB})
+	default:
+		fmt.Println("ERROR | unknown subcommand:", subCmd)
 	}
 }
 

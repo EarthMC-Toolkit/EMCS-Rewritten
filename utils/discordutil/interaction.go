@@ -21,6 +21,13 @@ func DeferComponent(s *discordgo.Session, i *discordgo.Interaction) error {
 	})
 }
 
+func UpdateComponent(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) error {
+	return s.InteractionRespond(i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseUpdateMessage,
+		Data: data,
+	})
+}
+
 // Responds to an interaction with a deferred response, allowing more time to process before sending a follow-up message.
 //
 // Deferred interactions cannot carry data and can only be edited or followed up.

@@ -11,10 +11,10 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func OnInteractionCreateButton(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func OnButtonInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("handler OnInteractionCreateButton recovered from a panic.\n%v\n%s", err, debug.Stack())
+			log.Printf("handler OnButtonInteractionCreate recovered from a panic.\n%v\n%s", err, debug.Stack())
 			discordutil.ReplyWithPanicError(s, i.Interaction, err)
 		}
 	}()
@@ -28,23 +28,20 @@ func OnInteractionCreateButton(s *discordgo.Session, i *discordgo.InteractionCre
 		return
 	}
 
-	parts := strings.SplitN(data.CustomID, "_", 2)
-	if len(parts) == 0 {
-		return
-	}
-
-	cmdName := parts[0]
+	cmdName, _, _ := strings.Cut(data.CustomID, "_")
 	if cmd, ok := slashcommands.All()[cmdName]; ok {
 		if buttonCmd, ok := cmd.(slashcommands.ButtonHandler); ok {
-			_ = buttonCmd.HandleButton(s, i.Interaction, data.CustomID)
+			if err := buttonCmd.HandleButton(s, i.Interaction, data.CustomID); err != nil {
+				log.Println(err)
+			}
 		}
 	}
 }
 
-func OnInteractionCreateSelectMenu(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func OnSelectMenuInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("handler OnInteractionCreateSelectMenu recovered from a panic.\n%v\n%s", err, debug.Stack())
+			log.Printf("handler OnSelectMenuInteractionCreate recovered from a panic.\n%v\n%s", err, debug.Stack())
 			discordutil.ReplyWithPanicError(s, i.Interaction, err)
 		}
 	}()
@@ -58,15 +55,12 @@ func OnInteractionCreateSelectMenu(s *discordgo.Session, i *discordgo.Interactio
 		return
 	}
 
-	parts := strings.SplitN(data.CustomID, "_", 2)
-	if len(parts) == 0 {
-		return
-	}
-
-	cmdName := parts[0]
+	cmdName, _, _ := strings.Cut(data.CustomID, "_")
 	if cmd, ok := slashcommands.All()[cmdName]; ok {
-		if buttonCmd, ok := cmd.(slashcommands.SelectMenuHandler); ok {
-			_ = buttonCmd.HandleSelectMenu(s, i.Interaction, data.CustomID)
+		if selectMenuCmd, ok := cmd.(slashcommands.SelectMenuHandler); ok {
+			if err := selectMenuCmd.HandleSelectMenu(s, i.Interaction, data.CustomID); err != nil {
+				log.Println(err)
+			}
 		}
 	}
 }
