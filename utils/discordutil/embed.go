@@ -120,6 +120,31 @@ func TextInputActionRow(input discordgo.TextInput) discordgo.ActionsRow {
 	}
 }
 
+func SelectMenuActionRow(menu discordgo.SelectMenu) discordgo.ActionsRow {
+	return discordgo.ActionsRow{
+		Components: []discordgo.MessageComponent{menu},
+	}
+}
+
+func SelectMenuOption(label, value, desc string, isDefault bool) discordgo.SelectMenuOption {
+	return discordgo.SelectMenuOption{
+		Label:       label,
+		Value:       value,
+		Description: desc,
+		Default:     isDefault,
+	}
+}
+
+func SelectMenuOptionEmoji(label, value, desc string, isDefault bool, emoji *discordgo.ComponentEmoji) discordgo.SelectMenuOption {
+	return discordgo.SelectMenuOption{
+		Label:       label,
+		Value:       value,
+		Description: desc,
+		Emoji:       emoji,
+		Default:     false,
+	}
+}
+
 // Flags: IsMessageComponentsV2 must also be set when using this new label component.
 func Label(label string, description string, component discordgo.MessageComponent) discordgo.Label {
 	return discordgo.Label{

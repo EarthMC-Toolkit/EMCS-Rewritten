@@ -32,6 +32,10 @@ type SlashCommand interface {
 	Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error
 }
 
+type SelectMenuHandler interface {
+	HandleSelectMenu(s *discordgo.Session, i *discordgo.Interaction, customID string) error
+}
+
 type ModalHandler interface {
 	HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error
 }
@@ -120,6 +124,8 @@ func RegisterAllCommands() {
 	Register(ServerCommand{})
 	Register(VotePartyCommand{})
 	Register(UsageCommand{})
+
+	Register(SSECommand{})
 }
 
 // ======================================= COMMAND TEMPLATE =======================================

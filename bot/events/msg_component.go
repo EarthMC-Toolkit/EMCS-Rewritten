@@ -41,21 +41,32 @@ func OnInteractionCreateButton(s *discordgo.Session, i *discordgo.InteractionCre
 	}
 }
 
-// func OnInteractionCreateSelectMenu(s *discordgo.Session, i *discordgo.InteractionCreate) {
-// 	defer func() {
-// 		if err := recover(); err != nil {
-// 			log.Printf("handler OnInteractionCreateSelectMenu recovered from a panic.\n%v\n%s", err, debug.Stack())
-// 			discordutil.ReplyWithPanicError(s, i.Interaction, err)
-// 		}
-// 	}()
+func OnInteractionCreateSelectMenu(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("handler OnInteractionCreateSelectMenu recovered from a panic.\n%v\n%s", err, debug.Stack())
+			discordutil.ReplyWithPanicError(s, i.Interaction, err)
+		}
+	}()
 
-// 	if i.Type != discordgo.InteractionMessageComponent {
-// 		return
-// 	}
+	if i.Type != discordgo.InteractionMessageComponent {
+		return
+	}
 
-// 	data := i.MessageComponentData()
-// 	if data.ComponentType != discordgo.SelectMenuComponent {
-// 		return
-// 	}
+	data := i.MessageComponentData()
+	if data.ComponentType != discordgo.SelectMenuComponent {
+		return
+	}
 
-// }
+	parts := strings.SplitN(data.CustomID, "_", 2)
+	if len(parts) == 0 {
+		return
+	}
+
+	cmdName := parts[0]
+	if cmd, ok := slashcommands.All()[cmdName]; ok {
+		if buttonCmd, ok := cmd.(slashcommands.SelectMenuHandler); ok {
+			_ = buttonCmd.HandleSelectMenu(s, i.Interaction, data.CustomID)
+		}
+	}
+}

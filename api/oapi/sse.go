@@ -47,7 +47,7 @@ const (
 )
 
 // The following events are able to be listened to by anyone with a valid bearer key.
-var GLOBAL_EVENTS = []Event{
+var GLOBAL_EVENTS = [...]Event{
 	EventNationCreated,
 	EventNationDeleted,
 	EventNationRenamed,
@@ -66,7 +66,7 @@ var GLOBAL_EVENTS = []Event{
 }
 
 // The following events are 'priveleged' in that they are only sent to the relevent player.
-var PRIVILEGED_EVENTS = []Event{
+var PRIVILEGED_EVENTS = [...]Event{
 	EventTownJoinedNation,
 	EventTownLeftNation,
 
