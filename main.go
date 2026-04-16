@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"emcsrw/api/capi"
+	"emcsrw/api/oapi"
 	"emcsrw/bot"
 	"emcsrw/bot/scheduler"
 	"emcsrw/bot/slashcommands"
@@ -100,12 +101,22 @@ func startBot(s *discordgo.Session, activeMapDB *database.Database) {
 	log.Println("Connecting to Discord gateway...")
 	discord := bot.Connect(s)
 
+	ctx, stopSSE := context.WithCancel(context.Background())
+	go func() {
+		oapiAuthKey := os.Getenv("OAPI_AUTH_KEY")
+		if err := oapi.ListenToSSE(ctx, oapi.GLOBAL_EVENTS, oapiAuthKey); err != nil {
+			log.Printf("SSE stopped: %v", err)
+		}
+	}()
+
 	// Wait for Ctrl+C or kill.
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	sig := <-c
 
 	fmt.Printf("\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
+
+	stopSSE()
 
 	// Gracefully stop scheduled tasks by waiting for all to finish.
 	msg := scheduler.Instance.Shutdown(30 * time.Second)
