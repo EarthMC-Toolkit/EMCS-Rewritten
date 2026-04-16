@@ -9,9 +9,11 @@ import (
 
 type Endpoint = string
 
-const VERSION, MAP = "4", "nostra" // this should match shared.ACTIVE_MAP
+// The API version should always be kept up to date unless there is a new map releasing, in which case
+// we should hold off upgrading until all other necessary logic is changed elsewhere in the bot.
+const VERSION = "v4"
 const (
-	ENDPOINT_BASE           Endpoint = "https://api.earthmc.net/v" + VERSION + "/" + MAP
+	ENDPOINT_BASE           Endpoint = "https://api.earthmc.net/" + VERSION
 	ENDPOINT_MYSTERY_MASTER Endpoint = ENDPOINT_BASE + "/mm"
 	ENDPOINT_TOWNS          Endpoint = ENDPOINT_BASE + "/towns"
 	ENDPOINT_NATIONS        Endpoint = ENDPOINT_BASE + "/nations"
@@ -20,7 +22,6 @@ const (
 	ENDPOINT_LOCATION       Endpoint = ENDPOINT_BASE + "/location"
 	ENDPOINT_DISCORD        Endpoint = ENDPOINT_BASE + "/discord"
 	ENDPOINT_QUARTERS       Endpoint = ENDPOINT_BASE + "/quarters"
-	ENDPOINT_PLAYER_STATS   Endpoint = ENDPOINT_BASE + "/player-stats"
 )
 
 // Identifiable is a constraint for things with a UUID such as an Entity.
@@ -163,9 +164,9 @@ func QueryOnline() *GetQuery[OnlineResponse] {
 	return NewGetQuery[OnlineResponse](ENDPOINT_ONLINE)
 }
 
-func QueryServerPlayerStats() *GetQuery[ServerPlayerStats] {
-	return NewGetQuery[ServerPlayerStats](ENDPOINT_PLAYER_STATS)
-}
+// func QueryServerPlayerStats() *GetQuery[ServerPlayerStats] {
+// 	return NewGetQuery[ServerPlayerStats](ENDPOINT_PLAYER_STATS)
+// }
 
 func QueryMysteryMaster() *GetQuery[[]MysteryMaster] {
 	return NewGetQuery[[]MysteryMaster](ENDPOINT_MYSTERY_MASTER)

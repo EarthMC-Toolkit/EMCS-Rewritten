@@ -82,7 +82,7 @@ type ServerInfo struct {
 	VoteParty  ServerVoteParty  `json:"voteParty"`
 }
 
-type ServerPlayerStats map[string]uint // Represents list below
+// type ServerPlayerStats map[string]uint // Represents list below
 
 // "enchant_item": 3738350,
 // "strider_one_cm": 1398277463,
