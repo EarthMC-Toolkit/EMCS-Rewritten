@@ -2,7 +2,6 @@ package slashcommands
 
 import (
 	"emcsrw/utils/discordutil"
-	"fmt"
 	"slices"
 	"strings"
 	"sync"
@@ -77,19 +76,22 @@ func (cmd SSECommand) HandleButton(s *discordgo.Session, i *discordgo.Interactio
 		return nil
 	}
 
-	events, ok := sseSetupState.Load(i.ChannelID)
-	if !ok {
-		return discordutil.UpdateComponent(s, i, &discordgo.InteractionResponseData{
-			Content: "No selection found.",
-		})
-	}
+	// events, ok := sseSetupState.Load(i.ChannelID)
+	// if !ok {
+	// 	return discordutil.UpdateComponent(s, i, &discordgo.InteractionResponseData{
+	// 		Content: "No selection found.",
+	// 	})
+	// }
 
-	selected := toEventNames(events.([]string))
+	//selected := toEventNames(events.([]string))
 	//confirmSetup()
 
-	choicesStr := fmt.Sprintf("```%s```", strings.Join(selected, ", "))
+	//choicesStr := fmt.Sprintf("```%s```", strings.Join(selected, ", "))
+	//desc := "SSE configuration complete. This channel will receive the following events:" + choicesStr
+
+	desc := "Congrats! You used a pointless command as of right now."
 	return discordutil.UpdateComponent(s, i, &discordgo.InteractionResponseData{
-		Content:    "SSE configuration complete. This channel will receive the following events:" + choicesStr,
+		Content:    desc,
 		Components: []discordgo.MessageComponent{},
 	})
 }
