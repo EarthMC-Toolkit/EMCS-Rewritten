@@ -371,7 +371,7 @@ func TrySendCreatedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, s
 		})
 
 		s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID, &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("Town Flow | Fall Events [%d]", count),
+			Title:       fmt.Sprintf("Town Flow | Creation Events [%d]", count),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.GREEN,
 		})
