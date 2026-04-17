@@ -35,6 +35,8 @@ var (
 // should be enough to cover at least a few days/weeks of news depending on activity.
 const NEWS_CHANNEL_MAX_FETCH = 500
 
+// TODO: PUT THESE INTO .env so the user can customize where the messages should go.
+// ALSO ADD SOME SORT OF CHECK SO THEY CANT USE EMCS TO SPAM RANDOM CHANNELS!!!
 const NEWS_CHANNEL_ID = "970962878486183958"
 const TFLOW_CHANNEL_ID = "1494652102071418930"
 const VP_CHANNEL_ID = "1420146203454083144"
