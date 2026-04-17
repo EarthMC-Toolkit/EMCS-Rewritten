@@ -20,7 +20,6 @@ const (
 	ENDPOINT_PLAYERS        Endpoint = ENDPOINT_BASE + "/players"
 	ENDPOINT_ONLINE         Endpoint = ENDPOINT_BASE + "/online"
 	ENDPOINT_LOCATION       Endpoint = ENDPOINT_BASE + "/location"
-	ENDPOINT_DISCORD        Endpoint = ENDPOINT_BASE + "/discord"
 	ENDPOINT_QUARTERS       Endpoint = ENDPOINT_BASE + "/quarters"
 	ENDPOINT_SSE            Endpoint = ENDPOINT_BASE + "/events"
 )

@@ -37,6 +37,7 @@ type PlayerInfo struct {
 	Title         *string              `json:"title,omitempty"`
 	Surname       *string              `json:"surname,omitempty"`
 	FormattedName string               `json:"formattedName,omitempty"`
+	Discord       *string              `json:"discord,omitempty"`
 	About         *string              `json:"about,omitempty"`
 	Town          EntityNullableValues `json:"town"`
 	Nation        EntityNullableValues `json:"nation"`
