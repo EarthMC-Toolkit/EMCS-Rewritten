@@ -23,7 +23,7 @@ func (cmd SSECommand) Options() AppCommandOpts {
 	return AppCommandOpts{
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "setup",
+			Name:        "configure",
 			Description: "Sets up the current channel to receive certain chosen server events.",
 		},
 	}
@@ -35,11 +35,11 @@ func (cmd SSECommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 	// }
 
 	cdata := i.ApplicationCommandData()
-	if opt := cdata.GetOption("setup"); opt != nil {
+	if opt := cdata.GetOption("configure"); opt != nil {
 		if i.Member != nil {
 			if !discordutil.HasChannelPerm(i.Member, discordgo.PermissionManageChannels) {
 				return discordutil.SendReply(s, i.Interaction, &discordgo.InteractionResponseData{
-					Content: "You do not have the Manage Channel permission required to setup SSE.",
+					Content: "You do not have the Manage Channel permission required to configure SSE.",
 					Flags:   discordgo.MessageFlagsEphemeral,
 				})
 			}
@@ -109,7 +109,7 @@ func sendSetupMultiSelect(s *discordgo.Session, i *discordgo.Interaction) error 
 	})
 
 	return discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
-		Content:    "SSE Events | Channel Setup",
+		Content:    "Server Events (SSE) | Channel Configuration",
 		Components: []discordgo.MessageComponent{menuRow, btnRow},
 	})
 }
