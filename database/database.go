@@ -40,14 +40,15 @@ func NewStoreDefinition[T any](name string) StoreDefinition[T] {
 }
 
 var (
-	SERVER_STORE      = NewStoreDefinition[oapi.ServerInfo]("server")
-	TOWNS_STORE       = NewStoreDefinition[oapi.TownInfo]("towns")
-	NATIONS_STORE     = NewStoreDefinition[oapi.NationInfo]("nations")
-	ENTITIES_STORE    = NewStoreDefinition[oapi.EntityList]("entities")
-	PLAYERS_STORE     = NewStoreDefinition[BasicPlayer]("players")
-	ALLIANCES_STORE   = NewStoreDefinition[Alliance]("alliances")
-	NEWS_STORE        = NewStoreDefinition[NewsEntry]("news")
-	USAGE_USERS_STORE = NewStoreDefinition[UserUsage]("usage-users")
+	SERVER_STORE    = NewStoreDefinition[oapi.ServerInfo]("server")
+	TOWNS_STORE     = NewStoreDefinition[oapi.TownInfo]("towns")
+	NATIONS_STORE   = NewStoreDefinition[oapi.NationInfo]("nations")
+	ENTITIES_STORE  = NewStoreDefinition[oapi.EntityList]("entities")
+	PLAYERS_STORE   = NewStoreDefinition[BasicPlayer]("players")
+	ALLIANCES_STORE = NewStoreDefinition[Alliance]("alliances")
+	NEWS_STORE      = NewStoreDefinition[NewsEntry]("news")
+	//SSE_STORE         = NewStoreDefinition[UserUsage]("sse")
+	USAGE_USERS_STORE = NewStoreDefinition[UserUsage]("usage-users") // TODO: This should not be attached to a store but live in /db.
 )
 
 var databases = make(map[string]*Database)
