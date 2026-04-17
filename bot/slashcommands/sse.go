@@ -89,7 +89,7 @@ func (cmd SSECommand) HandleButton(s *discordgo.Session, i *discordgo.Interactio
 
 	choicesStr := fmt.Sprintf("```%s```", strings.Join(selected, ", "))
 	return discordutil.UpdateComponent(s, i, &discordgo.InteractionResponseData{
-		Content:    "SSE setup complete. This channel will receive the following events:" + choicesStr,
+		Content:    "SSE configuration complete. This channel will receive the following events:" + choicesStr,
 		Components: []discordgo.MessageComponent{},
 	})
 }
@@ -109,7 +109,7 @@ func sendSetupMultiSelect(s *discordgo.Session, i *discordgo.Interaction) error 
 	})
 
 	return discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
-		Content:    "Server Events (SSE) | Channel Configuration",
+		Content:    "Server Events (SSE) | Channel Configurator",
 		Components: []discordgo.MessageComponent{menuRow, btnRow},
 	})
 }
