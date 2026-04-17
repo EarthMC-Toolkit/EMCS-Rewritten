@@ -86,9 +86,11 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 	staleTowns := lo.MapToSlice(staleTownList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
 
 	TrySendLeftJoinedNotif(s, towns, staleTowns, townless, residents)
+
+	TrySendRenamedNotif(s, townList, staleTowns)
+	TrySendCreatedNotif(s, townList, staleTowns)
 	TrySendRuinedNotif(s, townList, staleTowns)
 	TrySendFallenNotif(s, townList, staleTowns)
-	TrySendRenamedNotif(s, townList, staleTowns)
 }
 
 func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
@@ -340,7 +342,38 @@ func TrySendRenamedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, s
 		s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID, &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Rename Events [%d]", len(desc)),
 			Description: strings.Join(desc, "\n\n"),
-			Color:       discordutil.RED,
+			Color:       discordutil.AQUA,
+		})
+	}
+}
+
+func TrySendCreatedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
+	tslice := lo.MapToSlice(towns, func(_ string, t oapi.TownInfo) oapi.TownInfo {
+		return t
+	})
+
+	diff, _ := utils.DifferenceBy(tslice, staleTowns, func(t oapi.TownInfo) string {
+		return t.UUID
+	})
+
+	count := len(diff)
+	if count > 0 {
+		desc := parallel.Map(diff, func(t oapi.TownInfo, _ int) string {
+			spawn := t.Coordinates.Spawn
+			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
+
+			chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
+			balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
+			return fmt.Sprintf(
+				"`%s` was created. Located at %s.\nFounder: `%s` %sG %s Chunks",
+				t.Name, locationLink, t.Founder, balance, chunks,
+			)
+		})
+
+		s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID, &discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("Town Flow | Fall Events [%d]", count),
+			Description: strings.Join(desc, "\n\n"),
+			Color:       discordutil.GREEN,
 		})
 	}
 }
