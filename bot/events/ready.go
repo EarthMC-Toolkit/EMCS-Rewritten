@@ -86,6 +86,7 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 	TrySendLeftJoinedNotif(s, towns, staleTowns, townless, residents)
 	TrySendRuinedNotif(s, townList, staleTowns)
 	TrySendFallenNotif(s, townList, staleTowns)
+	TrySendRenamedNotif(s, townList, staleTowns)
 }
 
 func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
@@ -311,6 +312,37 @@ func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
 	vpLastCheck = time.Now()
 }
 
+func TrySendRenamedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
+	desc := make([]string, 0)
+	for _, old := range staleTowns {
+		cur, ok := towns[old.UUID]
+		if !ok || cur.Name == old.Name {
+			continue // skip if deleted or same name
+		}
+
+		spawn := cur.Coordinates.Spawn
+		locationLink := fmt.Sprintf(
+			"[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)",
+			spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
+		)
+
+		chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, cur.Size())
+		balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, cur.Bal())
+		desc = append(desc, fmt.Sprintf(
+			"`%s` was renamed to `%s`.\nLocated at %s.\nFounder: `%s` %sG %s Chunks",
+			old.Name, cur.Name, locationLink, cur.Founder, balance, chunks,
+		))
+	}
+
+	if len(desc) > 0 {
+		s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID, &discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("Town Flow | Rename Events [%d]", len(desc)),
+			Description: strings.Join(desc, "\n\n"),
+			Color:       discordutil.RED,
+		})
+	}
+}
+
 func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
 	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
 		return t.UUID, t, t.Status.Ruined
@@ -378,7 +410,6 @@ func TrySendFallenNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 
 			chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
 			balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
-
 			return fmt.Sprintf(
 				"`%s` was deleted. Located at %s.\nFounder: `%s` %sG %s Chunks",
 				t.Name, locationLink, t.Founder, balance, chunks,
