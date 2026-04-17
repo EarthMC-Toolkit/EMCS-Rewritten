@@ -277,7 +277,7 @@ func NewBasicPlayerEmbed(player database.BasicPlayer, description string) *disco
 // Builds an embed that describes a user using info from the Official API.
 //
 // Should be preferred when the user exists on said API and has not opted-out.
-func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
+func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.MessageEmbed {
 	registeredTs := player.Timestamps.Registered   // ms
 	lastOnlineTs := player.Timestamps.LastOnline   // ms
 	joinedTownTs := player.Timestamps.JoinedTownAt // ms
@@ -385,6 +385,14 @@ func NewPlayerEmbed(player oapi.PlayerInfo) *discordgo.MessageEmbed {
 	AddField(embed, "Appointed Ranks", fmt.Sprintf("Town: %s\nNation: %s", townRanksStr, nationRanksStr), false)
 	AddField(embed, "Friends", friendsStr, false)
 	AddField(embed, "Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false)
+
+	if player.Discord != nil {
+		if user, err := s.User(*player.Discord); err != nil {
+			AddField(embed, "Discord", fmt.Sprintf("<@%s> (%s)", user.ID, user.String()), false)
+		} else {
+			AddField(embed, "Discord", fmt.Sprintf("<@%s>", *player.Discord), false)
+		}
+	}
 
 	// Second field
 	if townName != "No Town" {

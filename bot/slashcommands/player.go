@@ -88,7 +88,7 @@ func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerNa
 	}
 
 	// API is up and results received, everything working normally.
-	embed := embeds.NewPlayerEmbed(players[0])
+	embed := embeds.NewPlayerEmbed(s, players[0])
 	return discordutil.FollowupEmbeds(s, i, embed)
 }
 
