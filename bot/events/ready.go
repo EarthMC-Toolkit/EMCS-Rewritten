@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"fmt"
 	"log"
+	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -37,9 +38,9 @@ const NEWS_CHANNEL_MAX_FETCH = 500
 
 // TODO: PUT THESE INTO .env so the user can customize where the messages should go.
 // ALSO ADD SOME SORT OF CHECK SO THEY CANT USE EMCS TO SPAM RANDOM CHANNELS!!!
-const NEWS_CHANNEL_ID = "970962878486183958"
-const TFLOW_CHANNEL_ID = "1494652102071418930"
-const VP_CHANNEL_ID = "1420146203454083144"
+var NEWS_CHANNEL_ID = func() string { return os.Getenv("NEWS_CHANNEL_ID") }
+var TFLOW_CHANNEL_ID = func() string { return os.Getenv("TFLOW_CHANNEL_ID") }
+var VP_CHANNEL_ID = func() string { return os.Getenv("VP_CHANNEL_ID") }
 
 // VoteParty notification tracking.
 var vpThresholds = [...]int{500, 300, 150, 50}
@@ -117,7 +118,7 @@ func newsTask(s *discordgo.Session, mdb *database.Database) {
 		return
 	}
 	if _, err := newsStore.OverwriteFunc(func() (map[string]database.NewsEntry, error) {
-		newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID, NEWS_CHANNEL_MAX_FETCH)
+		newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID(), NEWS_CHANNEL_MAX_FETCH)
 		if err != nil {
 			return nil, err
 		}
@@ -299,8 +300,9 @@ func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
 			}
 
 			// Send notif to toolkit #voteparty channel and publish to followers.
-			if msg, err := s.ChannelMessageSend(VP_CHANNEL_ID, content); err == nil {
-				s.ChannelMessageCrosspost(VP_CHANNEL_ID, msg.ID)
+			chanID := VP_CHANNEL_ID()
+			if msg, err := s.ChannelMessageSend(chanID, content); err == nil {
+				s.ChannelMessageCrosspost(chanID, msg.ID)
 			}
 
 			vpNotified[threshold] = true
@@ -339,11 +341,14 @@ func TrySendRenamedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, s
 	}
 
 	if len(desc) > 0 {
-		s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID, &discordgo.MessageEmbed{
+		_, err := s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID(), &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Rename Events [%d]", len(desc)),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.AQUA,
 		})
+		if err != nil {
+			utils.Logf(RED, "error sending town flow rename event:\n%v", err)
+		}
 	}
 }
 
@@ -364,17 +369,25 @@ func TrySendCreatedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, s
 
 			chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
 			balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
+
+			openEmoji := lo.Ternary(t.Status.Open, shared.EMOJIS.CIRCLE_CHECK, shared.EMOJIS.CIRCLE_CROSS)
+			outsidersEmoji := lo.Ternary(t.Status.CanOutsidersSpawn, shared.EMOJIS.CIRCLE_CHECK, shared.EMOJIS.CIRCLE_CROSS)
+
 			return fmt.Sprintf(
-				"`%s` was created. Located at %s.\nFounder: `%s` %sG %s Chunks",
-				t.Name, locationLink, t.Founder, balance, chunks,
+				"`%s` was created. Located at %s.\nFounder: `%s` %sG %s Chunks %s Open %s Outsiders Can Spawn",
+				t.Name, locationLink, t.Founder, balance, chunks, openEmoji, outsidersEmoji,
 			)
 		})
 
-		s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID, &discordgo.MessageEmbed{
+		utils.Printf(HIDDEN, "\nDEBUG | Town Flow Channel ID: %s\n", TFLOW_CHANNEL_ID())
+		_, err := s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID(), &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Creation Events [%d]", count),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.GREEN,
 		})
+		if err != nil {
+			utils.Logf(RED, "error sending town flow creation event:\n%v", err)
+		}
 	}
 }
 
@@ -420,11 +433,14 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			)
 		})
 
-		s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID, &discordgo.MessageEmbed{
+		_, err := s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID(), &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Ruin Events [%d]", count),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.DARK_GOLD,
 		})
+		if err != nil {
+			utils.Logf(RED, "error sending town flow ruin event:\n%v", err)
+		}
 	}
 }
 
@@ -451,11 +467,14 @@ func TrySendFallenNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			)
 		})
 
-		s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID, &discordgo.MessageEmbed{
+		_, err := s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID(), &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Fall Events [%d]", count),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.RED,
 		})
+		if err != nil {
+			utils.Logf(RED, "error sending town flow fall event:\n%v", err)
+		}
 	}
 }
 
