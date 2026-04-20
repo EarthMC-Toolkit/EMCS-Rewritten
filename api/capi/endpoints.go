@@ -49,15 +49,20 @@ type NewsEntry struct {
 	ID string `json:"id"`
 }
 
-type ResponseCache struct {
-	CompressedData []byte // gzip compressed data that gets sent (usually JSON)
-	Hash           string // server-side internal fingerprint of the data
-	ETag           string // like hash, but intended to match what the client still has
+// type ResponseCache struct {
+// 	CompressedData []byte // gzip compressed data that gets sent (usually JSON)
+// 	Hash           string // server-side internal fingerprint of the data
+// 	ETag           string // like hash, but intended to match what the client still has
+// }
+
+type CacheEntry struct {
+	Hash string
+	Data []Alliance // parsed alliances
 }
 
 type DatabaseName = string
 
-var alliancesCache = map[DatabaseName]*ResponseCache{} // Cache the response per map
+var alliancesCache = map[DatabaseName]*CacheEntry{} // Cache the response per map
 var alliancesCacheMu sync.RWMutex
 
 func ServeBase(mux *http.ServeMux) error {
@@ -94,60 +99,52 @@ func ServeAlliances(mux *http.ServeMux, mdb *database.Database) error {
 			return a.Identifier, int64(*a.UpdatedTimestamp)
 		})
 
-		key := mdb.Name()
-
-		alliancesCacheMu.RLock()
-		entry, ok := alliancesCache[key]
-		cacheHit := ok && entry.Hash == currentHash
-		alliancesCacheMu.RUnlock()
-
-		// rebuild cache only if hash changed
-		if !cacheHit {
-			reslist, _ := entitiesStore.Get("residentlist")
-			townlesslist, _ := entitiesStore.Get("townlesslist")
-			parsed := getParsedAlliances(alliances, nationStore, reslist, townlesslist)
-
-			data, err := gzipJSON(parsed, 1)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			alliancesCacheMu.Lock()
-			alliancesCache[key] = &ResponseCache{
-				CompressedData: data,
-				ETag:           fmt.Sprintf(`"%x"`, sha1.Sum(data)),
-				Hash:           currentHash,
-			}
-			alliancesCacheMu.Unlock()
-		}
-
-		// read cache after potential rebuild
-		alliancesCacheMu.RLock()
-		entry = alliancesCache[key]
-		alliancesCacheMu.RUnlock()
-
-		// serve 304 if ETag matches
-		if r.Header.Get("If-None-Match") == entry.ETag && entry.ETag != "" {
+		etag := fmt.Sprintf(`"%x"`, sha1.Sum([]byte(currentHash)))
+		if r.Header.Get("If-None-Match") == etag {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
 
-		// limiter applies only if uncached
-		if !cacheHit {
+		key := mdb.Name()
+		alliancesCacheMu.RLock()
+		entry, ok := alliancesCache[key]
+		alliancesCacheMu.RUnlock()
+
+		var parsedAlliances []Alliance
+		if ok && entry.Hash == currentHash {
+			parsedAlliances = entry.Data
+		} else {
+			// cache miss → apply limiter
 			limiter := getLimiter(getClientIP(r), alliancesEndpoint, ALLIANCES_RPM)
 			if !limiter.Allow() {
 				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 				return
 			}
+
+			reslist, _ := entitiesStore.Get("residentlist")
+			townlesslist, _ := entitiesStore.Get("townlesslist")
+			parsedAlliances = getParsedAlliances(alliances, nationStore, reslist, townlesslist)
+
+			alliancesCacheMu.Lock()
+			alliancesCache[key] = &CacheEntry{
+				Hash: currentHash,
+				Data: parsedAlliances,
+			}
+			alliancesCacheMu.Unlock()
 		}
 
-		w.Header().Set("ETag", entry.ETag)
+		data, err := gzipJSON(parsedAlliances, 1)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("ETag", etag)
 		w.Header().Set("Cache-Control", "public, max-age=60")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Content-Encoding", "gzip")
 		w.Header().Set("Vary", "Accept-Encoding")
-		w.Write(entry.CompressedData)
+		w.Write(data)
 	})
 
 	return nil
@@ -168,24 +165,9 @@ func ServeNews(mux *http.ServeMux, mdb *database.Database) error {
 			return cmp.Compare(b.Timestamp, a.Timestamp) // newest first
 		})
 
-		// gzip JSON to a buffer first
-		var buf bytes.Buffer
-		gz, err := gzip.NewWriterLevel(&buf, 2)
-		if err != nil {
-			http.Error(w, "Error during gzip compression", http.StatusInternalServerError)
-			return
-		}
-
-		if err := json.NewEncoder(gz).Encode(newsValues); err != nil {
-			gz.Close()
-			http.Error(w, "Error encoding JSON", http.StatusInternalServerError)
-			return
-		}
-		gz.Close()
-		data := buf.Bytes()
-
-		// generate ETag from gzipped JSON
-		etag := fmt.Sprintf(`"%x"`, sha1.Sum(data))
+		b, _ := json.Marshal(newsValues)
+		sum := sha1.Sum(b)
+		etag := fmt.Sprintf(`"%x"`, sum)
 
 		// 304 if client already has current snapshot
 		if r.Header.Get("If-None-Match") == etag && etag != "" {
@@ -200,12 +182,24 @@ func ServeNews(mux *http.ServeMux, mdb *database.Database) error {
 			return
 		}
 
+		var buf bytes.Buffer
+		gz, err := gzip.NewWriterLevel(&buf, 2)
+		if err != nil {
+			http.Error(w, "Gzip error: failed to create writer", http.StatusInternalServerError)
+			return
+		}
+		if _, err := gz.Write(b); err != nil {
+			http.Error(w, "Gzip error: failed to write", http.StatusInternalServerError)
+			return
+		}
+		gz.Close()
+
 		w.Header().Set("ETag", etag)
 		w.Header().Set("Cache-Control", "public, max-age=120")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Content-Encoding", "gzip")
 		w.Header().Set("Vary", "Accept-Encoding")
-		w.Write(data)
+		w.Write(buf.Bytes())
 	})
 
 	return nil
