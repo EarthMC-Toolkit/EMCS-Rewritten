@@ -5,7 +5,9 @@ import (
 	"cmp"
 	"compress/gzip"
 	"crypto/sha1"
+	"emcsrw/api/oapi"
 	"emcsrw/database"
+	"emcsrw/database/store"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -74,23 +76,13 @@ func ServeBase(mux *http.ServeMux) error {
 	return nil
 }
 
-func ServeAlliances(mux *http.ServeMux, mdb *database.Database) error {
-	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
-	if err != nil {
-		return err
-	}
-
-	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
-	if err != nil {
-		return err
-	}
-
-	entitiesStore, err := database.GetStore(mdb, database.ENTITIES_STORE)
-	if err != nil {
-		return err
-	}
-
-	alliancesEndpoint := fmt.Sprintf("/%s/alliances", mdb.Name())
+func ServeAlliances(
+	mux *http.ServeMux, mdbName string,
+	allianceStore *store.Store[database.Alliance],
+	nationStore *store.Store[oapi.NationInfo],
+	entitiesStore *store.Store[oapi.EntityList],
+) error {
+	alliancesEndpoint := fmt.Sprintf("/%s/alliances", mdbName)
 	mux.HandleFunc(alliancesEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		alliances := allianceStore.Values()
 
@@ -105,9 +97,8 @@ func ServeAlliances(mux *http.ServeMux, mdb *database.Database) error {
 			return
 		}
 
-		key := mdb.Name()
 		alliancesCacheMu.RLock()
-		entry, ok := alliancesCache[key]
+		entry, ok := alliancesCache[mdbName]
 		alliancesCacheMu.RUnlock()
 
 		var parsedAlliances []Alliance
@@ -126,7 +117,7 @@ func ServeAlliances(mux *http.ServeMux, mdb *database.Database) error {
 			parsedAlliances = getParsedAlliances(alliances, nationStore, reslist, townlesslist)
 
 			alliancesCacheMu.Lock()
-			alliancesCache[key] = &CacheEntry{
+			alliancesCache[mdbName] = &CacheEntry{
 				Hash: currentHash,
 				Data: parsedAlliances,
 			}
@@ -150,13 +141,8 @@ func ServeAlliances(mux *http.ServeMux, mdb *database.Database) error {
 	return nil
 }
 
-func ServeNews(mux *http.ServeMux, mdb *database.Database) error {
-	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
-	if err != nil {
-		return err
-	}
-
-	newsEndpoint := fmt.Sprintf("/%s/news", mdb.Name())
+func ServeNews(mux *http.ServeMux, mdbName string, newsStore *store.Store[database.NewsEntry]) error {
+	newsEndpoint := fmt.Sprintf("/%s/news", mdbName)
 	mux.HandleFunc(newsEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		newsValues := lo.MapToSlice(newsStore.Entries(), func(key string, n database.NewsEntry) NewsEntry {
 			return NewsEntry{NewsEntry: n, ID: key}
@@ -205,13 +191,8 @@ func ServeNews(mux *http.ServeMux, mdb *database.Database) error {
 	return nil
 }
 
-func ServePlayers(mux *http.ServeMux, mdb *database.Database) error {
-	playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
-	if err != nil {
-		return err
-	}
-
-	playersEndpoint := fmt.Sprintf("/%s/players", mdb.Name())
+func ServePlayers(mux *http.ServeMux, mdbName string, playersStore *store.Store[database.BasicPlayer]) error {
+	playersEndpoint := fmt.Sprintf("/%s/players", mdbName)
 	mux.HandleFunc(playersEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		limiter := getLimiter(r.RemoteAddr, playersEndpoint, PLAYERS_RPM)
 		if !limiter.Allow() {
@@ -232,7 +213,7 @@ func ServePlayers(mux *http.ServeMux, mdb *database.Database) error {
 		defer gz.Close()
 
 		// Condense town and nation fields from entity object to array to reduce payload size
-		playerStoreValues := lo.MapToSlice(playerStore.Entries(), func(key string, p database.BasicPlayer) BasicPlayer {
+		playerStoreValues := lo.MapToSlice(playersStore.Entries(), func(key string, p database.BasicPlayer) BasicPlayer {
 			var town, nation *[2]string
 			if p.Town != nil {
 				t := [2]string{p.Town.Name, p.Town.UUID}

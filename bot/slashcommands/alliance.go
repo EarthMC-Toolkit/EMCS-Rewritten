@@ -141,9 +141,6 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	if opt = cdata.GetOption("create"); opt != nil {
 		return createAlliance(s, i.Interaction)
 	}
-	if opt = cdata.GetOption("disband"); opt != nil {
-		return disbandAlliance(s, i.Interaction, cdata)
-	}
 
 	// The following may take a while and are safe to defer as they are slash commands.
 	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
@@ -154,6 +151,9 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	}
 	if opt = cdata.GetOption("list"); opt != nil {
 		return listAlliances(s, i.Interaction)
+	}
+	if opt = cdata.GetOption("disband"); opt != nil {
+		return disbandAlliance(s, i.Interaction, cdata)
 	}
 
 	return nil
