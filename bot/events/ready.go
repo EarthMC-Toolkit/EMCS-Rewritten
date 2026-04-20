@@ -24,6 +24,15 @@ import (
 	"github.com/samber/lo/parallel"
 )
 
+// max amount of messages to fetch from news channel during its scheduled task.
+// should be enough to cover at least a few days/weeks of news depending on activity.
+const NEWS_CHANNEL_MAX_FETCH = 500
+
+// TODO: ADD SOME SORT OF CHECK SO THEY CANT USE EMCS TO SPAM RANDOM CHANNELS!!!
+var NEWS_CHANNEL_ID = func() string { return os.Getenv("NEWS_CHANNEL_ID") }   // this channel must be related to the active map
+var TFLOW_CHANNEL_ID = func() string { return os.Getenv("TFLOW_CHANNEL_ID") } // this channel must be related to the active map
+var VP_CHANNEL_ID = func() string { return os.Getenv("VP_CHANNEL_ID") }       // this channel must be related to the active map
+
 var (
 	HIDDEN = colour.New(colour.FgWhite, colour.Concealed)
 	WHITE  = colour.New(colour.Bold, colour.FgWhite)
@@ -31,16 +40,6 @@ var (
 	GREEN  = colour.New(colour.FgGreen)
 	YELLOW = colour.New(colour.FgYellow)
 )
-
-// max amount of messages to fetch from news channel during its scheduled task.
-// should be enough to cover at least a few days/weeks of news depending on activity.
-const NEWS_CHANNEL_MAX_FETCH = 500
-
-// TODO: PUT THESE INTO .env so the user can customize where the messages should go.
-// ALSO ADD SOME SORT OF CHECK SO THEY CANT USE EMCS TO SPAM RANDOM CHANNELS!!!
-var NEWS_CHANNEL_ID = func() string { return os.Getenv("NEWS_CHANNEL_ID") }
-var TFLOW_CHANNEL_ID = func() string { return os.Getenv("TFLOW_CHANNEL_ID") }
-var VP_CHANNEL_ID = func() string { return os.Getenv("VP_CHANNEL_ID") }
 
 // VoteParty notification tracking.
 var vpThresholds = [...]int{500, 300, 150, 50}
@@ -88,8 +87,8 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 
 	TrySendLeftJoinedNotif(s, towns, staleTowns, townless, residents)
 
-	TrySendRenamedNotif(s, townList, staleTowns)
 	TrySendCreatedNotif(s, townList, staleTowns)
+	TrySendRenamedNotif(s, townList, staleTowns)
 	TrySendRuinedNotif(s, townList, staleTowns)
 	TrySendFallenNotif(s, townList, staleTowns)
 }
@@ -117,7 +116,7 @@ func newsTask(s *discordgo.Session, mdb *database.Database) {
 		utils.Printf(RED, "\nERROR | cannot schedule news task:\n\t%s", err)
 		return
 	}
-	if _, err := newsStore.OverwriteFunc(func() (map[string]database.NewsEntry, error) {
+	if _, err := newsStore.OverwriteFunc(false, func() (map[string]database.NewsEntry, error) {
 		newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID(), NEWS_CHANNEL_MAX_FETCH)
 		if err != nil {
 			return nil, err
@@ -158,7 +157,7 @@ func UpdateData(mdb *database.Database) (
 	staleTowns = townStore.Entries()
 	utils.Printf(HIDDEN, "DEBUG | Stale towns: %d\n", len(staleTowns))
 
-	townList, err := townStore.OverwriteFunc(func() (map[string]oapi.TownInfo, error) {
+	townList, err := townStore.OverwriteFunc(false, func() (map[string]oapi.TownInfo, error) {
 		res, err := api.QueryAllTowns()
 		if err != nil {
 			return nil, err
@@ -187,7 +186,7 @@ func UpdateData(mdb *database.Database) (
 		return residentList, nil
 	})
 
-	nationList, _ := nationStore.OverwriteFunc(func() (map[string]oapi.NationInfo, error) {
+	nationList, _ := nationStore.OverwriteFunc(false, func() (map[string]oapi.NationInfo, error) {
 		uuids := lo.Keys(nlist)
 		res, _, _ := oapi.QueryNations(uuids...).ExecuteConcurrent()
 		return lo.SliceToMap(res, func(n oapi.NationInfo) (string, oapi.NationInfo) {
@@ -230,7 +229,7 @@ func UpdateData(mdb *database.Database) (
 		}
 	}
 
-	playerStore.OverwriteFunc(func() (map[string]database.BasicPlayer, error) {
+	playerStore.OverwriteFunc(false, func() (map[string]database.BasicPlayer, error) {
 		playersMap := make(map[string]database.BasicPlayer)
 		for uuid, name := range townlessList {
 			playersMap[uuid] = database.NewBasicPlayerEntity(uuid, name)
@@ -300,9 +299,8 @@ func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
 			}
 
 			// Send notif to toolkit #voteparty channel and publish to followers.
-			chanID := VP_CHANNEL_ID()
-			if msg, err := s.ChannelMessageSend(chanID, content); err == nil {
-				s.ChannelMessageCrosspost(chanID, msg.ID)
+			if msg, err := s.ChannelMessageSend(VP_CHANNEL_ID(), content); err == nil {
+				s.ChannelMessageCrosspost(VP_CHANNEL_ID(), msg.ID)
 			}
 
 			vpNotified[threshold] = true

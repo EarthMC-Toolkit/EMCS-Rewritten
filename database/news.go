@@ -59,9 +59,9 @@ func MessagesToNewsEntries(msgs []*discordgo.Message) map[string]NewsEntry {
 	entries := make(map[string]NewsEntry, len(msgs))
 	for _, msg := range msgs {
 		content := strings.TrimSpace(msg.Content)
-		if content == "[Original Message Deleted]" {
-			continue // Deleted messages aren't news. Thx TBI.
-		}
+		// if content == "[Original Message Deleted]" {
+		// 	continue // Deleted messages aren't news. Thx TBI.
+		// }
 		if strings.HasPrefix(content, "<@") && strings.HasSuffix(content, ">") {
 			continue // Mentions without headlines aren't news. Thx EMCL.
 		}

@@ -17,7 +17,7 @@ func NewMux(mdbs []*database.Database) (mux *http.ServeMux, err error) {
 
 	for _, mdb := range mdbs {
 		if mdb == nil {
-			log.Print("ERR | attempted to serve Custom API endpoints for a nil map database")
+			log.Print("ERROR | attempted to serve Custom API endpoints for a nil map database")
 			continue
 		}
 
