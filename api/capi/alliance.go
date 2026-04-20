@@ -4,6 +4,7 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/database/store"
+	"emcsrw/utils"
 	"slices"
 	"sort"
 	"sync"
@@ -56,6 +57,9 @@ func parseAlliance(
 	ownNationNames := lo.Map(ownNations, func(n oapi.NationInfo, _ int) string {
 		return n.Name
 	})
+	if len(ownNations) == 0 {
+		utils.Printf(store.RED, "ERROR | Len of retrieved nations for alliance %s is 0. Expected %d", a.Label, len(a.OwnNations))
+	}
 
 	puppetAlliances := a.ChildAlliances(alliances)
 	puppetNations := nationStore.GetFromSet(puppetAlliances.NationIds())

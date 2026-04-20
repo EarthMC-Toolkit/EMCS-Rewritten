@@ -15,6 +15,11 @@ var TBI_LOGO_REPLACER = strings.NewReplacer(
 	"\u003C:TBI:1071887302676185241\u003E", "",
 )
 
+// var EMCL_LOGO_REPLACER = strings.NewReplacer(
+// 	"<:TBI:1071887302676185241>", "",
+// 	"\u003C:TBI:1071887302676185241\u003E", "",
+// )
+
 type NewsEntry struct {
 	//ID        string   `json:"id"`
 	Message   string   `json:"message"`
@@ -53,8 +58,12 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 func MessagesToNewsEntries(msgs []*discordgo.Message) map[string]NewsEntry {
 	entries := make(map[string]NewsEntry, len(msgs))
 	for _, msg := range msgs {
-		if msg.Content == "[Original Message Deleted]" {
-			continue
+		content := strings.TrimSpace(msg.Content)
+		if content == "[Original Message Deleted]" {
+			continue // Deleted messages aren't news. Thx TBI.
+		}
+		if strings.HasPrefix(content, "<@") && strings.HasSuffix(content, ">") {
+			continue // Mentions without headlines aren't news. Thx EMCL.
 		}
 
 		entries[msg.ID] = NewNewsEntry(msg)

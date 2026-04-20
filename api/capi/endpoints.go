@@ -55,11 +55,10 @@ type ResponseCache struct {
 	ETag           string // like hash, but intended to match what the client still has
 }
 
-var alliancesCache = &ResponseCache{}
-var alliancesCacheMu = sync.RWMutex{}
+type DatabaseName = string
 
-var newsCache = &ResponseCache{}
-var newsCacheMu = sync.RWMutex{}
+var alliancesCache = map[DatabaseName]*ResponseCache{} // Cache the response per map
+var alliancesCacheMu sync.RWMutex
 
 func ServeBase(mux *http.ServeMux) error {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -95,8 +94,11 @@ func ServeAlliances(mux *http.ServeMux, mdb *database.Database) error {
 			return a.Identifier, int64(*a.UpdatedTimestamp)
 		})
 
+		key := mdb.Name()
+
 		alliancesCacheMu.RLock()
-		cacheHit := alliancesCache.Hash == currentHash
+		entry, ok := alliancesCache[key]
+		cacheHit := ok && entry.Hash == currentHash
 		alliancesCacheMu.RUnlock()
 
 		// rebuild cache only if hash changed
@@ -112,20 +114,21 @@ func ServeAlliances(mux *http.ServeMux, mdb *database.Database) error {
 			}
 
 			alliancesCacheMu.Lock()
-			alliancesCache.CompressedData = data
-			alliancesCache.ETag = fmt.Sprintf(`"%x"`, sha1.Sum(data))
-			alliancesCache.Hash = currentHash
+			alliancesCache[key] = &ResponseCache{
+				CompressedData: data,
+				ETag:           fmt.Sprintf(`"%x"`, sha1.Sum(data)),
+				Hash:           currentHash,
+			}
 			alliancesCacheMu.Unlock()
 		}
 
 		// read cache after potential rebuild
 		alliancesCacheMu.RLock()
-		etag := alliancesCache.ETag
-		data := alliancesCache.CompressedData
+		entry = alliancesCache[key]
 		alliancesCacheMu.RUnlock()
 
 		// serve 304 if ETag matches
-		if r.Header.Get("If-None-Match") == etag && etag != "" {
+		if r.Header.Get("If-None-Match") == entry.ETag && entry.ETag != "" {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
@@ -139,12 +142,12 @@ func ServeAlliances(mux *http.ServeMux, mdb *database.Database) error {
 			}
 		}
 
-		w.Header().Set("ETag", etag)
+		w.Header().Set("ETag", entry.ETag)
 		w.Header().Set("Cache-Control", "public, max-age=60")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Content-Encoding", "gzip")
 		w.Header().Set("Vary", "Accept-Encoding")
-		w.Write(data)
+		w.Write(entry.CompressedData)
 	})
 
 	return nil
