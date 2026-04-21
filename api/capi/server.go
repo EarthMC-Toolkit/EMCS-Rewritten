@@ -66,13 +66,15 @@ func NewMux(mdbs []*database.Database) (mux *http.ServeMux, err error) {
 			return nil, err
 		}
 
+		dbName := mdb.Name()
+
 		// Every interval, refresh the stores so they reflect their respective DB files (source of truth)
-		StartStoreSync(30*time.Second,
+		StartStoreSync(
+			30*time.Second, dbName,
 			allianceStore, nationStore, entitiesStore,
 			newsStore, playersStore,
 		)
 
-		dbName := mdb.Name()
 		if err = ServeAlliances(mux, dbName, allianceStore, nationStore, entitiesStore); err != nil {
 			return nil, err
 		}
@@ -88,7 +90,7 @@ func NewMux(mdbs []*database.Database) (mux *http.ServeMux, err error) {
 }
 
 func StartStoreSync(
-	interval time.Duration,
+	interval time.Duration, mdbName string,
 	allianceStore *store.Store[database.Alliance],
 	nationStore *store.Store[oapi.NationInfo],
 	entitiesStore *store.Store[oapi.EntityList],
@@ -100,7 +102,7 @@ func StartStoreSync(
 		defer ticker.Stop()
 
 		for range ticker.C {
-			log.Println("Syncing stores with data from underlying DB files.")
+			log.Println("Syncing stores with data from underlying DB files for map: ", mdbName)
 
 			_ = allianceStore.LoadFromFile()
 			_ = nationStore.LoadFromFile()
