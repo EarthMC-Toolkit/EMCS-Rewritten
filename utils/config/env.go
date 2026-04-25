@@ -154,22 +154,3 @@ func GetApiPort() uint {
 
 	return port
 }
-
-// func ShouldServeAPI() bool {
-// 	v, err := GetEnviroVar("ENABLE_API")
-// 	if err != nil {
-// 		if strings.Contains(err.Error(), "must be specified") {
-// 			return false // By default, we don't want to serve if var is missing.
-// 		}
-
-// 		log.Fatal(err)
-// 	}
-
-// 	// String exists and not empty. Check it is a valid bool value
-// 	parsed, err := ParseEnviroVar[bool](v)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	return parsed
-// }

@@ -26,10 +26,15 @@ technical debt to make it worth the time and effort of updating, as well as the 
 You will want to make sure you configure the bot to ensure everything works as intended.\
 Configuring the bot is as simple as editing the `.env` file (may change in future).
 ```sh
-export BOT_TOKEN=botTokenHere
-export BOT_APP_ID=botAppIdHere
-export DEV_ID=yourDiscordIdHere
-export API_PORT=7777
+export BOT_TOKEN=botTokenHere   		# This bot's Secret Token (use Discord Portal).
+export BOT_APP_ID=botAppIdHere  		# This bot's App ID (use Discord Portal).
+export DEV_ID=userIdHere 				# The Discord User ID of this bot's developer.
+
+export API_PORT=				 		# Port the Custom API is served on. Defaults to 7777.
+export NEWS_CHANNEL_ID=channelIdHere	# Where news will be fetched from to serve the Custom API.
+export VP_CHANNEL_ID=channelIdHere		# Where notifs for the VoteParty status will be sent to. Blank = Disable
+export TFLOW_CHANNEL_ID=channelIdHere	# Where notifs for town related events will be sent to. Blank = Disable
+export PFLOW_CHANNEL_ID=channelIdHere 	# Where notifs for player related events will be sent to. Blank = Disable
 ```
 
 ### Running the bot
@@ -69,7 +74,7 @@ your.domain.com {
 	# Keep commented unless you want to also serve a static website.
 	# root * /usr/share/caddy
 
-    # where the reverse proxy should listen.
+    # where the reverse proxy should listen. MUST be same as one specified in .env !!
 	reverse_proxy localhost:7777
 
 	# compression
@@ -83,10 +88,11 @@ your.domain.com {
 	}
 }
 ```
-You can then access the API at `https://your.domain.com/<emcMapName>/<endpoint>`.
-List of endpoints as of 16 Jan 2026:
+You can then access the API at `https://your.domain.com/<mapName>/<endpoint>`.
+List of endpoints since 28 Feb 2026:
 - `alliances`
 - `players`
+- `news`
 
 ## Project Structure
 >- `main.go` -> Project entrypoint. Responsible for loading `env` and passing bot token to `bot.Run`.
@@ -104,6 +110,7 @@ List of endpoints as of 16 Jan 2026:
 >- `db` -> Where permanent data such as alliances are intended to be stored. Git ignored.
 >- `shared` -> For things that can be shared, e.g. constants or embed related funcs/vars.
 >- `utils` -> Contains packages for reusable funcs like helpers for strings, slices, http, logging etc.
+>- `tests` -> Unit tests for code validation and reliability (only for development, not deployment).
 
 ## Contributing
 If you know **Golang** and the basics of the **discordgo** library, I encourage you to create pull requests or suggest features.
@@ -132,7 +139,7 @@ func (cmd ExampleCommand) Options() AppCommandOpts {
 	}
 }
 
-// Allows this command to handle its own execution once registered (via an interface).
+// Allows this command to handle its own execution (via SlashCommand interface) once registered.
 func (cmd ExampleCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	// Indicates that the command will take >3s so it does not timeout.
 	// Displays the "bot is thinking..." text.
@@ -156,6 +163,10 @@ func (cmd ExampleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 // The following are optional and can be removed if desired.
 // You can find example usage of these across files within the `./bot/slashcommands/` directory.
 
+func (cmd ExampleCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error {
+	return nil
+}
+
 func (cmd ExampleCommand) HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
 	return nil
 }
@@ -164,9 +175,8 @@ func (cmd ExampleCommand) HandleButton(s *discordgo.Session, i *discordgo.Intera
 	return nil
 }
 
-func (cmd ExampleCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error {
+func (cmd ExampleCommand) HandleSelectMenu(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
 	return nil
 }
-
 // =============================================================================================
 ```

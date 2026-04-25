@@ -144,10 +144,18 @@ func RegisterAllCommands() {
 // 	return nil
 // }
 
+// func (cmd ExampleCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error {
+// 	return nil
+// }
+
 // func (cmd ExampleCommand) HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
 // 	return nil
 // }
 
 // func (cmd ExampleCommand) HandleButton(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
+// 	return nil
+// }
+
+// func (cmd ExampleCommand) HandleSelectMenu(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
 // 	return nil
 // }

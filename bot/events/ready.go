@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"fmt"
 	"log"
-	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -16,6 +15,7 @@ import (
 	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils"
+	"emcsrw/utils/config"
 	"emcsrw/utils/discordutil"
 
 	"github.com/bwmarrin/discordgo"
@@ -29,9 +29,10 @@ import (
 const NEWS_CHANNEL_MAX_FETCH = 500
 
 // TODO: ADD SOME SORT OF CHECK SO THEY CANT USE EMCS TO SPAM RANDOM CHANNELS!!!
-var NEWS_CHANNEL_ID = func() string { return os.Getenv("NEWS_CHANNEL_ID") }   // this channel must be related to the active map
-var TFLOW_CHANNEL_ID = func() string { return os.Getenv("TFLOW_CHANNEL_ID") } // this channel must be related to the active map
-var VP_CHANNEL_ID = func() string { return os.Getenv("VP_CHANNEL_ID") }       // this channel must be related to the active map
+// var NEWS_CHANNEL_ID = func() string { return os.Getenv("NEWS_CHANNEL_ID") }   // this channel must be related to the active map
+// var VP_CHANNEL_ID = func() string { return os.Getenv("VP_CHANNEL_ID") }       // this channel must be related to the active map
+// var TFLOW_CHANNEL_ID = func() string { return os.Getenv("TFLOW_CHANNEL_ID") } // this channel must be related to the active map
+// var PFLOW_CHANNEL_ID = func() string { return os.Getenv("PFLOW_CHANNEL_ID") } // this channel must be related to the active map
 
 var (
 	HIDDEN = colour.New(colour.FgWhite, colour.Concealed)
@@ -61,7 +62,12 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 		scheduler.Instance.Schedule("DataUpdate", func() { dataUpdateTask(s, mdb) }, true, 30*time.Second)
 		scheduler.Instance.Schedule("ServerInfo", func() { serverInfoTask(s, mdb) }, true, 1*time.Minute)
-		scheduler.Instance.Schedule("NewsEntries", func() { newsTask(s, mdb) }, true, 2*time.Minute)
+
+		if cid, err := config.GetEnviroVar("NEWS_CHANNEL_ID"); err == nil {
+			scheduler.Instance.Schedule("NewsEntries", func() { newsTask(s, cid, mdb) }, true, 2*time.Minute)
+		} else {
+			utils.Printf(YELLOW, "\nWARNING | NEWS_CHANNEL_ID not set. Skipped scheduling of news retrieval task.\n")
+		}
 
 		// TODO: Create a scheduled task that loops through alliances, removing nations that no longer exist.
 	})
@@ -85,12 +91,24 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 	towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
 	staleTowns := lo.MapToSlice(staleTownList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
 
-	TrySendLeftJoinedNotif(s, towns, staleTowns, townless, residents)
+	cid, err := config.GetEnviroVar("TFLOW_CHANNEL_ID")
+	if err == nil {
+		// Town flow event notifications sent to channel TFLOW_CHANNEL_ID.
+		TrySendCreatedNotif(s, cid, towns, staleTowns)
+		TrySendRenamedNotif(s, cid, townList, staleTowns)
+		TrySendRuinedNotif(s, cid, townList, staleTowns)
+		TrySendFallenNotif(s, cid, towns, staleTowns)
+	} else {
+		utils.Printf(YELLOW, "\nWARNING | TFLOW_CHANNEL_ID not set. Skipping town flow event notifications.\n")
+	}
 
-	TrySendCreatedNotif(s, townList, staleTowns)
-	TrySendRenamedNotif(s, townList, staleTowns)
-	TrySendRuinedNotif(s, townList, staleTowns)
-	TrySendFallenNotif(s, townList, staleTowns)
+	cid, err = config.GetEnviroVar("PFLOW_CHANNEL_ID")
+	if err == nil {
+		// Player flow event notifications sent to channel PFLOW_CHANNEL_ID.
+		TrySendLeftJoinedNotif(s, cid, towns, staleTowns, townless, residents)
+	} else {
+		utils.Printf(YELLOW, "\nWARNING | PFLOW_CHANNEL_ID not set. Skipping player flow event notifications.\n")
+	}
 }
 
 func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
@@ -103,21 +121,27 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 		info, err := oapi.QueryServer().Execute()
 		return info, err
 	}); err == nil {
-		TrySendVotePartyNotif(s, info.VoteParty)
+		cid, err := config.GetEnviroVar("VP_CHANNEL_ID")
+		if err != nil {
+			utils.Printf(YELLOW, "\nWARNING | VP_CHANNEL_ID not set. Skipping VoteParty notifications.\n")
+		} else {
+			TrySendVotePartyNotif(s, cid, info.VoteParty)
+		}
+
 		if err := serverStore.WriteSnapshot(); err != nil {
 			utils.Printf(RED, "\nERROR | server store failed to write snapshot:\n\t%s", err)
 		}
 	}
 }
 
-func newsTask(s *discordgo.Session, mdb *database.Database) {
+func newsTask(s *discordgo.Session, channelID string, mdb *database.Database) {
 	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
 	if err != nil {
 		utils.Printf(RED, "\nERROR | cannot schedule news task:\n\t%s", err)
 		return
 	}
 	if _, err := newsStore.OverwriteFunc(false, func() (map[string]database.NewsEntry, error) {
-		newsMsgs, err := discordutil.FetchMessages(s, NEWS_CHANNEL_ID(), NEWS_CHANNEL_MAX_FETCH)
+		newsMsgs, err := discordutil.FetchMessages(s, channelID, NEWS_CHANNEL_MAX_FETCH)
 		if err != nil {
 			return nil, err
 		}
@@ -273,7 +297,7 @@ func UpdateData(mdb *database.Database) (
 // TODO: Increase sample size from 2 (last check and current) with a sliding window for better rate/ETA accuracy.
 //
 // For example, recording the last 15 minutes would be done using 15 samples, each sample at 60 second intervals.
-func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
+func TrySendVotePartyNotif(s *discordgo.Session, channelID string, vp oapi.ServerVoteParty) {
 	remaining := vp.NumRemaining
 
 	var rate float64
@@ -299,8 +323,8 @@ func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
 			}
 
 			// Send notif to toolkit #voteparty channel and publish to followers.
-			if msg, err := s.ChannelMessageSend(VP_CHANNEL_ID(), content); err == nil {
-				s.ChannelMessageCrosspost(VP_CHANNEL_ID(), msg.ID)
+			if msg, err := s.ChannelMessageSend(channelID, content); err == nil {
+				s.ChannelMessageCrosspost(channelID, msg.ID)
 			}
 
 			vpNotified[threshold] = true
@@ -316,7 +340,7 @@ func TrySendVotePartyNotif(s *discordgo.Session, vp oapi.ServerVoteParty) {
 	vpLastCheck = time.Now()
 }
 
-func TrySendRenamedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
+func TrySendRenamedNotif(s *discordgo.Session, channelID string, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
 	desc := make([]string, 0)
 	for _, old := range staleTowns {
 		cur, ok := towns[old.UUID]
@@ -339,7 +363,7 @@ func TrySendRenamedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, s
 	}
 
 	if len(desc) > 0 {
-		_, err := s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID(), &discordgo.MessageEmbed{
+		_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Rename Events [%d]", len(desc)),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.AQUA,
@@ -350,12 +374,8 @@ func TrySendRenamedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, s
 	}
 }
 
-func TrySendCreatedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
-	tslice := lo.MapToSlice(towns, func(_ string, t oapi.TownInfo) oapi.TownInfo {
-		return t
-	})
-
-	diff, _ := utils.DifferenceBy(tslice, staleTowns, func(t oapi.TownInfo) string {
+func TrySendCreatedNotif(s *discordgo.Session, channelID string, towns []oapi.TownInfo, staleTowns []oapi.TownInfo) {
+	diff, _ := utils.DifferenceBy(towns, staleTowns, func(t oapi.TownInfo) string {
 		return t.UUID
 	})
 
@@ -377,8 +397,8 @@ func TrySendCreatedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, s
 			)
 		})
 
-		utils.Printf(HIDDEN, "\nDEBUG | Town Flow Channel ID: %s\n", TFLOW_CHANNEL_ID())
-		_, err := s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID(), &discordgo.MessageEmbed{
+		utils.Printf(HIDDEN, "\nDEBUG | Town Flow Channel ID: %s\n", channelID)
+		_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Creation Events [%d]", count),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.GREEN,
@@ -389,7 +409,7 @@ func TrySendCreatedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, s
 	}
 }
 
-func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
+func TrySendRuinedNotif(s *discordgo.Session, channelID string, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
 	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
 		return t.UUID, t, t.Status.Ruined
 	})
@@ -431,7 +451,7 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			)
 		})
 
-		_, err := s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID(), &discordgo.MessageEmbed{
+		_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Ruin Events [%d]", count),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.DARK_GOLD,
@@ -442,12 +462,8 @@ func TrySendRuinedNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 	}
 }
 
-func TrySendFallenNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
-	tslice := lo.MapToSlice(towns, func(_ string, t oapi.TownInfo) oapi.TownInfo {
-		return t
-	})
-
-	diff, _ := utils.DifferenceBy(staleTowns, tslice, func(t oapi.TownInfo) string {
+func TrySendFallenNotif(s *discordgo.Session, channelID string, towns []oapi.TownInfo, staleTowns []oapi.TownInfo) {
+	diff, _ := utils.DifferenceBy(staleTowns, towns, func(t oapi.TownInfo) string {
 		return t.UUID
 	})
 
@@ -465,7 +481,7 @@ func TrySendFallenNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 			)
 		})
 
-		_, err := s.ChannelMessageSendEmbed(TFLOW_CHANNEL_ID(), &discordgo.MessageEmbed{
+		_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Fall Events [%d]", count),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.RED,
@@ -476,29 +492,32 @@ func TrySendFallenNotif(s *discordgo.Session, towns map[string]oapi.TownInfo, st
 	}
 }
 
-func TrySendLeftJoinedNotif(s *discordgo.Session, towns, staleTowns []oapi.TownInfo, townless, residents oapi.EntityList) {
+func TrySendLeftJoinedNotif(
+	s *discordgo.Session, channelID string,
+	towns, staleTowns []oapi.TownInfo,
+	townless, residents oapi.EntityList,
+) {
 	left, joined := CalcLeftJoined(towns, staleTowns, townless, residents)
-
-	leftCount := len(left)
-	joinedCount := len(joined)
-	if (leftCount + joinedCount) > 0 {
-		s.ChannelMessageSendEmbed("1420108251437207682", &discordgo.MessageEmbed{
-			Color: discordutil.DARK_GREEN,
-			Title: "Player Flow | Town Join/Leave Events",
-			Fields: []*discordgo.MessageEmbedField{
-				{
-					Name:   fmt.Sprintf("%s Became townless [%d]", shared.EMOJIS.EXIT, leftCount),
-					Value:  strings.Join(left, "\n\n"),
-					Inline: true,
-				},
-				{
-					Name:   fmt.Sprintf("%s Became a resident [%d]", shared.EMOJIS.ENTRY, joinedCount),
-					Value:  strings.Join(joined, "\n\n"),
-					Inline: true,
-				},
-			},
-		})
+	if (len(left) + len(joined)) < 1 {
+		return
 	}
+
+	s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
+		Color: discordutil.DARK_GREEN,
+		Title: "Player Flow | Town Join/Leave Events",
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:   fmt.Sprintf("%s Became townless [%d]", shared.EMOJIS.EXIT, len(left)),
+				Value:  strings.Join(left, "\n\n"),
+				Inline: true,
+			},
+			{
+				Name:   fmt.Sprintf("%s Became a resident [%d]", shared.EMOJIS.ENTRY, len(joined)),
+				Value:  strings.Join(joined, "\n\n"),
+				Inline: true,
+			},
+		},
+	})
 }
 
 //#endregion
