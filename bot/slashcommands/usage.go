@@ -5,8 +5,8 @@ import (
 	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/shared/embeds"
-	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/logutil"
 	"errors"
 	"fmt"
 	"slices"
@@ -113,11 +113,11 @@ func formatCommandStats(usage *database.UserUsage, since *time.Time, limit int) 
 	limit = min(limit, len(stats))
 	mostUsed := make([]string, 0, limit)
 	for _, stat := range stats[:limit] {
-		cmdUsageStr := utils.HumanizedSprintf("/%s - `%d` times", stat.Name, stat.Count)
+		cmdUsageStr := logutil.HumanizedSprintf("/%s - `%d` times", stat.Name, stat.Count)
 		mostUsed = append(mostUsed, cmdUsageStr)
 	}
 
 	list := strings.Join(mostUsed, "\n")
-	total := utils.HumanizedSprintf("Total: `%d`", usage.CalculateTotal(stats))
+	total := logutil.HumanizedSprintf("Total: `%d`", usage.CalculateTotal(stats))
 	return list, total
 }

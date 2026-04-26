@@ -7,6 +7,7 @@ import (
 	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/logutil"
 	"emcsrw/utils/sets"
 	"fmt"
 	"slices"
@@ -16,12 +17,6 @@ import (
 	"github.com/samber/lo/parallel"
 
 	"github.com/bwmarrin/discordgo"
-
-	colour "github.com/fatih/color"
-)
-
-var (
-	YELLOW = colour.New(colour.FgYellow)
 )
 
 // NOTE: Potential import cycle. Consider just duplicating necessary funcs rather than importing discordutil.
@@ -70,7 +65,7 @@ func NewAllianceEmbed(
 ) *discordgo.MessageEmbed {
 	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
 	if err != nil {
-		utils.Printf(YELLOW, "ERROR | Could not get player store for map %s:\n%v", shared.ACTIVE_MAP, err)
+		logutil.Printf(logutil.RED, "ERROR | Could not get player store for map %s:\n%v", shared.ACTIVE_MAP, err)
 		return nil
 	}
 
@@ -78,7 +73,7 @@ func NewAllianceEmbed(
 	leadersValue := "`None`"
 	leaders, err := a.GetLeaders(playerStore)
 	if err != nil {
-		utils.Printf(YELLOW, "ERROR | Could not get leaders for alliance %s:\n\t%v", a.Identifier, err)
+		logutil.Printf(logutil.YELLOW, "ERROR | Could not get leaders for alliance %s:\n\t%v", a.Identifier, err)
 	} else {
 		leadersValue = GetAffiliationLines(leaders)
 	}
@@ -108,10 +103,10 @@ func NewAllianceEmbed(
 	nationsAmt := len(ownNations) + len(childNations)
 	towns, residentsAmt, area, wealth := a.GetStats(ownNations, childNations)
 	stats := fmt.Sprintf("Towns: %s\nNations: %s\nResidents: %s\nSize: %s",
-		utils.HumanizedSprintf("`%d`", len(towns)),
-		utils.HumanizedSprintf("`%d`", nationsAmt),
-		utils.HumanizedSprintf("`%d`", residentsAmt),
-		utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, wealth, shared.EMOJIS.GOLD_INGOT),
+		logutil.HumanizedSprintf("`%d`", len(towns)),
+		logutil.HumanizedSprintf("`%d`", nationsAmt),
+		logutil.HumanizedSprintf("`%d`", residentsAmt),
+		logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, wealth, shared.EMOJIS.GOLD_INGOT),
 	)
 
 	registered := a.CreatedTimestamp() / 1000
@@ -365,7 +360,7 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 		Fields: []*discordgo.MessageEmbedField{
 			// Affiliation (prepended)
 			// Rank (prepended)
-			NewEmbedField("Balance", utils.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, shared.EMOJIS.GOLD_INGOT), true),
+			NewEmbedField("Balance", logutil.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, shared.EMOJIS.GOLD_INGOT), true),
 			NewEmbedField("Status", status, true),
 		},
 	}
@@ -438,11 +433,11 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 
 	spawn := town.Coordinates.Spawn
 
-	balanceStr := utils.HumanizedSprintf("`%.0f`G %s", town.Bal(), shared.EMOJIS.GOLD_INGOT)
-	residentsStr := utils.HumanizedSprintf("`%d`", town.Stats.NumResidents)
-	trustedOutlawsStr := utils.HumanizedSprintf("`%d`/`%d`", town.Stats.NumTrusted, town.Stats.NumOutlaws)
+	balanceStr := logutil.HumanizedSprintf("`%.0f`G %s", town.Bal(), shared.EMOJIS.GOLD_INGOT)
+	residentsStr := logutil.HumanizedSprintf("`%d`", town.Stats.NumResidents)
+	trustedOutlawsStr := logutil.HumanizedSprintf("`%d`/`%d`", town.Stats.NumTrusted, town.Stats.NumOutlaws)
 
-	sizeStr := utils.HumanizedSprintf("`%d`/`%d` %s (Worth: `%d` %s)",
+	sizeStr := logutil.HumanizedSprintf("`%d`/`%d` %s (Worth: `%d` %s)",
 		town.Size(), town.MaxSize(),
 		shared.EMOJIS.CHUNK, town.Worth(), shared.EMOJIS.GOLD_INGOT,
 	)
@@ -527,12 +522,12 @@ func NewNationEmbed(
 	townNames := parallel.Map(nation.Towns, func(e oapi.Entity, _ int) string { return e.Name })
 	slices.Sort(townNames)
 
-	townsStr := utils.HumanizedSprintf("`%d`", stats.NumTowns)
-	residentsStr := utils.HumanizedSprintf("`%d`", stats.NumResidents)
-	balanceStr := utils.HumanizedSprintf("`%.0f` %s", stats.Balance, shared.EMOJIS.GOLD_INGOT)
-	//bonusStr := utils.HumanizedSprintf("`%d`")
-	alliesEnemiesStr := utils.HumanizedSprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies)
-	sizeStr := utils.HumanizedSprintf("`%d` %s (Worth: `%d` %s)",
+	townsStr := logutil.HumanizedSprintf("`%d`", stats.NumTowns)
+	residentsStr := logutil.HumanizedSprintf("`%d`", stats.NumResidents)
+	balanceStr := logutil.HumanizedSprintf("`%.0f` %s", stats.Balance, shared.EMOJIS.GOLD_INGOT)
+	//bonusStr := logutil.HumanizedSprintf("`%d`")
+	alliesEnemiesStr := logutil.HumanizedSprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies)
+	sizeStr := logutil.HumanizedSprintf("`%d` %s (Worth: `%d` %s)",
 		nation.Size(), shared.EMOJIS.CHUNK,
 		nation.Worth(), shared.EMOJIS.GOLD_INGOT,
 	)

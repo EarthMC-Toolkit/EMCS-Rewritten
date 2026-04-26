@@ -2,6 +2,7 @@ package store
 
 import (
 	"emcsrw/utils"
+	"emcsrw/utils/logutil"
 	"emcsrw/utils/sets"
 	"encoding/json"
 	"errors"
@@ -10,14 +11,6 @@ import (
 	"path/filepath"
 	"slices"
 	"sync"
-
-	colour "github.com/fatih/color"
-)
-
-var (
-	RED    = colour.New(colour.FgHiRed)
-	YELLOW = colour.New(colour.FgYellow)
-	HIDDEN = colour.New(colour.FgWhite, colour.Concealed)
 )
 
 // The interface that a generic store must implement to retain basic functionality that is common across all stores.
@@ -63,7 +56,7 @@ func New[T any](path string) (*Store[T], error) {
 	}
 
 	if !s.IsEmpty() {
-		utils.Printf(HIDDEN, "DEBUG | Loaded store from file at: %s\n", s.CleanPath())
+		logutil.Printf(logutil.HIDDEN, "DEBUG | Loaded store from file at: %s\n", s.CleanPath())
 	}
 
 	//fmt.Printf("\nDEBUG | Loaded store from file at: %s\n", s.CleanPath())
@@ -169,13 +162,13 @@ func (s *Store[T]) Overwrite(value StoreData[T]) {
 func (s *Store[T]) OverwriteFunc(allowEmpty bool, f func() (map[string]T, error)) (map[string]T, error) {
 	v, err := f()
 	if err != nil {
-		utils.Logf(RED, "could not overwrite data in db at %s:\n%v", s.CleanPath(), err)
+		logutil.Logf(logutil.RED, "could not overwrite data in db at %s:\n%v", s.CleanPath(), err)
 		return v, err
 	}
 
 	if len(v) < 1 && !allowEmpty {
 		err := fmt.Errorf("retrieved value is empty which is not allowed for this store.")
-		utils.Logf(RED, "could not overwrite data in db at %s:\n%v", s.CleanPath(), err)
+		logutil.Logf(logutil.RED, "could not overwrite data in db at %s:\n%v", s.CleanPath(), err)
 		return nil, err
 	}
 
@@ -237,7 +230,7 @@ func (s *Store[T]) Set(key string, value T) {
 func (s *Store[T]) SetKeyFunc(key string, f func() (T, error)) (T, error) {
 	res, err := f()
 	if err != nil {
-		utils.Logf(RED, "error putting '%s' into db at %s:\n%v", key, s.CleanPath(), err)
+		logutil.Logf(logutil.RED, "error putting '%s' into db at %s:\n%v", key, s.CleanPath(), err)
 		return res, err
 	}
 

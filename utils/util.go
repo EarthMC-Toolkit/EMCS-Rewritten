@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"log"
 	"maps"
 	"regexp"
 	"slices"
@@ -12,48 +11,7 @@ import (
 	"unicode"
 
 	"github.com/samber/lo"
-	"github.com/sanity-io/litter"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
-
-	colour "github.com/fatih/color"
 )
-
-//const DateTimeFormat = "Jan 2 3PM MST"
-
-// dis printer is bri ish
-var printer = message.NewPrinter(language.BritishEnglish)
-
-func PrettyPrint(v any) (int, error) {
-	return printer.Print(Prettify(v))
-}
-
-func Printf(col *colour.Color, format string, args ...any) {
-	fmt.Print(col.Sprintf(format, args...))
-}
-
-func Println(col *colour.Color, args ...any) {
-	fmt.Println(col.Sprint(args...))
-}
-
-func Logf(col *colour.Color, format string, args ...any) {
-	log.Print(col.Sprintf(format, args...))
-}
-
-func Logln(col *colour.Color, args ...any) {
-	log.Println(col.Sprint(args...))
-}
-
-// Calls Sprintf like usual, but in a humanized way. For example:
-//
-//	utils.HumanizedSprintf("Number is: %d\n", 10000)
-//
-// Outputs:
-//
-//	"Number is: 10,000"
-func HumanizedSprintf(key message.Reference, a ...any) string {
-	return printer.Sprintf(key, a...)
-}
 
 func HumanizeDuration(minutes float64) (float64, string) {
 	if minutes >= 60 {
@@ -105,25 +63,6 @@ func FormatTime(t time.Time) string {
 
 // 	return fmt.Sprintf("%ds", secs)
 // }
-
-func Prettify(v any) string {
-	litter.Config.StripPackageNames = true
-	return litter.Sdump(v)
-}
-
-type Loggable interface {
-	Log(args ...any)
-}
-
-// Attempts to prettify and log the value if the given error is nil, otherwise the error itself is logged.
-func CustomLog(l Loggable, value any, err error) {
-	if err == nil {
-		l.Log(Prettify(value))
-		return
-	}
-
-	l.Log(err)
-}
 
 // Check that `str` isn't gibberish and only has a combination of letters and numbers.
 // If it is found to contain anything else, an empty string is returned.
@@ -278,6 +217,7 @@ func DefaultIfEmpty(value, fallback string) string {
 	if strings.TrimSpace(value) == "" {
 		return fallback
 	}
+
 	return value
 }
 

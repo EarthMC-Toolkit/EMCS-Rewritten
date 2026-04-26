@@ -6,8 +6,8 @@ import (
 	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/shared/embeds"
-	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/logutil"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -372,35 +372,35 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 	rankInfo := alliancesRankInfo[alliance.UUID]
 
 	residentsCalc := rankInfo.Stats.Residents * WEIGHTS.Residents
-	residentsStr := utils.HumanizedSprintf("Residents: `%.0f` * `%.1f` = **%.0f**",
+	residentsStr := logutil.HumanizedSprintf("Residents: `%.0f` * `%.1f` = **%.0f**",
 		rankInfo.Stats.Residents, WEIGHTS.Residents, residentsCalc,
 	)
 
 	nationsCalc := rankInfo.Stats.Nations * WEIGHTS.Nations
-	nationsStr := utils.HumanizedSprintf("Nations: `%.0f` * `%.1f` = **%.0f**",
+	nationsStr := logutil.HumanizedSprintf("Nations: `%.0f` * `%.1f` = **%.0f**",
 		rankInfo.Stats.Nations, WEIGHTS.Nations, nationsCalc,
 	)
 
 	townsCalc := rankInfo.Stats.Towns * WEIGHTS.Towns
-	townsStr := utils.HumanizedSprintf("Towns: `%.0f` * `%.1f` = **%.0f**",
+	townsStr := logutil.HumanizedSprintf("Towns: `%.0f` * `%.1f` = **%.0f**",
 		rankInfo.Stats.Towns, WEIGHTS.Towns, townsCalc,
 	)
 
 	worthCalc := rankInfo.Stats.Worth * WEIGHTS.Worth
-	worthStr := utils.HumanizedSprintf("Worth: `%.0f` * `%.2f` = **%.0f**",
+	worthStr := logutil.HumanizedSprintf("Worth: `%.0f` * `%.2f` = **%.0f**",
 		rankInfo.Stats.Worth, WEIGHTS.Worth, worthCalc,
 	)
 
-	scoreStr := utils.HumanizedSprintf("Total: `%.0f` + `%.0f` + `%.0f` + `%.0f` = **%.0f**",
+	scoreStr := logutil.HumanizedSprintf("Total: `%.0f` + `%.0f` + `%.0f` + `%.0f` = **%.0f**",
 		residentsCalc, nationsCalc, townsCalc, worthCalc, rankInfo.Score,
 	)
 
-	// normalizedStr := utils.HumanizedSprintf("Normalized: `%.0f` / 2 = **%.0f**",
+	// normalizedStr := logutil.HumanizedSprintf("Normalized: `%.0f` / 2 = **%.0f**",
 	// 	allianceRankInfo.Score*4, allianceRankInfo.Score,
 	// )
 
 	// TODO: Maybe include closest rival alliance and required score to surpass it.
-	standingStr := utils.HumanizedSprintf("This alliance has a score of **%.0f** which places it at rank **%d** out of **%d**.",
+	standingStr := logutil.HumanizedSprintf("This alliance has a score of **%.0f** which places it at rank **%d** out of **%d**.",
 		rankInfo.Score, rankInfo.Rank, allianceStore.Count(),
 	)
 
@@ -506,10 +506,10 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 			allianceStrings = append(allianceStrings, fmt.Sprintf(
 				"%d. %s (%s)\nLeader(s): %s\nRepresentative: `%s`\nNations: %s\nTowns: %s\nResidents: %s\nSize: %s", start+idx+1,
 				allianceName, a.Type.Colloquial(), leaderStr, representativeName,
-				utils.HumanizedSprintf("`%d`", len(childNations)+len(ownNations)),
-				utils.HumanizedSprintf("`%d`", len(towns)),
-				utils.HumanizedSprintf("`%d`", residents),
-				utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, worth, shared.EMOJIS.GOLD_INGOT),
+				logutil.HumanizedSprintf("`%d`", len(childNations)+len(ownNations)),
+				logutil.HumanizedSprintf("`%d`", len(towns)),
+				logutil.HumanizedSprintf("`%d`", residents),
+				logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, worth, shared.EMOJIS.GOLD_INGOT),
 			))
 		}
 

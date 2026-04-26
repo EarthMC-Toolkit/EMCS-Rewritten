@@ -30,7 +30,7 @@ const BASE_WELCOME_STR = `
 Welcome to the Custom API! All info here is only available originally by the EarthMC Stats Discord bot.
 
 To access data for a specific map, navigate to "https://emcstats.bot.nu/mapName/endpoint".
-For example, "/aurora/alliances" for alliance data on the Aurora map.
+For example, "/nostra/alliances" for alliance data on the Nostra map.
 
 The following endpoints are available:
 - /alliances

@@ -4,8 +4,8 @@ import (
 	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/shared/embeds"
-	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/logutil"
 	"fmt"
 	"log"
 	"strings"
@@ -96,19 +96,19 @@ func executeServerInfo(s *discordgo.Session, i *discordgo.Interaction) (*discord
 	vpRemaining := info.VoteParty.NumRemaining
 	vpField := &discordgo.MessageEmbedField{
 		Name:   "Vote Party",
-		Value:  utils.HumanizedSprintf("Votes Completed/Target: `%d`/`%d`\nVotes Remaining: `%d`", vpTarget-vpRemaining, vpTarget, vpRemaining),
+		Value:  logutil.HumanizedSprintf("Votes Completed/Target: `%d`/`%d`\nVotes Remaining: `%d`", vpTarget-vpRemaining, vpTarget, vpRemaining),
 		Inline: true,
 	}
 
 	statsField := &discordgo.MessageEmbedField{
 		Name: "Statistics",
 		Value: strings.Join([]string{
-			utils.HumanizedSprintf("Online: `%d`", info.Stats.NumOnlinePlayers),
-			utils.HumanizedSprintf("Townless (Online/Total): `%d`/`%d`", info.Stats.NumOnlineNomads, info.Stats.NumNomads),
-			utils.HumanizedSprintf("Residents: `%d`", info.Stats.NumResidents),
-			utils.HumanizedSprintf("Towns: `%d`", info.Stats.NumTowns),
-			utils.HumanizedSprintf("Nations: `%d`", info.Stats.NumNations),
-			utils.HumanizedSprintf("Quarters: `%d`", info.Stats.NumQuarters),
+			logutil.HumanizedSprintf("Online: `%d`", info.Stats.NumOnlinePlayers),
+			logutil.HumanizedSprintf("Townless (Online/Total): `%d`/`%d`", info.Stats.NumOnlineNomads, info.Stats.NumNomads),
+			logutil.HumanizedSprintf("Residents: `%d`", info.Stats.NumResidents),
+			logutil.HumanizedSprintf("Towns: `%d`", info.Stats.NumTowns),
+			logutil.HumanizedSprintf("Nations: `%d`", info.Stats.NumNations),
+			logutil.HumanizedSprintf("Quarters: `%d`", info.Stats.NumQuarters),
 		}, "\n"),
 		Inline: false,
 	}
@@ -265,7 +265,7 @@ func executeServerInfo(s *discordgo.Session, i *discordgo.Interaction) (*discord
 // 		desc := strings.Builder{}
 // 		items := keys[start:end] // cur page items
 // 		for _, k := range items {
-// 			fmt.Fprint(&desc, utils.HumanizedSprintf("%s: %d\n", k, pstats[k]))
+// 			fmt.Fprint(&desc, logutil.HumanizedSprintf("%s: %d\n", k, pstats[k]))
 // 		}
 
 // 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
