@@ -17,6 +17,7 @@ import (
 	"emcsrw/utils"
 	"emcsrw/utils/config"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/logutil"
 
 	"github.com/bwmarrin/discordgo"
 	colour "github.com/fatih/color"
@@ -27,20 +28,6 @@ import (
 // max amount of messages to fetch from news channel during its scheduled task.
 // should be enough to cover at least a few days/weeks of news depending on activity.
 const NEWS_CHANNEL_MAX_FETCH = 500
-
-// TODO: ADD SOME SORT OF CHECK SO THEY CANT USE EMCS TO SPAM RANDOM CHANNELS!!!
-// var NEWS_CHANNEL_ID = func() string { return os.Getenv("NEWS_CHANNEL_ID") }   // this channel must be related to the active map
-// var VP_CHANNEL_ID = func() string { return os.Getenv("VP_CHANNEL_ID") }       // this channel must be related to the active map
-// var TFLOW_CHANNEL_ID = func() string { return os.Getenv("TFLOW_CHANNEL_ID") } // this channel must be related to the active map
-// var PFLOW_CHANNEL_ID = func() string { return os.Getenv("PFLOW_CHANNEL_ID") } // this channel must be related to the active map
-
-var (
-	HIDDEN = colour.New(colour.FgWhite, colour.Concealed)
-	WHITE  = colour.New(colour.Bold, colour.FgWhite)
-	RED    = colour.New(colour.FgHiRed)
-	GREEN  = colour.New(colour.FgGreen)
-	YELLOW = colour.New(colour.FgYellow)
-)
 
 // VoteParty notification tracking.
 var vpThresholds = [...]int{500, 300, 150, 50}
@@ -66,7 +53,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		if cid, err := config.GetEnviroVar("NEWS_CHANNEL_ID"); err == nil {
 			scheduler.Instance.Schedule("NewsEntries", func() { newsTask(s, cid, mdb) }, true, 2*time.Minute)
 		} else {
-			utils.Printf(YELLOW, "\nWARNING | NEWS_CHANNEL_ID not set. Skipped scheduling of news retrieval task.\n")
+			logutil.Printf(logutil.YELLOW, "\nWARNING | NEWS_CHANNEL_ID not set. Skipped scheduling of news retrieval task.\n")
 		}
 
 		// TODO: Create a scheduled task that loops through alliances, removing nations that no longer exist.
@@ -75,17 +62,17 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 	fmt.Println()
-	utils.Logln(WHITE, "[OnReady]: Running data update task...")
+	logutil.Logln(logutil.WHITE, "[OnReady]: Running data update task...")
 
 	start := time.Now()
 	townList, staleTownList, townless, residents, err := UpdateData(mdb)
 
 	fmt.Println() // use \n without log.Printf messing up date/time
 	if err != nil {
-		utils.Logf(RED, "[OnReady]: Failed data update task.\n%s\n", err)
+		logutil.Logf(logutil.RED, "[OnReady]: Failed data update task.\n%s\n", err)
 	} else {
 		elapsed := time.Since(start)
-		utils.Logf(GREEN, "[OnReady]: Finished data update task. Took: %s\n", elapsed.String())
+		logutil.Logf(logutil.GREEN, "[OnReady]: Finished data update task. Took: %s\n", elapsed.String())
 	}
 
 	towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
@@ -93,13 +80,14 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 
 	cid, err := config.GetEnviroVar("TFLOW_CHANNEL_ID")
 	if err == nil {
+		// TODO: ADD SOME SORT OF CHECK SO THEY CANT USE EMCS TO SPAM RANDOM CHANNELS!!!
 		// Town flow event notifications sent to channel TFLOW_CHANNEL_ID.
 		TrySendCreatedNotif(s, cid, towns, staleTowns)
 		TrySendRenamedNotif(s, cid, townList, staleTowns)
 		TrySendRuinedNotif(s, cid, townList, staleTowns)
 		TrySendFallenNotif(s, cid, towns, staleTowns)
 	} else {
-		utils.Printf(YELLOW, "\nWARNING | TFLOW_CHANNEL_ID not set. Skipping town flow event notifications.\n")
+		logutil.Printf(logutil.YELLOW, "\nWARNING | TFLOW_CHANNEL_ID not set. Skipping town flow event notifications.\n")
 	}
 
 	cid, err = config.GetEnviroVar("PFLOW_CHANNEL_ID")
@@ -107,14 +95,14 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 		// Player flow event notifications sent to channel PFLOW_CHANNEL_ID.
 		TrySendLeftJoinedNotif(s, cid, towns, staleTowns, townless, residents)
 	} else {
-		utils.Printf(YELLOW, "\nWARNING | PFLOW_CHANNEL_ID not set. Skipping player flow event notifications.\n")
+		logutil.Printf(logutil.YELLOW, "\nWARNING | PFLOW_CHANNEL_ID not set. Skipping player flow event notifications.\n")
 	}
 }
 
 func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 	serverStore, err := database.GetStore(mdb, database.SERVER_STORE)
 	if err != nil {
-		utils.Printf(RED, "\nERROR | cannot schedule serverinfo task:\n\t%s", err)
+		logutil.Printf(logutil.RED, "\nERROR | cannot schedule serverinfo task:\n\t%s", err)
 		return
 	}
 	if info, err := serverStore.SetKeyFunc("info", func() (oapi.ServerInfo, error) {
@@ -123,13 +111,13 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 	}); err == nil {
 		cid, err := config.GetEnviroVar("VP_CHANNEL_ID")
 		if err != nil {
-			utils.Printf(YELLOW, "\nWARNING | VP_CHANNEL_ID not set. Skipping VoteParty notifications.\n")
+			logutil.Printf(logutil.YELLOW, "\nWARNING | VP_CHANNEL_ID not set. Skipping VoteParty notifications.\n")
 		} else {
 			TrySendVotePartyNotif(s, cid, info.VoteParty)
 		}
 
 		if err := serverStore.WriteSnapshot(); err != nil {
-			utils.Printf(RED, "\nERROR | server store failed to write snapshot:\n\t%s", err)
+			logutil.Printf(logutil.RED, "\nERROR | server store failed to write snapshot:\n\t%s", err)
 		}
 	}
 }
@@ -137,7 +125,7 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 func newsTask(s *discordgo.Session, channelID string, mdb *database.Database) {
 	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
 	if err != nil {
-		utils.Printf(RED, "\nERROR | cannot schedule news task:\n\t%s", err)
+		logutil.Printf(logutil.RED, "\nERROR | cannot schedule news task:\n\t%s", err)
 		return
 	}
 	if _, err := newsStore.OverwriteFunc(false, func() (map[string]database.NewsEntry, error) {
@@ -149,7 +137,7 @@ func newsTask(s *discordgo.Session, channelID string, mdb *database.Database) {
 		return database.MessagesToNewsEntries(newsMsgs), nil
 	}); err == nil {
 		if err := newsStore.WriteSnapshot(); err != nil {
-			utils.Printf(RED, "\nERROR | news store failed to write snapshot:\n\t%s", err)
+			logutil.Printf(logutil.RED, "\nERROR | news store failed to write snapshot:\n\t%s", err)
 		}
 	}
 }
@@ -179,7 +167,7 @@ func UpdateData(mdb *database.Database) (
 	}
 
 	staleTowns = townStore.Entries()
-	utils.Printf(HIDDEN, "DEBUG | Stale towns: %d\n", len(staleTowns))
+	logutil.Printf(logutil.HIDDEN, "DEBUG | Stale towns: %d\n", len(staleTowns))
 
 	townList, err := townStore.OverwriteFunc(false, func() (map[string]oapi.TownInfo, error) {
 		res, err := api.QueryAllTowns()
@@ -287,8 +275,8 @@ func UpdateData(mdb *database.Database) (
 		return playersMap, nil
 	})
 
-	utils.Printf(HIDDEN, "\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
-	utils.Printf(HIDDEN, "\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))
+	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
+	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))
 
 	return townList, staleTowns, townlessList, residentList, err
 }
@@ -354,8 +342,8 @@ func TrySendRenamedNotif(s *discordgo.Session, channelID string, towns map[strin
 			spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
 		)
 
-		chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, cur.Size())
-		balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, cur.Bal())
+		chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, cur.Size())
+		balance := logutil.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, cur.Bal())
 		desc = append(desc, fmt.Sprintf(
 			"`%s` was renamed to `%s`.\nLocated at %s.\nFounder: `%s` %sG %s Chunks",
 			old.Name, cur.Name, locationLink, cur.Founder, balance, chunks,
@@ -369,7 +357,7 @@ func TrySendRenamedNotif(s *discordgo.Session, channelID string, towns map[strin
 			Color:       discordutil.AQUA,
 		})
 		if err != nil {
-			utils.Logf(RED, "error sending town flow rename event:\n%v", err)
+			logutil.Logf(logutil.RED, "error sending town flow rename event:\n%v", err)
 		}
 	}
 }
@@ -385,8 +373,8 @@ func TrySendCreatedNotif(s *discordgo.Session, channelID string, towns []oapi.To
 			spawn := t.Coordinates.Spawn
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
-			chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
-			balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
+			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
+			balance := logutil.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 
 			openEmoji := lo.Ternary(t.Status.Open, shared.EMOJIS.CIRCLE_CHECK, shared.EMOJIS.CIRCLE_CROSS)
 			outsidersEmoji := lo.Ternary(t.Status.CanOutsidersSpawn, shared.EMOJIS.CIRCLE_CHECK, shared.EMOJIS.CIRCLE_CROSS)
@@ -397,14 +385,14 @@ func TrySendCreatedNotif(s *discordgo.Session, channelID string, towns []oapi.To
 			)
 		})
 
-		utils.Printf(HIDDEN, "\nDEBUG | Town Flow Channel ID: %s\n", channelID)
+		logutil.Printf(logutil.HIDDEN, "\nDEBUG | Town Flow Channel ID: %s\n", channelID)
 		_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Creation Events [%d]", count),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.GREEN,
 		})
 		if err != nil {
-			utils.Logf(RED, "error sending town flow creation event:\n%v", err)
+			logutil.Logf(logutil.RED, "error sending town flow creation event:\n%v", err)
 		}
 	}
 }
@@ -427,8 +415,8 @@ func TrySendRuinedNotif(s *discordgo.Session, channelID string, towns map[string
 	count := len(ruined)
 	if count > 0 {
 		desc := parallel.Map(ruined, func(t oapi.TownInfo, _ int) string {
-			chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
-			balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
+			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
+			balance := logutil.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 
 			ruinedTs := *t.Timestamps.RuinedAt
 			ruinedTime := time.UnixMilli(int64(*t.Timestamps.RuinedAt))
@@ -457,7 +445,7 @@ func TrySendRuinedNotif(s *discordgo.Session, channelID string, towns map[string
 			Color:       discordutil.DARK_GOLD,
 		})
 		if err != nil {
-			utils.Logf(RED, "error sending town flow ruin event:\n%v", err)
+			logutil.Logf(logutil.RED, "error sending town flow ruin event:\n%v", err)
 		}
 	}
 }
@@ -473,8 +461,8 @@ func TrySendFallenNotif(s *discordgo.Session, channelID string, towns []oapi.Tow
 			spawn := t.Coordinates.Spawn
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
-			chunks := utils.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
-			balance := utils.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
+			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
+			balance := logutil.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 			return fmt.Sprintf(
 				"`%s` was deleted. Located at %s.\nFounder: `%s` %sG %s Chunks",
 				t.Name, locationLink, t.Founder, balance, chunks,
@@ -487,7 +475,7 @@ func TrySendFallenNotif(s *discordgo.Session, channelID string, towns []oapi.Tow
 			Color:       discordutil.RED,
 		})
 		if err != nil {
-			utils.Logf(RED, "error sending town flow fall event:\n%v", err)
+			logutil.Logf(logutil.RED, "error sending town flow fall event:\n%v", err)
 		}
 	}
 }
@@ -558,7 +546,7 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 				":white_check_mark:", ":x:",
 			)
 
-			left = append(joined, utils.HumanizedSprintf(
+			left = append(joined, logutil.HumanizedSprintf(
 				"`%s` left %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s\nRuined %s Overclaimable %s",
 				name, town.Name, nation,
 				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT,
@@ -583,7 +571,7 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 				":white_check_mark:", ":x:",
 			)
 
-			joined = append(joined, utils.HumanizedSprintf(
+			joined = append(joined, logutil.HumanizedSprintf(
 				"`%s` joined %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s\nRuined %s Overclaimable %s",
 				name, town.Name, nation,
 				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT,

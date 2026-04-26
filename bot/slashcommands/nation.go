@@ -9,6 +9,7 @@ import (
 	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/logutil"
 	"fmt"
 	"slices"
 	"strings"
@@ -235,10 +236,10 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 
 		nationStrings := []string{}
 		for idx, n := range nations[start:end] {
-			balance := utils.HumanizedSprintf("`%0.f`G %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
-			towns := utils.HumanizedSprintf("`%d`", n.Stats.NumTowns)
-			residents := utils.HumanizedSprintf("`%d`", n.Stats.NumResidents)
-			size := utils.HumanizedSprintf("`%d` %s (Worth `%d` %s)",
+			balance := logutil.HumanizedSprintf("`%0.f`G %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
+			towns := logutil.HumanizedSprintf("`%d`", n.Stats.NumTowns)
+			residents := logutil.HumanizedSprintf("`%d`", n.Stats.NumResidents)
+			size := logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)",
 				n.Size(), shared.EMOJIS.CHUNK,
 				n.Worth(), shared.EMOJIS.GOLD_INGOT,
 			)
@@ -314,7 +315,7 @@ func executeNationActivity(s *discordgo.Session, i *discordgo.Interaction, natio
 
 			//daysOffline := (now - *lo/1000) / 86400
 			purgeTimeStr := formattedPurgeTime(now, *lo/1000)
-			balanceStr := utils.HumanizedSprintf("%s `%d`G", shared.EMOJIS.GOLD_INGOT, int(res.Stats.Balance))
+			balanceStr := logutil.HumanizedSprintf("%s `%d`G", shared.EMOJIS.GOLD_INGOT, int(res.Stats.Balance))
 
 			fmt.Fprintf(&content,
 				"**%s** (%s) - Online <t:%d:R>. Purges %s. %s\n",

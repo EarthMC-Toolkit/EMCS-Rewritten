@@ -3,8 +3,8 @@ package slashcommands
 import (
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/logutil"
 	"fmt"
 	"slices"
 	"strings"
@@ -70,7 +70,7 @@ func (cmd TownlessCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
 		embed := &discordgo.MessageEmbed{
 			Color: discordutil.PURPLE,
-			Title: utils.HumanizedSprintf("[%d] List of Townless Players | %s", townlessCount, pageStr),
+			Title: logutil.HumanizedSprintf("[%d] List of Townless Players | %s", townlessCount, pageStr),
 			Fields: []*discordgo.MessageEmbedField{
 				// first row
 				NewEmbedField("", formatColumn(col1, 0), true),

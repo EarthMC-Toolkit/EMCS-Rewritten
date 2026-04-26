@@ -4,8 +4,8 @@ import (
 	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/shared/embeds"
-	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/logutil"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
@@ -46,7 +46,7 @@ func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.Interacti
 	vpRemaining := info.VoteParty.NumRemaining
 	embed := &discordgo.MessageEmbed{
 		Title: "VoteParty Status",
-		Description: utils.HumanizedSprintf(
+		Description: logutil.HumanizedSprintf(
 			"Votes Completed/Target: `%d`/`%d`\n\nThere are `%d` votes remaining until the next VoteParty occurs.",
 			vpTarget-vpRemaining, vpTarget, vpRemaining,
 		),

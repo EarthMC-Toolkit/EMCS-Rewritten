@@ -9,6 +9,7 @@ import (
 	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/logutil"
 	"fmt"
 	"slices"
 	"strings"
@@ -223,13 +224,13 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 				nationName = *t.Nation.Name
 			}
 
-			size := utils.HumanizedSprintf("`%d`/`%d` %s (Worth `%d` %s)",
+			size := logutil.HumanizedSprintf("`%d`/`%d` %s (Worth `%d` %s)",
 				t.Size(), t.MaxSize(), shared.EMOJIS.CHUNK,
 				t.Worth(), shared.EMOJIS.GOLD_INGOT,
 			)
 
-			balance := utils.HumanizedSprintf("`%0.f`G %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
-			residents := utils.HumanizedSprintf("`%d`", len(t.Residents))
+			balance := logutil.HumanizedSprintf("`%0.f`G %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
+			residents := logutil.HumanizedSprintf("`%d`", len(t.Residents))
 
 			overclaimed := shared.EMOJIS.CIRCLE_CROSS
 			if t.Status.Overclaimed {
@@ -314,7 +315,7 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 
 			//daysOffline := (now - *lo/1000) / 86400
 			purgeTimeStr := formattedPurgeTime(now, *lo/1000)
-			balanceStr := utils.HumanizedSprintf("%s `%d`G", shared.EMOJIS.GOLD_INGOT, int(res.Stats.Balance))
+			balanceStr := logutil.HumanizedSprintf("%s `%d`G", shared.EMOJIS.GOLD_INGOT, int(res.Stats.Balance))
 
 			fmt.Fprintf(&content,
 				"**%s** (%s) - Online <t:%d:R>. Purges %s. %s\n",

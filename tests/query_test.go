@@ -4,7 +4,7 @@ import (
 	"emcsrw/api"
 	"emcsrw/api/mapi"
 	"emcsrw/api/oapi"
-	"emcsrw/utils"
+	"emcsrw/utils/logutil"
 	"errors"
 	"slices"
 	"testing"
@@ -33,21 +33,21 @@ func TestExecuteConcurrent(t *testing.T) {
 	players, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
 	t.Logf("Querying %d entities concurrently took %s", len(players), time.Since(start))
 
-	utils.CustomLog(t, players[0], errors.Join(errs...))
+	logutil.LogValOrErr(t, players[0], errors.Join(errs...))
 }
 
 func TestGetVisiblePlayers(t *testing.T) {
 	//t.SkipNow()
 
 	res, err := mapi.GetVisiblePlayers()
-	utils.CustomLog(t, res, err)
+	logutil.LogValOrErr(t, res, err)
 }
 
 func TestQueryVisiblePlayers(t *testing.T) {
 	//t.SkipNow()
 
 	players, err := api.QueryVisiblePlayers()
-	utils.CustomLog(t, len(players), err)
+	logutil.LogValOrErr(t, len(players), err)
 }
 
 func TestQueryAllTowns(t *testing.T) {
@@ -64,28 +64,28 @@ func TestQueryAllTowns(t *testing.T) {
 	}
 
 	t.Log(count)
-	utils.CustomLog(t, towns[0], err)
+	logutil.LogValOrErr(t, towns[0], err)
 }
 
 func TestQueryTown(t *testing.T) {
 	//t.SkipNow()
 
 	town, err := api.QueryTown("Venice")
-	utils.CustomLog(t, town, err)
+	logutil.LogValOrErr(t, town, err)
 }
 
 func TestQueryNation(t *testing.T) {
 	//t.SkipNow()
 
 	nation, err := api.QueryNation("Venice")
-	utils.CustomLog(t, nation, err)
+	logutil.LogValOrErr(t, nation, err)
 }
 
 func TestQueryPlayer(t *testing.T) {
 	//t.SkipNow()
 
 	player, err := api.QueryPlayer("Fruitloopins")
-	utils.CustomLog(t, player, err)
+	logutil.LogValOrErr(t, player, err)
 }
 
 // To run this test with higher timeout, execute the following:

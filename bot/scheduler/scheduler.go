@@ -1,16 +1,10 @@
 package scheduler
 
 import (
-	"emcsrw/utils"
+	"emcsrw/utils/logutil"
 	"fmt"
 	"sync"
 	"time"
-
-	colour "github.com/fatih/color"
-)
-
-var (
-	HIDDEN = colour.New(colour.FgWhite, colour.Concealed)
 )
 
 type Scheduler struct {
@@ -51,7 +45,7 @@ func (s *Scheduler) Schedule(taskName string, task func(), runInitial bool, inte
 			task()
 			if s.stopping {
 				fmt.Println()
-				utils.Logf(HIDDEN, "DEBUG | [Scheduler]: Task '%s' finished during shutdown.\n", taskName)
+				logutil.Logf(logutil.HIDDEN, "DEBUG | [Scheduler]: Task '%s' finished during shutdown.\n", taskName)
 			}
 		}
 	}()
