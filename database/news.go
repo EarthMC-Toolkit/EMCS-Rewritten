@@ -64,7 +64,10 @@ func MessagesToNewsEntries(msgs []*discordgo.Message) map[string]NewsEntry {
 	for _, msg := range msgs {
 		content := strings.TrimSpace(msg.Content)
 		if strings.HasPrefix(content, "<@") && strings.HasSuffix(content, ">") {
-			continue // mentions without headlines aren't news. thx EMCL.
+			continue // mentions without headlines aren't news.
+		}
+		if !strings.Contains(content, NTIMES_LOGO) {
+			continue // message without a logo probably isn't news.
 		}
 
 		entries[msg.ID] = NewNewsEntry(msg)
