@@ -10,10 +10,11 @@ import (
 var IMAGE_REGEX = regexp.MustCompile(`(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp)(?:\?[^\s]*)?)`)
 var BOLD_REGEX = regexp.MustCompile(`\*\*(.*?)\*\*`)
 
-var TBI_LOGO = ":TBI:1071887302676185241"
-var TBI_LOGO_REPLACER = strings.NewReplacer(
-	"<"+TBI_LOGO+">", "",
-	"\u003C"+TBI_LOGO+"\u003E", "",
+var NTIMES_LOGO = ":nt:1488052397946310696"
+var NTIMES_LOGO_REPLACER = strings.NewReplacer(
+	"<"+NTIMES_LOGO+">", "",
+	"\u003C"+NTIMES_LOGO+"\u003E", "",
+	"\u003c"+NTIMES_LOGO+"\u003e", "",
 )
 
 // var EMCL_LOGO = ":EMCL:12345678910"
@@ -44,8 +45,8 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 		}
 	}
 
-	// Ensure TBI logo is gone.
-	headline := TBI_LOGO_REPLACER.Replace(entry.Message)
+	// Ensure the news logo is not included in the headline.
+	headline := NTIMES_LOGO_REPLACER.Replace(entry.Message)
 
 	// Content has at least one image link.
 	if matches := IMAGE_REGEX.FindAllString(msg.Content, -1); len(matches) > 0 {
@@ -58,14 +59,12 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 }
 
 func MessagesToNewsEntries(msgs []*discordgo.Message) map[string]NewsEntry {
+	// msgs should already exclude deleted ones, so we don't need to check for those here.
 	entries := make(map[string]NewsEntry, len(msgs))
 	for _, msg := range msgs {
 		content := strings.TrimSpace(msg.Content)
-		// if content == "[Original Message Deleted]" {
-		// 	continue // Deleted messages aren't news. Thx TBI.
-		// }
 		if strings.HasPrefix(content, "<@") && strings.HasSuffix(content, ">") {
-			continue // Mentions without headlines aren't news. Thx EMCL.
+			continue // mentions without headlines aren't news. thx EMCL.
 		}
 
 		entries[msg.ID] = NewNewsEntry(msg)
