@@ -194,12 +194,9 @@ func NewAllianceEmbed(
 		}
 	}
 
-	flag := a.Optional.ImageURL
-	if flag != nil {
+	if flag := a.Optional.ImageURL; flag != nil {
 		if *flag != "" {
-			embed.Thumbnail = &discordgo.MessageEmbedThumbnail{
-				URL: *flag,
-			}
+			embed.Thumbnail = &discordgo.MessageEmbedThumbnail{URL: *flag}
 		}
 	}
 
@@ -676,6 +673,7 @@ func BuildRecentNewsString(news []database.NewsEntry) string {
 				imgs[j] = fmt.Sprintf("[Image](%s)", img)
 			}
 
+			// Example: "(Image, Image) 7 hours ago"
 			msg += fmt.Sprintf(" (%s)", strings.Join(imgs, ", "))
 			msg += fmt.Sprintf(" <t:%d:R>", n.Timestamp/1000)
 		}

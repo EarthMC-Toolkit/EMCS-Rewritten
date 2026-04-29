@@ -44,10 +44,10 @@ type AllianceColours struct {
 }
 
 type AllianceOptionals struct {
-	Leaders     sets.Set[string] `json:"leaders,omitempty"` // All UUIDs of alliance leaders that exist on EMC.
-	ImageURL    *string          `json:"imageURL,omitempty"`
-	DiscordCode *string          `json:"discordCode,omitempty"`
-	Colours     *AllianceColours `json:"colours,omitempty"`
+	Leaders     sets.Set[string] `json:"leaders,omitempty"`     // All UUIDs of alliance leaders that exist on EMC.
+	ImageURL    *string          `json:"imageURL,omitempty"`    // The URL of the flag/image representing this alliance.
+	DiscordCode *string          `json:"discordCode,omitempty"` // The code within the invite link to the alliance's discord server.
+	Colours     *AllianceColours `json:"colours,omitempty"`     // The alliance's fill/outline colours (used in the Dynmap+ extension).
 }
 
 type AllianceType string

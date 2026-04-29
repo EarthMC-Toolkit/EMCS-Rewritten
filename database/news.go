@@ -10,14 +10,16 @@ import (
 var IMAGE_REGEX = regexp.MustCompile(`(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp)(?:\?[^\s]*)?)`)
 var BOLD_REGEX = regexp.MustCompile(`\*\*(.*?)\*\*`)
 
+var TBI_LOGO = ":TBI:1071887302676185241"
 var TBI_LOGO_REPLACER = strings.NewReplacer(
-	"<:TBI:1071887302676185241>", "",
-	"\u003C:TBI:1071887302676185241\u003E", "",
+	"<"+TBI_LOGO+">", "",
+	"\u003C"+TBI_LOGO+"\u003E", "",
 )
 
+// var EMCL_LOGO = ":EMCL:12345678910"
 // var EMCL_LOGO_REPLACER = strings.NewReplacer(
-// 	"<:TBI:1071887302676185241>", "",
-// 	"\u003C:TBI:1071887302676185241\u003E", "",
+// 	"<"+EMCL_LOGO+">", "",
+// 	"\u003C"+EMCL_LOGO+"\u003E", "",
 // )
 
 type NewsEntry struct {
@@ -77,6 +79,7 @@ func extractHeadline(s string) string {
 	if matches := BOLD_REGEX.FindStringSubmatch(s); len(matches) > 1 {
 		return matches[1]
 	}
+
 	before, _, _ := strings.Cut(s, "\n")
 	return before
 }

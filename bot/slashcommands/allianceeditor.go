@@ -915,10 +915,15 @@ func handleAllianceEditorModalOptional(
 
 	// After sending updated alliance embed, report missing leaders if any.
 	if len(invalidLeaders) > 0 {
-		discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf(
+		msg := fmt.Sprintf(
 			"The following leaders do not exist and were not included:```%s```",
 			strings.Join(invalidLeaders, ", "),
-		))
+		)
+		if len(alliance.Optional.Leaders) == 0 {
+			msg += "⚠️ The alliance has no leaders after this edit. You can always change this in future with `/alliance update leaders`."
+		}
+
+		discordutil.FollowupContentEphemeral(s, i, msg)
 	}
 
 	return nil
