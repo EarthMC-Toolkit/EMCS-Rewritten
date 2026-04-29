@@ -219,6 +219,24 @@ func (s *Store[T]) HasKey(key string) bool {
 	return ok
 }
 
+// func (s *Store[T]) Append(key string, value T) {
+// 	s.mu.Lock()
+// 	defer s.mu.Unlock()
+
+// 	s.data[key] = append(s.data[key], value)
+// }
+
+// func (s *Store[T]) AppendFunc(key string, f func() (T, error)) (T, error) {
+// 	res, err := f()
+// 	if err != nil {
+// 		var zero T
+// 		return zero, err
+// 	}
+
+// 	s.Append(key, res)
+// 	return res, nil
+// }
+
 // Creates or overwrites the value in the store at the given key in a thread-safe manner.
 func (s *Store[T]) Set(key string, value T) {
 	s.mu.Lock()

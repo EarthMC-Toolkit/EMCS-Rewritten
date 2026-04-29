@@ -122,23 +122,28 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 	}
 }
 
+type NewsEntryMap = map[database.NewsMessageID]database.NewsEntry
+
 func newsTask(s *discordgo.Session, channelID string, mdb *database.Database) {
 	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
 	if err != nil {
 		logutil.Printf(logutil.RED, "\nERROR | cannot schedule news task:\n\t%s", err)
 		return
 	}
-	if _, err := newsStore.OverwriteFunc(false, func() (map[string]database.NewsEntry, error) {
-		newsMsgs, err := discordutil.FetchMessages(s, channelID, NEWS_CHANNEL_MAX_FETCH)
-		if err != nil {
-			return nil, err
-		}
 
-		return database.MessagesToNewsEntries(newsMsgs), nil
-	}); err == nil {
-		if err := newsStore.WriteSnapshot(); err != nil {
-			logutil.Printf(logutil.RED, "\nERROR | news store failed to write snapshot:\n\t%s", err)
-		}
+	newsMsgs, err := discordutil.FetchMessages(s, channelID, NEWS_CHANNEL_MAX_FETCH)
+	if err != nil {
+		logutil.Printf(logutil.RED, "\nERROR | news task failed to fetch messages:\n\t%s", err)
+		return
+	}
+
+	entries := database.MessagesToNewsEntries(newsMsgs)
+	for id, entry := range entries {
+		newsStore.Set(id, entry)
+	}
+
+	if err := newsStore.WriteSnapshot(); err != nil {
+		logutil.Printf(logutil.RED, "\nERROR | news store failed to write snapshot:\n\t%s", err)
 	}
 }
 

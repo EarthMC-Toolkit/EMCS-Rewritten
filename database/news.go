@@ -58,9 +58,11 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 	return entry
 }
 
-func MessagesToNewsEntries(msgs []*discordgo.Message) map[string]NewsEntry {
+type NewsMessageID = string
+
+func MessagesToNewsEntries(msgs []*discordgo.Message) map[NewsMessageID]NewsEntry {
 	// msgs should already exclude deleted ones, so we don't need to check for those here.
-	entries := make(map[string]NewsEntry, len(msgs))
+	entries := make(map[NewsMessageID]NewsEntry, len(msgs))
 	for _, msg := range msgs {
 		content := strings.TrimSpace(msg.Content)
 		if strings.HasPrefix(content, "<@") && strings.HasSuffix(content, ">") {
