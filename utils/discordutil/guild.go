@@ -16,7 +16,7 @@ import (
 func IsDev(i *discordgo.Interaction) bool {
 	id, err := config.GetEnviroVar("DEV_ID")
 	if err != nil {
-		logutil.Printf(logutil.RED, "ERR | cannot check if interaction author is dev:\n\t%v", err)
+		logutil.Printf(logutil.RED, "\nERR | cannot check if interaction author is dev:\n\t%v", err)
 		return false
 	}
 

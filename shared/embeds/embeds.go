@@ -65,7 +65,7 @@ func NewAllianceEmbed(
 ) *discordgo.MessageEmbed {
 	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
 	if err != nil {
-		logutil.Printf(logutil.RED, "ERROR | Could not get player store for map %s:\n%v", shared.ACTIVE_MAP, err)
+		logutil.Printf(logutil.RED, "ERR | Could not get player store for map %s:\n%v", shared.ACTIVE_MAP, err)
 		return nil
 	}
 
@@ -73,7 +73,7 @@ func NewAllianceEmbed(
 	leadersValue := "`None`"
 	leaders, err := a.GetLeaders(playerStore)
 	if err != nil {
-		logutil.Printf(logutil.YELLOW, "ERROR | Could not get leaders for alliance %s:\n\t%v", a.Identifier, err)
+		logutil.Printf(logutil.YELLOW, "ERR | Could not get leaders for alliance %s:\n\t%v", a.Identifier, err)
 	} else {
 		leadersValue = GetAffiliationLines(leaders)
 	}

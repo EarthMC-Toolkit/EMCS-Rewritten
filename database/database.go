@@ -204,7 +204,7 @@ func AssignStore[T any](db *Database, storeDef StoreDefinition[T]) *store.Store[
 	fpath := filepath.Join(db.dirPath, storeDef.Name+".json")
 	store, err := store.New[T](fpath)
 	if err != nil {
-		logutil.Printf(logutil.RED, "\nERROR | failed to create store '%s': %v", storeDef.Name, err)
+		logutil.Printf(logutil.RED, "\nERR | failed to create store '%s': %v", storeDef.Name, err)
 		return nil
 	}
 

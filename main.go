@@ -35,7 +35,7 @@ func lockProcess() func() error {
 	return func() error {
 		err := lock.Close()
 		if err != nil {
-			logutil.Println(logutil.RED, "ERROR | Failed to close lock at ~"+LOCK_FPATH)
+			logutil.Println(logutil.RED, "ERR | Failed to close lock at ~"+LOCK_FPATH)
 			return err
 		}
 
@@ -47,7 +47,7 @@ func lockProcess() func() error {
 func main() {
 	//#region Always runs no matter the subcommand
 	if len(os.Args) < 2 {
-		logutil.Println(logutil.RED, "ERROR | missing subcommand. Usage: go run . [register|bot|api]")
+		logutil.Println(logutil.RED, "ERR | missing subcommand. Usage: go run . [register|bot|api]")
 		return
 	}
 
@@ -76,7 +76,7 @@ func main() {
 		auroraDB := database.TryInit(shared.SUPPORTED_MAPS.AURORA)
 		startAPI([]*database.Database{activeMapDB, auroraDB})
 	default:
-		logutil.Println(logutil.RED, "ERROR | unknown subcommand:", subCmd)
+		logutil.Println(logutil.RED, "ERR | unknown subcommand:", subCmd)
 	}
 }
 
@@ -157,6 +157,6 @@ func startAPI(mdbs []*database.Database) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		logutil.Logf(logutil.RED, "ERROR | could not gracefully shut down Custom API: %v", err)
+		logutil.Logf(logutil.RED, "ERR | could not gracefully shut down Custom API: %v", err)
 	}
 }

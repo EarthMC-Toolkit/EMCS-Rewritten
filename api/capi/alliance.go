@@ -58,7 +58,7 @@ func parseAlliance(
 		return n.Name
 	})
 	if len(ownNations) == 0 {
-		logutil.Printf(logutil.RED, "ERROR | Len of retrieved nations for alliance %s is 0. Expected %d", a.Label, len(a.OwnNations))
+		logutil.Printf(logutil.RED, "ERR | Len of retrieved nations for alliance %s is 0. Expected %d", a.Label, len(a.OwnNations))
 	}
 
 	puppetAlliances := a.ChildAlliances(alliances)
