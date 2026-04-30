@@ -188,6 +188,22 @@ func KeySort[T any](arr []T, keys []KeySortOption[T]) []T {
 	return arr
 }
 
+func RankSortAscending[T any](arr []T, rank func(T) int) []T {
+	slices.SortFunc(arr, func(a, b T) int {
+		return rank(a) - rank(b)
+	})
+
+	return arr
+}
+
+func RankSortDescending[T any](arr []T, rank func(T) int) []T {
+	slices.SortFunc(arr, func(a, b T) int {
+		return rank(b) - rank(a)
+	})
+
+	return arr
+}
+
 // Takes an input string and returns a slice containing each of the elements that were seperated by whitespace or sep.
 //
 // Similar to [strings.Fields] which splits elements by whitespace, we use [strings.FieldsFunc] to also
