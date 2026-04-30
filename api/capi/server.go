@@ -38,6 +38,9 @@ func NewMux(mdbs []*database.Database) (mux *http.ServeMux, err error) {
 	if err = ServeBase(mux); err != nil {
 		return nil, err
 	}
+	if err = ServeTerms(mux); err != nil {
+		return nil, err
+	}
 
 	for _, mdb := range mdbs {
 		if mdb == nil {
