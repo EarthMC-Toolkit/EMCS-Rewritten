@@ -56,6 +56,17 @@ func (cmd NationCommand) Options() AppCommandOpts {
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "list",
 			Description: "Sends a paginator enabling navigation through all existing nations.",
+			Options: AppCommandOpts{
+				discordutil.StringOption("sort", "Optional nation list sorting. Without this, nations are sorted by residents -> towns -> size.", nil, nil,
+					//discordutil.Choice("None", "none"),                 //"No list sorting. The entropy enjoyer's choice."),
+					discordutil.Choice("Alphabetical", "alphabetical"), //"Sort the list alphabetically by name."),
+					discordutil.Choice("Residents", "residents"),       //"Sort the list solely by the number of residents."),
+					discordutil.Choice("Towns", "towns"),               //"Sort the list solely by the number of towns."),
+					discordutil.Choice("Size", "size"),                 //"Sort the list solely by size (chunks claimed)."),
+					discordutil.Choice("Founded", "founded"),           //"Sort the list by date founded. Oldest -> Newest."),
+					//discordutil.Choice("Towns Overclaimed", "towns-overclaimed"),   //"Sort the list by date founded. Oldest -> Newest."),
+				),
+			},
 		},
 	}
 }
@@ -96,11 +107,7 @@ func (cmd NationCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.I
 	// top-level sub cmd or group
 	subCmd := cdata.Options[0]
 	switch subCmd.Name {
-	case "activity":
-		fallthrough
-	case "online":
-		fallthrough
-	case "query":
+	case "query", "activity", "online":
 		return nationNameAutocomplete(s, i, cdata)
 	}
 
@@ -211,8 +218,7 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 		return err
 	}
 
-	nationCount := nationStore.Count()
-	if nationCount == 0 {
+	if nationStore.Count() == 0 {
 		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: "No nations seem to exist? Something may have gone wrong with the database or nation store.",
 		})
@@ -221,11 +227,42 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 	}
 
 	nations := nationStore.Values()
-	utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
-		{Compare: func(a, b oapi.NationInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
-		{Compare: func(a, b oapi.NationInfo) bool { return a.NumTowns() > b.NumTowns() }},
-		{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }},
-	})
+
+	listOpt := i.ApplicationCommandData().GetOption("list")
+	if opt := listOpt.GetOption("sort"); opt != nil {
+		switch opt.StringValue() {
+		case "alphabetical":
+			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+				{Compare: func(a, b oapi.NationInfo) bool { return b.Name > a.Name }}, // ascending (A-Z)
+			})
+		case "residents":
+			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+				{Compare: func(a, b oapi.NationInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
+			})
+		case "towns":
+			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+				{Compare: func(a, b oapi.NationInfo) bool { return a.NumTowns() > b.NumTowns() }}, // descending
+			})
+		case "size":
+			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+				{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }}, // descending
+			})
+		case "founded":
+			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+				{Compare: func(a, b oapi.NationInfo) bool { return b.Timestamps.Registered > a.Timestamps.Registered }}, // ascending (oldest-newest)
+			})
+			// case "towns-overclaimed":
+		}
+	} else {
+		// No sort option provided, use default sort (residents -> towns -> size).
+		utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+			{Compare: func(a, b oapi.NationInfo) bool { return a.NumResidents() > b.NumResidents() }},
+			{Compare: func(a, b oapi.NationInfo) bool { return a.NumTowns() > b.NumTowns() }},
+			{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }},
+		})
+	}
+
+	nationCount := len(nations)
 
 	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
 	perPage := 5
@@ -236,6 +273,7 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 
 		nationStrings := []string{}
 		for idx, n := range nations[start:end] {
+			foundedTs := n.Timestamps.Registered / 1000 // convert ms to sec for Discord timestamp
 			balance := logutil.HumanizedSprintf("`%0.f`G %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
 			towns := logutil.HumanizedSprintf("`%d`", n.Stats.NumTowns)
 			residents := logutil.HumanizedSprintf("`%d`", n.Stats.NumResidents)
@@ -245,8 +283,8 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 			)
 
 			nationStrings = append(nationStrings, fmt.Sprintf(
-				"%d. %s (Capital: %s)\nLeader: `%s`\nTowns: %s\nResidents: %s\nBalance: %s\nSize: %s",
-				start+idx+1, n.Name, n.Capital.Name, n.King.Name, towns, residents, balance, size,
+				"%d. %s (Capital: %s) • Founded <t:%d:R>\nLeader: `%s`\nTowns: %s\nResidents: %s\nBalance: %s\nSize: %s",
+				start+idx+1, n.Name, n.Capital.Name, foundedTs, n.King.Name, towns, residents, balance, size,
 			))
 		}
 
