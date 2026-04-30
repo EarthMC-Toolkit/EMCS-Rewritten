@@ -1,7 +1,6 @@
 package slashcommands
 
 import (
-	"emcsrw/utils/config"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"strings"
@@ -44,14 +43,8 @@ func (cmd DevCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCrea
 		return err
 	}
 
-	// grab dev id from .env
-	devID, err := config.GetEnviroVar("DEV_ID")
-	if err != nil {
-		return err
-	}
-
-	author := discordutil.GetInteractionAuthor(i.Interaction)
-	if author.ID != devID {
+	isDev := discordutil.IsDev(i.Interaction)
+	if !isDev {
 		_, err := discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 			Content: "You are not a developer silly.",
 			Flags:   discordgo.MessageFlagsEphemeral,

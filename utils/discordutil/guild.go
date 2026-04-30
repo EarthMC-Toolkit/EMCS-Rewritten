@@ -1,6 +1,8 @@
 package discordutil
 
 import (
+	"emcsrw/utils/config"
+	"emcsrw/utils/logutil"
 	"fmt"
 	"net/url"
 	"slices"
@@ -11,11 +13,14 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-const DEV_ID = "263377802647175170"
-
 func IsDev(i *discordgo.Interaction) bool {
-	author := GetInteractionAuthor(i)
-	return author.ID == DEV_ID
+	id, err := config.GetEnviroVar("DEV_ID")
+	if err != nil {
+		logutil.Printf(logutil.RED, "ERR | cannot check if interaction author is dev:\n\t%v", err)
+		return false
+	}
+
+	return id == GetInteractionAuthor(i).ID
 }
 
 func HasRole(m *discordgo.Member, roleID string) (bool, error) {

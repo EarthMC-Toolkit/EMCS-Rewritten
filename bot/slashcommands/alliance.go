@@ -18,6 +18,7 @@ import (
 	"github.com/samber/lo"
 )
 
+// TODO: These should probably be config/env vars instead of hardcoded.
 const EDITOR_ROLE = "966359842417705020"
 const SR_EDITOR_ROLE = "1143253762039873646"
 const ALLIANCE_BACKUP_CHANNEL = "1438592337335947314"
