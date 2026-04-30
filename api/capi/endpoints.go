@@ -38,77 +38,74 @@ The following endpoints are available:
 - /players
 `
 
-const TOS_STR = `
-Terms of Service for EarthMC Stats
+const TOS_STR = `# Terms of Service for EarthMC Stats
 
-Effective Date: April 30, 2026
+**Effective Date:** April 30, 2026
 
-1. Acceptance of Terms
+## 1. Acceptance of Terms
 By accessing or using EarthMC Stats, including its Discord bot, website, and API (the "Service"), you agree to these Terms of Service. If you do not agree, you must not use the Service.
 
-2. Description of Service
+## 2. Description of Service
 EarthMC Stats provides statistics, analytics, and informational tools relating to the EarthMC Minecraft server. The Service may include data about players, towns, nations, alliances, maps, and news.
-
 EarthMC Stats is an independent project and is not affiliated with, endorsed by, or sponsored by EarthMC, Minecraft, Mojang Studios, Microsoft, or Discord.
-3. Permitted Use
+
+## 3. Permitted Use
 You may use the Service for lawful, personal, and non-commercial purposes. You may not:
 
 - Use the Service for unlawful purposes.
-- Abuse, scrape excessively, disrupt or interfere with the Service.
+- Abuse, excessively scrape, disrupt, or interfere with the Service.
 
-4. Intellectual Property
+## 4. Intellectual Property
 The software, branding, design, and original content of EarthMC Stats are protected by applicable intellectual property laws. You may not copy, redistribute, or create derivative works from the Service without prior permission.
-
 Public EarthMC data remains the property of its respective owners.
 
-5. Availability
+## 5. Availability
 The Service is provided on an "as is" and "as available" basis. Availability, features, and functionality may change at any time without notice.
 
-6. Limitation of Liability
+## 6. Limitation of Liability
 To the fullest extent permitted by law, EarthMC Stats shall not be liable for any direct, indirect, incidental, special, or consequential damages arising from your use of the Service.
 
-7. Termination
+## 7. Termination
 Access to the Service may be suspended or terminated at any time for any reason, including abuse or violation of these Terms.
 
-8. Changes to These Terms
+## 8. Changes to These Terms
 These Terms may be updated periodically. Continued use of the Service after changes take effect constitutes acceptance of the revised Terms.
 
-9. Contact
-For questions regarding these Terms, contact Owen (EarthMC Stats developer) via Discord at #owen3h.
+## 9. Contact
+For questions regarding these Terms, contact Owen (EarthMC Stats developer) via Discord at @owen3h.
 `
 
-const PRIVACY_STR = `
-Privacy Policy for EarthMC Stats
+const PRIVACY_STR = `# Privacy Policy for EarthMC Stats
 
-Effective Date: April 30, 2026
+**Effective Date:** April 30, 2026
 
-1. Information Collected
+## 1. Information Collected
 EarthMC Stats stores only limited information necessary to operate the Service, including:
 
-- Publicly available EarthMC and Minecraft data, such as usernames, player statistics, towns, nations, alliances, and related game information;
-- Publicly accessible messages and attachments from designated EarthMC news channels;
+- Publicly available EarthMC and Minecraft data, such as usernames, player statistics, towns, nations, alliances, and related game information.
+- Publicly accessible messages and attachments from designated EarthMC news channels.
 - Technical data required for API operation, such as temporary rate-limiting and caching information.
 
-2. How Information Is Used
+## 2. How Information Is Used
 Collected information is used solely to provide, maintain, and improve EarthMC Stats and its features.
 
-3. Data Sharing
+## 3. Data Sharing
 EarthMC Stats does not sell, rent, trade, or share personal data with third parties.
 
-4. Data Storage
+## 4. Data Storage
 Only publicly available game-related information and public news content are permanently stored. EarthMC Stats does not intentionally collect private personal information.
 
-5. Third-Party Services
+## 5. Third-Party Services
 The Service may rely on third-party platforms, including Discord and EarthMC. Your use of those services is governed by their respective policies.
 
-6. Data Removal
+## 6. Data Removal
 Given Sections 3 and 4, individual data deletion requests are generally not applicable. Requests to change a Minecraft username or public account information should be directed to Mojang Studios or Microsoft, and any such changes will be reflected automatically by the Service. Where reasonably possible, historical username records may be removed upon request.
 
-7. Changes to This Policy
+## 7. Changes to This Policy
 This Privacy Policy may be updated from time to time. Continued use of the Service constitutes acceptance of any revised policy.
 
-8. Contact
-For privacy-related questions, contact Owen (EarthMC Stats developer) via Discord at #owen3h.
+## 8. Contact
+For privacy-related questions, contact Owen (EarthMC Stats developer) via Discord at @owen3h.
 `
 
 type BasicPlayer struct {
@@ -153,7 +150,7 @@ func ServeTerms(mux *http.ServeMux) error {
 	tos := strings.TrimPrefix(TOS_STR, "\n")
 	privacy := strings.TrimPrefix(PRIVACY_STR, "\n")
 	mux.HandleFunc("/terms", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
 		w.Write([]byte(tos + "\n\n" + privacy))
 	})
 
