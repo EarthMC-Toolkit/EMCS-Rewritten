@@ -1,8 +1,8 @@
-# Terms of Service for EarthMC Stats
+# Terms of Service for EarthMC Stats ("EMCS")
 **Effective Date:** April 30, 2026
 
 ## 1. Acceptance of Terms
-By accessing or using EarthMC Stats, including the Discord bot and associated and API (referred to as "EMCS" from here on), you agree to these Terms of Service. If you do not agree, you must not use EMCS.
+By accessing or using EarthMC Stats, including the Discord bot and associated and API ("EMCS" from here on), you agree to these Terms of Service. If you do not agree, you must not use EMCS.
 
 ## 2. Description of Service
 EMCS provides statistics, analytics, and informational tools relating to the EarthMC Minecraft server. EMCS may include data about players, towns, nations, alliances, maps, and news.

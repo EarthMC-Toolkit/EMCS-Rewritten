@@ -18,6 +18,7 @@ import (
 	"sync"
 
 	"github.com/samber/lo"
+	"github.com/yuin/goldmark"
 )
 
 // Req/m for each endpoint
@@ -81,12 +82,22 @@ func ServeTerms(mux *http.ServeMux) error {
 	mux.HandleFunc("/terms", func(w http.ResponseWriter, r *http.Request) {
 		data, err := os.ReadFile("TERMS.md")
 		if err != nil {
-			w.Write([]byte("Error serving TOS and Privacy Policy for EarthMC Stats. No TERMS.md file found."))
+			http.Error(w, "TERMS.md not found", http.StatusNotFound)
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
-		w.Write(data)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`
+			<!doctype html><html><head><style>
+			body{background:#0d1117;color:#ecf6ff;font-family:system-ui;max-width:900px;margin:40px auto;padding:20px;line-height:1.4}
+			p{margin-block-start:0.5em;}
+			strong{color:#f9c278}
+			h1{margin-block-start:0em;margin-block-end:0em;color:#f9c278}
+			h2{margin-block-start:10px;margin-block-end:10px;color:#fff1d3}
+			</style></head><body>`,
+		))
+		goldmark.Convert(data, w) // Render the terms file (converts markdown to HTML).
+		w.Write([]byte(`</body></html>`))
 	})
 
 	return nil
