@@ -7,6 +7,7 @@ import (
 	"emcsrw/shared"
 	"emcsrw/shared/embeds"
 	"emcsrw/utils"
+	"emcsrw/utils/config"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/sets"
 	"errors"
@@ -1140,8 +1141,11 @@ func validateAllianceImage(rawURL string) (string, error) {
 		return "", errors.New("invalid discord image attachment path")
 	}
 
-	if parts[2] != shared.FLAGS_CHANNEL_ID {
-		return "", fmt.Errorf("wrong channel. use image from flags channel")
+	// TODO: REPLACE THIS CHANNEL WITH AN ACTUAL DATABASE. EX: ~/db/nostra/alliance_flags/<uuid>.png
+	if cid, err := config.GetEnviroVar("ALLIANCE_FLAGS_CHANNEL_ID"); err != nil {
+		return "", errors.New("cannot check if flag is valid. enviro var ALLIANCE_FLAGS_CHANNEL_ID not found.")
+	} else if parts[2] != cid {
+		return "", errors.New("wrong channel. use image from flags channel")
 	}
 
 	ext := strings.ToLower(path.Ext(strings.TrimRight(u.Path, "/")))
