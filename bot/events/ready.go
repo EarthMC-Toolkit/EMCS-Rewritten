@@ -138,8 +138,16 @@ func newsTask(s *discordgo.Session, channelID string, mdb *database.Database) {
 	}
 
 	entries := database.MessagesToNewsEntries(newsMsgs)
-	for id, entry := range entries {
-		newsStore.Set(id, entry)
+	if mdb.Name() == shared.SUPPORTED_MAPS.NOSTRA {
+		for id, entry := range entries {
+			// We don't want to include news from before Nostra release.
+			if entry.Timestamp < 1776132038538 {
+				newsStore.Delete(id) // This is a no-op and just ensures old entries are removed if they somehow got in there before.
+				continue
+			}
+
+			newsStore.Set(id, entry)
+		}
 	}
 
 	if err := newsStore.WriteSnapshot(); err != nil {
