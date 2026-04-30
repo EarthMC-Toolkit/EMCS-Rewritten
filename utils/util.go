@@ -168,8 +168,9 @@ type KeySortOption[T any] struct {
 	Compare func(a, b T) bool // returns true if a should come before b
 }
 
-// MultiKeySort sorts arr in-place by multiple keys in order.
-func MultiKeySort[T any](arr []T, keys []KeySortOption[T]) []T {
+// KeySort sorts arr in-place by keys in order.
+// First key is the primary sort key, second key is less important, and so on.
+func KeySort[T any](arr []T, keys []KeySortOption[T]) []T {
 	slices.SortFunc(arr, func(a, b T) int {
 		for _, k := range keys {
 			if k.Compare(a, b) {

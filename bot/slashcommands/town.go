@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo"
 	"github.com/samber/lo/parallel"
 )
 
@@ -57,9 +58,19 @@ func (cmd TownCommand) Options() AppCommandOpts {
 			},
 		},
 		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
 			Name:        "list",
 			Description: "Sends a paginator enabling navigation through all existing towns.",
+			Options: AppCommandOpts{
+				discordutil.StringOption("sort", "Optional town list sorting. Without this, towns are sorted by residents -> size.", nil, 12,
+					discordutil.Choice("none", "No list sorting. The entropy enjoyer's choice."),
+					discordutil.Choice("alphabetical", "Sort the list alphabetically by name."),
+					discordutil.Choice("residents", "Sort the list solely by the number of residents."),
+					discordutil.Choice("size", "Sort the list solely by size (chunks claimed)."),
+					discordutil.Choice("founded", "Sort the list by date founded. Oldest -> Newest."),
+				),
+				discordutil.AutocompleteStringOption("nation", "Filter by towns within a specified nation.", 2, 40, false),
+			},
 		},
 	}
 }
@@ -107,6 +118,10 @@ func (cmd TownCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Int
 		fallthrough
 	case "online":
 		fallthrough
+	case "list":
+		if subCmd.Options[0].Name == "nation" {
+			return townNameAutocomplete(s, i, cdata)
+		}
 	case "query":
 		return townNameAutocomplete(s, i, cdata)
 	}
@@ -130,7 +145,7 @@ func townNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata 
 
 	if focusedTrimmed == "" {
 		towns := townStore.Values()
-		matches = utils.MultiKeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+		matches = utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
 			{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
 			{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
 		})
@@ -205,10 +220,46 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 	}
 
 	towns := townStore.Values()
-	utils.MultiKeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
-		{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
-		{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
-	})
+
+	cdata := i.ApplicationCommandData()
+	chosenOpt := discordutil.GetActiveSubCommand(cdata.Options)
+	if chosenOpt != nil {
+		switch chosenOpt.Name {
+		case "alphabetical":
+			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+				{Compare: func(a, b oapi.TownInfo) bool { return a.Name < b.Name }}, // ascending (A-Z)
+			})
+		case "residents":
+			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+				{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
+			})
+		case "size":
+			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+				{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }}, // descending
+			})
+		case "founded":
+			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+				{Compare: func(a, b oapi.TownInfo) bool { return a.Timestamps.Registered < b.Timestamps.Registered }}, // ascending (oldest-newest)
+			})
+		case "nation":
+			nationName := chosenOpt.StringValue()
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Status.HasNation && strings.EqualFold(*t.Nation.Name, nationName)
+			})
+
+			// Use default sort (residents -> size).
+			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+				{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
+				{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
+			})
+		}
+	} else {
+		// No sort option provided, use default sort (residents -> size).
+		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+			{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
+			{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
+		})
+	}
 
 	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
 	perPage := 5

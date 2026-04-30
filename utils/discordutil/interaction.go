@@ -228,7 +228,7 @@ func GetFocusedValue[T any](options []*discordgo.ApplicationCommandInteractionDa
 
 func traverseCommandOption(opt *discordgo.ApplicationCommandInteractionDataOption) *discordgo.ApplicationCommandInteractionDataOption {
 	if len(opt.Options) == 0 {
-		return opt
+		return opt // No nested options, return this one
 	}
 
 	// Check if the first child is a subcommand or group. Otherwise it's an argument
@@ -240,12 +240,12 @@ func traverseCommandOption(opt *discordgo.ApplicationCommandInteractionDataOptio
 	return traverseCommandOption(opt.Options[0])
 }
 
-func GetActiveSubCommand(cdata discordgo.ApplicationCommandInteractionData) *discordgo.ApplicationCommandInteractionDataOption {
-	if len(cdata.Options) == 0 {
+func GetActiveSubCommand(opts []*discordgo.ApplicationCommandInteractionDataOption) *discordgo.ApplicationCommandInteractionDataOption {
+	if len(opts) == 0 {
 		return nil
 	}
 
-	return traverseCommandOption(cdata.Options[0])
+	return traverseCommandOption(opts[0])
 }
 
 type FormatFunc[T any, V any] = func(item T, index int) (name string, value V)

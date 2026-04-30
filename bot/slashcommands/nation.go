@@ -126,7 +126,7 @@ func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdat
 		// TODO: This is pretty primitive and we should prefer database.GetRankedNations()
 		// 		 when rank caching has been implemented.
 		nations := nationStore.Values()
-		matches = utils.MultiKeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+		matches = utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
 			{Compare: func(a, b oapi.NationInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
 			{Compare: func(a, b oapi.NationInfo) bool { return a.NumTowns() > b.NumTowns() }},
 			{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }},
@@ -221,7 +221,7 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 	}
 
 	nations := nationStore.Values()
-	utils.MultiKeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+	utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
 		{Compare: func(a, b oapi.NationInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
 		{Compare: func(a, b oapi.NationInfo) bool { return a.NumTowns() > b.NumTowns() }},
 		{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }},

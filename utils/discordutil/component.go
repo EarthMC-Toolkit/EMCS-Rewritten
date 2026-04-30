@@ -2,6 +2,22 @@ package discordutil
 
 import "github.com/bwmarrin/discordgo"
 
+func Choice[T any](name string, value T) *discordgo.ApplicationCommandOptionChoice {
+	return &discordgo.ApplicationCommandOptionChoice{
+		Name:  name,
+		Value: value,
+	}
+}
+
+func SubcommandOption(name, description string, options ...*discordgo.ApplicationCommandOption) *discordgo.ApplicationCommandOption {
+	return &discordgo.ApplicationCommandOption{
+		Type:        discordgo.ApplicationCommandOptionSubCommand,
+		Name:        name,
+		Description: description,
+		Options:     options,
+	}
+}
+
 func BoolOption(name, description string) *discordgo.ApplicationCommandOption {
 	return &discordgo.ApplicationCommandOption{
 		Type:        discordgo.ApplicationCommandOptionBoolean,
@@ -10,13 +26,14 @@ func BoolOption(name, description string) *discordgo.ApplicationCommandOption {
 	}
 }
 
-func StringOption(name, description string, minLen *int, maxLen int) *discordgo.ApplicationCommandOption {
+func StringOption(name, description string, minLen *int, maxLen int, choices ...*discordgo.ApplicationCommandOptionChoice) *discordgo.ApplicationCommandOption {
 	return &discordgo.ApplicationCommandOption{
 		Type:        discordgo.ApplicationCommandOptionString,
 		Name:        name,
 		Description: description,
 		MinLength:   minLen,
 		MaxLength:   maxLen,
+		Choices:     choices,
 	}
 }
 

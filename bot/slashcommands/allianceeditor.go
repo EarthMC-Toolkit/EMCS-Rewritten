@@ -75,7 +75,8 @@ func editAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 	}
 
 	// get the sub cmd currently being used
-	subCmd := discordutil.GetActiveSubCommand(i.ApplicationCommandData())
+	cdata := i.ApplicationCommandData()
+	subCmd := discordutil.GetActiveSubCommand(cdata.Options)
 	if subCmd == nil {
 		return fmt.Errorf("no valid option found for editAlliance")
 	}
