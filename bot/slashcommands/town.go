@@ -58,16 +58,17 @@ func (cmd TownCommand) Options() AppCommandOpts {
 			},
 		},
 		{
-			Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "list",
 			Description: "Sends a paginator enabling navigation through all existing towns.",
 			Options: AppCommandOpts{
-				discordutil.StringOption("sort", "Optional town list sorting. Without this, towns are sorted by residents -> size.", nil, 12,
-					discordutil.Choice("none", "No list sorting. The entropy enjoyer's choice."),
-					discordutil.Choice("alphabetical", "Sort the list alphabetically by name."),
-					discordutil.Choice("residents", "Sort the list solely by the number of residents."),
-					discordutil.Choice("size", "Sort the list solely by size (chunks claimed)."),
-					discordutil.Choice("founded", "Sort the list by date founded. Oldest -> Newest."),
+				discordutil.StringOption("sort", "Optional town list sorting. Without this, towns are sorted by residents -> size.", nil, nil,
+					//discordutil.Choice("None", "none"),                 //"No list sorting. The entropy enjoyer's choice."),
+					discordutil.Choice("Alphabetical", "alphabetical"), //"Sort the list alphabetically by name."),
+					discordutil.Choice("Residents", "residents"),       //"Sort the list solely by the number of residents."),
+					discordutil.Choice("Size", "size"),                 //"Sort the list solely by size (chunks claimed)."),
+					discordutil.Choice("Founded", "founded"),           //"Sort the list by date founded. Oldest -> Newest."),
+					discordutil.Choice("Overclaimed", "overclaimed"),   //"Sort the list by date founded. Oldest -> Newest."),
 				),
 				discordutil.AutocompleteStringOption("nation", "Filter by towns within a specified nation.", 2, 40, false),
 			},
@@ -114,15 +115,13 @@ func (cmd TownCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Int
 	// top-level sub cmd or group
 	subCmd := cdata.Options[0]
 	switch subCmd.Name {
-	case "activity":
-		fallthrough
-	case "online":
-		fallthrough
 	case "list":
-		if subCmd.Options[0].Name == "nation" {
-			return townNameAutocomplete(s, i, cdata)
+		for _, opt := range subCmd.Options {
+			if opt.Name == "nation" {
+				return nationNameAutocomplete(s, i, cdata)
+			}
 		}
-	case "query":
+	case "query", "activity", "online":
 		return townNameAutocomplete(s, i, cdata)
 	}
 
@@ -210,8 +209,7 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 		return err
 	}
 
-	townCount := townStore.Count()
-	if townCount == 0 {
+	if townStore.Count() == 0 {
 		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: "No towns seem to exist? Something may have gone wrong with the database or town store.",
 		})
@@ -221,10 +219,31 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 
 	towns := townStore.Values()
 
-	cdata := i.ApplicationCommandData()
-	chosenOpt := discordutil.GetActiveSubCommand(cdata.Options)
-	if chosenOpt != nil {
-		switch chosenOpt.Name {
+	listOpt := i.ApplicationCommandData().GetOption("list")
+	if opt := listOpt.GetOption("nation"); opt != nil {
+		nationInput := opt.StringValue()
+
+		// parse input so "Japan" and "Japan (Capital: Chiyoda)" both work by extracting the nation name before any parentheses,
+		// since that's what the autocomplete displays and it seems reasonable to expect users to copy-paste from autocomplete results.
+		// "((Japan))", "(Japan (blahblah))" etc. also need to work incase of stupid nation names.
+		nationName := strings.TrimSpace(nationInput)
+		for strings.HasPrefix(nationName, "(") && strings.HasSuffix(nationName, ")") {
+			nationName = strings.TrimSpace(nationName[1 : len(nationName)-1])
+		}
+		if i := strings.IndexRune(nationName, '('); i >= 0 {
+			nationName = strings.TrimSpace(nationName[:i])
+		}
+
+		towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+			if t.Nation.UUID == nil {
+				return false
+			}
+
+			return strings.EqualFold(*t.Nation.Name, nationName)
+		})
+	}
+	if opt := listOpt.GetOption("sort"); opt != nil {
+		switch opt.StringValue() {
 		case "alphabetical":
 			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
 				{Compare: func(a, b oapi.TownInfo) bool { return a.Name < b.Name }}, // ascending (A-Z)
@@ -241,16 +260,16 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
 				{Compare: func(a, b oapi.TownInfo) bool { return a.Timestamps.Registered < b.Timestamps.Registered }}, // ascending (oldest-newest)
 			})
-		case "nation":
-			nationName := chosenOpt.StringValue()
-			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Status.HasNation && strings.EqualFold(*t.Nation.Name, nationName)
-			})
-
-			// Use default sort (residents -> size).
-			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
-				{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
-				{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
+		case "overclaimed":
+			utils.RankSortAscending(towns, func(t oapi.TownInfo) int {
+				switch {
+				case t.Status.Overclaimed && !t.Status.HasOverclaimShield:
+					return 0
+				case t.Status.Overclaimed && t.Status.HasOverclaimShield:
+					return 1
+				default:
+					return 2
+				}
 			})
 		}
 	} else {
@@ -260,6 +279,8 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 			{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
 		})
 	}
+
+	townCount := len(towns)
 
 	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
 	perPage := 5
@@ -275,6 +296,7 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 				nationName = *t.Nation.Name
 			}
 
+			foundedTs := t.Timestamps.Registered / 1000 // convert ms to sec for Discord timestamp
 			size := logutil.HumanizedSprintf("`%d`/`%d` %s (Worth `%d` %s)",
 				t.Size(), t.MaxSize(), shared.EMOJIS.CHUNK,
 				t.Worth(), shared.EMOJIS.GOLD_INGOT,
@@ -295,8 +317,8 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 
 			overclaim := fmt.Sprintf("%s / %s", overclaimed, overclaimShield)
 			townStrings = append(townStrings, fmt.Sprintf(
-				"%d. %s (**%s**)\nMayor: `%s`\nResidents: %s\nBalance: %s\nSize: %s\nOverclaimed/Has Shield: %s",
-				start+idx+1, t.Name, nationName, t.Mayor.Name, residents, balance, size, overclaim,
+				"%d. %s (**%s**) • Founded <t:%d:R>\nMayor: `%s`\nResidents: %s\nBalance: %s\nSize: %s\nOverclaimed/Has Shield: %s",
+				start+idx+1, t.Name, nationName, foundedTs, t.Mayor.Name, residents, balance, size, overclaim,
 			))
 		}
 

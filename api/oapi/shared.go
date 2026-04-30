@@ -16,7 +16,7 @@ type EntityNullableValues struct {
 type EntityList = map[string]string
 
 type Timestamps struct {
-	Registered uint64 `json:"registered"`
+	Registered uint64 `json:"registered"` // Unix timestamp (ms) of when the entity was registered. Aka "founded" for towns/nations.
 }
 
 type Location2D struct {

@@ -26,25 +26,30 @@ func BoolOption(name, description string) *discordgo.ApplicationCommandOption {
 	}
 }
 
-func StringOption(name, description string, minLen *int, maxLen int, choices ...*discordgo.ApplicationCommandOptionChoice) *discordgo.ApplicationCommandOption {
+func StringOption(name, description string, minLen *int, maxLen *int, choices ...*discordgo.ApplicationCommandOptionChoice) *discordgo.ApplicationCommandOption {
+	max := 0
+	if maxLen != nil {
+		max = *maxLen
+	}
+
 	return &discordgo.ApplicationCommandOption{
 		Type:        discordgo.ApplicationCommandOptionString,
 		Name:        name,
 		Description: description,
 		MinLength:   minLen,
-		MaxLength:   maxLen,
+		MaxLength:   max,
 		Choices:     choices,
 	}
 }
 
 func RequiredStringOption(name, description string, minLen, maxLen int) *discordgo.ApplicationCommandOption {
-	opt := StringOption(name, description, &minLen, maxLen)
+	opt := StringOption(name, description, &minLen, &maxLen)
 	opt.Required = true
 	return opt
 }
 
 func AutocompleteStringOption(name, description string, minLen, maxLen int, required bool) *discordgo.ApplicationCommandOption {
-	opt := StringOption(name, description, &minLen, maxLen)
+	opt := StringOption(name, description, &minLen, &maxLen)
 	opt.Required = required
 	opt.Autocomplete = true
 	return opt
