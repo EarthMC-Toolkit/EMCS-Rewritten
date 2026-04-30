@@ -63,12 +63,14 @@ func (cmd TownCommand) Options() AppCommandOpts {
 			Description: "Sends a paginator enabling navigation through all existing towns.",
 			Options: AppCommandOpts{
 				discordutil.StringOption("sort", "Optional town list sorting. Without this, towns are sorted by residents -> size.", nil, nil,
-					//discordutil.Choice("None", "none"),                 //"No list sorting. The entropy enjoyer's choice."),
-					discordutil.Choice("Alphabetical", "alphabetical"), //"Sort the list alphabetically by name."),
-					discordutil.Choice("Residents", "residents"),       //"Sort the list solely by the number of residents."),
-					discordutil.Choice("Size", "size"),                 //"Sort the list solely by size (chunks claimed)."),
-					discordutil.Choice("Founded", "founded"),           //"Sort the list by date founded. Oldest -> Newest."),
-					discordutil.Choice("Overclaimed", "overclaimed"),   //"Sort the list by date founded. Oldest -> Newest."),
+					//discordutil.Choice("None", "none"),               // "No list sorting. The entropy enjoyer's choice."
+					discordutil.Choice("Alphabetical", "alphabetical"), // "Sort the list alphabetically by name."
+					discordutil.Choice("Founded", "founded"),           // "Sort the list by date founded. Oldest -> Newest."
+					discordutil.Choice("Residents", "residents"),       // "Sort the list solely by the number of residents."
+					discordutil.Choice("Size", "size"),                 // "Sort the list solely by size (chunks claimed)."
+					discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
+					discordutil.Choice("For Sale", "for-sale"),         // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
+					discordutil.Choice("Overclaimed", "overclaimed"),   // "Sort the list by overclaim status. Oldest -> Newest."
 				),
 				discordutil.AutocompleteStringOption("nation", "Filter by towns within a specified nation.", 2, 40, false),
 			},
@@ -260,6 +262,18 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
 				{Compare: func(a, b oapi.TownInfo) bool { return a.Timestamps.Registered < b.Timestamps.Registered }}, // ascending (oldest-newest)
 			})
+		case "balance":
+			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+				{Compare: func(a, b oapi.TownInfo) bool { return a.Bal() > b.Bal() }}, // descending
+			})
+		case "for-sale":
+			utils.RankSortDescending(towns, func(t oapi.TownInfo) int {
+				if !t.Status.ForSale || t.Stats.ForSalePrice == nil {
+					return 0
+				}
+
+				return int(*t.Stats.ForSalePrice * 100.0)
+			})
 		case "overclaimed":
 			utils.RankSortAscending(towns, func(t oapi.TownInfo) int {
 				switch {
@@ -296,8 +310,7 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 				nationName = *t.Nation.Name
 			}
 
-			foundedTs := t.Timestamps.Registered / 1000 // convert ms to sec for Discord timestamp
-			size := logutil.HumanizedSprintf("`%d`/`%d` %s (Worth `%d` %s)",
+			size := logutil.HumanizedSprintf("`%d`/`%d` %s (Worth `%d`G %s)",
 				t.Size(), t.MaxSize(), shared.EMOJIS.CHUNK,
 				t.Worth(), shared.EMOJIS.GOLD_INGOT,
 			)
@@ -314,11 +327,13 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 			if t.Status.HasOverclaimShield {
 				overclaimShield = shared.EMOJIS.SHIELD_GREEN
 			}
-
 			overclaim := fmt.Sprintf("%s / %s", overclaimed, overclaimShield)
+
+			// convert ms to sec for Discord timestamp
+			foundedStr := fmt.Sprintf("Founded <t:%d:R>", t.Timestamps.Registered/1000)
 			townStrings = append(townStrings, fmt.Sprintf(
-				"%d. %s (**%s**) • Founded <t:%d:R>\nMayor: `%s`\nResidents: %s\nBalance: %s\nSize: %s\nOverclaimed/Has Shield: %s",
-				start+idx+1, t.Name, nationName, foundedTs, t.Mayor.Name, residents, balance, size, overclaim,
+				"%d. %s (**%s**) • %s\nMayor: `%s`\nResidents: %s\nSize: %s\nBalance: %s\nOverclaimed/Has Shield: %s",
+				start+idx+1, t.Name, nationName, foundedStr, t.Mayor.Name, residents, size, balance, overclaim,
 			))
 		}
 

@@ -58,13 +58,14 @@ func (cmd NationCommand) Options() AppCommandOpts {
 			Description: "Sends a paginator enabling navigation through all existing nations.",
 			Options: AppCommandOpts{
 				discordutil.StringOption("sort", "Optional nation list sorting. Without this, nations are sorted by residents -> towns -> size.", nil, nil,
-					//discordutil.Choice("None", "none"),                 //"No list sorting. The entropy enjoyer's choice."),
-					discordutil.Choice("Alphabetical", "alphabetical"), //"Sort the list alphabetically by name."),
-					discordutil.Choice("Residents", "residents"),       //"Sort the list solely by the number of residents."),
-					discordutil.Choice("Towns", "towns"),               //"Sort the list solely by the number of towns."),
-					discordutil.Choice("Size", "size"),                 //"Sort the list solely by size (chunks claimed)."),
-					discordutil.Choice("Founded", "founded"),           //"Sort the list by date founded. Oldest -> Newest."),
-					//discordutil.Choice("Towns Overclaimed", "towns-overclaimed"),   //"Sort the list by date founded. Oldest -> Newest."),
+					//discordutil.Choice("None", "none"),               // "No list sorting. The entropy enjoyer's choice."
+					discordutil.Choice("Alphabetical", "alphabetical"), // "Sort the list alphabetically by name."
+					discordutil.Choice("Founded", "founded"),           // "Sort the list by date founded. Oldest -> Newest."
+					discordutil.Choice("Residents", "residents"),       // "Sort the list solely by the number of residents."
+					discordutil.Choice("Towns", "towns"),               // "Sort the list solely by the number of towns."
+					discordutil.Choice("Size", "size"),                 //" Sort the list solely by size (chunks claimed)."
+					discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
+					//discordutil.Choice("Towns Overclaimed", "towns-overclaimed"), // "Sort the list by date founded. Oldest -> Newest."
 				),
 			},
 		},
@@ -247,6 +248,10 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
 				{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }}, // descending
 			})
+		case "balance":
+			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+				{Compare: func(a, b oapi.NationInfo) bool { return a.Bal() > b.Bal() }}, // descending
+			})
 		case "founded":
 			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
 				{Compare: func(a, b oapi.NationInfo) bool { return b.Timestamps.Registered > a.Timestamps.Registered }}, // ascending (oldest-newest)
@@ -273,18 +278,19 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 
 		nationStrings := []string{}
 		for idx, n := range nations[start:end] {
-			foundedTs := n.Timestamps.Registered / 1000 // convert ms to sec for Discord timestamp
 			balance := logutil.HumanizedSprintf("`%0.f`G %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
 			towns := logutil.HumanizedSprintf("`%d`", n.Stats.NumTowns)
 			residents := logutil.HumanizedSprintf("`%d`", n.Stats.NumResidents)
-			size := logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)",
+			size := logutil.HumanizedSprintf("`%d` %s (Worth `%d`G %s)",
 				n.Size(), shared.EMOJIS.CHUNK,
 				n.Worth(), shared.EMOJIS.GOLD_INGOT,
 			)
 
+			// convert ms to sec for Discord timestamp
+			foundedStr := fmt.Sprintf("Founded <t:%d:R>", n.Timestamps.Registered/1000)
 			nationStrings = append(nationStrings, fmt.Sprintf(
-				"%d. %s (Capital: %s) • Founded <t:%d:R>\nLeader: `%s`\nTowns: %s\nResidents: %s\nBalance: %s\nSize: %s",
-				start+idx+1, n.Name, n.Capital.Name, foundedTs, n.King.Name, towns, residents, balance, size,
+				"%d. %s (Capital: %s) • %s\nLeader: `%s`\nTowns: %s\nResidents: %s\nSize: %s\nBalance: %s",
+				start+idx+1, n.Name, n.Capital.Name, foundedStr, n.King.Name, towns, residents, size, balance,
 			))
 		}
 
