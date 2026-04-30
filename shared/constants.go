@@ -5,6 +5,7 @@ const NAMEMC_URL = "https://namemc.com/profile/"
 const DEFAULT_TOWN_BOARD = "/town set board [msg]"
 const DEFAULT_ABOUT = "/res set about [msg]"
 
+// TODO: REPLACE THIS CHANNEL WITH AN ACTUAL DATABASE. EX: ~/db/nostra/alliance_flags/<uuid>.png
 const FLAGS_CHANNEL_ID = "966372674236481606"
 
 type EMCMap = string
