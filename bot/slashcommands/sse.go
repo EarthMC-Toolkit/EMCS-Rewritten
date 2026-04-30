@@ -149,9 +149,9 @@ func buildSelectMenu(selected []string) discordgo.ActionsRow {
 // TODO: Implement this.
 // Create a db file with mapping of channel id -> selected events, then use
 // said db file to listen to the events and post to the associated channel.
-func confirmSetup(s *discordgo.Session, i *discordgo.Interaction, selected []string) error {
-	return nil
-}
+// func confirmSetup(s *discordgo.Session, i *discordgo.Interaction, selected []string) error {
+// 	return nil
+// }
 
 func toEventNames(values []string) []string {
 	out := make([]string, len(values))

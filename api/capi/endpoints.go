@@ -103,6 +103,14 @@ func ServeTerms(mux *http.ServeMux) error {
 	return nil
 }
 
+func ServeBotInvite(mux *http.ServeMux) error {
+	mux.HandleFunc("/invite", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://discord.com/oauth2/authorize?client_id=656231016385478657", http.StatusFound)
+	})
+
+	return nil
+}
+
 func ServeAlliances(
 	mux *http.ServeMux, mdbName string,
 	allianceStore *store.Store[database.Alliance],
