@@ -22,7 +22,6 @@ technical debt to make it worth the time and effort of updating, as well as the 
 1. Authorize and invite your bot to a guild or install it as a user app.
 1. Finish configuring `.env` and run the bot (see next sections).
 
-
 ### Configuration
 You will want to make sure you configure the bot to ensure everything works as intended.\
 Configuring the bot is as simple as editing the `.env` file (may change in future).
