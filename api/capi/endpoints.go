@@ -19,6 +19,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/renderer/html"
 )
 
 // Req/m for each endpoint
@@ -69,10 +70,16 @@ type DatabaseName = string
 var alliancesCache = map[DatabaseName]*CacheEntry{} // Cache the response per map
 var alliancesCacheMu sync.RWMutex
 
+var md = goldmark.New(goldmark.WithRendererOptions(html.WithUnsafe()))
+
 func ServeBase(mux *http.ServeMux) error {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte(strings.TrimPrefix(BASE_WELCOME_STR, "\n")))
+	})
+	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		http.ServeFile(w, r, "./icon.png")
 	})
 
 	return nil
@@ -89,14 +96,14 @@ func ServeTerms(mux *http.ServeMux) error {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write([]byte(`
 			<!doctype html><html><head><style>
-			body{background:#0d1117;color:#ecf6ff;font-family:system-ui;max-width:900px;margin:40px auto;padding:20px;line-height:1.4}
-			p{margin-block-start:0.5em;}
-			strong{color:#f9c278}
-			h1{margin-block-start:0em;margin-block-end:0em;color:#f9c278}
-			h2{margin-block-start:10px;margin-block-end:10px;color:#fff1d3}
+			body{line-height:1.3rem;font-size:14px;font-family:monospace;background:#1a1c23f7;color:#ffffff;max-width:900px;margin:20px auto;padding:20px}
+			strong{color:#cde2ff}
+			h1{text-decoration:underline;color:#cde2ff}
+			h2{margin-block-end:0px;color:#cde2ff}
 			</style></head><body>`,
 		))
-		goldmark.Convert(data, w) // Render the terms file (converts markdown to HTML).
+
+		md.Convert(data, w) // Render the terms file (converts markdown to HTML).
 		w.Write([]byte(`</body></html>`))
 	})
 

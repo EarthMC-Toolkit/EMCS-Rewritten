@@ -1,5 +1,8 @@
-# Terms of Service for EarthMC Stats ("EMCS")
-**Effective Date:** April 30, 2026
+<img src="/favicon.ico" width="160" style="display:block;margin:0 auto;" />
+
+# <p align="center">Terms of Service for EarthMC Stats ("EMCS")
+<p align=center style="font-size: 18px"><strong>Effective Date:</strong> April 30, 2026</p>
+</p>
 
 ## 1. Acceptance of Terms
 By accessing or using EarthMC Stats, including the Discord bot and associated and API ("EMCS" from here on), you agree to these Terms of Service. If you do not agree, you must not use EMCS.
@@ -35,8 +38,9 @@ These Terms may be updated periodically. Continued use of EMCS after changes tak
 ## 9. Contact
 For questions regarding these Terms, contact Owen (EarthMC Stats developer) via Discord at @owen3h.
 
-# Privacy Policy for EarthMC Stats
-**Effective Date:** April 30, 2026
+# <p align="center">Privacy Policy for EarthMC Stats ("EMCS")
+<p align=center style="font-size: 18px"><strong>Effective Date:</strong> April 30, 2026</p>
+</p>
 
 ## 1. Information Collected
 EarthMC Stats stores only limited information necessary to operate EMCS, including:
