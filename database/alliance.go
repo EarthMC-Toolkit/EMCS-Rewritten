@@ -305,15 +305,3 @@ func (a ChildAlliances) NationIds() sets.Set[string] {
 
 	return s
 }
-
-func GetAllianceNews(newsStore *store.Store[NewsEntry], alliance Alliance) []NewsEntry {
-	allianceNews := newsStore.FindAll(func(e NewsEntry) bool {
-		headline, label := strings.ToLower(e.Headline), strings.ToLower(alliance.Label)
-		return strings.Contains(headline, label)
-	})
-	slices.SortFunc(allianceNews, func(a, b NewsEntry) int {
-		return cmp.Compare(b.Timestamp, a.Timestamp) // sort news by acsending (newest first)
-	})
-
-	return allianceNews
-}

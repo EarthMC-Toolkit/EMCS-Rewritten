@@ -1,7 +1,11 @@
 package database
 
 import (
+	"cmp"
+	"emcsrw/api/oapi"
+	"emcsrw/database/store"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -86,4 +90,66 @@ func extractHeadline(s string) string {
 
 	before, _, _ := strings.Cut(s, "\n")
 	return before
+}
+
+// Finds all news entries within newsStore that explicitly mention nation by its name.
+//
+// Matching is case-insensitive and uses whole-word boundaries, preventing cases such as "Mali" matching "Somali".
+// Underscores in nation names are treated as spaces so both "New_York" and "New York" match.
+//
+// Results are sorted by newest-first.
+func GetNationNews(newsStore *store.Store[NewsEntry], nation oapi.NationInfo) []NewsEntry {
+	name := strings.ToLower(strings.ReplaceAll(nation.Name, "_", " "))
+	re := makePattern(name)
+
+	nationNews := newsStore.FindAll(func(e NewsEntry) bool {
+		return re.MatchString(strings.ToLower(e.Headline))
+	})
+	slices.SortFunc(nationNews, func(a, b NewsEntry) int {
+		return cmp.Compare(b.Timestamp, a.Timestamp)
+	})
+
+	return nationNews
+}
+
+// Finds all news entries that mention the alliance by either its full name (Label) or its short identifier (e.g. "PLC").
+//
+// Matching is case-insensitive and uses whole-word boundaries to avoid false positives,
+// such as matching identifiers embedded inside larger words.
+//
+// Results are sorted by newest-first.
+func GetAllianceNews(newsStore *store.Store[NewsEntry], alliance Alliance) []NewsEntry {
+	labelRgx := makePattern(alliance.Label)
+	identRgx := makePattern(alliance.Identifier)
+
+	allianceNews := newsStore.FindAll(func(e NewsEntry) bool {
+		headline := strings.ToLower(e.Headline)
+		matchesLabel := (labelRgx != nil && labelRgx.MatchString(headline))
+		matchesIdent := (identRgx != nil && identRgx.MatchString(headline))
+		return matchesLabel || matchesIdent
+	})
+	slices.SortFunc(allianceNews, func(a, b NewsEntry) int {
+		return cmp.Compare(b.Timestamp, a.Timestamp)
+	})
+
+	return allianceNews
+}
+
+// Returns a regex that matches s as a whole word, preventing substring matches.
+//
+// The function does the following:
+//   - Escapes regex special characters so the input is treated literally
+//   - Wraps the result in \b word boundaries to enforce whole-word matching.
+//
+// Example patterns:
+//
+//	"PLC"   -> \bPLC\b
+//	"Mali"  -> \bMali\b
+func makePattern(s string) *regexp.Regexp {
+	s = strings.TrimSpace(strings.ToLower(s))
+	if s == "" {
+		return nil
+	}
+
+	return regexp.MustCompile(`\b` + regexp.QuoteMeta(s) + `\b`)
 }
