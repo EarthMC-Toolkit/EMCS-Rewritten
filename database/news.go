@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"emcsrw/api/oapi"
 	"emcsrw/database/store"
+	"fmt"
 	"regexp"
 	"slices"
 	"strings"
@@ -35,6 +36,34 @@ type NewsEntry struct {
 	Timestamp int64    `json:"timestamp"`
 }
 
+// Returns a new string with the headline in bold text and the news provider's emoji before it.
+func (e *NewsEntry) ParsedHeadline() string {
+	return fmt.Sprintf("<%s> **%s**", NTIMES_LOGO, e.Headline)
+}
+
+// Returns a new string with attached image hyperlinks in brackets and a relative Discord timestamp attached at the end.
+// If no images images are present in this news entry, only the timestamp is returned.
+//
+// Examples:
+//
+//	"7 days ago"
+//	"(Image) 7 days ago"
+//	"(Image, Image) 7 days ago"
+func (e *NewsEntry) Context() string {
+	timestamp := fmt.Sprintf("<t:%d:R>", e.Timestamp/1000)
+	if len(e.Images) == 0 {
+		return timestamp
+	}
+
+	imgs := make([]string, len(e.Images))
+	for j, img := range e.Images {
+		imgs[j] = fmt.Sprintf("[Image](%s)", img)
+	}
+
+	imgLinks := strings.Join(imgs, ", ")
+	return fmt.Sprintf(" (%s) %s", imgLinks, timestamp)
+}
+
 func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 	entry := NewsEntry{
 		//ID:        msg.ID,
@@ -49,17 +78,32 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 		}
 	}
 
-	// Ensure the news logo is not included in the headline.
-	headline := NTIMES_LOGO_REPLACER.Replace(entry.Message)
+	// Strip the news logo so it isn't included when we go to set the headline.
+	cleanedMsg := NTIMES_LOGO_REPLACER.Replace(entry.Message)
 
 	// Content has at least one image link.
 	if matches := IMAGE_REGEX.FindAllString(msg.Content, -1); len(matches) > 0 {
 		entry.Images = append(entry.Images, matches...)
-		headline = strings.TrimSpace(IMAGE_REGEX.ReplaceAllString(headline, ""))
+		cleanedMsg = strings.TrimSpace(IMAGE_REGEX.ReplaceAllString(cleanedMsg, "")) // TODO: is this is necessary if we match bold anyway
 	}
 
-	entry.Headline = strings.TrimSpace(extractHeadline(headline))
+	entry.Headline = extractHeadline(cleanedMsg)
 	return entry
+}
+
+// Extracts the headline from the message, where the headline is one of two:
+//
+//  1. Everything in bold (between first set of double asterisks).
+//  2. Everything after the news emoji if markdown '#' heading(s) are present.
+//
+// In both cases we only use first line, everything on lines after that gets removed (extra context, credit etc).
+func extractHeadline(msg string) string {
+	if matches := BOLD_REGEX.FindStringSubmatch(msg); len(matches) > 1 {
+		return strings.TrimSpace(matches[1]) // We found text in bold, just return everything inside :)
+	}
+
+	before, _, _ := strings.Cut(msg, "\n")                   // Ensure we strip extra fluff that might be on a new line.
+	return strings.TrimSpace(strings.TrimLeft(before, "# ")) // Remove all markdown headings, we just need the headline text.
 }
 
 type NewsMessageID = string
@@ -80,16 +124,6 @@ func MessagesToNewsEntries(msgs []*discordgo.Message) map[NewsMessageID]NewsEntr
 	}
 
 	return entries
-}
-
-// The headline is everything in bold (between first set of **), or before first new line.
-func extractHeadline(s string) string {
-	if matches := BOLD_REGEX.FindStringSubmatch(s); len(matches) > 1 {
-		return matches[1]
-	}
-
-	before, _, _ := strings.Cut(s, "\n")
-	return before
 }
 
 // Finds all news entries within newsStore that explicitly mention nation by its name.

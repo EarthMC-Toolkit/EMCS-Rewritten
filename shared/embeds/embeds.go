@@ -189,8 +189,8 @@ func NewAllianceEmbed(
 	if err == nil {
 		allianceNews := database.GetAllianceNews(newsStore, a)
 		if len(allianceNews) > 0 {
-			recentNewsStr := BuildRecentNewsString(allianceNews)
-			AddField(embed, fmt.Sprintf("Recent News [%d]", len(allianceNews)), recentNewsStr, false)
+			recentNewsStr, count := BuildRecentNewsString(allianceNews)
+			AddField(embed, fmt.Sprintf("Recent News [%d]", count), recentNewsStr, false)
 		}
 	}
 
@@ -519,10 +519,9 @@ func NewNationEmbed(
 	townNames := parallel.Map(nation.Towns, func(e oapi.Entity, _ int) string { return e.Name })
 	slices.Sort(townNames)
 
-	townsStr := logutil.HumanizedSprintf("`%d`", stats.NumTowns)
-	residentsStr := logutil.HumanizedSprintf("`%d`", stats.NumResidents)
+	townsResidentsStr := logutil.HumanizedSprintf("`%d`/`%d`", stats.NumTowns, stats.NumResidents)
 	balanceStr := logutil.HumanizedSprintf("`%.0f` %s", stats.Balance, shared.EMOJIS.GOLD_INGOT)
-	//bonusStr := logutil.HumanizedSprintf("`%d`")
+	bonusStr := logutil.HumanizedSprintf("`%d` %s", stats.NationBonus, shared.EMOJIS.CHUNK)
 	alliesEnemiesStr := logutil.HumanizedSprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies)
 	sizeStr := logutil.HumanizedSprintf("`%d` %s (Worth: `%d` %s)",
 		nation.Size(), shared.EMOJIS.CHUNK,
@@ -530,8 +529,8 @@ func NewNationEmbed(
 	)
 
 	statsStr := fmt.Sprintf(
-		"Size: %s\nBalance: %s\nTowns: %s\nResidents: %s\nAllies/Enemies: %s",
-		sizeStr, balanceStr, townsStr, residentsStr, alliesEnemiesStr,
+		"Size: %s\nBalance: %s\nTowns/Residents: %s\nAllies/Enemies: %s\nClaim Bonus: %s",
+		sizeStr, balanceStr, townsResidentsStr, alliesEnemiesStr, bonusStr,
 	)
 
 	rankLines := []string{}
@@ -567,7 +566,7 @@ func NewNationEmbed(
 		Color:       nation.FillColourInt(),
 		Footer:      DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
-			//NewEmbedField("Leadership", fmt.Sprintf("Leader: `%s`\nFounded %s", dateFounded, leaderName), false),
+			NewEmbedField("Founded", dateFounded, false),
 			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, shared.NAMEMC_URL+nation.King.UUID), true),
 			NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
 			NewEmbedField("Location", locationLink, true),
@@ -589,8 +588,6 @@ func NewNationEmbed(
 	if len(ranksStr) < discordutil.EMBED_FIELD_VALUE_LIMIT {
 		AddField(embed, "Ranks", ranksStr, true)
 	}
-
-	AddField(embed, "Founded", dateFounded, true)
 
 	townListStr := strings.Join(townNames, ", ")
 	if len(townListStr) <= discordutil.EMBED_FIELD_VALUE_LIMIT {
@@ -628,8 +625,8 @@ func NewNationEmbed(
 	if newsStore != nil {
 		nationNews := database.GetNationNews(newsStore, nation)
 		if len(nationNews) > 0 {
-			recentNewsStr := BuildRecentNewsString(nationNews)
-			AddField(embed, fmt.Sprintf("Recent News [%d]", len(nationNews)), recentNewsStr, false)
+			recentNewsStr, count := BuildRecentNewsString(nationNews)
+			AddField(embed, fmt.Sprintf("Recent News [%d]", count), recentNewsStr, false)
 		}
 	}
 	//#endregion
@@ -657,29 +654,33 @@ func BoolToEmoji(v bool) string {
 	return shared.EMOJIS.CIRCLE_CROSS
 }
 
-// Given a slice of news entries, this func builds a string
-func BuildRecentNewsString(news []database.NewsEntry) string {
+// Given a slice of news entries, this func builds a string to include max 2 news headlines split by \n\n.
+//
+// Example of a single headline:
+//
+//	"<logo> **Headline** 4 days ago"
+//	"<logo> **Headline** <newline> (Image) 4 days ago"
+//	"<logo> **Headline** <newline> (Image, Image) 4 days ago"
+func BuildRecentNewsString(news []database.NewsEntry) (string, uint8) {
 	lines := []string{}
-	for i, n := range news {
+	count := uint8(0)
+
+	for i, entry := range news {
 		if i == 2 {
 			break
 		}
 
-		msg := n.Message
-		imgCount := len(n.Images)
-		if imgCount > 0 {
-			imgs := make([]string, imgCount)
-			for j, img := range n.Images {
-				imgs[j] = fmt.Sprintf("[Image](%s)", img)
-			}
+		newsStr := entry.ParsedHeadline() // The headline but in bold text and including the logo.
+		ctx := entry.Context()            // Attached images and discord formatted timestamp.
 
-			// Example: "(Image, Image) 7 hours ago"
-			msg += fmt.Sprintf(" (%s)", strings.Join(imgs, ", "))
-			msg += fmt.Sprintf(" <t:%d:R>", n.Timestamp/1000)
+		sep := " "
+		if len(entry.Images) > 0 {
+			sep = "\n"
 		}
 
-		lines = append(lines, msg)
+		lines = append(lines, newsStr+sep+ctx)
+		count++
 	}
 
-	return strings.Join(lines, "\n\n")
+	return strings.Join(lines, "\n\n"), count
 }

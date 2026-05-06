@@ -39,7 +39,7 @@ type AllianceStats struct {
 }
 
 type AllianceColours struct {
-	Fill    *string `json:"fill"`
+	Fill    *string `json:"fill"` // TODO: Should this even be pointer? Either no colour, fill, or both. Not outline only.
 	Outline *string `json:"outline"`
 }
 
@@ -48,6 +48,7 @@ type AllianceOptionals struct {
 	ImageURL    *string          `json:"imageURL,omitempty"`    // The URL of the flag/image representing this alliance.
 	DiscordCode *string          `json:"discordCode,omitempty"` // The code within the invite link to the alliance's discord server.
 	Colours     *AllianceColours `json:"colours,omitempty"`     // The alliance's fill/outline colours (used in the Dynmap+ extension).
+	NationHQ    *string          `json:"nationHQ,omitempty"`    // The UUID of the alliance's main nation - its "headquarters".
 }
 
 type AllianceType string

@@ -288,9 +288,11 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 
 			// convert ms to sec for Discord timestamp
 			foundedStr := fmt.Sprintf("Founded <t:%d:R>", n.Timestamps.Registered/1000)
+			bonusStr := logutil.HumanizedSprintf("`%d` %s", n.Stats.NationBonus, shared.EMOJIS.CHUNK)
+
 			nationStrings = append(nationStrings, fmt.Sprintf(
-				"%d. %s (Capital: %s) • %s\nLeader: `%s`\nTowns: %s\nResidents: %s\nSize: %s\nBalance: %s",
-				start+idx+1, n.Name, n.Capital.Name, foundedStr, n.King.Name, towns, residents, size, balance,
+				"%d. %s (Capital: %s) • %s\nLeader: `%s`\nTowns/Residents: %s/%s\nSize: %s\nBalance: %s\nClaim Bonus: %s",
+				start+idx+1, n.Name, n.Capital.Name, foundedStr, n.King.Name, towns, residents, size, balance, bonusStr,
 			))
 		}
 
