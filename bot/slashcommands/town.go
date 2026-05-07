@@ -63,16 +63,36 @@ func (cmd TownCommand) Options() AppCommandOpts {
 			Description: "Sends a paginator enabling navigation through all existing towns.",
 			Options: AppCommandOpts{
 				discordutil.StringOption("sort", "Optional town list sorting. Without this, towns are sorted by residents -> size.", nil, nil,
-					//discordutil.Choice("None", "none"),               // "No list sorting. The entropy enjoyer's choice."
+					//discordutil.Choice("None", "none"),                 // "No list sorting. The entropy enjoyer's choice."
 					discordutil.Choice("Alphabetical", "alphabetical"), // "Sort the list alphabetically by name."
 					discordutil.Choice("Founded", "founded"),           // "Sort the list by date founded. Oldest -> Newest."
 					discordutil.Choice("Residents", "residents"),       // "Sort the list solely by the number of residents."
 					discordutil.Choice("Size", "size"),                 // "Sort the list solely by size (chunks claimed)."
 					discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
-					discordutil.Choice("For Sale", "for-sale"),         // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
+					discordutil.Choice("Ruined", "ruined"),             // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
 					discordutil.Choice("Overclaimed", "overclaimed"),   // "Sort the list by overclaim status. Oldest -> Newest."
+					//discordutil.Choice("For Sale", "for-sale"),                       // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
+					discordutil.Choice("Can Outsiders Spawn", "can-outsiders-spawn"), // "Sort the list by outsider spawn status. Enabled -> Not enabled."
+					discordutil.Choice("Open", "open"),                               // "Sort the list by open status. Open -> Not open."
+					discordutil.Choice("Public", "public"),                           // "Sort the list by public status. Public -> Not public."
+					discordutil.Choice("Neutral", "neutral"),                         // "Sort the list by neutral status. Neutral -> Not neutral."
 				),
 				discordutil.AutocompleteStringOption("nation", "Filter by towns within a specified nation.", 2, 40, false),
+				discordutil.StringOption("status", "Filter by towns with the specified status active.", nil, nil,
+					discordutil.Choice("Ruined", "ruined"),
+					discordutil.Choice("Overclaimed", "overclaimed"),
+					discordutil.Choice("For Sale", "for-sale"),
+					discordutil.Choice("Can Outsiders Spawn", "can-outsiders-spawn"),
+					discordutil.Choice("Open", "open"),
+					discordutil.Choice("Public", "public"),
+					discordutil.Choice("Neutral", "neutral"),
+				),
+				discordutil.StringOption("flags", "Filter by towns with the specified flag toggled on.", nil, nil,
+					discordutil.Choice("Explosions", "explosions"),
+					discordutil.Choice("Mobs", "mobs"),
+					discordutil.Choice("Fire", "fire"),
+					discordutil.Choice("PVP", "pvp"),
+				),
 			},
 		},
 	}
@@ -244,6 +264,58 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 			return strings.EqualFold(*t.Nation.Name, nationName)
 		})
 	}
+	if opt := listOpt.GetOption("status"); opt != nil {
+		switch opt.StringValue() {
+		case "ruined":
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Status.Ruined
+			})
+		case "overclaimed":
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Status.Overclaimed
+			})
+		case "for-sale":
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Status.ForSale
+			})
+		case "can-outsiders-spawn":
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Status.CanOutsidersSpawn
+			})
+		case "open":
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Status.Open
+			})
+		case "public":
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Status.Public
+			})
+		case "neutral":
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Status.Neutral
+			})
+		}
+	}
+	if opt := listOpt.GetOption("flags"); opt != nil {
+		switch opt.StringValue() {
+		case "explosions":
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Perms.Flags.Explosions
+			})
+		case "mobs":
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Perms.Flags.Mobs
+			})
+		case "fire":
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Perms.Flags.Fire
+			})
+		case "pvp":
+			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+				return t.Perms.Flags.PVP
+			})
+		}
+	}
 	if opt := listOpt.GetOption("sort"); opt != nil {
 		switch opt.StringValue() {
 		case "alphabetical":
@@ -256,7 +328,7 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 			})
 		case "size":
 			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
-				{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }}, // descending
+				{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }}, // descending (highest first)
 			})
 		case "founded":
 			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
@@ -264,15 +336,15 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 			})
 		case "balance":
 			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
-				{Compare: func(a, b oapi.TownInfo) bool { return a.Bal() > b.Bal() }}, // descending
+				{Compare: func(a, b oapi.TownInfo) bool { return a.Bal() > b.Bal() }}, // descending (highest first)
 			})
-		case "for-sale":
+		case "ruined":
 			utils.RankSortDescending(towns, func(t oapi.TownInfo) int {
-				if !t.Status.ForSale || t.Stats.ForSalePrice == nil {
+				if !t.Status.Ruined {
 					return 0
 				}
 
-				return int(*t.Stats.ForSalePrice * 100.0)
+				return int(*t.Timestamps.RuinedAt)
 			})
 		case "overclaimed":
 			utils.RankSortAscending(towns, func(t oapi.TownInfo) int {
@@ -285,6 +357,20 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 					return 2
 				}
 			})
+			// case "for-sale":
+			// 	utils.RankSortDescending(towns, func(t oapi.TownInfo) int {
+			// 		if !t.Status.ForSale || t.Stats.ForSalePrice == nil {
+			// 			return 0
+			// 		}
+
+			// 		return int(*t.Stats.ForSalePrice * 100.0)
+			// 	})
+
+			// case "can-outsiders-spawn":
+
+			// case "open":
+			// case "public":
+			// case "neutral":
 		}
 	} else {
 		// No sort option provided, use default sort (residents -> size).
