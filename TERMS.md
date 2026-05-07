@@ -2,10 +2,20 @@
 
 # <p align="center">Terms of Service for EarthMC Stats ("EMCS")
 <p align=center style="font-size: 18px"><strong>Effective Date:</strong> April 30, 2026</p>
+<p align=center style="font-size: 18px"><strong>Last Updated:</strong> May 7, 2026</p>
 </p>
 
+## Definitions
+For the purposes of these Terms and Privacy Policy:
+- “EarthMC Stats” or “EMCS” refers solely to the official EarthMC Stats services, websites, APIs, and the official main Discord bot instance operated by the EarthMC Stats developer (see Contact section).
+  - Discord ID of main bot instance: 656231016385478657
+
+- “Official EMCS services” refers only to services directly operated by the EarthMC Stats developer.
+
+- “Fork”, “modified version”, or “self-hosted deployment” refers to any unofficial copy, redistribution, modification, or independently operated instance of EMCS.
+
 ## 1. Acceptance of Terms
-By accessing or using EarthMC Stats, including the Discord bot and associated and API ("EMCS" from here on), you agree to these Terms of Service. If you do not agree, you must not use EMCS.
+By accessing or using EMCS, you agree to these Terms of Service. If you do not agree, you must not use EMCS.
 
 ## 2. Description of Service
 EMCS provides statistics, analytics, and informational tools relating to the EarthMC Minecraft server. EMCS may include data about players, towns, nations, alliances, maps, and news.
@@ -13,13 +23,14 @@ EMCS provides statistics, analytics, and informational tools relating to the Ear
 EMCS is an independent project and is not affiliated with, endorsed by, or sponsored by EarthMC, Minecraft, Mojang Studios, Microsoft, or Discord.
 
 ## 3. Permitted Use
-You may use the EMCS for lawful, personal, and non-commercial purposes. You may not:
+You may use EMCS for lawful, personal, and non-commercial purposes. You may not:
 
 - Use EMCS for unlawful purposes.
 - Abuse, excessively scrape, disrupt, or interfere with EMCS.
 
 ## 4. Intellectual Property
-The software, branding, design, and original content of EarthMC Stats are protected by applicable intellectual property laws. You may not copy, redistribute, or create derivative works from EMCS without prior permission.
+The “EarthMC Stats” name, EMCS branding, visual identity and logos identify the official EarthMC Stats service operated by the EarthMC Stats developer. Forks, modified versions, and self-hosted deployments are not affiliated with or endorsed by EMCS. 
+Community references and descriptive usage of EMCS branding are permitted provided they do not imply or suggest that a project, fork, or deployment is the official service.
 
 Public EarthMC data remains the property of its respective owners.
 
@@ -35,11 +46,9 @@ Access to EMCS may be suspended or terminated at any time for any reason, includ
 ## 8. Changes to These Terms
 These Terms may be updated periodically. Continued use of EMCS after changes take effect constitutes acceptance of the revised Terms.
 
-## 9. Contact
-For questions regarding these Terms, contact Owen (EarthMC Stats developer) via Discord at @owen3h.
-
 # <p align="center">Privacy Policy for EarthMC Stats ("EMCS")
 <p align=center style="font-size: 18px"><strong>Effective Date:</strong> April 30, 2026</p>
+<p align=center style="font-size: 18px"><strong>Last Updated:</strong> April 30, 2026</p>
 </p>
 
 ## 1. Information Collected
@@ -67,5 +76,5 @@ Given Sections 3 and 4, individual data deletion requests are generally not appl
 ## 7. Changes to This Policy
 This Privacy Policy may be updated from time to time. Continued use of EMCS constitutes acceptance of any revised policy.
 
-## 8. Contact
-For privacy-related questions, contact Owen (EarthMC Stats developer) via Discord at @owen3h.
+## Contact
+For questions or support regarding these Terms, contact the current operator of EarthMC Stats via the official "EarthMC Toolkit Development" Discord server: https://discord.gg/AGQ3qkqQkJ
