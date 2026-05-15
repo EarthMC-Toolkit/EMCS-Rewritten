@@ -482,7 +482,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 			}
 
 			leaderStr := "`None`"
-			leaders := a.GetLeaderNames(reslist, townlesslist)
+			leaders := a.LeaderNames(reslist, townlesslist)
 			if err != nil {
 				fmt.Printf("%s an error occurred getting leaders for alliance %s:\n%v", time.Now().Format(time.Stamp), a.Identifier, err)
 				leaderStr = "`Unknown/Error`"
@@ -503,7 +503,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 			childNationIds := a.ChildAlliances(alliances).NationIds()
 			childNations := nationStore.GetFromSet(childNationIds)
 
-			towns, residents, area, worth := a.GetStats(ownNations, childNations)
+			towns, residents, area, worth := a.Stats(ownNations, childNations)
 			allianceStrings = append(allianceStrings, fmt.Sprintf(
 				"%d. %s (%s)\nLeader(s): %s\nRepresentative: `%s`\nNations: %s\nTowns: %s\nResidents: %s\nSize: %s", start+idx+1,
 				allianceName, a.Type.Colloquial(), leaderStr, representativeName,

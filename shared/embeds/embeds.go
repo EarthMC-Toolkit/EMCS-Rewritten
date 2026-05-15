@@ -71,7 +71,7 @@ func NewAllianceEmbed(
 
 	// Leader field logic
 	leadersValue := "`None`"
-	leaders, err := a.GetLeaders(playerStore)
+	leaders, err := a.Leaders(playerStore)
 	if err != nil {
 		logutil.Printf(logutil.YELLOW, "ERR | Could not get leaders for alliance %s:\n\t%v", a.Identifier, err)
 	} else {
@@ -101,7 +101,7 @@ func NewAllianceEmbed(
 	childNations := nationStore.GetFromSet(childAlliances.NationIds())
 
 	nationsAmt := len(ownNations) + len(childNations)
-	towns, residentsAmt, area, wealth := a.GetStats(ownNations, childNations)
+	towns, residentsAmt, area, wealth := a.Stats(ownNations, childNations)
 	stats := fmt.Sprintf("Towns: %s\nNations: %s\nResidents: %s\nSize: %s",
 		logutil.HumanizedSprintf("`%d`", len(towns)),
 		logutil.HumanizedSprintf("`%d`", nationsAmt),

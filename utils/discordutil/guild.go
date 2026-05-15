@@ -20,7 +20,7 @@ func IsDev(i *discordgo.Interaction) bool {
 		return false
 	}
 
-	return id == GetInteractionAuthor(i).ID
+	return id == InteractionAuthor(i).ID
 }
 
 func HasRole(m *discordgo.Member, roleID string) (bool, error) {

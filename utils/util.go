@@ -188,6 +188,21 @@ func KeySort[T any](arr []T, keys []KeySortOption[T]) []T {
 	return arr
 }
 
+func SortToggledOn[T any](arr []T, rank func(T) bool) []T {
+	slices.SortFunc(arr, func(a, b T) int {
+		switch {
+		case rank(a) == rank(b):
+			return 0
+		case rank(a):
+			return -1
+		default:
+			return 1
+		}
+	})
+
+	return arr
+}
+
 func RankSortAscending[T any](arr []T, rank func(T) int) []T {
 	slices.SortFunc(arr, func(a, b T) int {
 		return rank(a) - rank(b)

@@ -181,7 +181,7 @@ func (a *Alliance) SetLeaders(playerStore *store.Store[BasicPlayer], igns ...str
 // }
 
 // Returns a map of leaders where key is the leader's UUID and value is their basic player data.
-func (a Alliance) GetLeaders(playerStore *store.Store[BasicPlayer]) ([]BasicPlayer, error) {
+func (a Alliance) Leaders(playerStore *store.Store[BasicPlayer]) ([]BasicPlayer, error) {
 	leaderCount := len(a.Optional.Leaders)
 	if leaderCount < 1 {
 		return nil, fmt.Errorf("cannot query leaders. none set")
@@ -196,7 +196,7 @@ func (a Alliance) GetLeaders(playerStore *store.Store[BasicPlayer]) ([]BasicPlay
 }
 
 // TODO: Maybe just use player store for only one argument and existence check
-func (a Alliance) GetLeaderNames(reslist, townlesslist *oapi.EntityList) (names []string) {
+func (a Alliance) LeaderNames(reslist, townlesslist *oapi.EntityList) (names []string) {
 	for id := range a.Optional.Leaders {
 		if name, ok := (*reslist)[id]; ok {
 			names = append(names, name)
@@ -210,7 +210,7 @@ func (a Alliance) GetLeaderNames(reslist, townlesslist *oapi.EntityList) (names 
 	return
 }
 
-func (a Alliance) GetStats(ownNations []oapi.NationInfo, puppetNations []oapi.NationInfo) (
+func (a Alliance) Stats(ownNations []oapi.NationInfo, puppetNations []oapi.NationInfo) (
 	towns []oapi.Entity,
 	residents, area, worth int,
 ) {
@@ -254,7 +254,7 @@ func GetRankedAlliances(
 		puppetNationIDs := a.ChildAlliances(alliances).NationIds()
 		puppetNations := nationStore.GetFromSet(puppetNationIDs)
 
-		towns, residents, _, worth := a.GetStats(ownNations, puppetNations)
+		towns, residents, _, worth := a.Stats(ownNations, puppetNations)
 		s := AllianceStats{
 			Residents: float64(residents),
 			Nations:   float64(len(ownNations) + len(puppetNations)),

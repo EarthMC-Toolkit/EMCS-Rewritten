@@ -169,10 +169,9 @@ func FollowupContentEphemeral(s *discordgo.Session, i *discordgo.Interaction, co
 	})
 }
 
-// Attempts to get the username from an interaction.
-//
-// Regular `User` is only filled for a DM, so this func uses guild-specific `Member.User` otherwise.
-func GetInteractionAuthor(i *discordgo.Interaction) *discordgo.User {
+// Return the User of the interaction invoker using either the guild member or
+// the user directly based on whether we are in a Guild or Direct Message.
+func InteractionAuthor(i *discordgo.Interaction) *discordgo.User {
 	if i.User != nil {
 		return i.User
 	}

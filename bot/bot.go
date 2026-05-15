@@ -30,7 +30,9 @@ var EVENT_HANDLERS = [...]any{
 	events.OnAutocompleteInteractionCreate,
 }
 
-// Uses session s to open a WebSocket connection to the Discord gateway.
+// Uses session s to open a WebSocket connection to the Discord gateway once all necessary event handlers
+// have been registered via EVENT_HANDLERS - these are called when their respective event is fired by the
+// Discord websocket/gateway API and the function signature matches.
 func Connect(s *discordgo.Session) *discordgo.Session {
 	s.Identify.Intents = ALL_INTENTS
 	s.SyncEvents = false // Run handlers in a goroutine to prevent a command waiting on another user's command.

@@ -71,7 +71,8 @@ func (cmd TownCommand) Options() AppCommandOpts {
 					discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
 					discordutil.Choice("Ruined", "ruined"),             // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
 					discordutil.Choice("Overclaimed", "overclaimed"),   // "Sort the list by overclaim status. Oldest -> Newest."
-					//discordutil.Choice("For Sale", "for-sale"),                       // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
+					discordutil.Choice("For Sale", "for-sale"),         // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
+					discordutil.Choice("Has Nation", "has-nation"),
 					discordutil.Choice("Can Outsiders Spawn", "can-outsiders-spawn"), // "Sort the list by outsider spawn status. Enabled -> Not enabled."
 					discordutil.Choice("Open", "open"),                               // "Sort the list by open status. Open -> Not open."
 					discordutil.Choice("Public", "public"),                           // "Sort the list by public status. Public -> Not public."
@@ -357,20 +358,34 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 					return 2
 				}
 			})
-			// case "for-sale":
-			// 	utils.RankSortDescending(towns, func(t oapi.TownInfo) int {
-			// 		if !t.Status.ForSale || t.Stats.ForSalePrice == nil {
-			// 			return 0
-			// 		}
+		case "for-sale":
+			utils.RankSortDescending(towns, func(t oapi.TownInfo) int {
+				if !t.Status.ForSale || t.Stats.ForSalePrice == nil {
+					return 0
+				}
 
-			// 		return int(*t.Stats.ForSalePrice * 100.0)
-			// 	})
-
-			// case "can-outsiders-spawn":
-
-			// case "open":
-			// case "public":
-			// case "neutral":
+				return int(*t.Stats.ForSalePrice * 100.0)
+			})
+		case "has-nation":
+			utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+				return t.Status.HasNation
+			})
+		case "can-outsiders-spawn":
+			utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+				return t.Status.CanOutsidersSpawn
+			})
+		case "open":
+			utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+				return t.Status.Open
+			})
+		case "public":
+			utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+				return t.Status.Public
+			})
+		case "neutral":
+			utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+				return t.Status.Neutral
+			})
 		}
 	} else {
 		// No sort option provided, use default sort (residents -> size).

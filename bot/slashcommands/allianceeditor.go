@@ -204,7 +204,7 @@ func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, all
 
 	leaderPlaceholder := "Enter the Minecraft IGNs of the alliance leaders, comma-separated."
 	if alliance.Optional.Leaders != nil {
-		leaderNames := alliance.GetLeaderNames(reslist, townlesslist)
+		leaderNames := alliance.LeaderNames(reslist, townlesslist)
 		leaderPlaceholder = strings.Join(leaderNames, ", ")
 	}
 
@@ -398,7 +398,7 @@ func handleAllianceEditorModalMultiUpdate(
 	result := MultiUpdateAllianceNations(allianceStore, nationStore, addInput, removeInput)
 	if result.ChangesWritten {
 		if err := allianceStore.WriteSnapshot(); err != nil {
-			editorName := discordutil.GetInteractionAuthor(i).Username
+			editorName := discordutil.InteractionAuthor(i).Username
 			fmt.Printf("\nDEBUG | Changes written during alliances multi update. Editor: %s\n", editorName)
 
 			return fmt.Errorf("error writing alliances after multi update. failed to write snapshot\n%v", err)
@@ -492,7 +492,7 @@ func handleAllianceEditorModalNationsUpdate(
 	}
 	if result.ChangesWritten {
 		if err := allianceStore.WriteSnapshot(); err != nil {
-			editorName := discordutil.GetInteractionAuthor(i).Username
+			editorName := discordutil.InteractionAuthor(i).Username
 			fmt.Printf("\nDEBUG | Changes written during singluar alliance update. Editor: %s\n", editorName)
 
 			return fmt.Errorf("error writing changes to DB after an alliance update. failed to write snapshot\n%v", err)

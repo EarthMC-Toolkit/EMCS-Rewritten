@@ -60,7 +60,7 @@ func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 		return err
 	}
 
-	author := discordutil.GetInteractionAuthor(i)
+	author := discordutil.InteractionAuthor(i)
 	usage, _ := usageStore.Get(author.ID)
 	if usage == nil {
 		return discordutil.SendReply(s, i, &discordgo.InteractionResponseData{

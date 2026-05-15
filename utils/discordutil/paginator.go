@@ -94,7 +94,7 @@ type InteractionPaginator struct {
 // Creates a new InteractionPaginator which is a Paginator with extended functionality to work with InteractionResponseData.
 // Default timeout is specified by PAGINATOR_TIMEOUT. To customise it, chain .WithTimeout() and pass a valid [time.Duration].
 func NewInteractionPaginator(s *discordgo.Session, i *discordgo.Interaction, totalItems, perPage int) *InteractionPaginator {
-	author := GetInteractionAuthor(i)
+	author := InteractionAuthor(i)
 
 	initPage := 0
 	totalPages := (totalItems + perPage - 1) / perPage // round to next largest int (ceil)
@@ -188,7 +188,7 @@ func (p *InteractionPaginator) startButtonListener() {
 		if ic.Message == nil || ic.Message.ID != p.messageID {
 			return
 		}
-		if author := GetInteractionAuthor(ic.Interaction); author.ID != p.authorID {
+		if author := InteractionAuthor(ic.Interaction); author.ID != p.authorID {
 			return
 		}
 

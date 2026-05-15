@@ -25,7 +25,7 @@ func OnApplicationCommandInteractionCreate(s *discordgo.Session, i *discordgo.In
 		return
 	}
 
-	author := discordutil.GetInteractionAuthor(i.Interaction)
+	author := discordutil.InteractionAuthor(i.Interaction)
 
 	cmdName := i.ApplicationCommandData().Name
 	cmdType := i.ApplicationCommandData().CommandType
