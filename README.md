@@ -38,8 +38,8 @@ export PFLOW_CHANNEL_ID=channelIdHere 	# Where notifs for player related events 
 ```
 
 ### Running the bot
-`go run . register` -> Uses a temporary Discord session to register commands, then exits the process immediately.
-`go run . bot` -> Runs the bot and connects to Discord. The process runs until a panic or `Ctrl+C` (graceful exit).
+`go run . register` -> Uses a temporary Discord session to register commands, then exits the process immediately.\
+`go run . bot` -> Runs the bot and connects to Discord. The process runs until a panic or `Ctrl+C` (graceful exit).\
 `go run . api` -> Starts an API and listens to the port specified in `.env` (see next section).
 
 To start immediately after registering, simply append it like so: `go run . register && go run . bot`
