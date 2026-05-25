@@ -191,21 +191,6 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 		return discordutil.FollowupContentEphemeral(s, i, err.Error())
 	}
 
-	// button := discordgo.Button{
-	// 	CustomID: "nation_relations@" + nations[0].UUID,
-	// 	Label:    "Show Relations",
-	// 	Style:    discordgo.PrimaryButton,
-	// }
-
-	// row := discordgo.ActionsRow{
-	// 	Components: []discordgo.MessageComponent{button},
-	// }
-
-	// return discordutil.Followup(s, i, &discordgo.WebhookParams{
-	// 	Embeds:     []*discordgo.MessageEmbed{embed},
-	// 	Components: []discordgo.MessageComponent{row},
-	// })
-
 	allianceStore, _ := database.GetStore(mdb, database.ALLIANCES_STORE)
 	newsStore, _ := database.GetStore(mdb, database.NEWS_STORE)
 
