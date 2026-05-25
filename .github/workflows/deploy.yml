@@ -33,19 +33,31 @@ jobs:
 
       - name: Show changed files
         run: |
+          ALL="${{ steps.changes.outputs.all }}"
+          MODIFIED="${{ steps.changes.outputs.modified }}"
+          ADDED="${{ steps.changes.outputs.added }}"
+          DELETED="${{ steps.changes.outputs.deleted }}"
+          RENAMED="${{ steps.changes.outputs.renamed }}"
+
+          print_section () {
+            NAME="$1"
+            DATA="$2"
+
+            if [ -n "$DATA" ]; then
+              COUNT=$(echo $DATA | wc -w)
+              echo "$NAME [$COUNT]:"
+              echo "$DATA"
+              echo
+            fi
+          }
+
           echo "===== FILE CHANGES ====="
+          echo
 
-          echo "All:"
-          echo "${{ steps.changes.outputs.all }}"
+          print_section "All" "$ALL"
+          print_section "Modified" "$MODIFIED"
+          print_section "Added" "$ADDED"
+          print_section "Deleted" "$DELETED"
+          print_section "Renamed" "$RENAMED"
 
-          echo "Added:"
-          echo "${{ steps.changes.outputs.added }}"
-
-          echo "Modified:"
-          echo "${{ steps.changes.outputs.modified }}"
-
-          echo "Deleted:"
-          echo "${{ steps.changes.outputs.deleted }}"
-
-          echo "Renamed:"
-          echo "${{ steps.changes.outputs.renamed }}"
+          echo "========================"

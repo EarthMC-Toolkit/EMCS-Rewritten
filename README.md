@@ -1,5 +1,3 @@
-TEST^2
-
 # EMCS-Rewritten
 A rewritten version of the [EarthMC Stats](https://github.com/EarthMC-Toolkit/EarthMC-Stats) Discord bot in Go.\
 This rewrite aims to make the bot self-hostable, with the [EMCS Rewritten](https://canary.discord.com/oauth2/authorize?client_id=656231016385478657) Discord bot being one of these instances. 
