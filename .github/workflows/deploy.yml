@@ -7,14 +7,45 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changes
+        uses: masesgroup/retrieve-changed-files@v2
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ORACLE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.ORACLE_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy
         run: |
-          ssh -i <(echo "${{ secrets.ORACLE_KEY }}") \
-            -o StrictHostKeyChecking=yes \
-            ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} "
-              cd /home/${{ secrets.ORACLE_USER }}/emcs &&
-              git pull origin main
-            "
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.ORACLE_USER1 }}@${{ secrets.ORACLE_HOST }} "
+            cd /home/${{ secrets.ORACLE_USER2 }}/emcs &&
+            git pull origin main
+          "
+
+      - name: Show changed files
+        run: |
+          echo "===== FILE CHANGES ====="
+
+          echo "All:"
+          echo "${{ steps.changes.outputs.all }}"
+
+          echo "Added:"
+          echo "${{ steps.changes.outputs.added }}"
+
+          echo "Modified:"
+          echo "${{ steps.changes.outputs.modified }}"
+
+          echo "Deleted:"
+          echo "${{ steps.changes.outputs.deleted }}"
+
+          echo "Renamed:"
+          echo "${{ steps.changes.outputs.renamed }}"
