@@ -9,13 +9,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Get changed files
-        id: changes
-        uses: masesgroup/retrieve-changed-files@v2
+        id: files
+        uses: tj-actions/changed-files@v47
 
       - name: Setup SSH
         run: |
@@ -28,16 +29,16 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_ed25519 ${{ secrets.ORACLE_USER1 }}@${{ secrets.ORACLE_HOST }} "
             cd /home/${{ secrets.ORACLE_USER2 }}/emcs &&
-            git pull origin main
+            git pull --ff-only origin main
           "
 
       - name: Show changed files
         run: |
-          ALL="${{ steps.changes.outputs.all }}"
-          MODIFIED="${{ steps.changes.outputs.modified }}"
-          ADDED="${{ steps.changes.outputs.added }}"
-          DELETED="${{ steps.changes.outputs.deleted }}"
-          RENAMED="${{ steps.changes.outputs.renamed }}"
+          ALL="${{ steps.files.outputs.all_changed_files }}"
+          MODIFIED="${{ steps.files.outputs.modified_files }}"
+          ADDED="${{ steps.files.outputs.added_files }}"
+          DELETED="${{ steps.files.outputs.deleted_files }}"
+          RENAMED="${{ steps.files.outputs.renamed_files }}"
 
           print_section () {
             NAME="$1"
