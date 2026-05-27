@@ -20,8 +20,8 @@ type MapBounds struct {
 }
 
 var MAP_BOUNDS = MapBounds{
-	Left: -33280, Right: 33080,
-	Top: -16640, Bottom: 16508,
+	Left: -64512, Right: 64512,
+	Top: -32256, Bottom: 32256,
 }
 
 type RouteCommand struct{}
