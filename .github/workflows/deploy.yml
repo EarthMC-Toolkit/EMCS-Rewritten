@@ -29,7 +29,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_ed25519 ${{ secrets.ORACLE_USER1 }}@${{ secrets.ORACLE_HOST }} "
             cd /home/${{ secrets.ORACLE_USER2 }}/emcs &&
-            git pull --ff-only origin main
+            git fetch origin && git reset --hard origin/main
           "
 
       - name: Show changed files
