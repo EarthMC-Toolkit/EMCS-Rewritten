@@ -31,6 +31,10 @@ func NewStoreDefinition[T any](name string) StoreDefinition[T] {
 	}
 }
 
+// =============================================================
+// ADD A NEW DEFINITION HERE IF YOU WANT TO CREATE A NEW STORE.
+// Then assign it to a DB in TryInit() below.
+// =============================================================
 var (
 	SERVER_STORE    = NewStoreDefinition[oapi.ServerInfo]("server")
 	TOWNS_STORE     = NewStoreDefinition[oapi.TownInfo]("towns")

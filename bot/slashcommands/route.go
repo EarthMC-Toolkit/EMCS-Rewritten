@@ -15,14 +15,48 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+type Route struct {
+	ClosestTown   RouteTarget[oapi.TownInfo]
+	ClosestNation RouteTarget[oapi.NationInfo]
+}
+
+type RouteTarget[T any] struct {
+	Entity      T
+	Distance    float64
+	Direction   string
+	TravelTimes *TravelTimes
+}
+
+type TravelTimes struct {
+	Sneaking  int
+	Walking   int
+	Sprinting int
+	Boat      int
+}
+
+// example constants for movement speeds (blocks per minute)
+type ActionSpeeds struct {
+	Sneak, Walk, Sprint, Boat float64
+}
+
 type MapBounds struct {
 	Left, Right, Top, Bottom float64
+}
+
+var ACTION_SPEEDS = ActionSpeeds{
+	Sneak:  1.295,
+	Walk:   4.317,
+	Sprint: 5.612,
+	Boat:   8.0,
 }
 
 var MAP_BOUNDS = MapBounds{
 	Left: -64512, Right: 64512,
 	Top: -32256, Bottom: 32256,
 }
+
+var DIRECTIONS = []string{"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
+var BASE_DIRECTIONS = []string{"N", "E", "S", "W"}
 
 type RouteCommand struct{}
 
@@ -135,18 +169,6 @@ func (cmd RouteCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 	return err
 }
 
-type Route struct {
-	ClosestTown   RouteTarget[oapi.TownInfo]
-	ClosestNation RouteTarget[oapi.NationInfo]
-}
-
-type RouteTarget[T any] struct {
-	Entity      T
-	Distance    float64
-	Direction   string
-	TravelTimes *TravelTimes
-}
-
 // Gets the optimal route, regardless of PVP flag.
 func getRoute(
 	loc oapi.Location2D, safe bool,
@@ -207,9 +229,6 @@ func getRoute(
 	}, nil
 }
 
-var DIRECTIONS = []string{"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
-var BASE_DIRECTIONS = []string{"N", "E", "S", "W"}
-
 func cardinalDirection(originX, originZ, destX, destZ float32, allowIntermediates bool) string {
 	dx := float64(destX - originX)
 	dz := float64(destZ - originZ)
@@ -223,25 +242,6 @@ func cardinalDirection(originX, originZ, destX, destZ float32, allowIntermediate
 		index := int(math.Round(normalized/90)) % 4
 		return BASE_DIRECTIONS[index]
 	}
-}
-
-type TravelTimes struct {
-	Sneaking  int
-	Walking   int
-	Sprinting int
-	Boat      int
-}
-
-// example constants for movement speeds (blocks per minute)
-type ActionSpeeds struct {
-	Sneak, Walk, Sprint, Boat float64
-}
-
-var ACTION_SPEEDS = ActionSpeeds{
-	Sneak:  1.295,
-	Walk:   4.317,
-	Sprint: 5.612,
-	Boat:   8.0,
 }
 
 func calcTravelTimes(distance float64) *TravelTimes {

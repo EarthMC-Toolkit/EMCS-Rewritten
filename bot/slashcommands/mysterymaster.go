@@ -5,6 +5,7 @@ import (
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
@@ -51,13 +52,15 @@ func SendMysteryMasterList(s *discordgo.Session, i *discordgo.Interaction) (*dis
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(count)
 
-		content := ""
+		content := strings.Builder{}
 		for idx, item := range mmList[start:end] {
 			changeEmoji := lo.Ternary(*item.Change == "UP", shared.EMOJIS.ARROW_UP_GREEN, shared.EMOJIS.ARROW_DOWN_RED)
-			content += fmt.Sprintf("%d. %s %s\n", start+idx+1, changeEmoji, item.Name) // add start to keep index across pages. just idx+1 shows 1-perPage every time.
+
+			listIdx := start + idx + 1 // add start to keep index across pages. idx+1 would just show 1 to <perPage> every time.
+			fmt.Fprintf(&content, "%d. %s %s\n", listIdx, changeEmoji, item.Name)
 		}
 
-		data.Content = content + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
+		data.Content = content.String() + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
 	}
 
 	return nil, paginator.Start()
