@@ -1,5 +1,5 @@
-name: Deploy to remote
-run-name: Deploy #${{ github.run_number }} by @${{ github.actor }}
+name: update-remote
+run-name: Sync changes to remote
 
 on:
   push:
@@ -12,6 +12,7 @@ jobs:
       SSH_DIR: /home/runner/.ssh
       SSH_KEYPATH: /home/runner/.ssh/id_ed25519
       SCRIPTS_DIR: /home/${{ secrets.ORACLE_USER2 }}/emcs-scripts
+      SCRIPT_NAME: git_sync.sh
 
     steps:
       - name: Checkout
@@ -30,8 +31,8 @@ jobs:
           chmod 600 ${{ env.SSH_KEYPATH }}
           ssh-keyscan -H ${{ secrets.ORACLE_HOST }} >> ${{ env.SSH_DIR }}/known_hosts
 
-      - name: Sync files
-        run: ssh -i ${{ env.SSH_KEYPATH }} ${{ secrets.ORACLE_USER1 }}@${{ secrets.ORACLE_HOST }} "$SCRIPTS_DIR/deploy.sh"
+      - name: Update remote files
+        run: ssh -i ${{ env.SSH_KEYPATH }} ${{ secrets.ORACLE_USER1 }}@${{ secrets.ORACLE_HOST }} "$SCRIPTS_DIR/$SCRIPT_NAME"
 
       - name: File changelog
         run: |
