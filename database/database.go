@@ -34,7 +34,7 @@ func NewStoreDefinition[T any](name string) StoreDefinition[T] {
 // =============================================================
 // ADD A NEW DEFINITION HERE IF YOU WANT TO CREATE A NEW STORE.
 // Then assign it to a DB in TryInit() below.
-// =============================================================
+
 var (
 	SERVER_STORE    = NewStoreDefinition[oapi.ServerInfo]("server")
 	TOWNS_STORE     = NewStoreDefinition[oapi.TownInfo]("towns")
@@ -46,6 +46,8 @@ var (
 	//SSE_STORE         = NewStoreDefinition[UserUsage]("sse")
 	USAGE_USERS_STORE = NewStoreDefinition[UserUsage]("usage-users") // TODO: This should not be attached to a store but live in /db.
 )
+
+// =============================================================
 
 var databases = make(map[string]*Database)
 var mu sync.RWMutex // Guards access to databases

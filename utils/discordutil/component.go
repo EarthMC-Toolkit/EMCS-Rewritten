@@ -55,15 +55,17 @@ func AutocompleteStringOption(name, description string, minLen, maxLen int, requ
 	return opt
 }
 
-func RequiredIntegerOption(name, description string, minVal, maxVal int) *discordgo.ApplicationCommandOption {
-	min, max := float64(minVal), float64(maxVal)
+func IntegerOption(name, description string, minVal, maxVal int, required bool) *discordgo.ApplicationCommandOption {
+	min := float64(minVal)
+	max := float64(maxVal)
+
 	return &discordgo.ApplicationCommandOption{
 		Type:        discordgo.ApplicationCommandOptionInteger,
 		Name:        name,
 		Description: description,
 		MinValue:    &min,
 		MaxValue:    max,
-		Required:    true,
+		Required:    required,
 	}
 }
 

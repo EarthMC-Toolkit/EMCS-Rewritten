@@ -31,7 +31,7 @@ func (cmd DevCommand) Options() AppCommandOpts {
 			Name:        "purge",
 			Description: "Leaves guilds based on low member count. Helps combat abuse.",
 			Options: AppCommandOpts{
-				discordutil.RequiredIntegerOption("threshold", "Guilds above this member count will not be left.", 1, MAX_THRESHOLD),
+				discordutil.IntegerOption("threshold", "Guilds above this member count will not be left.", 1, MAX_THRESHOLD, true),
 				discordutil.BoolOption("approx-only", "Determines whether to leave using only approx mem count."),
 			},
 		},
