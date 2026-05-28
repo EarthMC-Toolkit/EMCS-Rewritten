@@ -1,16 +1,54 @@
 package capi
 
 import (
+	"context"
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/database/store"
+	"emcsrw/shared"
+	"emcsrw/utils/config"
+	"emcsrw/utils/logutil"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 )
+
+func Start() {
+	activeMapDB := database.TryInit(shared.ACTIVE_MAP)
+	auroraDB := database.TryInit(shared.SUPPORTED_MAPS.AURORA)
+
+	port := config.GetApiPort()
+	if IsRunning(port) {
+		log.Fatalf("Custom API server already listening on :%d", port)
+		return
+	}
+
+	mux, err := NewMux(activeMapDB, auroraDB)
+	if err != nil {
+		log.Fatalf("failed to start Custom API. failed to init mux.\n%s", err)
+	}
+
+	server := Serve(mux, config.GetApiPort())
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	sig := <-c
+
+	logutil.Printf(logutil.WHITE, "\nShutting down Custom API with signal: %s\n", strings.ToUpper(sig.String()))
+
+	// Gracefully shutdown HTTP server that serves the Custom API.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		logutil.Logf(logutil.RED, "ERR | could not gracefully shut down Custom API: %v", err)
+	}
+}
 
 // Serves the API using on localhost at port.
 //
@@ -33,7 +71,7 @@ func Serve(mux *http.ServeMux, port uint) *http.Server {
 	return s
 }
 
-func NewMux(mdbs []*database.Database) (mux *http.ServeMux, err error) {
+func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 	mux = http.NewServeMux()
 	if err = ServeBase(mux); err != nil {
 		return nil, err
