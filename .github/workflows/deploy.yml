@@ -1,4 +1,5 @@
-name: Sync remote
+name: Deploy to remote
+run-name: Deploy #${{ github.run_number }} by @${{ github.actor }}
 
 on:
   push:
@@ -7,6 +8,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      SSH_DIR: /home/runner/.ssh
+      SSH_KEYPATH: /home/runner/.ssh/id_ed25519
+      SCRIPTS_DIR: /home/${{ secrets.ORACLE_USER2 }}/emcs-scripts
 
     steps:
       - name: Checkout
@@ -20,19 +25,15 @@ jobs:
 
       - name: Setup SSH
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.ORACLE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.ORACLE_HOST }} >> ~/.ssh/known_hosts
+          mkdir -p ${{ env.SSH_DIR }}
+          echo "${{ secrets.ORACLE_KEY }}" > ${{ env.SSH_KEYPATH }}
+          chmod 600 ${{ env.SSH_KEYPATH }}
+          ssh-keyscan -H ${{ secrets.ORACLE_HOST }} >> ${{ env.SSH_DIR }}/known_hosts
 
-      - name: Deploy
-        run: |
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.ORACLE_USER1 }}@${{ secrets.ORACLE_HOST }} "
-            cd /home/${{ secrets.ORACLE_USER2 }}/emcs &&
-            git fetch origin && git reset --hard origin/main
-          "
+      - name: Sync files
+        run: ssh -i ${{ env.SSH_KEYPATH }} ${{ secrets.ORACLE_USER1 }}@${{ secrets.ORACLE_HOST }} "$SCRIPTS_DIR/deploy.sh"
 
-      - name: Show changed files
+      - name: File changelog
         run: |
           ALL="${{ steps.files.outputs.all_changed_files }}"
           MODIFIED="${{ steps.files.outputs.modified_files }}"
