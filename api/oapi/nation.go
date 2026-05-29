@@ -35,6 +35,17 @@ type NationTimestamps struct {
 	Timestamps
 }
 
+type NationPact struct {
+	Sender   string `json:"sender"`
+	Receiver string `json:"receiver"`
+	Status   string `json:"status"` // ACTIVE, PENDING (guessing again bc veyronity is a fat lazy retard)
+	Stats    struct {
+		CreatedAt int64 `json:"createdAt"`
+		ExpiresAt int64 `json:"expiresAt"`
+		Duration  int   `json:"duration"`
+	} `json:"stats"`
+}
+
 type NationInfo struct {
 	Entity
 	MapColourFill    string              `json:"dynmapColour"`
@@ -50,10 +61,18 @@ type NationInfo struct {
 	Enemies          []Entity            `json:"enemies"`
 	Sanctioned       []Entity            `json:"sanctioned"`
 	Ranks            map[string][]Entity `json:"ranks"`
-	Timestamps       NationTimestamps    `json:"timestamps"`
-	Status           NationStatus        `json:"status"`
-	Stats            NationStats         `json:"stats"`
-	Coordinates      struct {
+	Embargoes        struct {
+		Own     []Entity `json:"own"`     // All nations that this nation has placed an embargo on
+		Against []Entity `json:"against"` // All nations that this nation has placed an embargo on
+	} `json:"embargoes"`
+	Pacts struct {
+		Active  map[string]NationPact `json:"active"`
+		Pending map[string]NationPact `json:"pending"`
+	} `json:"pacts"`
+	Timestamps  NationTimestamps `json:"timestamps"`
+	Status      NationStatus     `json:"status"`
+	Stats       NationStats      `json:"stats"`
+	Coordinates struct {
 		Spawn Spawn `json:"spawn"`
 	} `json:"coordinates"`
 }
