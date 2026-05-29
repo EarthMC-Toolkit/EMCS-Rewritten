@@ -37,11 +37,12 @@ type NationTimestamps struct {
 
 type NationInfo struct {
 	Entity
+	MapColourFill    string              `json:"dynmapColour"`
+	MapColourOutline string              `json:"dynmapOutline"`
 	Board            string              `json:"board"` // Could be nil in response, but default to zero value anyway.
 	Wiki             string              `json:"wiki"`  // Could be nil in response, but default to zero value anyway.
 	King             Entity              `json:"king"`
-	MapColourFill    string              `json:"dynmapColour"`
-	MapColourOutline string              `json:"dynmapOutline"`
+	Discord          *string             `json:"discord"`
 	Capital          Entity              `json:"capital"`
 	Residents        []Entity            `json:"residents"`
 	Towns            []Entity            `json:"towns"`

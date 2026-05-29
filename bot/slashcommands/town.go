@@ -350,9 +350,9 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 		case "overclaimed":
 			utils.RankSortAscending(towns, func(t oapi.TownInfo) int {
 				switch {
-				case t.Status.Overclaimed && !t.Status.HasOverclaimShield:
+				case t.Status.Overclaimed:
 					return 0
-				case t.Status.Overclaimed && t.Status.HasOverclaimShield:
+				case t.Status.Overclaimed:
 					return 1
 				default:
 					return 2
@@ -419,22 +419,17 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 			balance := logutil.HumanizedSprintf("`%0.f`G %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
 			residents := logutil.HumanizedSprintf("`%d`", len(t.Residents))
 
-			overclaimed := shared.EMOJIS.CIRCLE_CROSS
-			if t.Status.Overclaimed {
-				overclaimed = shared.EMOJIS.CIRCLE_CHECK
-			}
+			overclaimed := lo.Ternary(t.Status.Overclaimed, shared.EMOJIS.CIRCLE_CHECK, shared.EMOJIS.CIRCLE_CROSS)
+			ruined := lo.Ternary(t.Status.Ruined, shared.EMOJIS.CIRCLE_CHECK, shared.EMOJIS.CIRCLE_CROSS)
+			forsale := lo.Ternary(t.Status.ForSale, shared.EMOJIS.CIRCLE_CHECK, shared.EMOJIS.CIRCLE_CROSS)
 
-			overclaimShield := shared.EMOJIS.SHIELD_RED
-			if t.Status.HasOverclaimShield {
-				overclaimShield = shared.EMOJIS.SHIELD_GREEN
-			}
-			overclaim := fmt.Sprintf("%s / %s", overclaimed, overclaimShield)
+			status := fmt.Sprintf("%s / %s / %s", overclaimed, ruined, forsale)
 
 			// convert ms to sec for Discord timestamp
 			foundedStr := fmt.Sprintf("Founded <t:%d:R>", t.Timestamps.Registered/1000)
 			townStrings = append(townStrings, fmt.Sprintf(
-				"%d. %s (**%s**) • %s\nMayor: `%s`\nResidents: %s\nSize: %s\nBalance: %s\nOverclaimed/Has Shield: %s",
-				start+idx+1, t.Name, nationName, foundedStr, t.Mayor.Name, residents, size, balance, overclaim,
+				"%d. %s (**%s**) • %s\nMayor: `%s`\nResidents: %s\nSize: %s\nBalance: %s\nOverclaimed/Ruined/For Sale: %s",
+				start+idx+1, t.Name, nationName, foundedStr, t.Mayor.Name, residents, size, balance, status,
 			))
 		}
 

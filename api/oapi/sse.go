@@ -39,6 +39,8 @@ const (
 	EventTownJoinedNation   Event = "TownJoinedNation"
 	EventTownLeftNation     Event = "TownLeftNation"
 
+	EventShopCreated    Event = "ShopCreated"
+	EventShopDeleted    Event = "ShopDeleted"
 	EventShopSoldItem   Event = "ShopSoldItem"
 	EventShopBoughtItem Event = "ShopBoughtItem"
 	EventShopOutOfStock Event = "ShopOutOfStock"
@@ -65,7 +67,7 @@ var GLOBAL_EVENTS = [...]Event{
 	EventNewDay,
 }
 
-// The following events are 'priveleged' in that they are only sent to the relevent player.
+// The following events are 'priveleged' in that they are only sent to the relevent player (mayor, shop owner etc).
 var PRIVILEGED_EVENTS = [...]Event{
 	EventTownJoinedNation,
 	EventTownLeftNation,
@@ -73,6 +75,8 @@ var PRIVILEGED_EVENTS = [...]Event{
 	EventResidentJoinedTown,
 	EventResidentLeftTown,
 
+	EventShopCreated,
+	EventShopDeleted,
 	EventShopSoldItem,
 	EventShopBoughtItem,
 	EventShopOutOfStock,

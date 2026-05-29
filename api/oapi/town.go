@@ -9,16 +9,19 @@ import (
 )
 
 type TownStatus struct {
-	Public             bool `json:"isPublic"`
-	Open               bool `json:"isOpen"`
-	Neutral            bool `json:"isNeutral"`
-	Capital            bool `json:"isCapital"`
-	Overclaimed        bool `json:"isOverClaimed"`
-	Ruined             bool `json:"isRuined"`
-	ForSale            bool `json:"isForSale"`
-	HasNation          bool `json:"hasNation"`
-	HasOverclaimShield bool `json:"hasOverclaimShield"`
-	CanOutsidersSpawn  bool `json:"canOutsidersSpawn"`
+	Public      bool `json:"isPublic"`
+	Open        bool `json:"isOpen"`
+	Neutral     bool `json:"isNeutral"`
+	Capital     bool `json:"isCapital"`
+	Overclaimed bool `json:"isOverClaimed"`
+	Ruined      bool `json:"isRuined"`
+	ForSale     bool `json:"isForSale"`
+	HasNation   bool `json:"hasNation"`
+	//HasOverclaimShield bool `json:"hasOverclaimShield"` // removed by sub 100IQ vegetable veyronity
+	HasFriendlyFire     bool `json:"hasFriendlyFire"`
+	HasSnowAccumulation bool `json:"hasSnowAccumulation"`
+	CanOutsidersSpawn   bool `json:"canOutsidersSpawn"`
+	CanPassiveMobsSpawn bool `json:"canPassiveMobsSpawn"`
 }
 
 type TownStats struct {
@@ -53,10 +56,19 @@ type TownTimestamps struct {
 	RuinedAt       *uint64 `json:"ruinedAt"`
 }
 
+type TownWarp struct {
+	Entity
+	CreatedAt uint64     `json:"createdAt"`
+	CreatedBy string     `json:"createdBy"`
+	Access    string     `json:"access"` // RESIDENT, ALLY, NATION, PUBLIC (guessed based on usual towny perms)
+	Location  Location3D `json:"location"`
+}
+
 type TownInfo struct {
 	Entity
 	Board       string               `json:"board"` // Could be nil, but we want it to default to zero value anyway.
 	Wiki        string               `json:"wiki"`  // Could be nil, but we want it to default to zero value anyway.
+	Discord     *string              `json:"discord"`
 	Founder     string               `json:"founder"`
 	Mayor       Entity               `json:"mayor"`
 	Nation      EntityNullableValues `json:"nation"`
@@ -70,6 +82,7 @@ type TownInfo struct {
 	Outlaws     []Entity             `json:"outlaws"`
 	Perms       Perms                `json:"perms"`
 	Quarters    []Entity             `json:"quarters"`
+	Warps       []TownWarp           `json:"warps"`
 }
 
 func (t TownInfo) GetUUID() string {

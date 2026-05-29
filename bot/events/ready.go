@@ -555,17 +555,17 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 				nation = *town.Nation.Name
 			}
 
-			ruined := lo.Ternary(town.Status.Ruined, ":white_check_mark:", ":x:")
-			overclaimable := lo.Ternary(
-				town.Status.Overclaimed && !town.Status.HasOverclaimShield,
-				":white_check_mark:", ":x:",
-			)
+			// ruined := lo.Ternary(town.Status.Ruined, ":white_check_mark:", ":x:")
+			// overclaimable := lo.Ternary(
+			// 	town.Status.Overclaimed && !town.Status.HasOverclaimShield,
+			// 	":white_check_mark:", ":x:",
+			// )
 
 			left = append(joined, logutil.HumanizedSprintf(
 				"`%s` left %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s\nRuined %s Overclaimable %s",
 				name, town.Name, nation,
 				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT,
-				ruined, overclaimable,
+				// ruined, overclaimable,
 			))
 		}
 	}
@@ -580,17 +580,17 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 				nation = *town.Nation.Name
 			}
 
-			ruined := lo.Ternary(town.Status.Ruined, ":white_check_mark:", ":x:")
-			overclaimable := lo.Ternary(
-				town.Status.Overclaimed && !town.Status.HasOverclaimShield,
-				":white_check_mark:", ":x:",
-			)
+			// ruined := lo.Ternary(town.Status.Ruined, ":white_check_mark:", ":x:")
+			// overclaimable := lo.Ternary(
+			// 	town.Status.Overclaimed && !town.Status.HasOverclaimShield,
+			// 	":white_check_mark:", ":x:",
+			// )
 
 			joined = append(joined, logutil.HumanizedSprintf(
 				"`%s` joined %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s\nRuined %s Overclaimable %s",
 				name, town.Name, nation,
 				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT,
-				ruined, overclaimable,
+				// ruined, overclaimable,
 			))
 		}
 	}

@@ -416,11 +416,6 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 		desc = fmt.Sprintf("*%s*", town.Board)
 	}
 
-	overclaimShield := "`Inactive` " + shared.EMOJIS.SHIELD_RED
-	if town.Status.HasOverclaimShield {
-		overclaimShield = "`Active` " + shared.EMOJIS.SHIELD_GREEN
-	}
-
 	nationName := "No Nation"
 	nationJoin := ""
 	if town.Nation.Name != nil {
@@ -458,30 +453,25 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 			NewEmbedField("Stats", fmt.Sprintf(
 				"Size: %s\nBalance: %s\nResidents: %s\nTrusted/Outlaws: %s",
 				sizeStr, balanceStr, residentsStr, trustedOutlawsStr,
-			), true),
+			), false),
 		},
 	}
 
 	status := town.Status
+	flags := town.Perms.Flags
+	build, destroy, sw, itemUse := town.Perms.GetPermStrings()
+
 	AddField(embed, "Status", fmt.Sprintf(
-		"%s Open\n%s Public\n%s Neutral\n%s Can Outsiders Spawn\n%s For Sale",
+		"%s Open\n%s Public\n%s Neutral\n%s Can Outsiders Spawn\n%s Overclaimed\n%s For Sale",
 		BoolToEmoji(status.Open), BoolToEmoji(status.Public), BoolToEmoji(status.Neutral),
-		BoolToEmoji(status.CanOutsidersSpawn), BoolToEmoji(status.ForSale),
+		BoolToEmoji(status.CanOutsidersSpawn), BoolToEmoji(status.Overclaimed), BoolToEmoji(status.ForSale),
 	), true)
-
-	if !status.Ruined {
-		AddField(embed, "Overclaim Status", fmt.Sprintf("Overclaimed: `%s`\nShield: %s", town.OverclaimedString(), overclaimShield), true)
-	}
-
-	perms := town.Perms
-	flags := perms.Flags
 
 	AddField(embed, "Flags", fmt.Sprintf(
 		"%s Explosions\n%s Mobs\n%s Fire\n%s PVP",
 		BoolToEmoji(flags.Explosions), BoolToEmoji(flags.Mobs), BoolToEmoji(flags.Fire), BoolToEmoji(flags.PVP),
 	), true)
 
-	build, destroy, sw, itemUse := perms.GetPermStrings()
 	AddField(embed, "Permissions", fmt.Sprintf(
 		"Build: `%s`\nDestroy: `%s`\nSwitch: `%s`\nItem Use: `%s`",
 		build, destroy, sw, itemUse,
