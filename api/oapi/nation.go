@@ -46,6 +46,16 @@ type NationPact struct {
 	} `json:"stats"`
 }
 
+type NationPacts struct {
+	Active  []NationPact `json:"active"`
+	Pending []NationPact `json:"pending"`
+}
+
+type NationEmbargoes struct {
+	Own     []Entity `json:"own"`     // All nations that this nation has placed an embargo on
+	Against []Entity `json:"against"` // All nations that this nation has placed an embargo on
+}
+
 type NationInfo struct {
 	Entity
 	MapColourFill    string              `json:"dynmapColour"`
@@ -61,18 +71,12 @@ type NationInfo struct {
 	Enemies          []Entity            `json:"enemies"`
 	Sanctioned       []Entity            `json:"sanctioned"`
 	Ranks            map[string][]Entity `json:"ranks"`
-	Embargoes        struct {
-		Own     []Entity `json:"own"`     // All nations that this nation has placed an embargo on
-		Against []Entity `json:"against"` // All nations that this nation has placed an embargo on
-	} `json:"embargoes"`
-	Pacts struct {
-		Active  map[string]NationPact `json:"active"`
-		Pending map[string]NationPact `json:"pending"`
-	} `json:"pacts"`
-	Timestamps  NationTimestamps `json:"timestamps"`
-	Status      NationStatus     `json:"status"`
-	Stats       NationStats      `json:"stats"`
-	Coordinates struct {
+	Embargoes        NationEmbargoes     `json:"embargoes"`
+	Pacts            NationPacts         `json:"pacts"`
+	Timestamps       NationTimestamps    `json:"timestamps"`
+	Status           NationStatus        `json:"status"`
+	Stats            NationStats         `json:"stats"`
+	Coordinates      struct {
 		Spawn Spawn `json:"spawn"`
 	} `json:"coordinates"`
 }
