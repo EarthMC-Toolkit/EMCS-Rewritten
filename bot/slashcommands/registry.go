@@ -126,6 +126,7 @@ func RegisterAllCommands() {
 	Register(UsageCommand{})
 
 	Register(SSECommand{})
+	Register(NewsCommand{})
 }
 
 // ======================================= COMMAND TEMPLATE =======================================
