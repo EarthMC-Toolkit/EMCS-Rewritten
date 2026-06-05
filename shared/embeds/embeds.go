@@ -684,8 +684,9 @@ func BoolToEmoji(v bool) string {
 //	"<logo> **Headline** <newline> (Image) 4 days ago"
 //	"<logo> **Headline** <newline> (Image, Image) 4 days ago"
 func BuildRecentNewsString(news []database.NewsEntry) (string, uint8) {
-	lines := []string{}
+	b := strings.Builder{}
 	count := uint8(0)
+	size := 0
 
 	for i, entry := range news {
 		if i == 2 {
@@ -700,9 +701,19 @@ func BuildRecentNewsString(news []database.NewsEntry) (string, uint8) {
 			sep = "\n"
 		}
 
-		lines = append(lines, newsStr+sep+ctx)
+		part := newsStr + sep + ctx
+		if count > 0 {
+			part = "\n\n" + part
+		}
+
+		if size+len(part) > 1024 {
+			break
+		}
+
+		b.WriteString(part)
+		size += len(part)
 		count++
 	}
 
-	return strings.Join(lines, "\n\n"), count
+	return b.String(), count
 }
