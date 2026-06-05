@@ -561,11 +561,10 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 			// 	":white_check_mark:", ":x:",
 			// )
 
-			left = append(joined, logutil.HumanizedSprintf(
-				"`%s` left %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s\nRuined %s Overclaimable %s",
+			left = append(left, logutil.HumanizedSprintf(
+				"`%s` left %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s",
 				name, town.Name, nation,
 				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT,
-				// ruined, overclaimable,
 			))
 		}
 	}
