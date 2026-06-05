@@ -10,8 +10,10 @@ import (
 	"time"
 )
 
+const AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edge/134.0.0.0"
+
 var pingClient = http.Client{Timeout: 2 * time.Second} // Use when performing HEAD requests.
-var client = http.Client{Timeout: 15 * time.Second}    // Use when performing all other requests.
+var client = http.Client{Timeout: 10 * time.Second}    // Use when performing all other requests.
 
 // Sends a HEAD request to url, returning the received response.
 func Head(url string) (*http.Response, error) {
@@ -30,7 +32,13 @@ func Head(url string) (*http.Response, error) {
 // It is up to the caller to know how to read the byte[].
 // If using this func just to unmarshal to JSON, prefer JsonGet().
 func Get(url string) ([]byte, error) {
-	response, err := client.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating GET request to %s:\n\t%s", url, err)
+	}
+	req.Header.Set("User-Agent", AGENT)
+
+	response, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error during GET request to %s:\n\t%s", url, err)
 	}
@@ -76,7 +84,13 @@ func JsonGet[T any](url string) (T, error) {
 //
 // If using this func only to unmarshal to JSON, prefer JsonPost().
 func Post(url string, contentType string, reqBody io.Reader) ([]byte, error) {
-	response, err := client.Post(url, contentType, reqBody)
+	req, err := http.NewRequest("POST", url, reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("error creating POST request to %s:\n\t%s", url, err)
+	}
+	req.Header.Set("User-Agent", AGENT)
+
+	response, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error during POST request to %s:\n\t%s", url, err)
 	}
