@@ -175,6 +175,10 @@ func NewAllianceEmbed(
 
 		AddField(embed, fmt.Sprintf("Nations [%d]", len(ownNations)), ownNationsValue, false)
 	} else {
+		if len(ownNationsValue) > discordutil.EMBED_FIELD_VALUE_LIMIT {
+			ownNationsValue = "Too many nations to display. Use `/alliance nations` to see the full list."
+		}
+
 		AddField(embed, fmt.Sprintf("Self Nations [%d]", len(ownNations)), ownNationsValue, false)
 
 		childAllianceNames := lo.Map(childAlliances, func(a database.Alliance, _ int) string {
@@ -195,6 +199,10 @@ func NewAllianceEmbed(
 			strings.Join(childAllianceNames, ", "),
 			strings.Join(childNationNames, ", "),
 		)
+
+		if len(childNationsValue) > discordutil.EMBED_FIELD_VALUE_LIMIT {
+			childNationsValue = "Too many puppet nations to display. Use `/alliance nations` to see the full list."
+		}
 
 		AddField(embed, childNationsKey, childNationsValue, false)
 	}
