@@ -142,6 +142,10 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	if opt = cdata.GetOption("nations"); opt != nil {
+		if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+			return err
+		}
+
 		return queryAllianceNations(s, i.Interaction, cdata)
 	}
 
