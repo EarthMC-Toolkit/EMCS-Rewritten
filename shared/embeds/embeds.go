@@ -60,12 +60,12 @@ func GetAffiliationLines(players []database.BasicPlayer) string {
 
 // Creates a single embed showing info from the given Alliance.
 func NewAllianceEmbed(
-	s *discordgo.Session, allianceStore *store.Store[database.Alliance],
+	s *discordgo.Session, mdb *database.Database,
 	a database.Alliance, rankInfo *database.AllianceRankInfo,
 ) *discordgo.MessageEmbed {
-	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
+	playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
 	if err != nil {
-		logutil.Printf(logutil.RED, "ERR | Could not get player store for map %s:\n%v", shared.ACTIVE_MAP, err)
+		logutil.Printf(logutil.RED, "ERR | Could not get player store for map %s:\n%v", mdb.Name(), err)
 		return nil
 	}
 
@@ -88,12 +88,22 @@ func NewAllianceEmbed(
 	}
 
 	// Nation field logic
-	nationStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
+	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
+	if err != nil {
+		logutil.Printf(logutil.RED, "ERR | Could not get nation store for map %s:\n%v", mdb.Name(), err)
+		return nil
+	}
 
 	ownNations := nationStore.GetFromSet(a.OwnNations)
 	ownNationNames := lo.Map(ownNations, func(n oapi.NationInfo, _ int) string { return n.Name })
 	if len(ownNationNames) > 0 {
 		slices.Sort(ownNationNames) // Alphabet sort
+	}
+
+	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
+	if err != nil {
+		logutil.Printf(logutil.RED, "ERR | Could not get alliance store for map %s:\n%v", mdb.Name(), err)
+		return nil
 	}
 
 	alliances := allianceStore.Values()
@@ -159,6 +169,10 @@ func NewAllianceEmbed(
 	ownNationsValue := fmt.Sprintf("```%s```", strings.Join(ownNationNames, ", "))
 
 	if len(childNations) < 1 {
+		if len(ownNationsValue) > discordutil.EMBED_FIELD_VALUE_LIMIT {
+			ownNationsValue = "Too many nations to display. Use `/alliance nations` to see the full list."
+		}
+
 		AddField(embed, fmt.Sprintf("Nations [%d]", len(ownNations)), ownNationsValue, false)
 	} else {
 		AddField(embed, fmt.Sprintf("Self Nations [%d]", len(ownNations)), ownNationsValue, false)
@@ -457,6 +471,11 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 		},
 	}
 
+	// TODO: Turn both wiki and discord into buttons rather than just setting the embed URL to one of them.
+	if town.Wiki != "" {
+		embed.URL = town.Wiki
+	}
+
 	status := town.Status
 	flags := town.Perms.Flags
 	build, destroy, sw, itemUse := town.Perms.GetPermStrings()
@@ -565,6 +584,11 @@ func NewNationEmbed(
 			NewEmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),
 		},
 	}
+
+	// TODO: Turn both wiki and discord into buttons rather than just setting the embed URL to one of them.
+	// if nation.Discord != nil {
+	// 	embed.URL = *nation.Discord
+	// }
 
 	if nation.Wiki != "" {
 		embed.URL = nation.Wiki

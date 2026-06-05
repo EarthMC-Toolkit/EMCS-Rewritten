@@ -474,8 +474,8 @@ func handleAllianceEditorModalMultiUpdate(
 
 // /alliance update nations
 func handleAllianceEditorModalNationsUpdate(
-	s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance,
-	allianceStore *store.Store[database.Alliance],
+	s *discordgo.Session, i *discordgo.Interaction, mdb *database.Database,
+	allianceStore *store.Store[database.Alliance], alliance *database.Alliance,
 ) error {
 	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 	if err != nil {
@@ -517,7 +517,7 @@ func handleAllianceEditorModalNationsUpdate(
 		messages = append(messages, fmt.Sprintf("Removed:```%s```", removedStr))
 	}
 
-	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil)
+	embed := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
 	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully edited alliance. Result:",
 		Embeds:  []*discordgo.MessageEmbed{embed},
@@ -532,8 +532,8 @@ func handleAllianceEditorModalNationsUpdate(
 
 // /alliance update leaders
 func handleAllianceEditorModalLeadersUpdate(
-	s *discordgo.Session, i *discordgo.Interaction,
-	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
+	s *discordgo.Session, i *discordgo.Interaction, mdb *database.Database,
+	allianceStore *store.Store[database.Alliance], alliance *database.Alliance,
 ) error {
 	playerStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.PLAYERS_STORE)
 	if err != nil {
@@ -592,7 +592,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	}
 
 	content := "Successfully edited alliance. Result:"
-	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil)
+	embed := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
 	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content: content,
 		Embeds:  []*discordgo.MessageEmbed{embed},
@@ -622,8 +622,8 @@ func handleAllianceEditorModalLeadersUpdate(
 }
 
 func handleAllianceEditorModalFunctional(
-	s *discordgo.Session, i *discordgo.Interaction, alliance *database.Alliance,
-	allianceStore *store.Store[database.Alliance],
+	s *discordgo.Session, i *discordgo.Interaction, mdb *database.Database,
+	allianceStore *store.Store[database.Alliance], alliance *database.Alliance,
 ) error {
 	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
 	if err != nil {
@@ -720,7 +720,7 @@ func handleAllianceEditorModalFunctional(
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed := embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil)
+	embed := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
 	content := "Successfully edited alliance. Result:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD
@@ -739,8 +739,8 @@ func handleAllianceEditorModalFunctional(
 }
 
 func handleAllianceEditorModalOptional(
-	s *discordgo.Session, i *discordgo.Interaction,
-	alliance *database.Alliance, allianceStore *store.Store[database.Alliance],
+	s *discordgo.Session, i *discordgo.Interaction, mdb *database.Database,
+	allianceStore *store.Store[database.Alliance], alliance *database.Alliance,
 ) error {
 	inputs := discordutil.GetModalInputs(i)
 
@@ -911,7 +911,7 @@ func handleAllianceEditorModalOptional(
 	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully edited alliance. Result:",
 		Embeds: []*discordgo.MessageEmbed{
-			embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil),
+			embeds.NewAllianceEmbed(s, mdb, *alliance, nil),
 		},
 	})
 

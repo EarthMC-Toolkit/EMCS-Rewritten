@@ -11,7 +11,7 @@ import (
 )
 
 var pingClient = http.Client{Timeout: 2 * time.Second} // Use when performing HEAD requests.
-var client = http.Client{Timeout: 8 * time.Second}     // Use when performing all other requests.
+var client = http.Client{Timeout: 10 * time.Second}    // Use when performing all other requests.
 
 // Sends a HEAD request to url, returning the received response.
 func Head(url string) (*http.Response, error) {

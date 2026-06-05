@@ -24,6 +24,11 @@ var DEFAULT_ALLIANCE_WEIGHTS = AllianceWeights{
 	Worth:     0.02, // Worth of all towns in this alliance. Initial cost + town blocks.
 }
 
+type NationEntry struct {
+	Nation oapi.NationInfo
+	Puppet bool
+}
+
 // UUID -> AllianceRankInfo
 type RankedAlliances = map[uint64]AllianceRankInfo
 type AllianceRankInfo struct {
@@ -136,6 +141,22 @@ func (a *Alliance) ChildAlliances(alliances []Alliance) (children ChildAlliances
 	}
 
 	return
+}
+
+func (a *Alliance) QueryAllNations(alliances []Alliance, nationStore *store.Store[oapi.NationInfo]) []NationEntry {
+	childAlliances := a.ChildAlliances(alliances)
+	childNations := nationStore.GetFromSet(childAlliances.NationIds())
+	ownNations := nationStore.GetFromSet(a.OwnNations)
+
+	merged := make([]NationEntry, 0, len(ownNations)+len(childNations))
+	for _, n := range ownNations {
+		merged = append(merged, NationEntry{Nation: n, Puppet: false})
+	}
+	for _, n := range childNations {
+		merged = append(merged, NationEntry{Nation: n, Puppet: true})
+	}
+
+	return merged
 }
 
 // Attempts to set the alliance leaders given their IGNs.

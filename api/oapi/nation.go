@@ -111,6 +111,7 @@ func (n NationInfo) Bal() float32 {
 	return n.Stats.Balance
 }
 
+// The location and other additional info associated with the nation's spawn point.
 func (n NationInfo) Spawn() Spawn {
 	return n.Coordinates.Spawn
 }
@@ -125,6 +126,18 @@ func (n NationInfo) OutlineColourInt() int {
 	return utils.HexToInt(n.MapColourOutline)
 }
 
+// Bonus returns the number of bonus claim chunks contributed by this nation to its towns.
+// The first 10 chunks are granted for being part of the nation, with additional chunks scaling based on population.
+//
+// Official documentation:
+// https://earthmc.net/docs/how-to-claim-land#claim-limits
+//
+// Formula table:
+// https://wiki.earthmc.net/wiki/Aurora:Nation_Bonus
+func (n NationInfo) Bonus() int {
+	return n.Stats.NationBonus
+}
+
 func (n NationInfo) NumResidents() int {
 	return n.Stats.NumResidents
 }
@@ -133,10 +146,17 @@ func (n NationInfo) NumTowns() int {
 	return n.Stats.NumTowns
 }
 
+// The total number of town blocks claimed by the nation across all its towns.
 func (n NationInfo) Size() int {
 	return n.Stats.NumTownBlocks
 }
 
+// Worth returns the economic worth of the nation based on its town claims.
+// The first chunk of each town is worth 64G, and each additional chunk is worth 16G.
+//
+// For example, a nation with 2 towns claiming a total of 5 chunks would be worth:
+// (2 towns * 64G) + (3 extra chunks * 16G) = 128G + 48G = 176G.
+// This calculation does not include the nation's bank balance or any other factors and is purely based on land claims.
 func (n NationInfo) Worth() int {
 	numTowns := n.Stats.NumTowns
 	base := numTowns * 64               // every towns first initial chunk (town creation cost)
@@ -145,6 +165,8 @@ func (n NationInfo) Worth() int {
 	return base + extra
 }
 
+// NOTE: This is not 100% accurate as it relies on the online players endpoint which only returns a
+// subset of online players (those who are visible on the map and haven't opted-out of the EarthMC API).
 func (n NationInfo) GetOnlineResidents() ([]Entity, error) {
 	res, err := QueryOnline().Execute()
 	if err != nil {

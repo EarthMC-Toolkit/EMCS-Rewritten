@@ -6,6 +6,7 @@ import (
 	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/shared/embeds"
+	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/logutil"
 	"encoding/json"
@@ -34,6 +35,11 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 	return AppCommandOpts{
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "list",
+			Description: "Sends a paginator enabling navigation through all registered alliances.",
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "query",
 			Description: "Query information about an alliance (meganation, organisation or pact).",
 			Options: AppCommandOpts{
@@ -42,8 +48,11 @@ func (cmd AllianceCommand) Options() AppCommandOpts {
 		},
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "list",
-			Description: "Sends a paginator enabling navigation through all registered alliances.",
+			Name:        "nations",
+			Description: "Sends a list of all nations in an alliance. Useful for viewing a large alliance.",
+			Options: AppCommandOpts{
+				discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
+			},
 		},
 		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
@@ -132,6 +141,10 @@ func (cmd AllianceCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		return queryAlliance(s, i.Interaction, cdata)
 	}
 
+	if opt = cdata.GetOption("nations"); opt != nil {
+		return queryAllianceNations(s, i.Interaction, cdata)
+	}
+
 	// Don't defer for these as they may call OpenModal which would throw Unknown Interaction.
 	if opt = cdata.GetOption("update"); opt != nil {
 		return editAlliance(s, i.Interaction)
@@ -178,6 +191,8 @@ func (cmd AllianceCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo
 		fallthrough
 	case "score":
 		fallthrough
+	case "nations":
+		fallthrough
 	case "query":
 		return allianceIdentifierAutocomplete(s, i, cdata)
 	}
@@ -198,8 +213,13 @@ func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Intera
 		}
 	}
 
+	mdb, err := database.Get(shared.ACTIVE_MAP)
+	if err != nil {
+		return err
+	}
+
 	if strings.HasPrefix(customID, "alliance_editor") {
-		allianceStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.ALLIANCES_STORE)
+		allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
 		if err != nil {
 			return err
 		}
@@ -221,28 +241,28 @@ func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Intera
 		}
 
 		if prefix == "alliance_editor_functional" {
-			err := handleAllianceEditorModalFunctional(s, i, alliance, allianceStore)
+			err := handleAllianceEditorModalFunctional(s, i, mdb, allianceStore, alliance)
 			if err != nil {
 				discordutil.ReplyWithError(s, i, err)
 				return err
 			}
 		}
 		if prefix == "alliance_editor_optional" {
-			err := handleAllianceEditorModalOptional(s, i, alliance, allianceStore)
+			err := handleAllianceEditorModalOptional(s, i, mdb, allianceStore, alliance)
 			if err != nil {
 				discordutil.ReplyWithError(s, i, err)
 				return err
 			}
 		}
 		if prefix == "alliance_editor_nations" {
-			err := handleAllianceEditorModalNationsUpdate(s, i, alliance, allianceStore)
+			err := handleAllianceEditorModalNationsUpdate(s, i, mdb, allianceStore, alliance)
 			if err != nil {
 				discordutil.ReplyWithError(s, i, err)
 				return err
 			}
 		}
 		if prefix == "alliance_editor_leaders" {
-			err := handleAllianceEditorModalLeadersUpdate(s, i, alliance, allianceStore)
+			err := handleAllianceEditorModalLeadersUpdate(s, i, mdb, allianceStore, alliance)
 			if err != nil {
 				discordutil.ReplyWithError(s, i, err)
 				return err
@@ -333,15 +353,97 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 		fmt.Print(err)
 
 		// Nations store failed, but we should still be able to send without rank info.
-		_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, allianceStore, *alliance, nil))
+		_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, mdb, *alliance, nil))
 		return err
 	}
 
 	alliancesRankInfo, _ := database.GetRankedAlliances(allianceStore, nationStore, database.DEFAULT_ALLIANCE_WEIGHTS)
 	rankInfo := alliancesRankInfo[alliance.UUID]
 
-	_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, allianceStore, *alliance, &rankInfo))
+	_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, mdb, *alliance, &rankInfo))
 	return err
+}
+
+func queryAllianceNations(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {
+	mdb, err := database.Get(shared.ACTIVE_MAP)
+	if err != nil {
+		return err
+	}
+
+	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
+	if err != nil {
+		return err
+	}
+
+	ident := cdata.GetOption("nations").GetOption("identifier").StringValue() // input alliance name
+	alliance, err := allianceStore.Get(strings.ToLower(ident))
+	if err != nil {
+		_, err := discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
+		return err
+	}
+
+	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
+	if err != nil {
+		return err
+	}
+
+	//#region Merge own and child nations into a single list with puppet status.
+	alliances := allianceStore.Values()
+	nations := alliance.QueryAllNations(alliances, nationStore)
+	nationsCount := len(nations)
+
+	utils.KeySort(nations, []utils.KeySortOption[database.NationEntry]{
+		{Compare: func(a, b database.NationEntry) bool { return a.Nation.NumResidents() > b.Nation.NumResidents() }},
+		{Compare: func(a, b database.NationEntry) bool { return a.Nation.NumTowns() > b.Nation.NumTowns() }},
+		{Compare: func(a, b database.NationEntry) bool { return a.Nation.Size() > b.Nation.Size() }},
+	})
+	//#endregion
+
+	// Init paginator with X items per page. Pressing a btn will change the current page and call PageFunc again.
+	perPage := 5
+	paginator := discordutil.NewInteractionPaginator(s, i, nationsCount, perPage)
+
+	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
+		start, end := paginator.CurrentPageBounds(nationsCount)
+
+		nationStrings := []string{}
+		for idx, entry := range nations[start:end] {
+			n := entry.Nation
+
+			balance := logutil.HumanizedSprintf("`%0.f`G %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
+			towns := logutil.HumanizedSprintf("`%d`", n.NumTowns())
+			residents := logutil.HumanizedSprintf("`%d`", n.NumResidents())
+			size := logutil.HumanizedSprintf("`%d` %s (Worth `%d`G %s)",
+				n.Size(), shared.EMOJIS.CHUNK,
+				n.Worth(), shared.EMOJIS.GOLD_INGOT,
+			)
+
+			// convert ms to sec for Discord timestamp
+			foundedStr := fmt.Sprintf("Founded <t:%d:R>", n.Timestamps.Registered/1000)
+			//bonusStr := logutil.HumanizedSprintf("`%d` %s", n.Bonus(), shared.EMOJIS.CHUNK)
+
+			name := fmt.Sprintf("**%s**", n.Name)
+			if entry.Puppet {
+				name += " (Puppet)"
+			}
+
+			nationStrings = append(nationStrings, fmt.Sprintf(
+				"%d. %s • %s\n\nTowns/Residents: %s/%s\nSize: %s\nBalance: %s",
+				start+idx+1, name, foundedStr, towns, residents, size, balance,
+			))
+		}
+
+		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
+		embed := &discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("[%d] List of Nations | %s | %s", nationsCount, alliance.Label, pageStr),
+			Description: strings.Join(nationStrings, "\n\n"),
+			Color:       discordutil.DARK_AQUA,
+		}
+
+		data.Embeds = []*discordgo.MessageEmbed{embed}
+	}
+
+	return paginator.Start()
 }
 
 func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata discordgo.ApplicationCommandInteractionData) error {

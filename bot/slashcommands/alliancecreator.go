@@ -119,7 +119,7 @@ func handleAllianceCreatorModal(s *discordgo.Session, i *discordgo.Interaction) 
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed := embeds.NewAllianceEmbed(s, allianceStore, alliance, nil)
+	embed := embeds.NewAllianceEmbed(s, mdb, alliance, nil)
 	content := "Successfully created alliance:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD

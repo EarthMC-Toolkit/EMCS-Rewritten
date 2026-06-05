@@ -40,8 +40,8 @@ func OnApplicationCommandInteractionCreate(s *discordgo.Session, i *discordgo.In
 	if success {
 		log.Printf("'%s' successfully executed command /%s (took: %s)\n", author.Username, cmdName, elapsed)
 	} else {
-		log.Printf("'%s' failed to execute command /%s:\n%v\n\n", author.Username, cmdName, err)
-		// TODO: Maybe send error message here like we do with panic
+		log.Printf("'%s' failed to execute command /%s:\n\t%v\n\n", author.Username, cmdName, err)
+		discordutil.ReplyWithGenericError(s, i.Interaction)
 	}
 
 	// Update usage for this cmd regardless of success/failure.

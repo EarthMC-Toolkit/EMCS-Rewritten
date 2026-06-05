@@ -264,8 +264,8 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 		nationStrings := []string{}
 		for idx, n := range nations[start:end] {
 			balance := logutil.HumanizedSprintf("`%0.f`G %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
-			towns := logutil.HumanizedSprintf("`%d`", n.Stats.NumTowns)
-			residents := logutil.HumanizedSprintf("`%d`", n.Stats.NumResidents)
+			towns := logutil.HumanizedSprintf("`%d`", n.NumTowns())
+			residents := logutil.HumanizedSprintf("`%d`", n.NumResidents())
 			size := logutil.HumanizedSprintf("`%d` %s (Worth `%d`G %s)",
 				n.Size(), shared.EMOJIS.CHUNK,
 				n.Worth(), shared.EMOJIS.GOLD_INGOT,
@@ -273,7 +273,7 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 
 			// convert ms to sec for Discord timestamp
 			foundedStr := fmt.Sprintf("Founded <t:%d:R>", n.Timestamps.Registered/1000)
-			bonusStr := logutil.HumanizedSprintf("`%d` %s", n.Stats.NationBonus, shared.EMOJIS.CHUNK)
+			bonusStr := logutil.HumanizedSprintf("`%d` %s", n.Bonus(), shared.EMOJIS.CHUNK)
 
 			nationStrings = append(nationStrings, fmt.Sprintf(
 				"%d. %s (Capital: %s) • %s\nLeader: `%s`\nTowns/Residents: %s/%s\nSize: %s\nBalance: %s\nClaim Bonus: %s",
