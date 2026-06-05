@@ -13,7 +13,7 @@ import (
 const AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edge/134.0.0.0"
 
 var pingClient = http.Client{Timeout: 2 * time.Second} // Use when performing HEAD requests.
-var client = http.Client{Timeout: 10 * time.Second}    // Use when performing all other requests.
+var client = http.Client{Timeout: 6 * time.Second}     // Use when performing all other requests.
 
 // Sends a HEAD request to url, returning the received response.
 func Head(url string) (*http.Response, error) {
