@@ -432,7 +432,7 @@ func queryAllianceNations(s *discordgo.Session, i *discordgo.Interaction, cdata 
 			}
 
 			nationStrings = append(nationStrings, fmt.Sprintf(
-				"%d. %s • %s\n\nTowns/Residents: %s/%s\nSize: %s\nBalance: %s",
+				"%d. %s • %s\nTowns/Residents: %s/%s\nSize: %s\nBalance: %s",
 				start+idx+1, name, foundedStr, towns, residents, size, balance,
 			))
 		}
