@@ -12,11 +12,14 @@ import (
 )
 
 var (
-	HIDDEN = colour.New(colour.FgWhite, colour.Concealed)
-	WHITE  = colour.New(colour.Bold, colour.FgWhite)
-	RED    = colour.New(colour.FgHiRed)
-	GREEN  = colour.New(colour.FgGreen)
-	YELLOW = colour.New(colour.FgYellow)
+	HIDDEN = colour.New(colour.FgWhite, colour.Concealed) // DEBUG
+	WHITE  = colour.New(colour.Bold, colour.FgWhite)      // DEFAULT/NORMAL
+	BLUE   = colour.New(colour.FgHiBlue)                  // INFO/OPERATIONAL (Foreground)
+	BLUEBG = colour.New(colour.BgBlue, colour.FgHiWhite)  // INFO/OPERATIONAL (Background)
+	GREEN  = colour.New(colour.FgGreen)                   // SUCCESS
+	YELLOW = colour.New(colour.FgYellow)                  // WARN
+	RED    = colour.New(colour.FgHiRed)                   // ERROR (Foreground)
+	REDBG  = colour.New(colour.BgRed, colour.FgHiWhite)   // ERROR (Background)
 )
 
 type Loggable interface {

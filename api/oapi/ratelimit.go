@@ -43,7 +43,7 @@ func NewRequestBucket(reqPerMin int) *RequestBucket {
 
 	// Token refill rate. Eg: 3req/s becomes 333ms between ticks.
 	refillRate := (time.Second / time.Duration(reqPerSec))
-	ticker := time.NewTicker(refillRate + (time.Millisecond * 5)) // Add a 5ms safety margin.
+	ticker := time.NewTicker(refillRate + (time.Millisecond * 10)) // Add a 10ms safety margin.
 	go func() {
 		for range ticker.C {
 			select {

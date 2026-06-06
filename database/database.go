@@ -151,7 +151,7 @@ func TryInit(mapName string) *Database {
 	AssignStore(mdb, USAGE_USERS_STORE)
 	//AssignStoreToDB[map[string]any](mdb, USAGE_LEADERBOARD_STORE)
 
-	log.Printf("Initialized database for map '%s'.\n", mapName)
+	logutil.Printf(logutil.HIDDEN, "DEBUG | Initialized database for map '%s'.\n", mapName)
 	return mdb
 }
 

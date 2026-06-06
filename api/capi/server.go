@@ -40,7 +40,7 @@ func Start() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	sig := <-c
 
-	logutil.Printf(logutil.WHITE, "\nShutting down Custom API with signal: %s\n", strings.ToUpper(sig.String()))
+	logutil.Printf(logutil.YELLOW, "\n\nShutting down Custom API with signal: %s\n", strings.ToUpper(sig.String()))
 
 	// Gracefully shutdown HTTP server that serves the Custom API.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -62,9 +62,9 @@ func Serve(mux *http.ServeMux, port uint) *http.Server {
 	}
 
 	go func() {
-		log.Printf("Custom API server listening on :%d", port)
+		logutil.Printf(logutil.BLUE, "Custom API server listening on :%d", port)
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("Custom API server error: %v", err)
+			logutil.Printf(logutil.RED, "Custom API server error: %v", err)
 		}
 	}()
 
@@ -85,7 +85,7 @@ func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 
 	for _, mdb := range mdbs {
 		if mdb == nil {
-			log.Print("ERR | attempted to serve Custom API endpoints for a nil map database")
+			logutil.Println(logutil.RED, "ERR | attempted to serve Custom API endpoints for a nil map database")
 			continue
 		}
 
@@ -146,7 +146,7 @@ func StartStoreSync(
 		defer ticker.Stop()
 
 		for range ticker.C {
-			log.Println("Syncing stores with data from underlying DB files for map: ", mdbName)
+			logutil.Println(logutil.BLUE, "Syncing stores with data from underlying DB files for map: ", mdbName)
 
 			_ = allianceStore.LoadFromFile()
 			_ = nationStore.LoadFromFile()

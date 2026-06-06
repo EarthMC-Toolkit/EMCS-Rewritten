@@ -5,6 +5,7 @@ import (
 	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
+	"emcsrw/utils/logutil"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -38,9 +39,9 @@ func OnApplicationCommandInteractionCreate(s *discordgo.Session, i *discordgo.In
 	success := err == nil
 	fmt.Println()
 	if success {
-		log.Printf("'%s' successfully executed command /%s (took: %s)\n", author.Username, cmdName, elapsed)
+		logutil.Printf(logutil.GREEN, "'%s' successfully executed command /%s (took: %s)\n", author.Username, cmdName, elapsed)
 	} else {
-		log.Printf("'%s' failed to execute command /%s:\n\t%v\n\n", author.Username, cmdName, err)
+		logutil.Printf(logutil.YELLOW, "'%s' failed to execute command /%s:\n\t%v\n\n", author.Username, cmdName, err)
 		discordutil.ReplyWithGenericError(s, i.Interaction)
 	}
 
@@ -49,7 +50,7 @@ func OnApplicationCommandInteractionCreate(s *discordgo.Session, i *discordgo.In
 		usageStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.USAGE_USERS_STORE)
 		if err != nil {
 			fmt.Println()
-			log.Printf("error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)
+			logutil.Printf(logutil.RED, "error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)
 			return
 		}
 
@@ -61,7 +62,7 @@ func OnApplicationCommandInteractionCreate(s *discordgo.Session, i *discordgo.In
 
 		if err := database.UpdateUserUsage(usageStore, author, cmdName, e); err != nil {
 			fmt.Println()
-			log.Printf("error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)
+			logutil.Printf(logutil.RED, "error updating usage for user: %s (%s)\n%v", author.Username, author.ID, err)
 			return
 		}
 	}

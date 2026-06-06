@@ -71,7 +71,7 @@ func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
 func QueryAllTowns() ([]oapi.TownInfo, error) {
 	tlist, err := oapi.QueryList(oapi.ENDPOINT_TOWNS).Execute()
 	if err != nil {
-		return nil, fmt.Errorf("failed to query all towns, could not get initial list\n%v", err)
+		return nil, fmt.Errorf("failed to query all towns, could not get initial list\n\t%s", err)
 	}
 
 	ids := parallel.Map(tlist, func(e oapi.Entity, _ int) string {

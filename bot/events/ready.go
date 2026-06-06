@@ -3,7 +3,6 @@ package events
 import (
 	"cmp"
 	"fmt"
-	"log"
 	"slices"
 	"strings"
 	"sync"
@@ -38,7 +37,7 @@ var vpLastCheck time.Time
 var readyOnce sync.Once // This prevents running tasks more than once if OnReady is called multiple times.
 
 func OnReady(s *discordgo.Session, r *discordgo.Ready) {
-	log.Printf("Logged in as: %s\n", s.State.User.Username)
+	logutil.Logf(logutil.BLUE, "Logged in as: %s\n", s.State.User.Username)
 
 	readyOnce.Do(func() {
 		mdb, err := database.Get(shared.ACTIVE_MAP)
@@ -62,14 +61,15 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 	fmt.Println()
-	logutil.Logln(logutil.WHITE, "[OnReady]: Running data update task...")
+	logutil.Logln(logutil.BLUEBG, "[OnReady]: Running data update task...")
 
 	start := time.Now()
 	townList, staleTownList, townless, residents, err := UpdateData(mdb)
 
 	fmt.Println() // use \n without log.Printf messing up date/time
 	if err != nil {
-		logutil.Logf(logutil.RED, "[OnReady]: Failed data update task.\n%s\n", err)
+		logutil.Logln(logutil.REDBG, "[OnReady]: Failed data update task:")
+		logutil.Printf(logutil.RED, "%s\n", err)
 	} else {
 		elapsed := time.Since(start)
 		logutil.Logf(logutil.GREEN, "[OnReady]: Finished data update task. Took: %s\n", elapsed.String())
@@ -372,7 +372,7 @@ func TrySendRenamedNotif(s *discordgo.Session, channelID string, towns map[strin
 			Color:       discordutil.AQUA,
 		})
 		if err != nil {
-			logutil.Logf(logutil.RED, "error sending town flow rename event:\n%v", err)
+			logutil.Logf(logutil.RED, "error sending town flow rename event:\n\t%v", err)
 		}
 	}
 }
@@ -400,14 +400,14 @@ func TrySendCreatedNotif(s *discordgo.Session, channelID string, towns []oapi.To
 			)
 		})
 
-		logutil.Printf(logutil.HIDDEN, "\nDEBUG | Town Flow Channel ID: %s\n", channelID)
+		//logutil.Printf(logutil.HIDDEN, "\nDEBUG | Town Flow Channel ID: %s\n", channelID)
 		_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Creation Events [%d]", count),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.GREEN,
 		})
 		if err != nil {
-			logutil.Logf(logutil.RED, "error sending town flow creation event:\n%v", err)
+			logutil.Logf(logutil.RED, "error sending town flow creation event:\n\t%v", err)
 		}
 	}
 }
@@ -460,7 +460,7 @@ func TrySendRuinedNotif(s *discordgo.Session, channelID string, towns map[string
 			Color:       discordutil.DARK_GOLD,
 		})
 		if err != nil {
-			logutil.Logf(logutil.RED, "error sending town flow ruin event:\n%v", err)
+			logutil.Logf(logutil.RED, "error sending town flow ruin event:\n\t%v", err)
 		}
 	}
 }
@@ -490,7 +490,7 @@ func TrySendFallenNotif(s *discordgo.Session, channelID string, towns []oapi.Tow
 			Color:       discordutil.RED,
 		})
 		if err != nil {
-			logutil.Logf(logutil.RED, "error sending town flow fall event:\n%v", err)
+			logutil.Logf(logutil.RED, "error sending town flow fall event:\n\t%v", err)
 		}
 	}
 }

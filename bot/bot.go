@@ -57,7 +57,7 @@ func Connect(s *discordgo.Session) *discordgo.Session {
 		log.Fatal("Cannot open Discord session: ", err)
 	}
 
-	log.Println("Established connection to Discord.")
+	logutil.Logln(logutil.BLUE, "Established connection to Discord.")
 	return s
 }
 
@@ -71,7 +71,7 @@ func Start(s *discordgo.Session) {
 	// Init a scheduler that we can use to schedule tasks (ie. in OnReady)
 	scheduler.Instance = scheduler.New()
 
-	log.Println("Connecting to Discord gateway...")
+	logutil.Logln(logutil.BLUE, "Connecting to Discord gateway...")
 	Connect(s)
 
 	// ctx, stopSSE := context.WithCancel(context.Background())
@@ -87,7 +87,7 @@ func Start(s *discordgo.Session) {
 	signal.Notify(c, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM) // Interrupt = Ctrl+C | SIGHUP = tmux kill | SIGTERM = kill
 	sig := <-c
 
-	logutil.Printf(logutil.YELLOW, "\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
+	logutil.Printf(logutil.YELLOW, "\n\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
 	Shutdown(s, activeMapDB)
 	//#endregion
 }
@@ -98,7 +98,7 @@ func Shutdown(s *discordgo.Session, activeMapDB *database.Database) {
 	//stopSSE()
 
 	msg := scheduler.Instance.Shutdown(30 * time.Second)
-	logutil.Println(logutil.YELLOW, "[Scheduler]: "+msg)
+	logutil.Println(logutil.BLUE, "[Scheduler]: "+msg)
 
 	// Since the `defer` keyword only works in successful exits,
 	// closing explicitly here makes sure we always properly cleanup.

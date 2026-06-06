@@ -1,7 +1,7 @@
 package slashcommands
 
 import (
-	"fmt"
+	"emcsrw/utils/logutil"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -68,11 +68,11 @@ func SyncRemote(s *discordgo.Session, appID, guildID string) (local []*discordgo
 
 	created, err := s.ApplicationCommandBulkOverwrite(appID, guildID, local)
 	if err != nil {
-		fmt.Printf("Failed to sync slash commands. Error occurred during bulk overwrite: %v\n", err)
+		logutil.Printf(logutil.RED, "Failed to sync slash commands! Error occurred during bulk overwrite:\n%s\n", err)
 		return
 	}
 
-	fmt.Println("Successfully synced slash commands.")
+	logutil.Println(logutil.GREEN, "Successfully synced slash commands.")
 	return
 }
 

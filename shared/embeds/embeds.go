@@ -72,11 +72,12 @@ func NewAllianceEmbed(
 	// Leader field logic
 	leadersValue := "`None`"
 	leaders, err := a.Leaders(playerStore)
-	if err != nil {
-		logutil.Printf(logutil.YELLOW, "ERR | Could not get leaders for alliance %s:\n\t%v", a.Identifier, err)
-	} else {
+	if err == nil {
 		leadersValue = GetAffiliationLines(leaders)
 	}
+	// } else {
+	// 	logutil.Printf(logutil.YELLOW, "ERR | Could not get leaders for alliance %s:\n\t%v", a.Identifier, err)
+	// }
 
 	// Representative field logic
 	representativeValue := "`None`"
