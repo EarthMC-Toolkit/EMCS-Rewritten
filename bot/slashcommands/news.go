@@ -1,14 +1,18 @@
 package slashcommands
 
 import (
+	"cmp"
 	"emcsrw/database"
 	"emcsrw/shared"
 	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo"
 )
 
 const DEFAULT_ARTICLE_COUNT = uint8(10)
@@ -31,20 +35,28 @@ func (cmd NewsCommand) Options() AppCommandOpts {
 			},
 		},
 		{
-			// TODO: Maybe just use a 'term' option for searching instead of a nation-specific subcommand?
-			// 		 Would be more flexible (alliances, towns etc) and future-proof.
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "nation",
-			Description: "Shows all news articles relating to the the specified nation.",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 40, true),
-			},
-		},
-		{
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Name:        "changelogs",
 			Description: "Shows a list of all reported server changelogs.",
 		},
+		{
+			// TODO: Maybe just use a 'term' option for searching instead of a nation-specific subcommand?
+			// 		 Would be more flexible (alliances, towns etc) and future-proof.
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "search",
+			Description: "Shows all news articles relating to the specified term.",
+			Options: AppCommandOpts{
+				discordutil.RequiredStringOption("term", "The text to match news headlines by.", 2, 60),
+			},
+		},
+		// {
+		// 	Type:        discordgo.ApplicationCommandOptionSubCommand,
+		// 	Name:        "alliance",
+		// 	Description: "Shows all news articles relating to the the specified alliance.",
+		// 	Options: AppCommandOpts{
+		// 		discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
+		// 	},
+		// },
 	}
 }
 
@@ -65,6 +77,14 @@ func (cmd NewsCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCre
 	if opt != nil {
 		return executeLatestNews(s, i.Interaction, opt, articles)
 	}
+	opt = cdata.GetOption("changelogs")
+	if opt != nil {
+		return executeChangelogNews(s, i.Interaction, articles)
+	}
+	opt = cdata.GetOption("search")
+	if opt != nil {
+		return executeSearchNews(s, i.Interaction, opt, articles)
+	}
 
 	discordutil.ReplyWithError(s, i.Interaction, errors.New("Subcommand not implemented yet."))
 	return err
@@ -76,14 +96,58 @@ func executeLatestNews(
 	articles []database.NewsEntry,
 ) error {
 	count := DEFAULT_ARTICLE_COUNT
-
 	opt = opt.GetOption("count")
 	if opt != nil {
 		count = uint8(opt.IntValue())
 	}
 
-	title := fmt.Sprintf("News Articles | %d Most Recent", count)
-	desc, _ := embeds.BuildNewsString(articles, count, discordutil.EMBED_DESCRIPTION_LIMIT)
+	slices.SortFunc(articles, func(a, b database.NewsEntry) int {
+		return cmp.Compare(b.Timestamp, a.Timestamp)
+	})
+
+	desc, amt := embeds.BuildNewsString(articles, count, discordutil.EMBED_DESCRIPTION_LIMIT)
+	title := fmt.Sprintf("[%d] News Articles | Latest", amt)
+
+	embed := discordutil.NewEmbed(&discordutil.AQUA, &title, &desc, nil)
+	_, err := discordutil.FollowupEmbeds(s, i, embed)
+	return err
+}
+
+func executeChangelogNews(
+	s *discordgo.Session, i *discordgo.Interaction,
+	articles []database.NewsEntry,
+) error {
+	articles = lo.Filter(articles, func(e database.NewsEntry, _ int) bool {
+		return strings.Contains(e.Headline, "Changelog")
+	})
+	slices.SortFunc(articles, func(a, b database.NewsEntry) int {
+		return cmp.Compare(b.Timestamp, a.Timestamp)
+	})
+
+	desc, amt := embeds.BuildNewsString(articles, 10, discordutil.EMBED_DESCRIPTION_LIMIT)
+	title := fmt.Sprintf("[%d] News Articles | Changelogs", amt)
+
+	embed := discordutil.NewEmbed(&discordutil.AQUA, &title, &desc, nil)
+	_, err := discordutil.FollowupEmbeds(s, i, embed)
+	return err
+}
+
+func executeSearchNews(
+	s *discordgo.Session, i *discordgo.Interaction,
+	opt *discordgo.ApplicationCommandInteractionDataOption,
+	articles []database.NewsEntry,
+) error {
+	term := strings.ToLower(opt.GetOption("term").StringValue())
+
+	articles = lo.Filter(articles, func(e database.NewsEntry, _ int) bool {
+		return strings.Contains(strings.ToLower(e.Headline), term)
+	})
+	slices.SortFunc(articles, func(a, b database.NewsEntry) int {
+		return cmp.Compare(b.Timestamp, a.Timestamp)
+	})
+
+	desc, amt := embeds.BuildNewsString(articles, 20, discordutil.EMBED_DESCRIPTION_LIMIT)
+	title := fmt.Sprintf("[%d] News Articles | Search by term: `%s`", amt, term)
 
 	embed := discordutil.NewEmbed(&discordutil.AQUA, &title, &desc, nil)
 	_, err := discordutil.FollowupEmbeds(s, i, embed)
