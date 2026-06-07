@@ -66,7 +66,7 @@ func Connect(s *discordgo.Session) *discordgo.Session {
 func Start(s *discordgo.Session) {
 	activeMapDB := database.TryInit(shared.ACTIVE_MAP)
 
-	logutil.Logf(logutil.BLUE, "Starting bot with %d threads.\n", runtime.GOMAXPROCS(-1))
+	logutil.Logf(logutil.BLUE, "Starting bot with %d threads.", runtime.GOMAXPROCS(-1))
 
 	// Init a scheduler that we can use to schedule tasks (ie. in OnReady)
 	scheduler.Instance = scheduler.New()

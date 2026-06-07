@@ -1,7 +1,6 @@
 package slashcommands
 
 import (
-	"cmp"
 	"emcsrw/api"
 	"emcsrw/api/oapi"
 	"emcsrw/database"
@@ -311,21 +310,13 @@ func executeNationActivity(s *discordgo.Session, i *discordgo.Interaction, natio
 
 	residents, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
 	if len(errs) > 0 {
-		return nil, errs[0]
+		errStr := fmt.Sprintf("Failed to query player data for residents of `%s`.```%s```", nation.Name, errs[0].Error())
+		return discordutil.FollowupContentEphemeral(s, i, errStr)
 	}
 
 	count := len(residents)
 	slices.SortFunc(residents, func(a, b oapi.PlayerInfo) int {
-		at, bt := a.Timestamps.LastOnline, b.Timestamps.LastOnline
-		av, bv := UINT64_MAX, UINT64_MAX
-		if at != nil {
-			av = *at
-		}
-		if bt != nil {
-			bv = *bt
-		}
-
-		return cmp.Compare(av, bv)
+		return utils.ComparePtr(b.Timestamps.LastOnline, a.Timestamps.LastOnline, UINT64_MAX) // sort by most active
 	})
 
 	perPage := 10

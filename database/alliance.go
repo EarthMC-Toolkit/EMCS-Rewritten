@@ -108,6 +108,8 @@ func (t AllianceType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(string(t))
 }
 
+// TODO: Change 'Parent' to a UUID or Name/UUID pair since using an identifier could
+// break the link if the alliance changes its identifier after this was already set.
 type Alliance struct {
 	UUID             uint64            `json:"uuid"`             // First 48bits = ms timestamp. Extra 16bits = randomness.
 	Identifier       string            `json:"identifier"`       // Case-insensitive colloquial short name for lookup.

@@ -626,12 +626,14 @@ func NewNationEmbed(
 
 		seen := sets.New[string]()
 		allianceStore.ForEach(func(_ string, a database.Alliance) {
-			if a.OwnNations.Has(nation.UUID) {
-				seen.Append(a.Label)
-				if a.Parent != nil {
-					if parent, ok := allianceByID[*a.Parent]; ok {
-						seen.Append(parent.Label)
-					}
+			if !a.OwnNations.Has(nation.UUID) {
+				return
+			}
+
+			seen.Append(a.Identifier)
+			if a.Parent != nil {
+				if parent, ok := allianceByID[*a.Parent]; ok {
+					seen.Append(parent.Identifier)
 				}
 			}
 		})

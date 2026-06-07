@@ -182,7 +182,7 @@ func UpdateData(mdb *database.Database) (
 	}
 
 	staleTowns = townStore.Entries()
-	logutil.Printf(logutil.HIDDEN, "DEBUG | Stale towns: %d\n", len(staleTowns))
+	logutil.Printf(logutil.HIDDEN, "DEBUG | Stale towns: %d", len(staleTowns))
 
 	townList, err := townStore.OverwriteFunc(false, func() (map[string]oapi.TownInfo, error) {
 		res, err := api.QueryAllTowns()
