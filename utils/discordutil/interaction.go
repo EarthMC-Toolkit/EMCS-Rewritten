@@ -110,12 +110,16 @@ func SendOrEditReply(s *discordgo.Session, i *discordgo.Interaction, data *disco
 // 	})
 // }
 
-const BOT_INVITE_LINK = "https://discord.com/oauth2/authorize?client_id=656231016385478657"
+const SERVER_INVITE_LINK = "https://discord.gg/AVtgkcRgFs"
 
 func ReplyWithGenericError(s *discordgo.Session, i *discordgo.Interaction) {
 	// NOTE: This could panic itself. Maybe handle it or just send generic text.
-	content := "Bot encountered a non-fatal error during this command :(\n"
-	content += fmt.Sprintf("For security reasons, the error cannot be shown. [Click here](%s) to report this in the development server.", BOT_INVITE_LINK)
+	content := "Bot encountered a non-fatal error during this command :/\n"
+	content += fmt.Sprintf(
+		"For security reasons, the error cannot be shown. [Click here](%s) to report this in the development server.\n\n%s",
+		SERVER_INVITE_LINK,
+		"FYI: This is probably because Fix and his useless devs can't keep a simple API working.",
+	)
 
 	// Try reply if not already deferred.
 	_, err := SendOrEditReply(s, i, &discordgo.InteractionResponseData{
@@ -130,7 +134,7 @@ func ReplyWithGenericError(s *discordgo.Session, i *discordgo.Interaction) {
 
 func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err error) {
 	// NOTE: This could panic itself. Maybe handle it or just send generic text.
-	content := fmt.Sprintf("Bot encountered a non-fatal error during this command :(```%s```", err)
+	content := fmt.Sprintf("Bot encountered a non-fatal error during this command :/```%s```", err)
 
 	// Try reply if not already deferred.
 	_, err = SendOrEditReply(s, i, &discordgo.InteractionResponseData{
