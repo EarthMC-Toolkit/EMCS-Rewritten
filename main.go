@@ -38,7 +38,7 @@ func lockProcess() func() error {
 func main() {
 	//#region Always runs no matter the subcommand
 	if len(os.Args) < 2 {
-		logutil.Println(logutil.RED, "ERR | missing subcommand. Usage: go run . [register|bot|api]")
+		logutil.Println(logutil.RED, "ERR | missing subcommand. Usage: go run . [sync|bot|api]")
 		return
 	}
 
@@ -54,8 +54,8 @@ func main() {
 
 	subCmd := os.Args[1]
 	switch subCmd {
-	case "register":
-		slashcommands.SyncRemote(s, config.GetBotID(), "") // Empty str = register globally
+	case "sync":
+		slashcommands.SyncRemote(s, config.GetBotID(), "") // Empty str = register commands globally
 	case "bot":
 		unlock := lockProcess()
 		defer unlock()

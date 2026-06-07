@@ -38,13 +38,13 @@ export PFLOW_CHANNEL_ID=channelIdHere 	# Where notifs for player related events 
 ```
 
 ### Running the bot
-`go run . register` -> Uses a temporary Discord session to register commands, then exits the process immediately.\
+`go run . sync` -> Uses a temporary Discord session to sync command definitions, then exits the process immediately.\
 `go run . bot` -> Runs the bot and connects to Discord. The process runs until a panic or `Ctrl+C` (graceful exit).\
 `go run . api` -> Starts an API and listens to the port specified in `.env` (see next section).
 
-To start immediately after registering, simply append it like so: `go run . register && go run . bot`
+To start immediately after syncing commands, simply append it like so: `go run . sync && go run . bot`
 
-⚠️ You should only ever run `register` before `bot` - not after the bot already started!\
+⚠️ You should only ever run `sync` before `bot` - not after the bot already started!\
 ℹ️ The bot uses a lock file, meaning only a single instance will exist across processes.\
 ℹ️ The API should be run in a seperate session/process so it continues while the bot is down.
 
@@ -116,7 +116,7 @@ List of endpoints since 28 Feb 2026:
 If you know **Golang** and the basics of the **discordgo** library, I encourage you to create pull requests or suggest features.
 You can also fork this project and use it as a base if you so desire, but the GPL license requires you to keep the source code available.
 
-Creating a new command is as simple as adding it to `RegisterAllCommands()` and then creating a file which satisfies the `SlashCommand` interface (see code below). Finally, run the command `go run . register && go run . bot` and refresh Discord (Ctrl+R).
+Creating a new command is as simple as adding it to `RegisterAllCommands()` and then creating a file which satisfies the `SlashCommand` interface (see code below). Finally, run the command `go run . sync && go run . bot` and refresh Discord (Ctrl+R).
 
 ```go
 type ExampleCommand struct{}
