@@ -2,7 +2,6 @@ package slashcommands
 
 import (
 	"emcsrw/api/mapi"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"strings"
@@ -60,7 +59,7 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 		embed := &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("List of Visible Players [%d]", count),
-			Footer:      embeds.DEFAULT_FOOTER,
+			Footer:      discordutil.DEFAULT_FOOTER,
 			Description: desc.String() + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages()),
 		}
 

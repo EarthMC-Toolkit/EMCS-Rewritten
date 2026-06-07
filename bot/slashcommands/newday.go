@@ -3,7 +3,6 @@ package slashcommands
 import (
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"log"
@@ -60,18 +59,15 @@ func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 
 	secUntilNewDay := (newDayTime - serverTod + secInADay) % secInADay
 	now := time.Now().Unix()
-
 	sec := now + secUntilNewDay
-	embed := &discordgo.MessageEmbed{
-		Title: "New Day | Time Information",
-		Description: fmt.Sprintf(
-			"The next Towny new day occurs in <t:%d:R>.\nExactly %s from now.",
-			sec, FormatDuration(secUntilNewDay),
-		),
-		Footer: embeds.DEFAULT_FOOTER,
-		Color:  discordutil.DARK_PURPLE,
-	}
 
+	title := "New Day | Time Information"
+	desc := fmt.Sprintf(
+		"The next Towny new day occurs in <t:%d:R>.\nExactly %s from now.",
+		sec, FormatDuration(secUntilNewDay),
+	)
+
+	embed := discordutil.NewEmbed(&discordutil.DARK_PURPLE, &title, &desc, nil)
 	discordutil.SendOrEditReply(s, i, &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{embed},
 	})

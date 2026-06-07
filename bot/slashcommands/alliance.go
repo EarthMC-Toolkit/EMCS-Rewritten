@@ -438,12 +438,11 @@ func queryAllianceNations(s *discordgo.Session, i *discordgo.Interaction, cdata 
 		}
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
-		embed := &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("[%d] List of Nations | %s | %s", nationsCount, alliance.Label, pageStr),
-			Description: strings.Join(nationStrings, "\n\n"),
-			Color:       discordutil.DARK_AQUA,
-		}
 
+		title := fmt.Sprintf("[%d] List of Nations | %s | %s", nationsCount, alliance.Label, pageStr)
+		desc := strings.Join(nationStrings, "\n\n")
+
+		embed := discordutil.NewEmbed(&discordutil.DARK_AQUA, &title, &desc, nil)
 		data.Embeds = []*discordgo.MessageEmbed{embed}
 	}
 
@@ -511,16 +510,13 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 		rankInfo.Score, rankInfo.Rank, allianceStore.Count(),
 	)
 
-	embed := &discordgo.MessageEmbed{
-		Title: fmt.Sprintf("Alliance Score Breakdown | `%s` | #%d", alliance.Identifier, rankInfo.Rank),
-		Description: fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n\n%s", standingStr,
-			residentsStr, nationsStr, townsStr, worthStr,
-			scoreStr, //normalizedStr,
-		),
-		Color:  discordutil.DARK_AQUA,
-		Footer: embeds.DEFAULT_FOOTER,
-	}
+	title := fmt.Sprintf("Alliance Score Breakdown | `%s` | #%d", alliance.Identifier, rankInfo.Rank)
+	desc := fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n\n%s", standingStr,
+		residentsStr, nationsStr, townsStr, worthStr,
+		scoreStr, //normalizedStr,
+	)
 
+	embed := discordutil.NewEmbed(&discordutil.DARK_AQUA, &title, &desc, nil)
 	_, err = discordutil.FollowupEmbeds(s, i, embed)
 	return err
 }

@@ -1,11 +1,17 @@
 package slashcommands
 
 import (
+	"emcsrw/database"
+	"emcsrw/shared"
+	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"errors"
+	"fmt"
 
 	"github.com/bwmarrin/discordgo"
 )
+
+const DEFAULT_ARTICLE_COUNT = uint8(10)
 
 type NewsCommand struct{}
 
@@ -43,13 +49,43 @@ func (cmd NewsCommand) Options() AppCommandOpts {
 }
 
 func (cmd NewsCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	// newsStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NEWS_STORE)
-	// if err != nil {
-	// 	return err
-	// }
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+		return err
+	}
 
-	// articles := newsStore.Values()
+	newsStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NEWS_STORE)
+	if err != nil {
+		return err
+	}
 
-	discordutil.ReplyWithError(s, i.Interaction, errors.New("Command not implemented yet."))
-	return nil
+	articles := newsStore.Values()
+
+	cdata := i.ApplicationCommandData()
+	opt := cdata.GetOption("latest")
+	if opt != nil {
+		return executeLatestNews(s, i.Interaction, opt, articles)
+	}
+
+	discordutil.ReplyWithError(s, i.Interaction, errors.New("Subcommand not implemented yet."))
+	return err
+}
+
+func executeLatestNews(
+	s *discordgo.Session, i *discordgo.Interaction,
+	opt *discordgo.ApplicationCommandInteractionDataOption,
+	articles []database.NewsEntry,
+) error {
+	count := DEFAULT_ARTICLE_COUNT
+
+	opt = opt.GetOption("count")
+	if opt != nil {
+		count = uint8(opt.IntValue())
+	}
+
+	title := fmt.Sprintf("News Articles | %d Most Recent", count)
+	desc, _ := embeds.BuildNewsString(articles, count, discordutil.EMBED_DESCRIPTION_LIMIT)
+
+	embed := discordutil.NewEmbed(&discordutil.AQUA, &title, &desc, nil)
+	_, err := discordutil.FollowupEmbeds(s, i, embed)
+	return err
 }

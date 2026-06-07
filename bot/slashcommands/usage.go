@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/logutil"
 	"errors"
@@ -80,7 +79,7 @@ func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 	embed := &discordgo.MessageEmbed{
 		Title:  fmt.Sprintf("Bot Usage Statistics | `%s`", author.Username),
 		Color:  discordutil.WHITE,
-		Footer: embeds.DEFAULT_FOOTER,
+		Footer: discordutil.DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
 			discordutil.NewEmbedField("Top Commands (All Time)", fmt.Sprintf("%s\n\n%s", totalAllTime, mostUsedStr), true),
 			discordutil.NewEmbedField("Top Commands (Last 3 Months)", fmt.Sprintf("%s\n\n%s", total3Months, mostUsed3mStr), true),

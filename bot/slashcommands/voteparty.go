@@ -3,7 +3,6 @@ package slashcommands
 import (
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/logutil"
 	"fmt"
@@ -51,7 +50,7 @@ func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.Interacti
 			vpTarget-vpRemaining, vpTarget, vpRemaining,
 		),
 		Color:  discordutil.BLURPLE,
-		Footer: embeds.DEFAULT_FOOTER,
+		Footer: discordutil.DEFAULT_FOOTER,
 	}
 
 	_, err = discordutil.FollowupEmbeds(s, i.Interaction, embed)

@@ -24,11 +24,6 @@ var NewEmbedField = discordutil.NewEmbedField
 var PrependField = discordutil.PrependField
 var AddField = discordutil.AddField
 
-var DEFAULT_FOOTER = &discordgo.MessageEmbedFooter{
-	IconURL: "https://cdn.discordapp.com/avatars/263377802647175170/a_0cd469f208f88cf98941123eb1b52259.webp?size=512&animated=true",
-	Text:    "Maintained by Owen3H • Open Source on GitHub 💛", // unless you maintain your own fork, pls keep this as is :)
-}
-
 // Returns a string listing player names with their affiliations.
 // For example:
 //
@@ -134,17 +129,10 @@ func NewAllianceEmbed(
 		title += fmt.Sprintf(" | #%d", rankInfo.Rank)
 	}
 
-	embed := &discordgo.MessageEmbed{
-		Color:       embedColour,
-		Footer:      DEFAULT_FOOTER,
-		Title:       title,
-		Description: fmt.Sprintf("**Leaders(s)**\n%s\n\n**Discord Representative**\n%s", leadersValue, representativeValue),
-		Fields: []*discordgo.MessageEmbedField{
-			//NewEmbedField("Leader(s)", leadersValue, false),
-			//NewEmbedField(embed, "Discord Representative", representativeValue, true),
-			NewEmbedField("Stats", stats, true),
-		},
-	}
+	desc := fmt.Sprintf("**Leaders(s)**\n%s\n\n**Discord Representative**\n%s", leadersValue, representativeValue)
+
+	embed := discordutil.NewEmbed(&embedColour, &title, &desc, nil)
+	AddField(embed, "Stats", stats, false)
 
 	coloursStr := "No colours set."
 	if a.Optional.Colours != nil && a.Optional.Colours.Fill != nil {
@@ -212,7 +200,7 @@ func NewAllianceEmbed(
 	if err == nil {
 		allianceNews := database.GetAllianceNews(newsStore, a)
 		if len(allianceNews) > 0 {
-			recentNewsStr, count := BuildRecentNewsString(allianceNews)
+			recentNewsStr, count := BuildNewsString(allianceNews, 2, discordutil.EMBED_FIELD_VALUE_LIMIT)
 			AddField(embed, fmt.Sprintf("Recent News [%d]", count), recentNewsStr, false)
 		}
 	}
@@ -270,7 +258,7 @@ func NewBasicPlayerEmbed(player database.BasicPlayer, description string) *disco
 	embed := &discordgo.MessageEmbed{
 		Type:   discordgo.EmbedTypeRich,
 		Color:  discordutil.DARK_PURPLE,
-		Footer: DEFAULT_FOOTER,
+		Footer: discordutil.DEFAULT_FOOTER,
 		Thumbnail: &discordgo.MessageEmbedThumbnail{
 			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID),
 		},
@@ -372,7 +360,7 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 	embed := &discordgo.MessageEmbed{
 		Type:   discordgo.EmbedTypeRich,
 		Color:  discordutil.DARK_PURPLE,
-		Footer: DEFAULT_FOOTER,
+		Footer: discordutil.DEFAULT_FOOTER,
 		Thumbnail: &discordgo.MessageEmbedThumbnail{
 			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID),
 		},
@@ -467,7 +455,7 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 		Title:       townTitle,
 		Description: desc,
 		Color:       colour,
-		Footer:      DEFAULT_FOOTER,
+		Footer:      discordutil.DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
 			NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by `%s`", foundedTs, town.Founder), false),
 			NewEmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
@@ -582,7 +570,7 @@ func NewNationEmbed(
 		Title:       fmt.Sprintf("Nation Information | `%s`", nation.Name),
 		Description: board,
 		Color:       nation.FillColourInt(),
-		Footer:      DEFAULT_FOOTER,
+		Footer:      discordutil.DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
 			NewEmbedField("Founded", dateFounded, false),
 			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, shared.NAMEMC_URL+nation.King.UUID), true),
@@ -650,7 +638,7 @@ func NewNationEmbed(
 	if newsStore != nil {
 		nationNews := database.GetNationNews(newsStore, nation)
 		if len(nationNews) > 0 {
-			recentNewsStr, count := BuildRecentNewsString(nationNews)
+			recentNewsStr, count := BuildNewsString(nationNews, 2, discordutil.EMBED_FIELD_VALUE_LIMIT)
 			AddField(embed, fmt.Sprintf("Recent News [%d]", count), recentNewsStr, false)
 		}
 	}
@@ -679,20 +667,20 @@ func BoolToEmoji(v bool) string {
 	return shared.EMOJIS.CIRCLE_CROSS
 }
 
-// Given a slice of news entries, this func builds a string to include max 2 news headlines split by \n\n.
+// Given a slice of news entries, this func builds a string to include up to `max` news headlines split by \n\n.
 //
 // Example of a single headline:
 //
 //	"<logo> **Headline** 4 days ago"
 //	"<logo> **Headline** <newline> (Image) 4 days ago"
 //	"<logo> **Headline** <newline> (Image, Image) 4 days ago"
-func BuildRecentNewsString(news []database.NewsEntry) (string, uint8) {
+func BuildNewsString(news []database.NewsEntry, max uint8, charLimit uint16) (string, uint8) {
 	b := strings.Builder{}
 	count := uint8(0)
 	size := 0
 
 	for i, entry := range news {
-		if i == 2 {
+		if i == int(max) {
 			break
 		}
 
@@ -709,7 +697,7 @@ func BuildRecentNewsString(news []database.NewsEntry) (string, uint8) {
 			part = "\n\n" + part
 		}
 
-		if size+len(part) > 1024 {
+		if size+len(part) > int(charLimit) {
 			break
 		}
 

@@ -5,7 +5,6 @@ import (
 	"emcsrw/database"
 	"emcsrw/database/store"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/geometry"
@@ -155,7 +154,7 @@ func (cmd RouteCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 		Title:       title,
 		Description: desc,
 		Color:       utils.HexToInt("#DE3163"),
-		Footer:      embeds.DEFAULT_FOOTER,
+		Footer:      discordutil.DEFAULT_FOOTER,
 		Fields: []*discordgo.MessageEmbedField{
 			NewEmbedField("Closest Town", formatRouteTarget(ctName, ct), true),
 			NewEmbedField("Closest Nation", formatRouteTarget(cnName, cn), true),

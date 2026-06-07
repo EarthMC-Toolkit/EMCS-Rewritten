@@ -3,7 +3,6 @@ package slashcommands
 import (
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/logutil"
 	"fmt"
@@ -114,12 +113,10 @@ func executeServerInfo(s *discordgo.Session, i *discordgo.Interaction) (*discord
 	}
 
 	mapName := string(shared.ACTIVE_MAP)
-	embed := &discordgo.MessageEmbed{
-		Title:  "Server Info | " + strings.ToUpper(mapName),
-		Fields: []*discordgo.MessageEmbedField{timestampsField, vpField, statsField},
-		Color:  discordutil.BLURPLE,
-		Footer: embeds.DEFAULT_FOOTER,
-	}
+	title := "Server Info | " + strings.ToUpper(mapName)
+
+	embed := discordutil.NewEmbed(&discordutil.BLURPLE, &title, nil, nil)
+	embed.Fields = []*discordgo.MessageEmbedField{timestampsField, vpField, statsField}
 
 	return discordutil.FollowupEmbeds(s, i, embed)
 }

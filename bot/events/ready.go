@@ -241,7 +241,7 @@ func UpdateData(mdb *database.Database) (
 	//endregion
 
 	// Use pointers so the town struct isn't copied every time.
-	// This should help with mem usage when we use it in building basic player map.
+	// This should help with mem usage when we use it in building a basic player map.
 	playerTownLookup := make(map[string]*oapi.TownInfo, len(residentList))
 	for _, town := range townList {
 		for _, r := range town.Residents {

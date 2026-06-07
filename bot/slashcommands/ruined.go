@@ -4,7 +4,6 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/logutil"
@@ -56,8 +55,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		items := ruined[start:end]
 		pageCount := len(items)
 
-		// Used to build the description for this page of the embed.
-		desc := strings.Builder{}
+		descBuilder := strings.Builder{} // More performant than concat via regular Sprintf
 		for idx, t := range items {
 			ruinedTs := *t.Timestamps.RuinedAt
 			ruinedTime := time.UnixMilli(int64(*t.Timestamps.RuinedAt))
@@ -76,20 +74,17 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			X, Y, Z := t.SpawnLocation()
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", X, Y, Z, X, Z)
 
-			fmt.Fprintf(&desc, "%d. **%s** fell into ruin <t:%d:R> at %s. %sG %s\nDeletion on `%s` (<t:%d:R>).\n\n",
+			fmt.Fprintf(&descBuilder, "%d. **%s** fell into ruin <t:%d:R> at %s. %sG %s\nDeletion on `%s` (<t:%d:R>).\n\n",
 				start+idx+1, t.Name, ruinedTs/1000, locationLink, balance, chunks,
 				utils.FormatTime(nextNewDay), nextNewDay.Unix(),
 			)
 		}
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
-		embed := &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("[%d] List of Ruined Towns | %s", pageCount, pageStr),
-			Footer:      embeds.DEFAULT_FOOTER,
-			Description: desc.String(),
-			Color:       discordutil.DARK_GOLD,
-		}
+		title := fmt.Sprintf("[%d] List of Ruined Towns | %s", pageCount, pageStr)
+		desc := descBuilder.String()
 
+		embed := discordutil.NewEmbed(&discordutil.DARK_GOLD, &title, &desc, nil)
 		data.Embeds = []*discordgo.MessageEmbed{embed}
 	}
 

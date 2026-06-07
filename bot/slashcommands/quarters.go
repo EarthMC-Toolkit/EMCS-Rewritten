@@ -5,7 +5,6 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"slices"
@@ -133,7 +132,7 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
 		embed := &discordgo.MessageEmbed{
 			Title:  fmt.Sprintf("Quarters For Sale | `%s` | %s", affiliation, pageStr),
-			Footer: embeds.DEFAULT_FOOTER,
+			Footer: discordutil.DEFAULT_FOOTER,
 			Color:  discordutil.BLURPLE,
 			Fields: []*discordgo.MessageEmbedField{
 				NewEmbedField("Name", fmt.Sprintf("`%s`", q.Name), true),
