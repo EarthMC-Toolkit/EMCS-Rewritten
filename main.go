@@ -54,8 +54,6 @@ func main() {
 
 	subCmd := os.Args[1]
 	switch subCmd {
-	case "sync":
-		slashcommands.SyncRemote(s, config.GetBotID(), "") // Empty str = register commands globally
 	case "bot":
 		unlock := lockProcess()
 		defer unlock()
@@ -63,6 +61,8 @@ func main() {
 		bot.Start(s)
 	case "api":
 		capi.Start()
+	case "register", "sync":
+		slashcommands.SyncRemote(s, config.GetBotID(), "") // Empty str = register commands globally
 	default:
 		logutil.Println(logutil.RED, "ERR | unknown subcommand:", subCmd)
 	}
