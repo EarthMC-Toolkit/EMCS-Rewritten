@@ -118,7 +118,7 @@ func executeChangelogNews(
 	articles []database.NewsEntry,
 ) error {
 	articles = lo.Filter(articles, func(e database.NewsEntry, _ int) bool {
-		return strings.Contains(e.Headline, "Changelog")
+		return strings.Contains(strings.ToLower(e.Headline), "changelog")
 	})
 	slices.SortFunc(articles, func(a, b database.NewsEntry) int {
 		return cmp.Compare(b.Timestamp, a.Timestamp)
