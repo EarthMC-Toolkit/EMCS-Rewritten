@@ -2,6 +2,7 @@ package utils
 
 import (
 	"cmp"
+	"emcsrw/utils/sets"
 	"fmt"
 	"maps"
 	"regexp"
@@ -13,6 +14,45 @@ import (
 
 	"github.com/samber/lo"
 )
+
+// #region Slice deduplication
+func DedupeSlice[T any, K comparable](keyFunc func(T) K, values []T) []T {
+	d := NewSliceDeduper(keyFunc, values)
+	return d.items
+}
+
+func NewSliceDeduper[T any, K comparable](keyFunc func(T) K, values []T) *SliceDeduper[T, K] {
+	s := sets.Make[K](len(values))
+	d := &SliceDeduper[T, K]{seen: s, keyFn: keyFunc}
+	for _, v := range values {
+		d.Append(v)
+	}
+
+	return d
+}
+
+// Deduper is a wrapper for a regular slice which only allows insertion
+// into the slice based on a custom equality comparator.
+type SliceDeduper[T any, K comparable] struct {
+	items []T
+	seen  sets.Set[K]
+	keyFn func(T) K
+}
+
+// Appends v to the end of the slice if there is not already an element
+// within the slice that satisfies the equality check
+func (d *SliceDeduper[T, K]) Append(v T) bool {
+	k := d.keyFn(v)
+	if exists := d.seen.Has(k); exists {
+		return false
+	}
+
+	d.seen.Append(k)
+	d.items = append(d.items, v)
+	return true
+}
+
+//#endregion
 
 func HumanizeDuration(minutes float64) (float64, string) {
 	if minutes >= 60 {

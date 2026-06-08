@@ -26,10 +26,7 @@ func New() *Scheduler {
 }
 
 func (s *Scheduler) Schedule(taskName string, task func(), runInitial bool, interval time.Duration) {
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-
+	s.wg.Go(func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
@@ -45,10 +42,10 @@ func (s *Scheduler) Schedule(taskName string, task func(), runInitial bool, inte
 			task()
 			if s.stopping {
 				fmt.Println()
-				logutil.Logf(logutil.HIDDEN, "DEBUG | [Scheduler]: Task '%s' finished during shutdown.\n", taskName)
+				logutil.Logf(logutil.BLUE, "[Scheduler]: Task '%s' finished during shutdown.\n", taskName)
 			}
 		}
-	}()
+	})
 }
 
 // Shutdown stops this scheduler from running new tasks and waits up to timeoutDuration for all tasks to finish.

@@ -1,5 +1,6 @@
 package shared
 
+const NOSTRA_RELEASE_TIMESTAMP = 1776132038538
 const NAMEMC_URL = "https://namemc.com/profile/"
 
 const DEFAULT_TOWN_BOARD = "/town set board [msg]"

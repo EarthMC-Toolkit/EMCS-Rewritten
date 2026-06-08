@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"emcsrw/api/oapi"
 	"emcsrw/database/store"
+	"emcsrw/utils/sets"
 	"fmt"
 	"regexp"
 	"slices"
@@ -108,9 +109,13 @@ func extractHeadline(msg string) string {
 
 type NewsMessageID = string
 
+// Converts Discord messages into a map of [NewsEntry] (headline, timestamp etc) keyed by the message ID.
+// It filters out invalid messages (non-news, mentions-only, missing logo) and the output contains only unique headlines.
 func MessagesToNewsEntries(msgs []*discordgo.Message) map[NewsMessageID]NewsEntry {
-	// msgs should already exclude deleted ones, so we don't need to check for those here.
 	entries := make(map[NewsMessageID]NewsEntry, len(msgs))
+	seen := sets.New[string]() // headline tracker to remove dupes
+
+	// msgs should already exclude deleted ones, so we don't need to check for those here.
 	for _, msg := range msgs {
 		content := strings.TrimSpace(msg.Content)
 		if strings.HasPrefix(content, "<@") && strings.HasSuffix(content, ">") {
@@ -120,7 +125,14 @@ func MessagesToNewsEntries(msgs []*discordgo.Message) map[NewsMessageID]NewsEntr
 			continue // message without a logo probably isn't news.
 		}
 
-		entries[msg.ID] = NewNewsEntry(msg)
+		entry := NewNewsEntry(msg)
+		key := strings.ToLower(entry.Headline)
+		if seen.Has(key) {
+			continue
+		}
+
+		entries[msg.ID] = entry
+		seen.Append(key)
 	}
 
 	return entries

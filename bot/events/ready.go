@@ -19,7 +19,6 @@ import (
 	"emcsrw/utils/logutil"
 
 	"github.com/bwmarrin/discordgo"
-	colour "github.com/fatih/color"
 	"github.com/samber/lo"
 	"github.com/samber/lo/parallel"
 )
@@ -42,7 +41,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	readyOnce.Do(func() {
 		mdb, err := database.Get(shared.ACTIVE_MAP)
 		if err != nil {
-			fmt.Printf("\n%s\n%v", colour.RedString("[OnReady]: wtf happened? error fetching db:"), err)
+			logutil.Printf(logutil.RED, "\n[OnReady]: wtf happened? error fetching db:\n%v", err)
 			return
 		}
 
@@ -59,6 +58,143 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	})
 }
 
+func UpdateData(mdb *database.Database) (
+	towns map[string]oapi.TownInfo, staleTowns map[string]oapi.TownInfo,
+	townless, residents oapi.EntityList, err error,
+) {
+	townStore, err := database.GetStore(mdb, database.TOWNS_STORE)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	entityStore, err := database.GetStore(mdb, database.ENTITIES_STORE)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	staleTowns = townStore.Entries()
+	logutil.Printf(logutil.HIDDEN, "DEBUG | Stale towns: %d", len(staleTowns))
+
+	townList, err := townStore.OverwriteFunc(false, func() (map[string]oapi.TownInfo, error) {
+		res, err := api.QueryAllTowns()
+		if err != nil {
+			return nil, err
+		}
+
+		return lo.SliceToMap(res, func(t oapi.TownInfo) (string, oapi.TownInfo) {
+			return t.UUID, t
+		}), nil
+	})
+	if err != nil {
+		return townList, staleTowns, nil, nil, err
+	}
+
+	//#region ============ GATHER DATA USING TOWNS ============
+	residentList, nlist := make(oapi.EntityList), make(oapi.EntityList)
+	for _, t := range townList {
+		for _, r := range t.Residents {
+			residentList[r.UUID] = r.Name
+		}
+		if t.Nation.UUID != nil {
+			nlist[*t.Nation.UUID] = *t.Nation.Name
+		}
+	}
+
+	entityStore.SetKeyFunc("residentlist", func() (entities oapi.EntityList, err error) {
+		return residentList, nil
+	})
+
+	nationList, _ := nationStore.OverwriteFunc(false, func() (map[string]oapi.NationInfo, error) {
+		uuids := lo.Keys(nlist)
+		res, _, _ := oapi.QueryNations(uuids...).ExecuteConcurrent()
+		return lo.SliceToMap(res, func(n oapi.NationInfo) (string, oapi.NationInfo) {
+			return n.UUID, n
+		}), nil
+	})
+	//#endregion
+
+	//#region ============ SPLIT RESIDENTS FROM TOWNLESS ============
+	players, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS).Execute()
+	if err != nil {
+		return townList, staleTowns, nil, residentList, err
+	}
+
+	townlessList, _ := entityStore.SetKeyFunc("townlesslist", func() (oapi.EntityList, error) {
+		entities := lo.FilterMap(players, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
+			_, ok := residentList[p.UUID]
+			return p, !ok
+		})
+
+		return lo.SliceToMap(entities, func(p oapi.Entity) (string, string) {
+			return p.UUID, p.Name
+		}), nil
+	})
+	//#endregion
+
+	//#region Populate player store with basic player info
+	// Use pointers so the town struct isn't copied every time.
+	// This should help with mem usage when we use it in building a basic player map.
+	playerTownLookup := make(map[string]*oapi.TownInfo, len(residentList))
+	for _, town := range townList {
+		for _, r := range town.Residents {
+			playerTownLookup[r.UUID] = &town
+		}
+	}
+	playerNationLookup := make(map[string]*oapi.NationInfo, len(residentList))
+	for _, nation := range nationList {
+		for _, r := range nation.Residents {
+			playerNationLookup[r.UUID] = &nation
+		}
+	}
+
+	playerStore.OverwriteFunc(false, func() (map[string]database.BasicPlayer, error) {
+		playersMap := make(map[string]database.BasicPlayer)
+		for uuid, name := range townlessList {
+			playersMap[uuid] = database.NewBasicPlayer(uuid, name)
+		}
+		for uuid, name := range residentList {
+			bp := database.NewBasicPlayer(uuid, name)
+			rank := database.RankTypeResident
+
+			// Get player town by their UUID. While the town should always exist,
+			// this prevents a potential panic and keeps them townless.
+			if t, ok := playerTownLookup[uuid]; ok {
+				bp.Town = &t.Entity
+				if t.Mayor.UUID == uuid {
+					rank = database.RankTypeMayor
+				}
+
+				if t.Nation.UUID != nil {
+					bp.Nation = &oapi.Entity{Name: *t.Nation.Name, UUID: *t.Nation.UUID}
+					if n, ok := playerNationLookup[uuid]; ok {
+						if n.King.UUID == uuid {
+							rank = database.RankTypeLeader
+						}
+					}
+				}
+			}
+
+			bp.Rank = &rank
+			playersMap[uuid] = bp
+		}
+
+		return playersMap, nil
+	})
+	//#endregion
+
+	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
+	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))
+	return townList, staleTowns, townlessList, residentList, err
+}
+
+// #region DB store update tasks
 func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 	fmt.Println()
 	logutil.Logln(logutil.BLUEBG, "[OnReady]: Running data update task...")
@@ -122,10 +258,6 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 	}
 }
 
-const NOSTRA_RELEASE_TIMESTAMP = 1776132038538
-
-type NewsEntryMap = map[database.NewsMessageID]database.NewsEntry
-
 func newsTask(s *discordgo.Session, channelID string, mdb *database.Database) {
 	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
 	if err != nil {
@@ -139,11 +271,11 @@ func newsTask(s *discordgo.Session, channelID string, mdb *database.Database) {
 		return
 	}
 
-	entries := database.MessagesToNewsEntries(newsMsgs)
+	entries := database.MessagesToNewsEntries(newsMsgs) // removes duplicate headlines
 	if mdb.Name() == shared.SUPPORTED_MAPS.NOSTRA {
 		for id, entry := range entries {
 			// We don't want to include news from before Nostra release.
-			if entry.Timestamp < NOSTRA_RELEASE_TIMESTAMP {
+			if entry.Timestamp < shared.NOSTRA_RELEASE_TIMESTAMP {
 				newsStore.Delete(id) // This is a no-op and just ensures old entries are removed if they somehow got in there before.
 				continue
 			}
@@ -157,144 +289,7 @@ func newsTask(s *discordgo.Session, channelID string, mdb *database.Database) {
 	}
 }
 
-func UpdateData(mdb *database.Database) (
-	towns map[string]oapi.TownInfo, staleTowns map[string]oapi.TownInfo,
-	townless, residents oapi.EntityList, err error,
-) {
-	townStore, err := database.GetStore(mdb, database.TOWNS_STORE)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	entityStore, err := database.GetStore(mdb, database.ENTITIES_STORE)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	staleTowns = townStore.Entries()
-	logutil.Printf(logutil.HIDDEN, "DEBUG | Stale towns: %d", len(staleTowns))
-
-	townList, err := townStore.OverwriteFunc(false, func() (map[string]oapi.TownInfo, error) {
-		res, err := api.QueryAllTowns()
-		if err != nil {
-			return nil, err
-		}
-
-		return lo.SliceToMap(res, func(t oapi.TownInfo) (string, oapi.TownInfo) {
-			return t.UUID, t
-		}), nil
-	})
-	if err != nil {
-		return townList, staleTowns, nil, nil, err
-	}
-
-	//region ============ GATHER DATA USING TOWNS ============
-	residentList, nlist := make(oapi.EntityList), make(oapi.EntityList)
-	for _, t := range townList {
-		for _, r := range t.Residents {
-			residentList[r.UUID] = r.Name
-		}
-		if t.Nation.UUID != nil {
-			nlist[*t.Nation.UUID] = *t.Nation.Name
-		}
-	}
-
-	entityStore.SetKeyFunc("residentlist", func() (entities oapi.EntityList, err error) {
-		return residentList, nil
-	})
-
-	nationList, _ := nationStore.OverwriteFunc(false, func() (map[string]oapi.NationInfo, error) {
-		uuids := lo.Keys(nlist)
-		res, _, _ := oapi.QueryNations(uuids...).ExecuteConcurrent()
-		return lo.SliceToMap(res, func(n oapi.NationInfo) (string, oapi.NationInfo) {
-			return n.UUID, n
-		}), nil
-	})
-	//endregion
-
-	//region ============ SPLIT RESIDENTS FROM TOWNLESS ============
-	players, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS).Execute()
-	if err != nil {
-		return townList, staleTowns, nil, residentList, err
-	}
-
-	townlessList, _ := entityStore.SetKeyFunc("townlesslist", func() (oapi.EntityList, error) {
-		entities := lo.FilterMap(players, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
-			_, ok := residentList[p.UUID]
-			return p, !ok
-		})
-
-		return lo.SliceToMap(entities, func(p oapi.Entity) (string, string) {
-			return p.UUID, p.Name
-		}), nil
-	})
-	//endregion
-
-	// Use pointers so the town struct isn't copied every time.
-	// This should help with mem usage when we use it in building a basic player map.
-	playerTownLookup := make(map[string]*oapi.TownInfo, len(residentList))
-	for _, town := range townList {
-		for _, r := range town.Residents {
-			playerTownLookup[r.UUID] = &town
-		}
-	}
-
-	playerNationLookup := make(map[string]*oapi.NationInfo, len(residentList))
-	for _, nation := range nationList {
-		for _, r := range nation.Residents {
-			playerNationLookup[r.UUID] = &nation
-		}
-	}
-
-	playerStore.OverwriteFunc(false, func() (map[string]database.BasicPlayer, error) {
-		playersMap := make(map[string]database.BasicPlayer)
-		for uuid, name := range townlessList {
-			playersMap[uuid] = database.NewBasicPlayerEntity(uuid, name)
-		}
-		for uuid, name := range residentList {
-			bp := database.NewBasicPlayerEntity(uuid, name)
-			rank := database.RankTypeResident
-
-			// Get player town by their UUID. While the town should always exist,
-			// this prevents a potential panic and keeps them townless.
-			if t, ok := playerTownLookup[uuid]; ok {
-				bp.Town = &t.Entity
-				if t.Mayor.UUID == uuid {
-					rank = database.RankTypeMayor
-				}
-
-				if t.Nation.UUID != nil {
-					bp.Nation = &oapi.Entity{Name: *t.Nation.Name, UUID: *t.Nation.UUID}
-					if n, ok := playerNationLookup[uuid]; ok {
-						if n.King.UUID == uuid {
-							rank = database.RankTypeLeader
-						}
-					}
-				}
-			}
-
-			bp.Rank = &rank
-			playersMap[uuid] = bp
-		}
-
-		return playersMap, nil
-	})
-
-	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
-	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))
-
-	return townList, staleTowns, townlessList, residentList, err
-}
+//#endregion
 
 // #region Channel notifs
 // TODO: Increase sample size from 2 (last check and current) with a sliding window for better rate/ETA accuracy.

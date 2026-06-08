@@ -30,9 +30,10 @@ func (p *BasicPlayer) RankString() string {
 	return "Townless"
 }
 
-func NewBasicPlayerEntity(id, n string) BasicPlayer {
+// Creates a new [BasicPlayer] with a nil rank and entity info (id, name).
+func NewBasicPlayer(id, name string) BasicPlayer {
 	return BasicPlayer{
-		Entity: oapi.Entity{UUID: id, Name: n},
+		Entity: oapi.Entity{UUID: id, Name: name},
 		Rank:   nil,
 	}
 }
