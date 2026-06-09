@@ -98,7 +98,7 @@ func NewAllianceEmbed(
 	desc := fmt.Sprintf("**Leaders(s)**\n%s\n\n**Discord Representative**\n%s", leadersValue, representativeValue)
 
 	embed := discordutil.NewEmbed(&embedColour, &title, &desc, nil)
-	AddField(embed, "Stats", stats, false)
+	AddField(embed, "Stats", stats, true)
 
 	coloursStr := "No colours set."
 	if a.Optional.Colours != nil && a.Optional.Colours.Fill != nil {
@@ -122,7 +122,6 @@ func NewAllianceEmbed(
 	}
 
 	ownNationsValue := fmt.Sprintf("```%s```", strings.Join(ownNationNames, ", "))
-
 	if len(childNations) < 1 {
 		if len(ownNationsValue) > discordutil.EMBED_FIELD_VALUE_LIMIT {
 			ownNationsValue = "Too many nations to display. Use `/alliance nations` to see the full list."
@@ -434,11 +433,6 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 		},
 	}
 
-	// TODO: Turn both wiki and discord into buttons rather than just setting the embed URL to one of them.
-	if town.Wiki != "" {
-		embed.URL = town.Wiki
-	}
-
 	status := town.Status
 	flags := town.Perms.Flags
 	build, destroy, sw, itemUse := town.Perms.GetPermStrings()
@@ -480,9 +474,6 @@ func NewNationEmbed(
 
 	capitalName := nation.Capital.Name
 	leaderName := nation.King.Name
-
-	// TODO: add bonus to stats field
-	//nationBonus :=
 
 	open := fmt.Sprintf("%s Open", lo.Ternary(nation.Status.Open, ":green_circle:", ":red_circle:"))
 	public := fmt.Sprintf("%s Public", lo.Ternary(nation.Status.Public, ":green_circle:", ":red_circle:"))
@@ -546,16 +537,6 @@ func NewNationEmbed(
 			NewEmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
 			NewEmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),
 		},
-	}
-
-	// TODO: Turn both wiki and discord into buttons rather than just setting the embed URL to one of them.
-	// if nation.Discord != nil {
-	// 	embed.URL = *nation.Discord
-	// }
-
-	if nation.Wiki != "" {
-		embed.URL = nation.Wiki
-		embed.Title = fmt.Sprintf("Nation Information | %s", nation.Name)
 	}
 
 	ranksStr := strings.Join(rankLines, "\n")

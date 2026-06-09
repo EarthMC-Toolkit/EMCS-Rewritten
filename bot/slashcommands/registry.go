@@ -73,6 +73,7 @@ func SyncRemote(s *discordgo.Session, appID, guildID string) (local []*discordgo
 	}
 
 	logutil.Println(logutil.GREEN, "Successfully synced slash commands.")
+	logutil.Space()
 	return
 }
 

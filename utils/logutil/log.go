@@ -69,6 +69,10 @@ func Println(col *colour.Color, args ...any) {
 	fmt.Println(col.Sprint(args...))
 }
 
+func Space() {
+	fmt.Println()
+}
+
 func Logf(col *colour.Color, format string, args ...any) {
 	log.Print(col.Sprintf(format, args...))
 }
