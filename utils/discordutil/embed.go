@@ -152,8 +152,3 @@ func PrependField(embed *discordgo.MessageEmbed, name string, value string, inli
 // func (e *EmbedBuilder) Build() *discordgo.MessageEmbed {
 // 	return (*discordgo.MessageEmbed)(e)
 // }
-
-// type LabelledValue struct {
-// 	Label string `json:"label"`
-// 	Value string `json:"value"`
-// }

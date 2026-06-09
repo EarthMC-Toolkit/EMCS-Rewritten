@@ -26,7 +26,11 @@ func BoolOption(name, description string) *discordgo.ApplicationCommandOption {
 	}
 }
 
-func StringOption(name, description string, minLen *int, maxLen *int, choices ...*discordgo.ApplicationCommandOptionChoice) *discordgo.ApplicationCommandOption {
+func StringOption(
+	name, description string,
+	minLen *int, maxLen *int,
+	choices ...*discordgo.ApplicationCommandOptionChoice,
+) *discordgo.ApplicationCommandOption {
 	max := 0
 	if maxLen != nil {
 		max = *maxLen

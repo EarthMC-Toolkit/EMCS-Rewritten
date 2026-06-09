@@ -193,8 +193,18 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 	allianceStore, _ := database.GetStore(mdb, database.ALLIANCES_STORE)
 	newsStore, _ := database.GetStore(mdb, database.NEWS_STORE)
 
-	embed := embeds.NewNationEmbed(*nation, newsStore, allianceStore)
-	return discordutil.FollowupEmbeds(s, i, embed)
+	msg := discordutil.NewMessageBuilder()
+	msg.AddEmbed(embeds.NewNationEmbed(*nation, newsStore, allianceStore))
+	if nation.Discord != nil {
+		discordEmoji := &discordgo.ComponentEmoji{Name: "discordlogo", ID: "1513955352608243923"}
+		msg.AddButton("Join discord", discordgo.LinkButton, nation.Discord, discordEmoji, nil)
+	}
+	if nation.Wiki != "" {
+		linkEmoji := &discordgo.ComponentEmoji{Name: "📰"}
+		msg.AddButton("View wiki page", discordgo.LinkButton, &nation.Wiki, linkEmoji, nil)
+	}
+
+	return discordutil.Followup(s, i, msg.WebhookData())
 }
 
 func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {

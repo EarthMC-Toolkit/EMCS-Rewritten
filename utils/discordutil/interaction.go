@@ -270,21 +270,18 @@ func GetActiveSubCommand(opts []*discordgo.ApplicationCommandInteractionDataOpti
 }
 
 type FormatFunc[T any, V any] = func(item T, index int) (name string, value V)
+type OptChoice = discordgo.ApplicationCommandOptionChoice
 
 // Creates a slice of [discordgo.ApplicationCommandOptionChoice] by transforming the given items slice.
 // The Name and Value are acquired from the given format function (where T is the item).
 // This resulting slice is then capped at the max Discord allows to prevent the command from failing.
 //
 // NOTE: Formatting like **bold** or italics won't work in autocomplete so don't use those when formatting Name.
-func CreateAutocompleteChoices[T any, V any](items []T, format FormatFunc[T, V]) []*discordgo.ApplicationCommandOptionChoice {
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, 0, len(items))
+func CreateAutocompleteChoices[T any, V any](items []T, format FormatFunc[T, V]) []*OptChoice {
+	choices := make([]*OptChoice, 0, len(items))
 	for i, item := range items {
-		name, value := format(item, i)
-		choices = append(choices, &discordgo.ApplicationCommandOptionChoice{
-			Name:  name,
-			Value: value,
-		})
-
+		n, v := format(item, i)
+		choices = append(choices, &OptChoice{Name: n, Value: v})
 		if len(choices) == AUTOCOMPLETE_CHOICE_LIMIT {
 			break
 		}

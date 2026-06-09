@@ -221,8 +221,18 @@ func executeTownQuery(s *discordgo.Session, i *discordgo.Interaction, townName s
 		return discordutil.FollowupContentEphemeral(s, i, err.Error())
 	}
 
-	embed := embeds.NewTownEmbed(*town)
-	return discordutil.FollowupEmbeds(s, i, embed)
+	msg := discordutil.NewMessageBuilder()
+	msg.AddEmbed(embeds.NewTownEmbed(*town))
+	if town.Discord != nil {
+		discordEmoji := &discordgo.ComponentEmoji{Name: "discordlogo", ID: "1513955352608243923"}
+		msg.AddButton("Join discord", discordgo.LinkButton, town.Discord, discordEmoji, nil)
+	}
+	if town.Wiki != "" {
+		linkEmoji := &discordgo.ComponentEmoji{Name: "📰"}
+		msg.AddButton("View wiki page", discordgo.LinkButton, &town.Wiki, linkEmoji, nil)
+	}
+
+	return discordutil.Followup(s, i, msg.WebhookData())
 }
 
 func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
