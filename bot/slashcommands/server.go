@@ -115,10 +115,10 @@ func executeServerInfo(s *discordgo.Session, i *discordgo.Interaction) (*discord
 	mapName := string(shared.ACTIVE_MAP)
 	title := "Server Info | " + strings.ToUpper(mapName)
 
-	embed := discordutil.NewEmbed(&discordutil.BLURPLE, &title, nil, nil)
-	embed.Fields = []*discordgo.MessageEmbedField{timestampsField, vpField, statsField}
+	embed := discordutil.NewEmbedBuilder(&discordutil.BLURPLE, &title, nil, nil)
+	embed.SetFields(timestampsField, vpField, statsField)
 
-	return discordutil.FollowupEmbeds(s, i, embed)
+	return discordutil.FollowupEmbeds(s, i, embed.Build())
 }
 
 // var PLAYER_STATS_GROUP_ORDER = [...]string{

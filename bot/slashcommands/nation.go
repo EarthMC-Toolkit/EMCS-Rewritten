@@ -291,13 +291,11 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 		}
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
-		embed := &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("[%d] List of Nations | %s", nationCount, pageStr),
-			Description: strings.Join(nationStrings, "\n\n"),
-			Color:       discordutil.AQUA,
-		}
+		title := fmt.Sprintf("[%d] List of Nations | %s", nationCount, pageStr)
+		desc := strings.Join(nationStrings, "\n\n")
 
-		data.Embeds = []*discordgo.MessageEmbed{embed}
+		embed := discordutil.NewEmbedBuilder(&discordutil.AQUA, &title, &desc, nil)
+		data.Embeds = []*discordgo.MessageEmbed{embed.Build()}
 	}
 
 	return paginator.Start()

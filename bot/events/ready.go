@@ -500,22 +500,17 @@ func TrySendLeftJoinedNotif(
 		return
 	}
 
-	s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
-		Color: discordutil.DARK_GREEN,
-		Title: "Player Flow | Town Join/Leave Events",
-		Fields: []*discordgo.MessageEmbedField{
-			{
-				Name:   fmt.Sprintf("%s Became townless [%d]", shared.EMOJIS.EXIT, len(left)),
-				Value:  strings.Join(left, "\n\n"),
-				Inline: true,
-			},
-			{
-				Name:   fmt.Sprintf("%s Became a resident [%d]", shared.EMOJIS.ENTRY, len(joined)),
-				Value:  strings.Join(joined, "\n\n"),
-				Inline: true,
-			},
-		},
-	})
+	leftField := fmt.Sprintf("%s Became a nomad [%d]", shared.EMOJIS.EXIT, len(left))
+	joinedField := fmt.Sprintf("%s Became a resident [%d]", shared.EMOJIS.ENTRY, len(joined))
+
+	title := "Player Flow | Town Join/Leave Events"
+	embed := discordutil.NewEmbedBuilder(&discordutil.DARK_GREEN, &title, nil, nil)
+	embed.SetFields(
+		discordutil.NewEmbedField(leftField, strings.Join(left, "\n\n"), true),
+		discordutil.NewEmbedField(joinedField, strings.Join(joined, "\n\n"), true),
+	)
+
+	s.ChannelMessageSendEmbed(channelID, embed.Build())
 }
 
 //#endregion

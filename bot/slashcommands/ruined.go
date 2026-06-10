@@ -84,8 +84,8 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		title := fmt.Sprintf("[%d] List of Ruined Towns | %s", pageCount, pageStr)
 		desc := descBuilder.String()
 
-		embed := discordutil.NewEmbed(&discordutil.DARK_GOLD, &title, &desc, nil)
-		data.Embeds = []*discordgo.MessageEmbed{embed}
+		embed := discordutil.NewEmbedBuilder(&discordutil.DARK_GOLD, &title, &desc, nil)
+		data.Embeds = []*discordgo.MessageEmbed{embed.Build()}
 	}
 
 	return paginator.Start()

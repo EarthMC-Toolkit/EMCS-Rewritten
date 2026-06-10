@@ -108,8 +108,8 @@ func executeLatestNews(
 	desc, amt := embeds.BuildNewsString(articles, count, discordutil.EMBED_DESCRIPTION_LIMIT)
 	title := fmt.Sprintf("[%d] News Articles | Latest", amt)
 
-	embed := discordutil.NewEmbed(&discordutil.AQUA, &title, &desc, nil)
-	_, err := discordutil.FollowupEmbeds(s, i, embed)
+	embed := discordutil.NewEmbedBuilder(&discordutil.AQUA, &title, &desc, nil)
+	_, err := discordutil.FollowupEmbeds(s, i, embed.Build())
 	return err
 }
 
@@ -127,8 +127,8 @@ func executeChangelogNews(
 	desc, amt := embeds.BuildNewsString(articles, 10, discordutil.EMBED_DESCRIPTION_LIMIT)
 	title := fmt.Sprintf("[%d] News Articles | Changelogs", amt)
 
-	embed := discordutil.NewEmbed(&discordutil.AQUA, &title, &desc, nil)
-	_, err := discordutil.FollowupEmbeds(s, i, embed)
+	embed := discordutil.NewEmbedBuilder(&discordutil.AQUA, &title, &desc, nil)
+	_, err := discordutil.FollowupEmbeds(s, i, embed.Build())
 	return err
 }
 
@@ -149,7 +149,7 @@ func executeSearchNews(
 	desc, amt := embeds.BuildNewsString(articles, 20, discordutil.EMBED_DESCRIPTION_LIMIT)
 	title := fmt.Sprintf("[%d] News Articles | Search by term: `%s`", amt, term)
 
-	embed := discordutil.NewEmbed(&discordutil.AQUA, &title, &desc, nil)
-	_, err := discordutil.FollowupEmbeds(s, i, embed)
+	embed := discordutil.NewEmbedBuilder(&discordutil.AQUA, &title, &desc, nil)
+	_, err := discordutil.FollowupEmbeds(s, i, embed.Build())
 	return err
 }

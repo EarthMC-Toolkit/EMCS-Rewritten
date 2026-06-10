@@ -910,9 +910,7 @@ func handleAllianceEditorModalOptional(
 
 	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content: "Successfully edited alliance. Result:",
-		Embeds: []*discordgo.MessageEmbed{
-			embeds.NewAllianceEmbed(s, mdb, *alliance, nil),
-		},
+		Embeds:  []*discordgo.MessageEmbed{embeds.NewAllianceEmbed(s, mdb, *alliance, nil)},
 	})
 
 	// After sending updated alliance embed, report missing leaders if any.

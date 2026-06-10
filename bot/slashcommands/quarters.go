@@ -130,22 +130,20 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		// }
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
-		embed := &discordgo.MessageEmbed{
-			Title:  fmt.Sprintf("Quarters For Sale | `%s` | %s", affiliation, pageStr),
-			Footer: discordutil.DEFAULT_FOOTER,
-			Color:  discordutil.BLURPLE,
-			Fields: []*discordgo.MessageEmbedField{
-				NewEmbedField("Name", fmt.Sprintf("`%s`", q.Name), true),
-				NewEmbedField("Current Owner", fmt.Sprintf("`%s`", owner), true),
-				NewEmbedField("Created", registeredStr, true),
-				//NewEmbedField("Creator", fmt.Sprintf("`%s`", creator), true),
-				NewEmbedField("Type", fmt.Sprintf("`%s`", q.Type), true),
-				NewEmbedField("Embassy", fmt.Sprintf("`%t`", q.Status.IsEmbassy), true),
-				NewEmbedField("Price", fmt.Sprintf("`%.0f`G %s", price, shared.EMOJIS.GOLD_INGOT), true),
-			},
-		}
+		title := fmt.Sprintf("Quarters For Sale | `%s` | %s", affiliation, pageStr)
 
-		data.Embeds = []*discordgo.MessageEmbed{embed}
+		embed := discordutil.NewEmbedBuilder(&discordutil.BLURPLE, &title, nil, nil)
+		embed.SetFields(
+			NewEmbedField("Name", fmt.Sprintf("`%s`", q.Name), true),
+			NewEmbedField("Current Owner", fmt.Sprintf("`%s`", owner), true),
+			NewEmbedField("Created", registeredStr, true),
+			//NewEmbedField("Creator", fmt.Sprintf("`%s`", creator), true),
+			NewEmbedField("Type", fmt.Sprintf("`%s`", q.Type), true),
+			NewEmbedField("Embassy", fmt.Sprintf("`%t`", q.Status.IsEmbassy), true),
+			NewEmbedField("Price", fmt.Sprintf("`%.0f`G %s", price, shared.EMOJIS.GOLD_INGOT), true),
+		)
+
+		data.Embeds = []*discordgo.MessageEmbed{embed.Build()}
 	}
 
 	return paginator.Start()

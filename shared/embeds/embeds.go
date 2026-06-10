@@ -97,8 +97,8 @@ func NewAllianceEmbed(
 
 	desc := fmt.Sprintf("**Leaders(s)**\n%s\n\n**Discord Representative**\n%s", leadersValue, representativeValue)
 
-	embed := discordutil.NewEmbed(&embedColour, &title, &desc, nil)
-	AddField(embed, "Stats", stats, true)
+	embed := discordutil.NewEmbedBuilder(&embedColour, &title, &desc, nil)
+	embed.AddField("Stats", stats, true)
 
 	coloursStr := "No colours set."
 	if a.Optional.Colours != nil && a.Optional.Colours.Fill != nil {
@@ -112,13 +112,13 @@ func NewAllianceEmbed(
 		coloursStr = fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", fill, outline)
 	}
 
-	AddField(embed, "Colours", coloursStr, true)
-	AddField(embed, "Type", fmt.Sprintf("`%s`", a.Type.Colloquial()), true)
-	AddField(embed, "Registered", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", registered, registered), true)
+	embed.AddField("Colours", coloursStr, true)
+	embed.AddField("Type", fmt.Sprintf("`%s`", a.Type.Colloquial()), true)
+	embed.AddField("Registered", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", registered, registered), true)
 
 	if a.UpdatedTimestamp != nil {
 		updatedSec := *a.UpdatedTimestamp / 1000
-		AddField(embed, "Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", updatedSec, updatedSec), true)
+		embed.AddField("Last Updated", fmt.Sprintf("<t:%d:f>\n<t:%d:R>", updatedSec, updatedSec), true)
 	}
 
 	ownNationsValue := fmt.Sprintf("```%s```", strings.Join(ownNationNames, ", "))
@@ -127,13 +127,13 @@ func NewAllianceEmbed(
 			ownNationsValue = "Too many nations to display. Use `/alliance nations` to see the full list."
 		}
 
-		AddField(embed, fmt.Sprintf("Nations [%d]", len(ownNations)), ownNationsValue, false)
+		embed.AddField(fmt.Sprintf("Nations [%d]", len(ownNations)), ownNationsValue, false)
 	} else {
 		if len(ownNationsValue) > discordutil.EMBED_FIELD_VALUE_LIMIT {
 			ownNationsValue = "Too many nations to display. Use `/alliance nations` to see the full list."
 		}
 
-		AddField(embed, fmt.Sprintf("Self Nations [%d]", len(ownNations)), ownNationsValue, false)
+		embed.AddField(fmt.Sprintf("Self Nations [%d]", len(ownNations)), ownNationsValue, false)
 
 		childAllianceNames := lo.Map(childAlliances, func(a database.Alliance, _ int) string {
 			return fmt.Sprintf("`%s`", a.Identifier)
@@ -158,7 +158,7 @@ func NewAllianceEmbed(
 			childNationsValue = "Too many puppet nations to display. Use `/alliance nations` to see the full list."
 		}
 
-		AddField(embed, childNationsKey, childNationsValue, false)
+		embed.AddField(childNationsKey, childNationsValue, false)
 	}
 
 	newsStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NEWS_STORE)
@@ -166,7 +166,7 @@ func NewAllianceEmbed(
 		allianceNews := database.GetAllianceNews(newsStore, a)
 		if len(allianceNews) > 0 {
 			recentNewsStr, count := BuildNewsString(allianceNews, 2, discordutil.EMBED_FIELD_VALUE_LIMIT)
-			AddField(embed, fmt.Sprintf("Recent News [%d]", count), recentNewsStr, false)
+			embed.AddField(fmt.Sprintf("Recent News [%d]", count), recentNewsStr, false)
 		}
 	}
 
@@ -193,7 +193,7 @@ func NewAllianceEmbed(
 		}
 	}
 
-	return embed
+	return embed.Build()
 }
 
 // Builds an embed that describes a user with only minimal info.
@@ -322,21 +322,14 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 		}), ", ")
 	}
 
-	embed := &discordgo.MessageEmbed{
-		Type:   discordgo.EmbedTypeRich,
-		Color:  discordutil.DARK_PURPLE,
-		Footer: discordutil.DEFAULT_FOOTER,
-		Thumbnail: &discordgo.MessageEmbedThumbnail{
-			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID),
-		},
-		Title: title,
-		Fields: []*discordgo.MessageEmbedField{
-			// Affiliation (prepended)
-			// Rank (prepended)
-			NewEmbedField("Balance", logutil.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, shared.EMOJIS.GOLD_INGOT), true),
-			NewEmbedField("Status", status, true),
-		},
-	}
+	embed := discordutil.NewEmbedBuilder(&discordutil.DARK_PURPLE, &title, nil, nil)
+	embed.SetThumbnail(fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID), nil)
+	embed.SetFields(
+		// Affiliation (prepended)
+		// Rank (prepended)
+		NewEmbedField("Balance", logutil.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, shared.EMOJIS.GOLD_INGOT), true),
+		NewEmbedField("Status", status, true),
+	)
 
 	if player.About != nil {
 		about := *player.About
@@ -346,31 +339,31 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 	}
 
 	if joinedTownTs != nil {
-		AddField(embed, "Joined Town", fmt.Sprintf("<t:%d:R>", *joinedTownTs/1000), true)
+		embed.AddField("Joined Town", fmt.Sprintf("<t:%d:R>", *joinedTownTs/1000), true)
 	}
 
-	AddField(embed, "Registered", fmt.Sprintf("<t:%d:R>", registeredTs/1000), true)
-	AddField(embed, "Appointed Ranks", fmt.Sprintf("Town: %s\nNation: %s", townRanksStr, nationRanksStr), false)
-	AddField(embed, "Friends", friendsStr, false)
-	AddField(embed, "Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false)
+	embed.AddField("Registered", fmt.Sprintf("<t:%d:R>", registeredTs/1000), true)
+	embed.AddField("Appointed Ranks", fmt.Sprintf("Town: %s\nNation: %s", townRanksStr, nationRanksStr), false)
+	embed.AddField("Friends", friendsStr, false)
+	embed.AddField("Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false)
 
 	if player.Discord != nil {
 		if user, err := s.User(*player.Discord); err != nil {
-			AddField(embed, "Discord", fmt.Sprintf("<@%s> (%s)", user.ID, user.String()), false)
+			embed.AddField("Discord", fmt.Sprintf("<@%s> (%s)", user.ID, user.String()), false)
 		} else {
-			AddField(embed, "Discord", fmt.Sprintf("<@%s>", *player.Discord), false)
+			embed.AddField("Discord", fmt.Sprintf("<@%s>", *player.Discord), false)
 		}
 	}
 
 	// Second field
 	if townName != "No Town" {
-		PrependField(embed, "Rank", rank, true)
+		embed.PrependField("Rank", rank, true)
 	}
 
 	// First field
-	PrependField(embed, "Affiliation", affiliation, true)
+	embed.PrependField("Affiliation", affiliation, true)
 
-	return embed
+	return embed.Build()
 }
 
 func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
@@ -415,45 +408,39 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 		spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
 	)
 
-	embed := &discordgo.MessageEmbed{
-		Type:        discordgo.EmbedTypeRich,
-		Title:       townTitle,
-		Description: desc,
-		Color:       colour,
-		Footer:      discordutil.DEFAULT_FOOTER,
-		Fields: []*discordgo.MessageEmbedField{
-			NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by `%s`", foundedTs, town.Founder), false),
-			NewEmbedField("Mayor", fmt.Sprintf("`%s`", town.Mayor.Name), true),
-			NewEmbedField("Nation", fmt.Sprintf("`%s`%s", nationName, nationJoin), true),
-			NewEmbedField("Location", locationLink, true),
-			NewEmbedField("Stats", fmt.Sprintf(
-				"Size: %s\nBalance: %s\nResidents: %s\nTrusted/Outlaws: %s",
-				sizeStr, balanceStr, residentsStr, trustedOutlawsStr,
-			), false),
-		},
-	}
+	mayorStr := fmt.Sprintf("[%s](%s)", town.Mayor.Name, shared.NAMEMC_URL+town.Mayor.Name)
+	founderStr := fmt.Sprintf("[%s](%s)", town.Founder, shared.NAMEMC_URL+town.Founder)
 
 	status := town.Status
 	flags := town.Perms.Flags
 	build, destroy, sw, itemUse := town.Perms.GetPermStrings()
 
-	AddField(embed, "Status", fmt.Sprintf(
-		"%s Open\n%s Public\n%s Neutral\n%s Can Outsiders Spawn\n%s Overclaimed\n%s For Sale",
-		BoolToEmoji(status.Open), BoolToEmoji(status.Public), BoolToEmoji(status.Neutral),
-		BoolToEmoji(status.CanOutsidersSpawn), BoolToEmoji(status.Overclaimed), BoolToEmoji(status.ForSale),
-	), true)
+	embed := discordutil.NewEmbedBuilder(&colour, &townTitle, &desc, nil)
+	embed.SetFields(
+		NewEmbedField("Origin", fmt.Sprintf("Founded <t:%d:R> by %s", foundedTs, founderStr), false),
+		NewEmbedField("Mayor", mayorStr, true),
+		NewEmbedField("Nation", fmt.Sprintf("`%s`%s", nationName, nationJoin), true),
+		NewEmbedField("Location", locationLink, true),
+		NewEmbedField("Stats", fmt.Sprintf(
+			"Size: %s\nBalance: %s\nResidents: %s\nTrusted/Outlaws: %s",
+			sizeStr, balanceStr, residentsStr, trustedOutlawsStr,
+		), false),
+		NewEmbedField("Status", fmt.Sprintf(
+			"%s Open\n%s Public\n%s Neutral\n%s Can Outsiders Spawn\n%s Overclaimed\n%s For Sale",
+			BoolToEmoji(status.Open), BoolToEmoji(status.Public), BoolToEmoji(status.Neutral),
+			BoolToEmoji(status.CanOutsidersSpawn), BoolToEmoji(status.Overclaimed), BoolToEmoji(status.ForSale),
+		), true),
+		NewEmbedField("Flags", fmt.Sprintf(
+			"%s Explosions\n%s Mobs\n%s Fire\n%s PVP",
+			BoolToEmoji(flags.Explosions), BoolToEmoji(flags.Mobs), BoolToEmoji(flags.Fire), BoolToEmoji(flags.PVP),
+		), true),
+		NewEmbedField("Permissions", fmt.Sprintf(
+			"Build: `%s`\nDestroy: `%s`\nSwitch: `%s`\nItem Use: `%s`",
+			build, destroy, sw, itemUse,
+		), true),
+	)
 
-	AddField(embed, "Flags", fmt.Sprintf(
-		"%s Explosions\n%s Mobs\n%s Fire\n%s PVP",
-		BoolToEmoji(flags.Explosions), BoolToEmoji(flags.Mobs), BoolToEmoji(flags.Fire), BoolToEmoji(flags.PVP),
-	), true)
-
-	AddField(embed, "Permissions", fmt.Sprintf(
-		"Build: `%s`\nDestroy: `%s`\nSwitch: `%s`\nItem Use: `%s`",
-		build, destroy, sw, itemUse,
-	), true)
-
-	return embed
+	return embed.Build()
 }
 
 func NewNationEmbed(
@@ -522,35 +509,31 @@ func NewNationEmbed(
 		spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
 	)
 
-	embed := &discordgo.MessageEmbed{
-		Type:        discordgo.EmbedTypeRich,
-		Title:       fmt.Sprintf("Nation Information | `%s`", nation.Name),
-		Description: board,
-		Color:       nation.FillColourInt(),
-		Footer:      discordutil.DEFAULT_FOOTER,
-		Fields: []*discordgo.MessageEmbedField{
-			NewEmbedField("Founded", dateFounded, false),
-			NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, shared.NAMEMC_URL+nation.King.UUID), true),
-			NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
-			NewEmbedField("Location", locationLink, true),
-			NewEmbedField("Stats", statsStr, true),
-			NewEmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
-			NewEmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),
-		},
-	}
+	colour := nation.FillColourInt()
+	title := fmt.Sprintf("Nation Information | `%s`", nation.Name)
+	embed := discordutil.NewEmbedBuilder(&colour, &title, &board, nil)
+	embed.SetFields(
+		NewEmbedField("Founded", dateFounded, false),
+		NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, shared.NAMEMC_URL+nation.King.UUID), true),
+		NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
+		NewEmbedField("Location", locationLink, true),
+		NewEmbedField("Stats", statsStr, true),
+		NewEmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
+		NewEmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),
+	)
 
 	ranksStr := strings.Join(rankLines, "\n")
 	if ranksContainingPlayers > 0 {
 		ranksStr = strings.Join(rankLines, "\n\n")
 	}
 	if len(ranksStr) < discordutil.EMBED_FIELD_VALUE_LIMIT {
-		AddField(embed, "Ranks", ranksStr, true)
+		embed.AddField("Ranks", ranksStr, true)
 	}
 
 	townListStr := strings.Join(townNames, ", ")
 	if len(townListStr) <= discordutil.EMBED_FIELD_VALUE_LIMIT {
 		townListStr = fmt.Sprintf("```%s```", townListStr)
-		AddField(embed, fmt.Sprintf("Towns [%d]", stats.NumTowns), townListStr, false)
+		embed.AddField(fmt.Sprintf("Towns [%d]", stats.NumTowns), townListStr, false)
 	}
 
 	//#region Alliances field
@@ -576,7 +559,7 @@ func NewNationEmbed(
 		seenCount := len(seen)
 		if seenCount > 0 {
 			relatedAlliancesStr := fmt.Sprintf("```%s```", strings.Join(seen.Keys(), ", "))
-			AddField(embed, fmt.Sprintf("Alliances [%d]", seenCount), relatedAlliancesStr, false)
+			embed.AddField(fmt.Sprintf("Alliances [%d]", seenCount), relatedAlliancesStr, false)
 		}
 	}
 	//#endregion
@@ -586,12 +569,12 @@ func NewNationEmbed(
 		nationNews := database.GetNationNews(newsStore, nation)
 		if len(nationNews) > 0 {
 			recentNewsStr, count := BuildNewsString(nationNews, 2, discordutil.EMBED_FIELD_VALUE_LIMIT)
-			AddField(embed, fmt.Sprintf("Recent News [%d]", count), recentNewsStr, false)
+			embed.AddField(fmt.Sprintf("Recent News [%d]", count), recentNewsStr, false)
 		}
 	}
 	//#endregion
 
-	return embed
+	return embed.Build()
 }
 
 func NewTownlessPageEmbed(names []string) (*discordgo.MessageEmbed, error) {

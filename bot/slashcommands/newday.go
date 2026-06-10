@@ -67,9 +67,9 @@ func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 		sec, FormatDuration(secUntilNewDay),
 	)
 
-	embed := discordutil.NewEmbed(&discordutil.DARK_PURPLE, &title, &desc, nil)
+	embed := discordutil.NewEmbedBuilder(&discordutil.DARK_PURPLE, &title, &desc, nil)
 	discordutil.SendOrEditReply(s, i, &discordgo.InteractionResponseData{
-		Embeds: []*discordgo.MessageEmbed{embed},
+		Embeds: []*discordgo.MessageEmbed{embed.Build()},
 	})
 
 	return nil

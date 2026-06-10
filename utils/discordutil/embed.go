@@ -36,26 +36,9 @@ var DEFAULT_FOOTER = &discordgo.MessageEmbedFooter{
 	Text:    "Maintained by Owen3H • Open Source on GitHub 💛", // unless you maintain your own fork, pls keep this as is :)
 }
 
-func NewEmbed(colour *int, title *string, description *string, footer *discordgo.MessageEmbedFooter) *discordgo.MessageEmbed {
-	e := &discordgo.MessageEmbed{Color: DEFAULT, Footer: DEFAULT_FOOTER}
-	if colour != nil {
-		e.Color = *colour
-	}
-	if title != nil {
-		e.Title = *title
-	}
-	if description != nil {
-		e.Description = *description
-	}
-	if footer != nil {
-		e.Footer = footer
-	}
-
-	return e
-}
-
 // TODO: Maybe create a CustomEmbed that wraps MessageEmbed and adds these methods?
-// #region
+// #region Embed field helper funcs
+
 func NewEmbedFieldSpacer(inline bool) *discordgo.MessageEmbedField {
 	return NewEmbedField("", "", inline)
 }
@@ -78,77 +61,110 @@ func PrependField(embed *discordgo.MessageEmbed, name string, value string, inli
 
 //#endregion
 
-// type EmbedBuilder discordgo.MessageEmbed
+// Helper for building a Discord embed in a more convenient and programmatic way.
+type EmbedBuilder discordgo.MessageEmbed
 
-// func NewEmbedBuilder() *EmbedBuilder {
-// 	return &EmbedBuilder{Color: DEFAULT}
-// }
+func NewEmbedBuilder(colour *int, title *string, description *string, footer *discordgo.MessageEmbedFooter) *EmbedBuilder {
+	e := &EmbedBuilder{Type: discordgo.EmbedTypeRich, Color: DEFAULT, Footer: DEFAULT_FOOTER}
+	if colour != nil {
+		e.Color = *colour
+	}
+	if title != nil {
+		e.Title = *title
+	}
+	if description != nil {
+		e.Description = *description
+	}
+	if footer != nil {
+		e.Footer = footer
+	}
 
-// func (e *EmbedBuilder) SetTitle(title string) *EmbedBuilder {
-// 	e.Title = title
-// 	return e
-// }
+	return e
+}
 
-// func (e *EmbedBuilder) SetDescription(description string) *EmbedBuilder {
-// 	e.Description = description
-// 	return e
-// }
+func (e *EmbedBuilder) SetType(t discordgo.EmbedType) *EmbedBuilder {
+	e.Type = t
+	return e
+}
 
-// func (e *EmbedBuilder) SetURL(url string) *EmbedBuilder {
-// 	e.URL = url
-// 	return e
-// }
+func (e *EmbedBuilder) SetTitle(title string) *EmbedBuilder {
+	e.Title = title
+	return e
+}
 
-// func (e *EmbedBuilder) SetColour(color int) *EmbedBuilder {
-// 	e.Color = color
-// 	return e
-// }
+func (e *EmbedBuilder) SetDescription(description string) *EmbedBuilder {
+	e.Description = description
+	return e
+}
 
-// func (e *EmbedBuilder) SetFooter(text string, iconURL *string) *EmbedBuilder {
-// 	e.Footer = &discordgo.MessageEmbedFooter{Text: text}
-// 	if iconURL != nil {
-// 		e.Footer.IconURL = *iconURL
-// 	}
+func (e *EmbedBuilder) SetURL(url string) *EmbedBuilder {
+	e.URL = url
+	return e
+}
 
-// 	return e
-// }
+func (e *EmbedBuilder) SetColour(color int) *EmbedBuilder {
+	e.Color = color
+	return e
+}
 
-// func (e *EmbedBuilder) SetThumbnail(url string) *EmbedBuilder {
-// 	e.Thumbnail = &discordgo.MessageEmbedThumbnail{URL: url}
-// 	return e
-// }
+func (e *EmbedBuilder) SetFooter(text string, iconURL *string) *EmbedBuilder {
+	e.Footer = &discordgo.MessageEmbedFooter{Text: text}
+	if iconURL != nil {
+		e.Footer.IconURL = *iconURL
+	}
 
-// func (e *EmbedBuilder) SetImage(url string) *EmbedBuilder {
-// 	e.Image = &discordgo.MessageEmbedImage{URL: url}
-// 	return e
-// }
+	return e
+}
 
-// func (e *EmbedBuilder) SetAuthor(name string, url *string, iconURL *string) *EmbedBuilder {
-// 	e.Author = &discordgo.MessageEmbedAuthor{Name: name}
-// 	if url != nil {
-// 		e.Author.URL = *url
-// 	}
-// 	if iconURL != nil {
-// 		e.Author.IconURL = *iconURL
-// 	}
+func (e *EmbedBuilder) SetThumbnail(url string, proxyUrl *string) *EmbedBuilder {
+	e.Thumbnail = &discordgo.MessageEmbedThumbnail{URL: url}
+	e.Thumbnail.ProxyURL = *proxyUrl
+	return e
+}
 
-// 	return e
-// }
+func (e *EmbedBuilder) SetThumbnailSize(width, height int) *EmbedBuilder {
+	e.Thumbnail.Width = width
+	e.Thumbnail.Height = height
+	return e
+}
 
-// func SetTimestamp(e *discordgo.MessageEmbed, timestamp string) {
-// 	e.Timestamp = timestamp
-// }
+func (e *EmbedBuilder) SetImage(url string) *EmbedBuilder {
+	e.Image = &discordgo.MessageEmbedImage{URL: url}
+	return e
+}
 
-// func (e *EmbedBuilder) AddField(name string, value string, inline bool) *EmbedBuilder {
-// 	e.Fields = append(e.Fields, NewEmbedField(name, value, inline))
-// 	return e
-// }
+func (e *EmbedBuilder) SetAuthor(name string, url *string, iconURL *string) *EmbedBuilder {
+	e.Author = &discordgo.MessageEmbedAuthor{Name: name}
+	if url != nil {
+		e.Author.URL = *url
+	}
+	if iconURL != nil {
+		e.Author.IconURL = *iconURL
+	}
 
-// func (e *EmbedBuilder) PrependField(name string, value string, inline bool) *EmbedBuilder {
-// 	e.Fields = append([]*discordgo.MessageEmbedField{NewEmbedField(name, value, inline)}, e.Fields...)
-// 	return e
-// }
+	return e
+}
 
-// func (e *EmbedBuilder) Build() *discordgo.MessageEmbed {
-// 	return (*discordgo.MessageEmbed)(e)
-// }
+func (e *EmbedBuilder) SetTimestamp(timestamp string) *EmbedBuilder {
+	e.Timestamp = timestamp
+	return e
+}
+
+func (b *EmbedBuilder) SetFields(fields ...*discordgo.MessageEmbedField) {
+	(*discordgo.MessageEmbed)(b).Fields = fields // write to underlying embed instead of the builder
+}
+
+func (e *EmbedBuilder) AddField(name string, value string, inline bool) *EmbedBuilder {
+	e.Fields = append(e.Fields, NewEmbedField(name, value, inline))
+	return e
+}
+
+func (e *EmbedBuilder) PrependField(name string, value string, inline bool) *EmbedBuilder {
+	e.Fields = append([]*discordgo.MessageEmbedField{NewEmbedField(name, value, inline)}, e.Fields...)
+	return e
+}
+
+func (b *EmbedBuilder) Build() *discordgo.MessageEmbed {
+	e := discordgo.MessageEmbed(*b) // cast back to original embed
+	return &e
+}

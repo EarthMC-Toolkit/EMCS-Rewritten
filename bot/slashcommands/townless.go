@@ -68,22 +68,21 @@ func (cmd TownlessCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 		col4 := entries[col3End:col4End] // bottom-right
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
-		embed := &discordgo.MessageEmbed{
-			Color: discordutil.PURPLE,
-			Title: logutil.HumanizedSprintf("[%d] List of Townless Players | %s", townlessCount, pageStr),
-			Fields: []*discordgo.MessageEmbedField{
-				// first row
-				NewEmbedField("", formatColumn(col1, 0), true),
-				NewEmbedFieldSpacer(true),
-				NewEmbedField("", formatColumn(col2, perField*2), true),
-				// second row
-				NewEmbedField("", formatColumn(col3, perField), true),
-				NewEmbedFieldSpacer(true),
-				NewEmbedField("", formatColumn(col4, perField*3), true),
-			},
-		}
+		title := logutil.HumanizedSprintf("[%d] List of Townless Players | %s", townlessCount, pageStr)
 
-		data.Embeds = []*discordgo.MessageEmbed{embed}
+		embed := discordutil.NewEmbedBuilder(&discordutil.PURPLE, &title, nil, nil)
+		embed.SetFields(
+			// first row
+			NewEmbedField("", formatColumn(col1, 0), true),
+			NewEmbedFieldSpacer(true),
+			NewEmbedField("", formatColumn(col2, perField*2), true),
+			// second row
+			NewEmbedField("", formatColumn(col3, perField), true),
+			NewEmbedFieldSpacer(true),
+			NewEmbedField("", formatColumn(col4, perField*3), true),
+		)
+
+		data.Embeds = []*discordgo.MessageEmbed{embed.Build()}
 	}
 
 	return paginator.Start()

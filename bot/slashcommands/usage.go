@@ -76,19 +76,16 @@ func executeSelf(s *discordgo.Session, i *discordgo.Interaction) error {
 	since30d := time.Now().AddDate(0, 0, -30)
 	mostUsed30dStr, total30Days := formatCommandStats(usage, &since30d, 20)
 
-	embed := &discordgo.MessageEmbed{
-		Title:  fmt.Sprintf("Bot Usage Statistics | `%s`", author.Username),
-		Color:  discordutil.WHITE,
-		Footer: discordutil.DEFAULT_FOOTER,
-		Fields: []*discordgo.MessageEmbedField{
-			discordutil.NewEmbedField("Top Commands (All Time)", fmt.Sprintf("%s\n\n%s", totalAllTime, mostUsedStr), true),
-			discordutil.NewEmbedField("Top Commands (Last 3 Months)", fmt.Sprintf("%s\n\n%s", total3Months, mostUsed3mStr), true),
-			discordutil.NewEmbedField("Top Commands (Last 30 Days)", fmt.Sprintf("%s\n\n%s", total30Days, mostUsed30dStr), true),
-		},
-	}
+	title := fmt.Sprintf("Bot Usage Statistics | `%s`", author.Username)
+	embed := discordutil.NewEmbedBuilder(&discordutil.WHITE, &title, nil, nil)
+	embed.SetFields(
+		discordutil.NewEmbedField("Top Commands (All Time)", fmt.Sprintf("%s\n\n%s", totalAllTime, mostUsedStr), true),
+		discordutil.NewEmbedField("Top Commands (Last 3 Months)", fmt.Sprintf("%s\n\n%s", total3Months, mostUsed3mStr), true),
+		discordutil.NewEmbedField("Top Commands (Last 30 Days)", fmt.Sprintf("%s\n\n%s", total30Days, mostUsed30dStr), true),
+	)
 
 	return discordutil.SendReply(s, i, &discordgo.InteractionResponseData{
-		Embeds: []*discordgo.MessageEmbed{embed},
+		Embeds: []*discordgo.MessageEmbed{embed.Build()},
 	})
 }
 

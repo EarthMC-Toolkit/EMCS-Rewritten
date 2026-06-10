@@ -443,13 +443,11 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 		}
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
-		embed := &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("[%d] List of Towns | %s", townCount, pageStr),
-			Description: strings.Join(townStrings, "\n\n"),
-			Color:       discordutil.GREEN,
-		}
+		title := fmt.Sprintf("[%d] List of Towns | %s", townCount, pageStr)
+		desc := strings.Join(townStrings, "\n\n")
 
-		data.Embeds = []*discordgo.MessageEmbed{embed}
+		embed := discordutil.NewEmbedBuilder(&discordutil.GREEN, &title, &desc, nil)
+		data.Embeds = []*discordgo.MessageEmbed{embed.Build()}
 	}
 
 	return paginator.Start()

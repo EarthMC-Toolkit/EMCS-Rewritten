@@ -134,35 +134,29 @@ func (cmd RouteCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCr
 		return err
 	}
 
-	ct, cn := r.ClosestTown, r.ClosestNation
-
 	title := fmt.Sprintf("Route to %d, %d | Fastest", int(x), int(z))
 	desc := "Showing the optimal spawns based on these factors:\n**Can Outsiders Spawn**: On\n**Public**: On\n**PVP**: Any\n"
-
 	if safe {
 		title = fmt.Sprintf("Route to %d, %d | Safest", int(x), int(z))
 		desc = "Showing the optimal spawns based on these factors:\n**Can Outsiders Spawn**: On\n**Public**: On\n**PVP**: Off\n"
 	}
 
+	ct, cn := r.ClosestTown, r.ClosestNation
 	ctSpawn := ct.Entity.Spawn()
 	cnSpawn := cn.Entity.Spawn()
 
 	ctName := fmt.Sprintf("[%s](https://map.earthmc.net?x=%f&z=%f&zoom=5)", ct.Entity.Name, ctSpawn.X, ctSpawn.Z)
 	cnName := fmt.Sprintf("[%s](https://map.earthmc.net?x=%f&z=%f&zoom=4)", cn.Entity.Name, cnSpawn.X, cnSpawn.Z)
 
-	embed := &discordgo.MessageEmbed{
-		Title:       title,
-		Description: desc,
-		Color:       utils.HexToInt("#DE3163"),
-		Footer:      discordutil.DEFAULT_FOOTER,
-		Fields: []*discordgo.MessageEmbedField{
-			NewEmbedField("Closest Town", formatRouteTarget(ctName, ct), true),
-			NewEmbedField("Closest Nation", formatRouteTarget(cnName, cn), true),
-		},
-	}
+	colour := utils.HexToInt("#DE3163")
+	embed := discordutil.NewEmbedBuilder(&colour, &title, &desc, nil)
+	embed.SetFields(
+		NewEmbedField("Closest Town", formatRouteTarget(ctName, ct), true),
+		NewEmbedField("Closest Nation", formatRouteTarget(cnName, cn), true),
+	)
 
 	_, err = discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
-		Embeds: []*discordgo.MessageEmbed{embed},
+		Embeds: []*discordgo.MessageEmbed{embed.Build()},
 	})
 
 	return err

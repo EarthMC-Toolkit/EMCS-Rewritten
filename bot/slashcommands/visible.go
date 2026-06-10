@@ -51,19 +51,17 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(count)
 
-		desc := strings.Builder{}
+		b := strings.Builder{} // build the description faster than regular Sprintf concat
 		for idx, p := range visible[start:end] {
 			loc := fmt.Sprintf("%d, %d, %d", p.X, p.Y, p.Z)
-			fmt.Fprintf(&desc, "%d. **%s** | `%s`\n", start+idx+1, p.Name, loc)
+			fmt.Fprintf(&b, "%d. **%s** | `%s`\n", start+idx+1, p.Name, loc)
 		}
 
-		embed := &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("List of Visible Players [%d]", count),
-			Footer:      discordutil.DEFAULT_FOOTER,
-			Description: desc.String() + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages()),
-		}
+		title := fmt.Sprintf("List of Visible Players [%d]", count)
+		desc := b.String() + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
 
-		data.Embeds = append(data.Embeds, embed)
+		embed := discordutil.NewEmbedBuilder(&discordutil.BLURPLE, &title, &desc, nil)
+		data.Embeds = append(data.Embeds, embed.Build())
 	}
 
 	return paginator.Start()

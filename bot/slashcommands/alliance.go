@@ -442,8 +442,8 @@ func queryAllianceNations(s *discordgo.Session, i *discordgo.Interaction, cdata 
 		title := fmt.Sprintf("[%d] List of Nations | %s | %s", nationsCount, alliance.Label, pageStr)
 		desc := strings.Join(nationStrings, "\n\n")
 
-		embed := discordutil.NewEmbed(&discordutil.DARK_AQUA, &title, &desc, nil)
-		data.Embeds = []*discordgo.MessageEmbed{embed}
+		embed := discordutil.NewEmbedBuilder(&discordutil.DARK_AQUA, &title, &desc, nil)
+		data.Embeds = []*discordgo.MessageEmbed{embed.Build()}
 	}
 
 	return paginator.Start()
@@ -516,8 +516,8 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 		scoreStr, //normalizedStr,
 	)
 
-	embed := discordutil.NewEmbed(&discordutil.DARK_AQUA, &title, &desc, nil)
-	_, err = discordutil.FollowupEmbeds(s, i, embed)
+	embed := discordutil.NewEmbedBuilder(&discordutil.DARK_AQUA, &title, &desc, nil)
+	_, err = discordutil.FollowupEmbeds(s, i, embed.Build())
 	return err
 }
 
@@ -572,15 +572,10 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 		allianceStrings := make([]string, 0, len(pageAlliances))
 		for idx, a := range pageAlliances {
 			allianceName := a.Identifier
-			if a.Optional.DiscordCode == nil {
-				allianceName += fmt.Sprintf(" / %s", a.Label)
+			if code := a.Optional.DiscordCode; code != nil {
+				allianceName = fmt.Sprintf("[%s / %s](https://discord.gg/%s)", a.Identifier, a.Label, *code)
 			} else {
-				allianceName = fmt.Sprintf(
-					"[%s / %s](https://discord.gg/%s)",
-					a.Identifier,
-					a.Label,
-					*a.Optional.DiscordCode,
-				)
+				allianceName += fmt.Sprintf(" / %s", a.Label)
 			}
 
 			leaderStr := "`None`"
@@ -617,13 +612,11 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 		}
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
-		embed := &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("[%d] List of Alliances | %s", allianceCount, pageStr),
-			Description: strings.Join(allianceStrings, "\n\n"),
-			Color:       discordutil.DARK_AQUA,
-		}
+		title := fmt.Sprintf("[%d] List of Alliances | %s", allianceCount, pageStr)
+		desc := strings.Join(allianceStrings, "\n\n")
 
-		data.Embeds = []*discordgo.MessageEmbed{embed}
+		embed := discordutil.NewEmbedBuilder(&discordutil.DARK_AQUA, &title, &desc, nil)
+		data.Embeds = []*discordgo.MessageEmbed{embed.Build()}
 	}
 
 	return paginator.Start()

@@ -43,16 +43,14 @@ func (cmd VotePartyCommand) Execute(s *discordgo.Session, i *discordgo.Interacti
 
 	vpTarget := info.VoteParty.Target
 	vpRemaining := info.VoteParty.NumRemaining
-	embed := &discordgo.MessageEmbed{
-		Title: "VoteParty Status",
-		Description: logutil.HumanizedSprintf(
-			"Votes Completed/Target: `%d`/`%d`\n\nThere are `%d` votes remaining until the next VoteParty occurs.",
-			vpTarget-vpRemaining, vpTarget, vpRemaining,
-		),
-		Color:  discordutil.BLURPLE,
-		Footer: discordutil.DEFAULT_FOOTER,
-	}
 
-	_, err = discordutil.FollowupEmbeds(s, i.Interaction, embed)
+	title := "VoteParty Status"
+	desc := logutil.HumanizedSprintf(
+		"Votes Completed/Target: `%d`/`%d`\n\nThere are `%d` votes remaining until the next VoteParty occurs.",
+		vpTarget-vpRemaining, vpTarget, vpRemaining,
+	)
+
+	embed := discordutil.NewEmbedBuilder(&discordutil.BLURPLE, &title, &desc, nil)
+	_, err = discordutil.FollowupEmbeds(s, i.Interaction, embed.Build())
 	return err
 }
