@@ -220,26 +220,16 @@ func NewBasicPlayerEmbed(player database.BasicPlayer, description string) *disco
 	}
 
 	title := fmt.Sprintf("Player Information | `%s`", player.Name)
-	embed := &discordgo.MessageEmbed{
-		Type:   discordgo.EmbedTypeRich,
-		Color:  discordutil.DARK_PURPLE,
-		Footer: discordutil.DEFAULT_FOOTER,
-		Thumbnail: &discordgo.MessageEmbedThumbnail{
-			URL: fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID),
-		},
-		Title:       title,
-		Description: description,
-		Fields: []*discordgo.MessageEmbedField{
-			NewEmbedField("Affiliation", affiliation, true),
-		},
-	}
 
-	// TODO: Add town ranks using player.Town.Ranks
-	AddField(embed, "Rank", player.RankString(), true)
+	embed := discordutil.NewEmbedBuilder(&discordutil.DARK_PURPLE, &title, &description, nil)
+	embed.SetThumbnail(fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID), nil)
+	embed.SetFields(
+		NewEmbedField("Affiliation", affiliation, true),
+		NewEmbedField("Rank", player.RankString(), true), // TODO: Add town ranks using player.Town.Ranks
+		NewEmbedField("Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false),
+	)
 
-	AddField(embed, "Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false)
-
-	return embed
+	return embed.Build()
 }
 
 // Builds an embed that describes a user using info from the Official API.
