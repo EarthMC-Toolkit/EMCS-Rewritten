@@ -172,7 +172,7 @@ func NewAllianceEmbed(
 
 	if flag := a.Optional.ImageURL; flag != nil {
 		if *flag != "" {
-			embed.Thumbnail = &discordgo.MessageEmbedThumbnail{URL: *flag}
+			embed.SetThumbnail(*flag, nil)
 		}
 	}
 
@@ -181,16 +181,18 @@ func NewAllianceEmbed(
 		if err == nil {
 			existingDesc := embed.Description
 			puppetStr := fmt.Sprintf("*This alliance is a puppet of `%s` / `%s`*.", parentAlliance.Identifier, parentAlliance.Label)
-			embed.Description = fmt.Sprintf("%s\n\n%s", puppetStr, existingDesc)
+			embed.SetDescription(fmt.Sprintf("%s\n\n%s", puppetStr, existingDesc))
 		}
 	}
 
 	if a.Optional.DiscordCode != nil {
-		embed.URL = fmt.Sprintf("https://discord.gg/%s", *a.Optional.DiscordCode)
-		embed.Title = fmt.Sprintf("Alliance Info | %s", a.Label)
+		title := fmt.Sprintf("Alliance Info | %s", a.Label)
 		if rankInfo != nil {
-			embed.Title += fmt.Sprintf(" | #%d", rankInfo.Rank)
+			title += fmt.Sprintf(" | #%d", rankInfo.Rank)
 		}
+
+		embed.SetTitle(title)
+		embed.SetURL(fmt.Sprintf("https://discord.gg/%s", *a.Optional.DiscordCode))
 	}
 
 	return embed.Build()
@@ -324,7 +326,7 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 	if player.About != nil {
 		about := *player.About
 		if about != "" && about != shared.DEFAULT_ABOUT {
-			embed.Description = fmt.Sprintf("*%s*", about)
+			embed.SetDescription(fmt.Sprintf("*%s*", about))
 		}
 	}
 
@@ -567,12 +569,8 @@ func NewNationEmbed(
 	return embed.Build()
 }
 
-func NewTownlessPageEmbed(names []string) (*discordgo.MessageEmbed, error) {
-	embed := &discordgo.MessageEmbed{
-		Type:        discordgo.EmbedTypeRich,
-		Title:       fmt.Sprintf("[%d] Townless Players", len(names)),
-		Description: fmt.Sprintf("```%s```", strings.Join(names, "\n")),
-	}
-
-	return embed, nil
-}
+// func NewTownlessPageEmbed(names []string) (*discordgo.MessageEmbed, error) {
+// 	title := fmt.Sprintf("[%d] Townless Players", len(names))
+// 	desc := fmt.Sprintf("```%s```", strings.Join(names, "\n"))
+// 	return discordutil.NewEmbedBuilder(&discordutil.PURPLE, &title, &desc, nil).Build(), nil
+// }
