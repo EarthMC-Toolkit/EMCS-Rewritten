@@ -87,6 +87,11 @@ func (e *EmbedBuilder) SetType(t discordgo.EmbedType) *EmbedBuilder {
 	return e
 }
 
+func (e *EmbedBuilder) SetURL(url string) *EmbedBuilder {
+	e.URL = url
+	return e
+}
+
 func (e *EmbedBuilder) SetTitle(title string) *EmbedBuilder {
 	e.Title = title
 	return e
@@ -94,11 +99,6 @@ func (e *EmbedBuilder) SetTitle(title string) *EmbedBuilder {
 
 func (e *EmbedBuilder) SetDescription(description string) *EmbedBuilder {
 	e.Description = description
-	return e
-}
-
-func (e *EmbedBuilder) SetURL(url string) *EmbedBuilder {
-	e.URL = url
 	return e
 }
 
@@ -118,7 +118,10 @@ func (e *EmbedBuilder) SetFooter(text string, iconURL *string) *EmbedBuilder {
 
 func (e *EmbedBuilder) SetThumbnail(url string, proxyUrl *string) *EmbedBuilder {
 	e.Thumbnail = &discordgo.MessageEmbedThumbnail{URL: url}
-	e.Thumbnail.ProxyURL = *proxyUrl
+	if proxyUrl != nil {
+		e.Thumbnail.ProxyURL = *proxyUrl
+	}
+
 	return e
 }
 
@@ -128,8 +131,18 @@ func (e *EmbedBuilder) SetThumbnailSize(width, height int) *EmbedBuilder {
 	return e
 }
 
-func (e *EmbedBuilder) SetImage(url string) *EmbedBuilder {
+func (e *EmbedBuilder) SetImage(url string, proxyUrl *string) *EmbedBuilder {
 	e.Image = &discordgo.MessageEmbedImage{URL: url}
+	if proxyUrl != nil {
+		e.Image.ProxyURL = *proxyUrl
+	}
+
+	return e
+}
+
+func (e *EmbedBuilder) SetImageSize(width, height int) *EmbedBuilder {
+	e.Image.Width = width
+	e.Image.Height = height
 	return e
 }
 
