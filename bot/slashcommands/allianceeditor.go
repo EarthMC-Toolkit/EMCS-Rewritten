@@ -517,10 +517,11 @@ func handleAllianceEditorModalNationsUpdate(
 		messages = append(messages, fmt.Sprintf("Removed:```%s```", removedStr))
 	}
 
-	embed := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
+	embed, components := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
 	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
-		Content: "Successfully edited alliance. Result:",
-		Embeds:  []*discordgo.MessageEmbed{embed},
+		Content:    "Successfully edited alliance. Result:",
+		Embeds:     []*discordgo.MessageEmbed{embed},
+		Components: components,
 	})
 
 	if len(messages) > 0 {
@@ -592,10 +593,11 @@ func handleAllianceEditorModalLeadersUpdate(
 	}
 
 	content := "Successfully edited alliance. Result:"
-	embed := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
+	embed, components := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
 	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
-		Content: content,
-		Embeds:  []*discordgo.MessageEmbed{embed},
+		Content:    content,
+		Embeds:     []*discordgo.MessageEmbed{embed},
+		Components: components,
 	})
 
 	//#region Build & send feedback message
@@ -720,7 +722,7 @@ func handleAllianceEditorModalFunctional(
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
+	embed, components := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
 	content := "Successfully edited alliance. Result:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD
@@ -731,8 +733,9 @@ func handleAllianceEditorModalFunctional(
 	}
 
 	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
-		Content: content,
-		Embeds:  []*discordgo.MessageEmbed{embed},
+		Content:    content,
+		Embeds:     []*discordgo.MessageEmbed{embed},
+		Components: components,
 	})
 
 	return nil
@@ -908,9 +911,11 @@ func handleAllianceEditorModalOptional(
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
+	embed, components := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
 	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
-		Content: "Successfully edited alliance. Result:",
-		Embeds:  []*discordgo.MessageEmbed{embeds.NewAllianceEmbed(s, mdb, *alliance, nil)},
+		Content:    "Successfully edited alliance. Result:",
+		Embeds:     []*discordgo.MessageEmbed{embed},
+		Components: components,
 	})
 
 	// After sending updated alliance embed, report missing leaders if any.

@@ -2,6 +2,12 @@ package discordutil
 
 import "github.com/bwmarrin/discordgo"
 
+var WIKI_EMOJI = discordgo.ComponentEmoji{Name: "📰"}
+var DISCORD_EMOJI = discordgo.ComponentEmoji{
+	Name: "discordlogo",
+	ID:   "1513955352608243923",
+}
+
 // Data shared between both an interaction and a message. This means no matter the method we choose to
 // use to output data from the builder, these fields will be available on the result.
 type SharedOpts struct {
@@ -114,11 +120,12 @@ func (b *MessageBuilder) AppendComponent(btn discordgo.MessageComponent) *Messag
 	return b
 }
 
-func (b *MessageBuilder) buildComponents() []discordgo.MessageComponent {
+func (b *MessageBuilder) BuildComponents() []discordgo.MessageComponent {
 	components := make([]discordgo.MessageComponent, len(b.Rows))
 	for i := range b.Rows {
 		components[i] = b.Rows[i]
 	}
+
 	return components
 }
 
@@ -127,7 +134,7 @@ func (b *MessageBuilder) MessageData() *discordgo.MessageSend {
 		Content:         b.Content,
 		TTS:             b.TTS,
 		Embeds:          b.Embeds,
-		Components:      b.buildComponents(),
+		Components:      b.BuildComponents(),
 		AllowedMentions: b.AllowedMentions,
 		Files:           b.Files,
 		Flags:           b.Flags,
@@ -146,7 +153,7 @@ func (b *MessageBuilder) InteractionData() *discordgo.InteractionResponseData {
 		Content:         b.Content,
 		TTS:             b.TTS,
 		Embeds:          b.Embeds,
-		Components:      b.buildComponents(),
+		Components:      b.BuildComponents(),
 		AllowedMentions: b.AllowedMentions,
 		Files:           b.Files,
 		Flags:           b.Flags,
@@ -166,7 +173,7 @@ func (b *MessageBuilder) WebhookData() *discordgo.WebhookParams {
 		Content:         b.Content,
 		TTS:             b.TTS,
 		Embeds:          b.Embeds,
-		Components:      b.buildComponents(),
+		Components:      b.BuildComponents(),
 		AllowedMentions: b.AllowedMentions,
 		Files:           b.Files,
 		Flags:           b.Flags,

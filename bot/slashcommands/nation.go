@@ -196,12 +196,10 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 	msg := discordutil.NewMessageBuilder()
 	msg.AddEmbed(embeds.NewNationEmbed(*nation, newsStore, allianceStore))
 	if nation.Discord != nil {
-		discordEmoji := &discordgo.ComponentEmoji{Name: "discordlogo", ID: "1513955352608243923"}
-		msg.AddButton("Join discord", discordgo.LinkButton, nation.Discord, discordEmoji, nil)
+		msg.AddButton("Join discord", discordgo.LinkButton, nation.Discord, &discordutil.DISCORD_EMOJI, nil)
 	}
 	if nation.Wiki != "" {
-		linkEmoji := &discordgo.ComponentEmoji{Name: "📰"}
-		msg.AddButton("View wiki page", discordgo.LinkButton, &nation.Wiki, linkEmoji, nil)
+		msg.AddButton("View wiki page", discordgo.LinkButton, &nation.Wiki, &discordutil.WIKI_EMOJI, nil)
 	}
 
 	return discordutil.Followup(s, i, msg.WebhookData())

@@ -353,18 +353,28 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 	}
 
 	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
-	if err != nil {
-		fmt.Print(err)
 
-		// Nations store failed, but we should still be able to send without rank info.
-		_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, mdb, *alliance, nil))
-		return err
+	var rankInfo *database.AllianceRankInfo
+	if err == nil {
+		alliancesRankInfo, _ := database.GetRankedAlliances(
+			allianceStore,
+			nationStore,
+			database.DEFAULT_ALLIANCE_WEIGHTS,
+		)
+
+		if info, ok := alliancesRankInfo[alliance.UUID]; ok {
+			rankInfo = &info
+		}
+	} else {
+		fmt.Print(err)
 	}
 
-	alliancesRankInfo, _ := database.GetRankedAlliances(allianceStore, nationStore, database.DEFAULT_ALLIANCE_WEIGHTS)
-	rankInfo := alliancesRankInfo[alliance.UUID]
+	embed, components := embeds.NewAllianceEmbed(s, mdb, *alliance, rankInfo)
+	_, err = discordutil.Followup(s, i, &discordgo.WebhookParams{
+		Embeds:     []*discordgo.MessageEmbed{embed},
+		Components: components,
+	})
 
-	_, err = discordutil.FollowupEmbeds(s, i, embeds.NewAllianceEmbed(s, mdb, *alliance, &rankInfo))
 	return err
 }
 

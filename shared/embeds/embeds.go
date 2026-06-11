@@ -23,11 +23,11 @@ import (
 func NewAllianceEmbed(
 	s *discordgo.Session, mdb *database.Database,
 	a database.Alliance, rankInfo *database.AllianceRankInfo,
-) *discordgo.MessageEmbed {
+) (*discordgo.MessageEmbed, []discordgo.MessageComponent) {
 	playerStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
 	if err != nil {
 		logutil.Printf(logutil.RED, "ERR | Could not get player store for map %s:\n%v", mdb.Name(), err)
-		return nil
+		return nil, nil
 	}
 
 	// Leader field logic
@@ -53,7 +53,7 @@ func NewAllianceEmbed(
 	nationStore, err := database.GetStore(mdb, database.NATIONS_STORE)
 	if err != nil {
 		logutil.Printf(logutil.RED, "ERR | Could not get nation store for map %s:\n%v", mdb.Name(), err)
-		return nil
+		return nil, nil
 	}
 
 	ownNations := nationStore.GetFromSet(a.OwnNations)
@@ -65,7 +65,7 @@ func NewAllianceEmbed(
 	allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
 	if err != nil {
 		logutil.Printf(logutil.RED, "ERR | Could not get alliance store for map %s:\n%v", mdb.Name(), err)
-		return nil
+		return nil, nil
 	}
 
 	alliances := allianceStore.Values()
@@ -185,17 +185,15 @@ func NewAllianceEmbed(
 		}
 	}
 
+	// TODO: Return the MessageBuilder itself or make a seperate component builder.
+	// 		 Building a whole message just for the components is confusing.
+	b := discordutil.NewMessageBuilder()
 	if a.Optional.DiscordCode != nil {
-		title := fmt.Sprintf("Alliance Info | %s", a.Label)
-		if rankInfo != nil {
-			title += fmt.Sprintf(" | #%d", rankInfo.Rank)
-		}
-
-		embed.SetTitle(title)
-		embed.SetURL(fmt.Sprintf("https://discord.gg/%s", *a.Optional.DiscordCode))
+		inviteURL := fmt.Sprintf("https://discord.gg/%s", *a.Optional.DiscordCode)
+		b.AddButton("Join discord", discordgo.LinkButton, &inviteURL, &discordutil.DISCORD_EMOJI, nil)
 	}
 
-	return embed.Build()
+	return embed.Build(), b.BuildComponents()
 }
 
 // Builds an embed that describes a user with only minimal info.

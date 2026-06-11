@@ -224,12 +224,10 @@ func executeTownQuery(s *discordgo.Session, i *discordgo.Interaction, townName s
 	msg := discordutil.NewMessageBuilder()
 	msg.AddEmbed(embeds.NewTownEmbed(*town))
 	if town.Discord != nil {
-		discordEmoji := &discordgo.ComponentEmoji{Name: "discordlogo", ID: "1513955352608243923"}
-		msg.AddButton("Join discord", discordgo.LinkButton, town.Discord, discordEmoji, nil)
+		msg.AddButton("Join discord", discordgo.LinkButton, town.Discord, &discordutil.DISCORD_EMOJI, nil)
 	}
 	if town.Wiki != "" {
-		linkEmoji := &discordgo.ComponentEmoji{Name: "📰"}
-		msg.AddButton("View wiki page", discordgo.LinkButton, &town.Wiki, linkEmoji, nil)
+		msg.AddButton("View wiki page", discordgo.LinkButton, &town.Wiki, &discordutil.WIKI_EMOJI, nil)
 	}
 
 	return discordutil.Followup(s, i, msg.WebhookData())
