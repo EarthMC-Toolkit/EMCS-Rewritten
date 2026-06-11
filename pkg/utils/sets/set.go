@@ -18,7 +18,7 @@ func Make[K comparable](capacity int) Set[K] {
 func FromSlice[K comparable](keys []K) Set[K] {
 	s := make(Set[K], len(keys))
 	for _, k := range keys {
-		s.Append(k)
+		s.Add(k)
 	}
 
 	return s
@@ -31,12 +31,12 @@ func (s Set[K]) Has(key K) bool {
 
 // Adds key to this set.
 // If the key needs to be modified or different based on condition, use AppendFunc instead.
-func (s Set[K]) Append(key K) {
+func (s Set[K]) Add(key K) {
 	s[key] = struct{}{}
 }
 
 // Passes the key to func f before adding it to this set.
-func (s Set[K]) AppendFunc(key K, f func(key K) K) {
+func (s Set[K]) AddFunc(key K, f func(key K) K) {
 	s[f(key)] = struct{}{}
 }
 
@@ -64,7 +64,7 @@ func (s Set[K]) Union(sets ...Set[K]) Set[K] {
 	merged := maps.Clone(s)
 	for _, set := range sets {
 		for k := range set {
-			merged.Append(k)
+			merged.Add(k)
 		}
 	}
 
@@ -76,7 +76,7 @@ func (s Set[K]) Difference(other Set[K]) Set[K] {
 	set := make(Set[K])
 	for k := range s {
 		if _, ok := other[k]; !ok {
-			set.Append(k)
+			set.Add(k)
 		}
 	}
 
@@ -106,7 +106,7 @@ func (s *Set[K]) UnmarshalJSON(data []byte) error {
 	}
 
 	for _, k := range keys {
-		(*s).Append(k)
+		(*s).Add(k)
 	}
 
 	return nil

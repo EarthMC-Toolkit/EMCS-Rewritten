@@ -511,10 +511,10 @@ func NewNationEmbed(
 				return
 			}
 
-			seen.Append(a.Identifier)
+			seen.Add(a.Identifier)
 			if a.Parent != nil {
 				if parent, ok := allianceByID[*a.Parent]; ok {
-					seen.Append(parent.Identifier)
+					seen.Add(parent.Identifier)
 				}
 			}
 		})

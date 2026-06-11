@@ -132,7 +132,7 @@ func MessagesToNewsEntries(msgs []*discordgo.Message) map[NewsMessageID]NewsEntr
 		}
 
 		entries[msg.ID] = entry
-		seen.Append(key)
+		seen.Add(key)
 	}
 
 	return entries

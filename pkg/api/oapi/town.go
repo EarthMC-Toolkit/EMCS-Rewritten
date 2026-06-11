@@ -162,7 +162,7 @@ func (t TownInfo) GetOnlineResidents() ([]Entity, error) {
 
 	residentUUIDs := sets.Make[string](len(t.Residents))
 	for _, r := range t.Residents {
-		residentUUIDs.Append(r.UUID)
+		residentUUIDs.Add(r.UUID)
 	}
 
 	filtered := res.Players[:0]

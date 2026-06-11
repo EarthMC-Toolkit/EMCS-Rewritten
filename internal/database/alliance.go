@@ -178,7 +178,7 @@ func (a *Alliance) SetLeaders(playerStore *store.Store[BasicPlayer], igns ...str
 			continue
 		}
 
-		leaderSet.Append(p.UUID)
+		leaderSet.Add(p.UUID)
 	}
 
 	a.Optional.Leaders = leaderSet
@@ -323,7 +323,7 @@ func (a ChildAlliances) NationIds() sets.Set[string] {
 	s := sets.New[string]()
 	for _, child := range a {
 		for uuid := range child.OwnNations {
-			s.Append(uuid)
+			s.Add(uuid)
 		}
 	}
 

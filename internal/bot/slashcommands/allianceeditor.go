@@ -410,13 +410,13 @@ func handleAllianceEditorModalMultiUpdate(
 	removedNations := sets.New[string]()
 	removedAlliances := sets.New[string]()
 	for a, nations := range result.RemovedFrom {
-		removedAlliances.Append(a)
+		removedAlliances.Add(a)
 		for _, n := range nations {
-			removedNations.Append(n)
+			removedNations.Add(n)
 		}
 	}
 	if len(removedNations) > 0 {
-		parts.Append(fmt.Sprintf(
+		parts.Add(fmt.Sprintf(
 			"✅ Removed nation(s): ```%s``` from alliance(s): ```%s```",
 			strings.Join(removedNations.Keys(), ", "),
 			strings.Join(removedAlliances.Keys(), ", "),
@@ -426,13 +426,13 @@ func handleAllianceEditorModalMultiUpdate(
 	addedNations := sets.New[string]()
 	addedAlliances := sets.New[string]()
 	for a, nations := range result.AddedTo {
-		addedAlliances.Append(a)
+		addedAlliances.Add(a)
 		for _, n := range nations {
-			addedNations.Append(n)
+			addedNations.Add(n)
 		}
 	}
 	if len(addedNations) > 0 {
-		parts.Append(fmt.Sprintf(
+		parts.Add(fmt.Sprintf(
 			"✅ Added nation(s): ```%s``` to alliance(s): ```%s```",
 			strings.Join(addedNations.Keys(), ", "),
 			strings.Join(addedAlliances.Keys(), ", "),
@@ -440,13 +440,13 @@ func handleAllianceEditorModalMultiUpdate(
 	}
 
 	if len(result.InvalidAlliances) > 0 {
-		parts.Append(fmt.Sprintf(
+		parts.Add(fmt.Sprintf(
 			"⚠️ Invalid/non-existent alliance(s):```%s```",
 			strings.Join(result.InvalidAlliances.Keys(), ", "),
 		))
 	}
 	if len(result.InvalidNations) > 0 {
-		parts.Append(fmt.Sprintf(
+		parts.Add(fmt.Sprintf(
 			"⚠️ Invalid/non-existent nation(s):```%s```",
 			strings.Join(result.InvalidNations.Keys(), ", "),
 		))
@@ -455,7 +455,7 @@ func handleAllianceEditorModalMultiUpdate(
 	// 	parts = append(parts, fmt.Sprintf("Alliances with <2 nations:```%s```", strings.Join(result.Violations, ", ")))
 	// }
 	for allianceName, names := range result.AlreadyPuppets {
-		parts.Append(fmt.Sprintf(
+		parts.Add(fmt.Sprintf(
 			"ℹ️ Cannot add nations to `%s` that are already puppets:```%s```",
 			allianceName, strings.Join(names, ", "),
 		))
@@ -576,7 +576,7 @@ func handleAllianceEditorModalLeadersUpdate(
 				continue
 			}
 
-			leaderUUIDs.Append(p.UUID)
+			leaderUUIDs.Add(p.UUID)
 		}
 	}
 
@@ -957,13 +957,13 @@ func UpdateAllianceNations(
 			name := strings.TrimSpace(raw)
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
-				res.InvalidNations.Append(name)
+				res.InvalidNations.Add(name)
 				continue
 			}
 
 			if nationUUIDS.Has(n.UUID) {
 				nationUUIDS.Remove(n.UUID)
-				res.RemovedFrom.Append(n.Name)
+				res.RemovedFrom.Add(n.Name)
 			}
 		}
 	}
@@ -974,18 +974,18 @@ func UpdateAllianceNations(
 			name := strings.TrimSpace(raw)
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
-				res.InvalidNations.Append(name)
+				res.InvalidNations.Add(name)
 				continue
 			}
 
 			if puppetNationUUIDs.Has(n.UUID) {
-				res.AlreadyPuppets.Append(n.Name)
+				res.AlreadyPuppets.Add(n.Name)
 				continue
 			}
 
 			if !nationUUIDS.Has(n.UUID) {
-				nationUUIDS.Append(n.UUID)
-				res.AddedTo.Append(n.Name)
+				nationUUIDS.Add(n.UUID)
+				res.AddedTo.Add(n.Name)
 			}
 		}
 	}
@@ -1035,7 +1035,7 @@ func MultiUpdateAllianceNations(
 	for allianceIdent, nationNames := range removals {
 		a, ok := allianceByIdent[strings.ToLower(allianceIdent)]
 		if !ok {
-			result.InvalidAlliances.Append(allianceIdent)
+			result.InvalidAlliances.Add(allianceIdent)
 			continue
 		}
 
@@ -1044,7 +1044,7 @@ func MultiUpdateAllianceNations(
 		for _, name := range nationNames {
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
-				result.InvalidNations.Append(name)
+				result.InvalidNations.Add(name)
 				continue
 			}
 			if exists := nationUUIDs.Has(n.UUID); exists {
@@ -1069,7 +1069,7 @@ func MultiUpdateAllianceNations(
 	for allianceIdent, nationNames := range additions {
 		a, ok := allianceByIdent[strings.ToLower(allianceIdent)]
 		if !ok {
-			result.InvalidAlliances.Append(allianceIdent)
+			result.InvalidAlliances.Add(allianceIdent)
 			continue
 		}
 
@@ -1080,7 +1080,7 @@ func MultiUpdateAllianceNations(
 		for _, name := range nationNames {
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
-				result.InvalidNations.Append(name)
+				result.InvalidNations.Add(name)
 				continue
 			}
 
@@ -1092,7 +1092,7 @@ func MultiUpdateAllianceNations(
 				continue
 			}
 
-			nationUUIDs.Append(n.UUID)
+			nationUUIDs.Add(n.UUID)
 			addedNames = append(addedNames, n.Name)
 		}
 		if len(alreadyPuppetNames) > 0 {

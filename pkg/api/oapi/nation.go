@@ -175,7 +175,7 @@ func (n NationInfo) GetOnlineResidents() ([]Entity, error) {
 
 	residentUUIDs := sets.Make[string](len(n.Residents))
 	for _, r := range n.Residents {
-		residentUUIDs.Append(r.UUID)
+		residentUUIDs.Add(r.UUID)
 	}
 
 	filtered := res.Players[:0]

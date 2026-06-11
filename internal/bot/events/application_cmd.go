@@ -7,17 +7,21 @@ import (
 	"emcsrw/pkg/utils/config"
 	"emcsrw/pkg/utils/discordutil"
 	"emcsrw/pkg/utils/logutil"
+	"emcsrw/pkg/utils/sets"
 	"fmt"
 	"log"
 	"runtime/debug"
-	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-var bannedIds []string
+var (
+	bannedIds sets.Set[string]
+	once      sync.Once
+)
 
 func OnApplicationCommandInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	defer func() {
@@ -96,20 +100,25 @@ func OnAutocompleteInteractionCreate(s *discordgo.Session, i *discordgo.Interact
 	}
 }
 
-func isBanned(author *discordgo.User) bool {
-	if bannedIds == nil {
-		idsStr, err := config.GetEnviroVar("BANNED_PLAYERS")
-		if err != nil {
-			return true
-		}
+func loadBanned() {
+	bannedIds = sets.New[string]()
 
-		idsStr = strings.ReplaceAll(idsStr, " ", "")
-		if idsStr == "" {
-			return true
-		}
-
-		bannedIds = strings.Split(idsStr, ",")
+	idsStr, err := config.GetEnviroVar("BANNED_PLAYERS")
+	if err != nil {
+		return // var empty or not set, assume its intentional
 	}
 
-	return slices.Contains(bannedIds, author.ID)
+	for part := range strings.SplitSeq(idsStr, ",") {
+		id := strings.TrimSpace(part)
+		if id == "" {
+			continue
+		}
+
+		bannedIds.Add(id)
+	}
+}
+
+func isBanned(author *discordgo.User) bool {
+	once.Do(loadBanned)
+	return bannedIds.Has(author.ID)
 }

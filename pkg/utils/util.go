@@ -47,7 +47,7 @@ func (d *SliceDeduper[T, K]) Append(v T) bool {
 		return false
 	}
 
-	d.seen.Append(k)
+	d.seen.Add(k)
 	d.items = append(d.items, v)
 	return true
 }
