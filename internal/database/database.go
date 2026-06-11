@@ -1,0 +1,219 @@
+package database
+
+import (
+	"emcsrw/internal/database/store"
+	"emcsrw/pkg/api/oapi"
+	"emcsrw/pkg/utils/logutil"
+	"errors"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"sync"
+)
+
+// Looks a lil pointless, but this wraps the store's name together with its type
+// so you can't accidentally open the wrong store for a given data type.
+// It also prevents hard-coded strings which litter the codebase and make maintenance a pain.
+//
+// T is the value type; the actual Store always stores map[[string]]T never T itself.
+type StoreDefinition[T any] struct {
+	Name      string          // The name of the store, which is also the name of the file it is persisted to (with .json suffix).
+	StoreType *store.Store[T] // typed nil pointer for convenience / reflection
+	//StoreDataType *store.StoreData[T] // typed nil pointer for convenience / reflection
+}
+
+func NewStoreDefinition[T any](name string) StoreDefinition[T] {
+	return StoreDefinition[T]{
+		Name:      name,
+		StoreType: (*store.Store[T])(nil),
+		//StoreDataType: (*store.StoreData[T])(nil),
+	}
+}
+
+// =============================================================
+// ADD A NEW DEFINITION HERE IF YOU WANT TO CREATE A NEW STORE.
+// Then assign it to a DB in TryInit() below.
+
+var (
+	SERVER_STORE    = NewStoreDefinition[oapi.ServerInfo]("server")
+	TOWNS_STORE     = NewStoreDefinition[oapi.TownInfo]("towns")
+	NATIONS_STORE   = NewStoreDefinition[oapi.NationInfo]("nations")
+	ENTITIES_STORE  = NewStoreDefinition[oapi.EntityList]("entities")
+	PLAYERS_STORE   = NewStoreDefinition[BasicPlayer]("players")
+	ALLIANCES_STORE = NewStoreDefinition[Alliance]("alliances")
+	NEWS_STORE      = NewStoreDefinition[NewsEntry]("news")
+	//SSE_STORE         = NewStoreDefinition[UserUsage]("sse")
+	USAGE_USERS_STORE = NewStoreDefinition[UserUsage]("usage-users") // TODO: This should not be attached to a store but live in /db.
+)
+
+// =============================================================
+
+var databases = make(map[string]*Database)
+var mu sync.RWMutex // Guards access to databases
+
+// A database that is responsible for multiple persistent caches aka "stores"
+// which can be assigned to this database and then retrieved for use again later.
+// In addition, it handles read/write conflicts via mutexes to prevent data being lost or scrambled
+// between stores and ensures old entries cannot overwrite new ones as they enter their JSON file.
+type Database struct {
+	dirPath string                  // Path (relative to cwd) to the dir where this db lives.
+	stores  map[string]store.IStore // Mapping from file name → generic Store instance.
+	storeMu sync.RWMutex            // Guards access to `stores`.
+	flushMu sync.Mutex              // Ensures multiple flushes cannot happen simultaneously.
+}
+
+// Creates an instance of [Database] with the dir at baseDir+mapName (created if it does not exist) and registers it into global map.
+//
+// NOTE: To add a store to this DB, call [AssignStore] with the appropriate type which the store file can be unmarshalled into.
+func New(baseDir string, mapName string) (*Database, error) {
+	dir := filepath.Join(baseDir, mapName)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return nil, err
+	}
+
+	db := &Database{
+		dirPath: dir,
+		stores:  make(map[string]store.IStore),
+	}
+
+	// put into mapDatabases
+	Register(mapName, db)
+
+	return db, nil
+}
+
+func (db *Database) String() string {
+	return db.Name()
+}
+
+func (db *Database) Name() string {
+	return filepath.Base(db.dirPath)
+}
+
+// The clean path to the dir of this MapDB which all store files live under.
+func (db *Database) Dir() string {
+	return filepath.Clean(db.dirPath)
+}
+
+// Calls WriteSnapshot on every store in this DB, flushing its current state to its associated file.
+// A mutex lock is acquired before the loop, ensuring no two flushes can run simultaneously.
+func (db *Database) Flush() error {
+	errs := []error{}
+
+	db.flushMu.Lock()
+	defer db.flushMu.Unlock()
+
+	for name, s := range db.stores {
+		if err := s.WriteSnapshot(); err != nil {
+			errs = append(errs, fmt.Errorf("store %s: %w", name, err))
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Successfully flushed all stores to disk.\n")
+	return nil
+}
+
+func Register(name string, mdb *Database) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	databases[name] = mdb
+}
+
+// Attempts to initialize a Database for known map m by creating it at ~cwd/db/<mapName>, then assigning all
+// Stores (persisent caches) that should exist on it by creating their files inside said dir.
+//
+// If the database has already been initialized it will just be returned early.
+func TryInit(mapName string) *Database {
+	if mdb, err := Get(mapName); err == nil {
+		return mdb
+	}
+
+	mdb, err := New("./db", mapName)
+	if err != nil {
+		log.Fatalf("Cannot initialize database for map '%s':\n%v", mapName, err)
+	}
+
+	// Define all stores we want to exist on this new database.
+	// If a store does not exist, it is created under the ./db/<mapName> dir.
+	AssignStore(mdb, SERVER_STORE)
+	AssignStore(mdb, TOWNS_STORE)
+	AssignStore(mdb, NATIONS_STORE)
+	AssignStore(mdb, ENTITIES_STORE) // Store keys: residentlist, townlesslist
+	AssignStore(mdb, PLAYERS_STORE)
+	AssignStore(mdb, ALLIANCES_STORE)
+	AssignStore(mdb, NEWS_STORE)
+	AssignStore(mdb, USAGE_USERS_STORE)
+	//AssignStoreToDB[map[string]any](mdb, USAGE_LEADERBOARD_STORE)
+
+	logutil.Printf(logutil.HIDDEN, "DEBUG | Initialized database for map '%s'.\n", mapName)
+	return mdb
+}
+
+func Get(name string) (*Database, error) {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	mdb, ok := databases[name]
+	if !ok {
+		return nil, fmt.Errorf("failed to get MapDB. no such db exists: %s", name)
+	}
+
+	return mdb, nil
+}
+
+// Retrieves the Store for a specific file/db.
+func GetStore[T any](db *Database, storeDef StoreDefinition[T]) (*store.Store[T], error) {
+	db.storeMu.RLock()
+	defer db.storeMu.RUnlock()
+
+	si, ok := db.stores[storeDef.Name]
+	if !ok {
+		return nil, fmt.Errorf("could not find store '%s' in db: %s", storeDef.Name, db.dirPath)
+	}
+
+	s, ok := si.(*store.Store[T])
+	if !ok {
+		return nil, fmt.Errorf(
+			"store '%s' exists but with a different type: expected *Store[%T], got %T",
+			storeDef.Name, storeDef.StoreType, si,
+		)
+	}
+
+	return s, nil
+}
+
+func GetStoreForMap[T any](mapName string, storeDef StoreDefinition[T]) (*store.Store[T], error) {
+	mdb, err := Get(mapName)
+	if err != nil {
+		return nil, err
+	}
+
+	return GetStore(mdb, storeDef)
+}
+
+// Creates a new store an adds it to the given MapDB stores. Returns an error if the store already exists.
+func AssignStore[T any](db *Database, storeDef StoreDefinition[T]) *store.Store[T] {
+	db.storeMu.Lock()
+	defer db.storeMu.Unlock()
+
+	if s, ok := db.stores[storeDef.Name]; ok {
+		logutil.Printf(logutil.YELLOW, "\nWARN | store '%s' already defined", storeDef.Name)
+		return s.(*store.Store[T])
+	}
+
+	fpath := filepath.Join(db.dirPath, storeDef.Name+".json")
+	store, err := store.New[T](fpath)
+	if err != nil {
+		logutil.Printf(logutil.RED, "\nERR | failed to create store '%s': %v", storeDef.Name, err)
+		return nil
+	}
+
+	db.stores[storeDef.Name] = store
+	return store
+}

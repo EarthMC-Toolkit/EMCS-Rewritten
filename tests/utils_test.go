@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"emcsrw/utils"
+	"emcsrw/pkg/utils"
 	"testing"
 )
 

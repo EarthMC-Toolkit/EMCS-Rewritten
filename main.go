@@ -1,11 +1,11 @@
 package main
 
 import (
-	"emcsrw/api/capi"
-	"emcsrw/bot"
-	"emcsrw/bot/slashcommands"
-	"emcsrw/utils/config"
-	"emcsrw/utils/logutil"
+	"emcsrw/internal/bot"
+	"emcsrw/internal/bot/slashcommands"
+	"emcsrw/pkg/api/capi"
+	"emcsrw/pkg/utils/config"
+	"emcsrw/pkg/utils/logutil"
 	"log"
 	"os"
 

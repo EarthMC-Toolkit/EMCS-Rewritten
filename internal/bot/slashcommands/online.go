@@ -1,0 +1,224 @@
+package slashcommands
+
+import (
+	"emcsrw/internal/database"
+	"emcsrw/internal/shared"
+	"emcsrw/pkg/api/oapi"
+	"emcsrw/pkg/utils/discordutil"
+	"errors"
+	"fmt"
+	"slices"
+	"strings"
+	"time"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo/parallel"
+)
+
+type OnlineCommand struct{}
+
+func (cmd OnlineCommand) Name() string { return "online" }
+func (cmd OnlineCommand) Description() string {
+	return "Base command for subcommands relating to online players."
+}
+
+func (cmd OnlineCommand) Options() AppCommandOpts {
+	return AppCommandOpts{
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "list",
+			Description: "Sends a paginator allowing navigation through all online players.",
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "town",
+			Description: "Query information about the online status of a town's residents.",
+			Options: AppCommandOpts{
+				discordutil.AutocompleteStringOption("name", "The name of the town to query.", 2, 40, true),
+			},
+		},
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        "nation",
+			Description: "Query information about the online status of a nation's residents.",
+			Options: AppCommandOpts{
+				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 40, true),
+			},
+		},
+	}
+}
+
+func (cmd OnlineCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error {
+	cdata := i.ApplicationCommandData()
+	if len(cdata.Options) == 0 {
+		return nil
+	}
+
+	// top-level sub cmd or group
+	subCmd := cdata.Options[0]
+	switch subCmd.Name {
+	case "town":
+		return townNameAutocomplete(s, i, cdata)
+	case "nation":
+		return nationNameAutocomplete(s, i, cdata)
+	}
+
+	return nil
+}
+
+func (cmd OnlineCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+		return err
+	}
+
+	cdata := i.ApplicationCommandData()
+	opt := cdata.GetOption("town")
+	if opt != nil {
+		return executeOnlineTown(s, i.Interaction, opt.GetOption("name").StringValue())
+	}
+
+	opt = cdata.GetOption("nation")
+	if opt != nil {
+		return executeOnlineNation(s, i.Interaction, opt.GetOption("name").StringValue())
+	}
+
+	opt = cdata.GetOption("list")
+	if opt != nil {
+		return executeOnlineList(s, i.Interaction)
+	}
+
+	_, err := discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
+		Content: "Error occurred getting sub command option. Somehow you sent none of them?",
+	})
+
+	return err
+}
+
+func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName string) error {
+	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+	if err != nil {
+		return err
+	}
+
+	town, err := townStore.Find(func(t oapi.TownInfo) bool {
+		return strings.EqualFold(t.Name, townName)
+	})
+	if err != nil {
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("Failed to get online players. Town `%s` does not exist.", townName),
+			Flags:   discordgo.MessageFlagsEphemeral,
+		})
+
+		return err
+	}
+
+	onlineResidents, _ := town.GetOnlineResidents()
+	if len(onlineResidents) < 1 {
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("No players online in town: `%s`.", townName),
+		})
+
+		return err
+	}
+
+	// TODO: Instead of wasting tokens doing concurrent requests for all residents, we should
+	// 		 query every time time we turn the page for just the page players.
+	online, err := queryResidents(onlineResidents)
+	if err != nil {
+		return err
+	}
+
+	return sendPlayersPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
+		balStr := fmt.Sprintf("%s `%0.f`G", shared.EMOJIS.GOLD_INGOT, p.Stats.Balance)
+		return fmt.Sprintf("`%s` (%s) %s\n", p.Name, p.GetRank(), balStr)
+	})
+}
+
+func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationName string) error {
+	nationStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NATIONS_STORE)
+	if err != nil {
+		return err
+	}
+
+	nation, err := nationStore.Find(func(n oapi.NationInfo) bool {
+		return strings.EqualFold(n.Name, nationName)
+	})
+	if err != nil {
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("Failed to get online players. Nation `%s` does not exist.", nationName),
+		})
+
+		return err
+	}
+
+	onlineResidents, _ := nation.GetOnlineResidents()
+	if len(onlineResidents) < 1 {
+		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("No players online in nation: `%s`.", nationName),
+		})
+
+		return err
+	}
+
+	// TODO: Instead of wasting tokens doing concurrent requests for all residents, we should
+	// 		 query every time time we turn the page for just the page players.
+	online, err := queryResidents(onlineResidents)
+	if err != nil {
+		return err
+	}
+
+	return sendPlayersPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
+		balStr := fmt.Sprintf("%s `%0.f`G", shared.EMOJIS.GOLD_INGOT, p.Stats.Balance)
+		return fmt.Sprintf("`%s` of **%s** (%s) %s\n", p.Name, *p.Town.Name, p.GetRank(), balStr)
+	})
+}
+
+func executeOnlineList(s *discordgo.Session, i *discordgo.Interaction) error {
+	discordutil.ReplyWithError(s, i, errors.New("Command not implemented yet."))
+	return nil
+}
+
+func queryResidents(entities []oapi.Entity) ([]oapi.PlayerInfo, error) {
+	ids := parallel.Map(entities, func(e oapi.Entity, _ int) string {
+		return e.UUID
+	})
+
+	residents, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
+	return residents, errors.Join(errs...)
+}
+
+func sendPlayersPaginator(
+	s *discordgo.Session, i *discordgo.Interaction,
+	players []oapi.PlayerInfo, perPage int,
+	contentFunc func(p oapi.PlayerInfo) string,
+) error {
+	count := len(players)
+
+	// Alphabet sort by player name
+	slices.SortStableFunc(players, func(a oapi.PlayerInfo, b oapi.PlayerInfo) int {
+		if a.Name > b.Name {
+			return 1
+		}
+
+		return -1
+	})
+
+	paginator := discordutil.NewInteractionPaginator(s, i, count, perPage).
+		WithTimeout(5 * time.Minute)
+
+	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
+		start, end := paginator.CurrentPageBounds(count)
+
+		content := strings.Builder{}
+		for _, p := range players[start:end] {
+			content.WriteString(contentFunc(p))
+		}
+
+		data.Content = content.String()
+		if paginator.TotalPages() > 1 {
+			data.Content += fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
+		}
+	}
+
+	return paginator.Start()
+}

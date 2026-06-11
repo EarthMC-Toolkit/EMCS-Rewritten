@@ -1,10 +1,10 @@
 package tests
 
 import (
-	"emcsrw/api"
-	"emcsrw/api/mapi"
-	"emcsrw/api/oapi"
-	"emcsrw/utils/logutil"
+	"emcsrw/pkg/api"
+	"emcsrw/pkg/api/mapi"
+	"emcsrw/pkg/api/oapi"
+	"emcsrw/pkg/utils/logutil"
 	"errors"
 	"slices"
 	"testing"

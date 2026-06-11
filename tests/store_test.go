@@ -1,8 +1,8 @@
 package tests
 
 import (
-	"emcsrw/database"
-	"emcsrw/database/store"
+	"emcsrw/internal/database"
+	"emcsrw/internal/database/store"
 	"fmt"
 	"os"
 	"path/filepath"
