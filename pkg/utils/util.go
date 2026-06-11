@@ -54,11 +54,15 @@ func (d *SliceDeduper[T, K]) Append(v T) bool {
 
 //#endregion
 
+// Converts an amount of minutes into the closest matching unit (hr/min/sec) for display purposes. For example:
+//
+//	120  -> (2, 'hr')
+//	5    -> (5, 'min')
+//	0.5  -> (30, 'sec')
 func HumanizeDuration(minutes float64) (float64, string) {
 	if minutes >= 60 {
 		return minutes / 60, "hr"
 	}
-
 	if minutes >= 1 {
 		return minutes, "min"
 	}
@@ -66,9 +70,35 @@ func HumanizeDuration(minutes float64) (float64, string) {
 	return minutes * 60, "sec"
 }
 
+// Converts seconds into a human-readable duration string.
+// Output formats:
+//
+//	"1hr, 5m and 10s"
+//	"5m and 10s"
+//	"10s"
+func FormatElapsed(secs int64) string {
+	hours := secs / 3600
+	minutes := (secs % 3600) / 60
+	seconds := secs % 60
+
+	if hours > 0 {
+		h := "hrs"
+		if hours == 1 {
+			h = "hr"
+		}
+		return fmt.Sprintf("`%d%s`, `%dm` and `%ds`", hours, h, minutes, seconds)
+	}
+
+	if minutes > 0 {
+		return fmt.Sprintf("`%dm` and `%ds`", minutes, seconds)
+	}
+
+	return fmt.Sprintf("`%ds`", seconds)
+}
+
 // Formats a time.Time to a string in the format "Wed, Jan 2nd 3PM UTC".
 func FormatTime(t time.Time) string {
-	t = t.UTC() // ensure UTC
+	t = t.UTC() // so we can use the output as an anchor point for local timezones
 
 	day := t.Day()
 	suffix := "th"
