@@ -95,7 +95,7 @@ type NationInfo struct {
 // The output would be:
 //
 //	[]string{"Chancellor", "Diplomat"}
-func (n NationInfo) GetPlayerRanks(name string) []string {
+func (n NationInfo) PlayerRanks(name string) []string {
 	return lo.FilterMapToSlice(n.Ranks, func(rank string, entities []Entity) (string, bool) {
 		return rank, slices.ContainsFunc(entities, func(e Entity) bool {
 			return strings.EqualFold(name, e.Name)

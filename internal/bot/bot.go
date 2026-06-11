@@ -17,11 +17,14 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-// var DM_INTENTS = dgo.IntentDirectMessages | dgo.IntentDirectMessageReactions
+// ====================== !! WARNING !! ======================
+// If some of these intents are not granted to you by Discord, the bot may not start correctly.
+// Remove all intents you do not have access to or require and restart the bot again.
+//
+// See the Privileged Intents section: https://docs.discord.com/developers/events/gateway#gateway-intents
+// ===========================================================
 
-// !! WARNING !!
-// If you do not have some of these intents, the bot may not start correctly.
-// Remove any you do not require and restart the bot again.
+// var DM_INTENTS = dgo.IntentDirectMessages | dgo.IntentDirectMessageReactions
 var ALL_INTENTS = discordgo.IntentMessageContent | GUILD_INTENTS
 var GUILD_INTENTS = discordgo.IntentGuilds |
 	discordgo.IntentGuildMessages |

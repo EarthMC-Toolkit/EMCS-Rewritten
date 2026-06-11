@@ -2,9 +2,12 @@ package shared
 
 import (
 	"emcsrw/internal/database"
+	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils/discordutil"
 	"fmt"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 // NOTE: Potential import cycle. Consider just duplicating necessary funcs rather than importing discordutil.
@@ -28,7 +31,7 @@ func BoolToEmoji(v bool) string {
 //	`Player1` of Town1 (**Nation1**)
 //	`Player2` of Town2
 //	`Player3` (Townless)
-func CreateAffiliationsString(players []database.BasicPlayer) string {
+func BuildAffiliationsString(players []database.BasicPlayer) string {
 	if players == nil {
 		return ""
 	}
@@ -91,4 +94,36 @@ func BuildNewsString(news []database.NewsEntry, max uint8, charLimit uint16) (st
 	}
 
 	return b.String(), count
+}
+
+func BuildNationRanksString(nation oapi.NationInfo) string {
+	hasPlayers := false
+
+	lines := make([]string, 0, len(nation.Ranks))
+	for rank, players := range nation.Ranks {
+		if len(players) == 0 {
+			continue
+		}
+
+		names := lo.Map(players, func(e oapi.Entity, _ int) string {
+			return fmt.Sprintf("`%s`", e.Name)
+		})
+
+		line := fmt.Sprintf("[%d] %s\n%s", len(players), rank, strings.Join(names, ", "))
+		lines = append(lines, line)
+
+		hasPlayers = true
+	}
+
+	if hasPlayers {
+		return strings.Join(lines, "\n\n")
+	}
+
+	lines = lines[:0]
+	for rank := range nation.Ranks {
+		lines = append(lines, fmt.Sprintf("[0] %s", rank))
+	}
+
+	// Output all as [0] Chancellor, [0] Diplomat etc.
+	return strings.Join(lines, "\n")
 }

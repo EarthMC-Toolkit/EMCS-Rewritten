@@ -33,7 +33,7 @@ func NewAllianceEmbed(
 	leadersValue := "`None`"
 	leaders, err := a.Leaders(playerStore)
 	if err == nil {
-		leadersValue = CreateAffiliationsString(leaders)
+		leadersValue = BuildAffiliationsString(leaders)
 	}
 	// } else {
 	// 	logutil.Printf(logutil.YELLOW, "ERR | Could not get leaders for alliance %s:\n\t%v", a.Identifier, err)
@@ -296,8 +296,7 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 		title += fmt.Sprintf(" aka \"%s\"", alias)
 	}
 
-	townRanks := player.Ranks.Town
-	townRanksStr := "No ranks"
+	townRanks, townRanksStr := player.Ranks.Town, "No ranks"
 	if len(townRanks) > 0 {
 		townRanksStr = strings.Join(lo.Map(townRanks, func(r string, _ int) string {
 			return fmt.Sprintf("`%s`", r)
@@ -437,12 +436,6 @@ func NewNationEmbed(
 	newsStore *store.Store[database.NewsEntry],
 	allianceStore *store.Store[database.Alliance],
 ) *discordgo.MessageEmbed {
-	foundedTs := nation.Timestamps.Registered / 1000 // Seconds
-	dateFounded := fmt.Sprintf("<t:%d:R>", foundedTs)
-
-	stats := nation.Stats
-	spawn := nation.Coordinates.Spawn
-
 	board := nation.Board
 	if board != "" {
 		board = fmt.Sprintf("*%s*", board)
@@ -451,12 +444,13 @@ func NewNationEmbed(
 	capitalName := nation.Capital.Name
 	leaderName := nation.King.Name
 
-	open := fmt.Sprintf("%s Open", lo.Ternary(nation.Status.Open, ":green_circle:", ":red_circle:"))
-	public := fmt.Sprintf("%s Public", lo.Ternary(nation.Status.Public, ":green_circle:", ":red_circle:"))
-	neutral := fmt.Sprintf("%s Neutral", lo.Ternary(nation.Status.Neutral, ":green_circle:", ":red_circle:"))
+	stats := nation.Stats
+	spawn := nation.Coordinates.Spawn
 
-	townNames := parallel.Map(nation.Towns, func(e oapi.Entity, _ int) string { return e.Name })
-	slices.Sort(townNames)
+	locationLink := fmt.Sprintf(
+		"[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=4)",
+		spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
+	)
 
 	townsResidentsStr := logutil.HumanizedSprintf("`%d`/`%d`", stats.NumTowns, stats.NumResidents)
 	balanceStr := logutil.HumanizedSprintf("`%.0f` %s", stats.Balance, EMOJIS.GOLD_INGOT)
@@ -472,52 +466,32 @@ func NewNationEmbed(
 		sizeStr, balanceStr, townsResidentsStr, alliesEnemiesStr, bonusStr,
 	)
 
-	rankLines := []string{}
-	ranksContainingPlayers := 0
-	for rank, players := range nation.Ranks {
-		if len(players) == 0 {
-			rankLines = append(rankLines, fmt.Sprintf("[0] %s", rank))
-			continue
-		}
-		ranksContainingPlayers++
+	open := fmt.Sprintf("%s Open", lo.Ternary(nation.Status.Open, ":green_circle:", ":red_circle:"))
+	public := fmt.Sprintf("%s Public", lo.Ternary(nation.Status.Public, ":green_circle:", ":red_circle:"))
+	neutral := fmt.Sprintf("%s Neutral", lo.Ternary(nation.Status.Neutral, ":green_circle:", ":red_circle:"))
 
-		names := lo.Map(players, func(e oapi.Entity, _ int) string {
-			return fmt.Sprintf("`%s`", e.Name)
-		})
-
-		line := fmt.Sprintf("[%d] %s", len(names), rank)
-		if len(names) > 0 {
-			line += fmt.Sprintf("\n%s", strings.Join(names, ", "))
-		}
-
-		rankLines = append(rankLines, line)
-	}
-
-	locationLink := fmt.Sprintf(
-		"[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=4)",
-		spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
-	)
+	foundedTs := nation.Timestamps.Registered / 1000 // Seconds
+	dateFounded := fmt.Sprintf("<t:%d:R>", foundedTs)
 
 	colour := nation.FillColourInt()
-	title := fmt.Sprintf("Nation Information | `%s`", nation.Name)
+	title := fmt.Sprintf("Nation Information | `%s` (%s `%s`)", nation.Name, "⭐", capitalName)
 	embed := discordutil.NewEmbedBuilder(&colour, &title, &board, nil)
 	embed.SetFields(
-		NewEmbedField("Founded", dateFounded, false),
 		NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
-		NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
 		NewEmbedField("Location", locationLink, true),
+		NewEmbedField("Founded", dateFounded, true),
 		NewEmbedField("Stats", statsStr, true),
 		NewEmbedField("Status", fmt.Sprintf("%s\n%s\n%s", open, public, neutral), true),
 		NewEmbedField("Colours", fmt.Sprintf("Fill: `#%s`\nOutline: `#%s`", nation.MapColourFill, nation.MapColourOutline), true),
 	)
 
-	ranksStr := strings.Join(rankLines, "\n")
-	if ranksContainingPlayers > 0 {
-		ranksStr = strings.Join(rankLines, "\n\n")
-	}
+	ranksStr := BuildNationRanksString(nation)
 	if len(ranksStr) < discordutil.EMBED_FIELD_VALUE_LIMIT {
 		embed.AddField("Ranks", ranksStr, true)
 	}
+
+	townNames := parallel.Map(nation.Towns, func(e oapi.Entity, _ int) string { return e.Name })
+	slices.Sort(townNames)
 
 	townListStr := strings.Join(townNames, ", ")
 	if len(townListStr) <= discordutil.EMBED_FIELD_VALUE_LIMIT {
