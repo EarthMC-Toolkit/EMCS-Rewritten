@@ -1,10 +1,9 @@
-package embeds
+package shared
 
 import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/database/store"
-	"emcsrw/shared"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/logutil"
@@ -78,7 +77,7 @@ func NewAllianceEmbed(
 		logutil.HumanizedSprintf("`%d`", len(towns)),
 		logutil.HumanizedSprintf("`%d`", nationsAmt),
 		logutil.HumanizedSprintf("`%d`", residentsAmt),
-		logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, wealth, shared.EMOJIS.GOLD_INGOT),
+		logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, EMOJIS.CHUNK, wealth, EMOJIS.GOLD_INGOT),
 	)
 
 	registered := a.CreatedTimestamp() / 1000
@@ -161,7 +160,7 @@ func NewAllianceEmbed(
 		embed.AddField(childNationsKey, childNationsValue, false)
 	}
 
-	newsStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.NEWS_STORE)
+	newsStore, err := database.GetStoreForMap(ACTIVE_MAP, database.NEWS_STORE)
 	if err == nil {
 		allianceNews := database.GetAllianceNews(newsStore, a)
 		if len(allianceNews) > 0 {
@@ -202,7 +201,7 @@ func NewAllianceEmbed(
 func NewBasicPlayerEmbed(player database.BasicPlayer, description string) *discordgo.MessageEmbed {
 	var town *oapi.TownInfo
 	if player.Town != nil {
-		townsStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+		townsStore, _ := database.GetStoreForMap(ACTIVE_MAP, database.TOWNS_STORE)
 		town, _ = townsStore.Get(player.Town.UUID)
 	}
 
@@ -265,7 +264,7 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 
 	affiliation := "None (Townless)"
 	if townName != "No Town" {
-		townsStore, _ := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
+		townsStore, _ := database.GetStoreForMap(ACTIVE_MAP, database.TOWNS_STORE)
 		town, err := townsStore.Get(*player.Town.UUID)
 
 		// Should never rly be false bc we established they aren't townless.
@@ -317,13 +316,13 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 	embed.SetFields(
 		// Affiliation (prepended)
 		// Rank (prepended)
-		NewEmbedField("Balance", logutil.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, shared.EMOJIS.GOLD_INGOT), true),
+		NewEmbedField("Balance", logutil.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, EMOJIS.GOLD_INGOT), true),
 		NewEmbedField("Status", status, true),
 	)
 
 	if player.About != nil {
 		about := *player.About
-		if about != "" && about != shared.DEFAULT_ABOUT {
+		if about != "" && about != DEFAULT_ABOUT {
 			embed.SetDescription(fmt.Sprintf("*%s*", about))
 		}
 	}
@@ -371,7 +370,7 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	}
 
 	desc := ""
-	if town.Board != shared.DEFAULT_TOWN_BOARD {
+	if town.Board != DEFAULT_TOWN_BOARD {
 		desc = fmt.Sprintf("*%s*", town.Board)
 	}
 
@@ -384,13 +383,13 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 
 	spawn := town.Coordinates.Spawn
 
-	balanceStr := logutil.HumanizedSprintf("`%.0f`G %s", town.Bal(), shared.EMOJIS.GOLD_INGOT)
+	balanceStr := logutil.HumanizedSprintf("`%.0f`G %s", town.Bal(), EMOJIS.GOLD_INGOT)
 	residentsStr := logutil.HumanizedSprintf("`%d`", town.Stats.NumResidents)
 	trustedOutlawsStr := logutil.HumanizedSprintf("`%d`/`%d`", town.Stats.NumTrusted, town.Stats.NumOutlaws)
 
 	sizeStr := logutil.HumanizedSprintf("`%d`/`%d` %s (Worth: `%d` %s)",
 		town.Size(), town.MaxSize(),
-		shared.EMOJIS.CHUNK, town.Worth(), shared.EMOJIS.GOLD_INGOT,
+		EMOJIS.CHUNK, town.Worth(), EMOJIS.GOLD_INGOT,
 	)
 
 	locationLink := fmt.Sprintf(
@@ -398,8 +397,8 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 		spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
 	)
 
-	mayorStr := fmt.Sprintf("[%s](%s)", town.Mayor.Name, shared.NAMEMC_URL+town.Mayor.Name)
-	founderStr := fmt.Sprintf("[%s](%s)", town.Founder, shared.NAMEMC_URL+town.Founder)
+	mayorStr := fmt.Sprintf("[%s](%s)", town.Mayor.Name, NAMEMC_URL+town.Mayor.Name)
+	founderStr := fmt.Sprintf("[%s](%s)", town.Founder, NAMEMC_URL+town.Founder)
 
 	status := town.Status
 	flags := town.Perms.Flags
@@ -460,12 +459,12 @@ func NewNationEmbed(
 	slices.Sort(townNames)
 
 	townsResidentsStr := logutil.HumanizedSprintf("`%d`/`%d`", stats.NumTowns, stats.NumResidents)
-	balanceStr := logutil.HumanizedSprintf("`%.0f` %s", stats.Balance, shared.EMOJIS.GOLD_INGOT)
-	bonusStr := logutil.HumanizedSprintf("`%d` %s", stats.NationBonus, shared.EMOJIS.CHUNK)
+	balanceStr := logutil.HumanizedSprintf("`%.0f` %s", stats.Balance, EMOJIS.GOLD_INGOT)
+	bonusStr := logutil.HumanizedSprintf("`%d` %s", stats.NationBonus, EMOJIS.CHUNK)
 	alliesEnemiesStr := logutil.HumanizedSprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies)
 	sizeStr := logutil.HumanizedSprintf("`%d` %s (Worth: `%d` %s)",
-		nation.Size(), shared.EMOJIS.CHUNK,
-		nation.Worth(), shared.EMOJIS.GOLD_INGOT,
+		nation.Size(), EMOJIS.CHUNK,
+		nation.Worth(), EMOJIS.GOLD_INGOT,
 	)
 
 	statsStr := fmt.Sprintf(
@@ -504,7 +503,7 @@ func NewNationEmbed(
 	embed := discordutil.NewEmbedBuilder(&colour, &title, &board, nil)
 	embed.SetFields(
 		NewEmbedField("Founded", dateFounded, false),
-		NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, shared.NAMEMC_URL+nation.King.UUID), true),
+		NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
 		NewEmbedField("Capital", fmt.Sprintf("`%s`", capitalName), true),
 		NewEmbedField("Location", locationLink, true),
 		NewEmbedField("Stats", statsStr, true),

@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"errors"
 	"fmt"
@@ -105,7 +104,7 @@ func executeLatestNews(
 		return cmp.Compare(b.Timestamp, a.Timestamp)
 	})
 
-	desc, amt := embeds.BuildNewsString(articles, count, discordutil.EMBED_DESCRIPTION_LIMIT)
+	desc, amt := shared.BuildNewsString(articles, count, discordutil.EMBED_DESCRIPTION_LIMIT)
 	title := fmt.Sprintf("[%d] News Articles | Latest", amt)
 
 	embed := discordutil.NewEmbedBuilder(&discordutil.AQUA, &title, &desc, nil)
@@ -124,7 +123,7 @@ func executeChangelogNews(
 		return cmp.Compare(b.Timestamp, a.Timestamp)
 	})
 
-	desc, amt := embeds.BuildNewsString(articles, 10, discordutil.EMBED_DESCRIPTION_LIMIT)
+	desc, amt := shared.BuildNewsString(articles, 10, discordutil.EMBED_DESCRIPTION_LIMIT)
 	title := fmt.Sprintf("[%d] News Articles | Changelogs", amt)
 
 	embed := discordutil.NewEmbedBuilder(&discordutil.AQUA, &title, &desc, nil)
@@ -146,7 +145,7 @@ func executeSearchNews(
 		return cmp.Compare(b.Timestamp, a.Timestamp)
 	})
 
-	desc, amt := embeds.BuildNewsString(articles, 20, discordutil.EMBED_DESCRIPTION_LIMIT)
+	desc, amt := shared.BuildNewsString(articles, 20, discordutil.EMBED_DESCRIPTION_LIMIT)
 	title := fmt.Sprintf("[%d] News Articles | Search by term: `%s`", amt, term)
 
 	embed := discordutil.NewEmbedBuilder(&discordutil.AQUA, &title, &desc, nil)

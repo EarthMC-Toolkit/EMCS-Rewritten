@@ -1,8 +1,7 @@
-package embeds
+package shared
 
 import (
 	"emcsrw/database"
-	"emcsrw/shared"
 	"emcsrw/utils/discordutil"
 	"fmt"
 	"strings"
@@ -17,10 +16,10 @@ var AddField = discordutil.AddField
 // where true becomes a green check, false a red cross.
 func BoolToEmoji(v bool) string {
 	if v {
-		return shared.EMOJIS.CIRCLE_CHECK
+		return EMOJIS.CIRCLE_CHECK
 	}
 
-	return shared.EMOJIS.CIRCLE_CROSS
+	return EMOJIS.CIRCLE_CROSS
 }
 
 // Returns a single string representing a list of player names with their affiliations.

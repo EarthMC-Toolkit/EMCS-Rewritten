@@ -4,7 +4,6 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils/discordutil"
 	"errors"
 	"fmt"
@@ -88,7 +87,7 @@ func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerNa
 	}
 
 	// API is up and results received, everything working normally.
-	embed := embeds.NewPlayerEmbed(s, players[0])
+	embed := shared.NewPlayerEmbed(s, players[0])
 	return discordutil.FollowupEmbeds(s, i, embed)
 }
 
@@ -106,5 +105,5 @@ func buildBasicPlayerEmbed(playerName string, desc string) (*discordgo.MessageEm
 		return nil, nil
 	}
 
-	return embeds.NewBasicPlayerEmbed(*p, desc), nil
+	return shared.NewBasicPlayerEmbed(*p, desc), nil
 }

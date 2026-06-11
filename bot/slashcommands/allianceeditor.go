@@ -5,7 +5,6 @@ import (
 	"emcsrw/database"
 	"emcsrw/database/store"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/config"
 	"emcsrw/utils/discordutil"
@@ -517,7 +516,7 @@ func handleAllianceEditorModalNationsUpdate(
 		messages = append(messages, fmt.Sprintf("Removed:```%s```", removedStr))
 	}
 
-	embed, components := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
+	embed, components := shared.NewAllianceEmbed(s, mdb, *alliance, nil)
 	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content:    "Successfully edited alliance. Result:",
 		Embeds:     []*discordgo.MessageEmbed{embed},
@@ -593,7 +592,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	}
 
 	content := "Successfully edited alliance. Result:"
-	embed, components := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
+	embed, components := shared.NewAllianceEmbed(s, mdb, *alliance, nil)
 	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content:    content,
 		Embeds:     []*discordgo.MessageEmbed{embed},
@@ -722,7 +721,7 @@ func handleAllianceEditorModalFunctional(
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed, components := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
+	embed, components := shared.NewAllianceEmbed(s, mdb, *alliance, nil)
 	content := "Successfully edited alliance. Result:"
 	if len(missingNations) > 0 {
 		embed.Color = discordutil.GOLD
@@ -911,7 +910,7 @@ func handleAllianceEditorModalOptional(
 		return fmt.Errorf("error saving edited alliance '%s'. failed to write snapshot\n%v", alliance.Identifier, err)
 	}
 
-	embed, components := embeds.NewAllianceEmbed(s, mdb, *alliance, nil)
+	embed, components := shared.NewAllianceEmbed(s, mdb, *alliance, nil)
 	discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 		Content:    "Successfully edited alliance. Result:",
 		Embeds:     []*discordgo.MessageEmbed{embed},

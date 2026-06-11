@@ -5,7 +5,6 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/logutil"
@@ -222,7 +221,7 @@ func executeTownQuery(s *discordgo.Session, i *discordgo.Interaction, townName s
 	}
 
 	msg := discordutil.NewMessageBuilder()
-	msg.AddEmbed(embeds.NewTownEmbed(*town))
+	msg.AddEmbed(shared.NewTownEmbed(*town))
 	if town.Discord != nil {
 		msg.AddButton("Join discord", discordgo.LinkButton, town.Discord, &discordutil.DISCORD_EMOJI, nil)
 	}

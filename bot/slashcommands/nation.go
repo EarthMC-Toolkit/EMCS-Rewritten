@@ -5,7 +5,6 @@ import (
 	"emcsrw/api/oapi"
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/logutil"
@@ -194,7 +193,7 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 	newsStore, _ := database.GetStore(mdb, database.NEWS_STORE)
 
 	msg := discordutil.NewMessageBuilder()
-	msg.AddEmbed(embeds.NewNationEmbed(*nation, newsStore, allianceStore))
+	msg.AddEmbed(shared.NewNationEmbed(*nation, newsStore, allianceStore))
 	if nation.Discord != nil {
 		msg.AddButton("Join discord", discordgo.LinkButton, nation.Discord, &discordutil.DISCORD_EMOJI, nil)
 	}

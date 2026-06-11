@@ -5,7 +5,6 @@ import (
 	"cmp"
 	"emcsrw/database"
 	"emcsrw/shared"
-	"emcsrw/shared/embeds"
 	"emcsrw/utils"
 	"emcsrw/utils/discordutil"
 	"emcsrw/utils/logutil"
@@ -369,7 +368,7 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 		fmt.Print(err)
 	}
 
-	embed, components := embeds.NewAllianceEmbed(s, mdb, *alliance, rankInfo)
+	embed, components := shared.NewAllianceEmbed(s, mdb, *alliance, rankInfo)
 	_, err = discordutil.Followup(s, i, &discordgo.WebhookParams{
 		Embeds:     []*discordgo.MessageEmbed{embed},
 		Components: components,

@@ -269,7 +269,7 @@ func executeServerInfo(s *discordgo.Session, i *discordgo.Interaction) (*discord
 // 		embed := &discordgo.MessageEmbed{
 // 			Title:       fmt.Sprintf("All-Time Player Statistics | %s", pageStr),
 // 			Description: fmt.Sprintf("%s```%s```", outdated, desc.String()),
-// 			Footer:      embeds.DEFAULT_FOOTER,
+// 			Footer:      shared.DEFAULT_FOOTER,
 // 			Color:       discordutil.DARK_GOLD,
 // 		}
 
