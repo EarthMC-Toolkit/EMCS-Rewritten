@@ -20,6 +20,7 @@ var SUPPORTED_MAPS = struct {
 type Emoji = string
 
 var EMOJIS = struct {
+	LOADING        Emoji
 	CIRCLE_CHECK   Emoji
 	CIRCLE_CROSS   Emoji
 	ENTRY          Emoji
@@ -31,6 +32,7 @@ var EMOJIS = struct {
 	GOLD_INGOT     Emoji
 	CHUNK          Emoji
 }{
+	LOADING:        "<:loading:1514744298527133900>",
 	CIRCLE_CHECK:   "<:circle_check:1448776921994367078>",
 	CIRCLE_CROSS:   "<:circle_cross:1448776923093139579>",
 	ENTRY:          "<:entry:1448776924653555904>",

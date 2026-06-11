@@ -61,6 +61,13 @@ func (cmd PlayerCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 }
 
 func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerName string) (*discordgo.Message, error) {
+	tokens := oapi.Dispatcher.GetBucketTokens()
+	if len(tokens) < 1 {
+		discordutil.FollowupContentEphemeral(s, i,
+			shared.EMOJIS.LOADING+" No tokens available to query the API. Queuing your request..",
+		)
+	}
+
 	players, apiErr := oapi.QueryPlayers(strings.ToLower(playerName)).Execute()
 	if apiErr != nil {
 		desc := ":warning: The EarthMC API is likely down right now. As such, some data may be missing until it is online again."
