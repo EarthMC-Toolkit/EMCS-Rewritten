@@ -474,7 +474,7 @@ func NewNationEmbed(
 	dateFounded := fmt.Sprintf("<t:%d:R>", foundedTs)
 
 	colour := nation.FillColourInt()
-	title := fmt.Sprintf("Nation Information | `%s` (%s `%s`)", nation.Name, "⭐", capitalName)
+	title := fmt.Sprintf("Nation Information | `%s` | %s `%s`", nation.Name, "⭐", capitalName)
 	embed := discordutil.NewEmbedBuilder(&colour, &title, &board, nil)
 	embed.SetFields(
 		NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
