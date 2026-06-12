@@ -21,12 +21,11 @@ var contexts = []discordgo.InteractionContextType{
 }
 
 type AppCommandOpt = *discordgo.ApplicationCommandOption
-type AppCommandOpts = []AppCommandOpt
 
 type SlashCommand interface {
 	Name() string
 	Description() string
-	Options() AppCommandOpts
+	Options() []AppCommandOpt
 	// IntegrationTypes() *[]discordgo.ApplicationIntegrationType
 	// Contexts() *[]discordgo.InteractionContextType
 	Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error
@@ -138,7 +137,7 @@ func RegisterAllCommands() {
 // 	return "This is an example description for a slash command."
 // }
 
-// func (cmd ExampleCommand) Options() AppCommandOpts {
+// func (cmd ExampleCommand) Options() []AppCommandOpt {
 // 	return nil
 // }
 

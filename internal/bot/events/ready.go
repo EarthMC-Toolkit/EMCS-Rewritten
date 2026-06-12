@@ -395,7 +395,6 @@ func TrySendCreatedNotif(s *discordgo.Session, channelID string, towns []oapi.To
 			)
 		})
 
-		//logutil.Printf(logutil.HIDDEN, "\nDEBUG | Town Flow Channel ID: %s\n", channelID)
 		_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 			Title:       fmt.Sprintf("Town Flow | Creation Events [%d]", count),
 			Description: strings.Join(desc, "\n\n"),
@@ -545,12 +544,6 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 				nation = *town.Nation.Name
 			}
 
-			// ruined := lo.Ternary(town.Status.Ruined, ":white_check_mark:", ":x:")
-			// overclaimable := lo.Ternary(
-			// 	town.Status.Overclaimed && !town.Status.HasOverclaimShield,
-			// 	":white_check_mark:", ":x:",
-			// )
-
 			left = append(left, logutil.HumanizedSprintf(
 				"`%s` left %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s",
 				name, town.Name, nation,
@@ -568,12 +561,6 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 			if town.Nation.Name != nil {
 				nation = *town.Nation.Name
 			}
-
-			// ruined := lo.Ternary(town.Status.Ruined, ":white_check_mark:", ":x:")
-			// overclaimable := lo.Ternary(
-			// 	town.Status.Overclaimed && !town.Status.HasOverclaimShield,
-			// 	":white_check_mark:", ":x:",
-			// )
 
 			joined = append(joined, logutil.HumanizedSprintf(
 				"`%s` joined %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s",

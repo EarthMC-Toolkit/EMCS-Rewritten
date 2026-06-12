@@ -64,34 +64,24 @@ func (cmd RouteCommand) Description() string {
 	return "Get the optimal distance, direction and closest spawn for a given point."
 }
 
-func (cmd RouteCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "fastest",
-			Description: "Retrieve the most optimal route, without filtering out flags like PVP.",
-			Options: AppCommandOpts{
-				discordutil.RequiredNumberOption("x", "The map coordinate on the X axis (left/right).",
-					MAP_BOUNDS.Left, MAP_BOUNDS.Right,
-				),
-				discordutil.RequiredNumberOption("z", "The map coordinate on the Z axis (top/bottom).",
-					MAP_BOUNDS.Top, MAP_BOUNDS.Bottom,
-				),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "safest",
-			Description: "Retrieve the safest route, avoiding PVP enabled towns.",
-			Options: AppCommandOpts{
-				discordutil.RequiredNumberOption("x", "The map coordinate on the X axis (left/right).",
-					MAP_BOUNDS.Left, MAP_BOUNDS.Right,
-				),
-				discordutil.RequiredNumberOption("z", "The map coordinate on the Z axis (top/bottom).",
-					MAP_BOUNDS.Top, MAP_BOUNDS.Bottom,
-				),
-			},
-		},
+func (cmd RouteCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("fastest", "Retrieve the most optimal route, without filtering out flags like PVP.",
+			discordutil.RequiredNumberOption("x", "The map coordinate on the X axis (left/right).",
+				MAP_BOUNDS.Left, MAP_BOUNDS.Right,
+			),
+			discordutil.RequiredNumberOption("z", "The map coordinate on the Z axis (top/bottom).",
+				MAP_BOUNDS.Top, MAP_BOUNDS.Bottom,
+			),
+		),
+		discordutil.SubcommandOption("safest", "Retrieve the safest route, avoiding PVP enabled towns.",
+			discordutil.RequiredNumberOption("x", "The map coordinate on the X axis (left/right).",
+				MAP_BOUNDS.Left, MAP_BOUNDS.Right,
+			),
+			discordutil.RequiredNumberOption("z", "The map coordinate on the Z axis (top/bottom).",
+				MAP_BOUNDS.Top, MAP_BOUNDS.Bottom,
+			),
+		),
 	}
 }
 

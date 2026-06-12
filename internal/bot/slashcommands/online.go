@@ -22,29 +22,15 @@ func (cmd OnlineCommand) Description() string {
 	return "Base command for subcommands relating to online players."
 }
 
-func (cmd OnlineCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "list",
-			Description: "Sends a paginator allowing navigation through all online players.",
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "town",
-			Description: "Query information about the online status of a town's residents.",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("name", "The name of the town to query.", 2, 40, true),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "nation",
-			Description: "Query information about the online status of a nation's residents.",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 40, true),
-			},
-		},
+func (cmd OnlineCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("list", "Sends a paginator allowing navigation through all online players."),
+		discordutil.SubcommandOption("town", "Query information about the online status of a town's residents.",
+			discordutil.AutocompleteStringOption("name", "The name of the town to query.", 2, 40, true),
+		),
+		discordutil.SubcommandOption("nation", "Query information about the online status of a nation's residents.",
+			discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 40, true),
+		),
 	}
 }
 

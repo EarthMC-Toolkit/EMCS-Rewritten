@@ -21,13 +21,9 @@ func (cmd NewDayCommand) Description() string {
 	return "Base command for Towny new day related subcommands."
 }
 
-func (cmd NewDayCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "when",
-			Description: "Sends the amount of time until the elusive new day occurs.",
-		},
+func (cmd NewDayCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("when", "Sends the amount of time until the elusive new day occurs."),
 		// {
 		// 	Type:        discordgo.ApplicationCommandOptionSubCommand,
 		// 	Name:        "falling",

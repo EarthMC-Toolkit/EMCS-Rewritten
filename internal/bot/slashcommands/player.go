@@ -19,25 +19,15 @@ func (cmd PlayerCommand) Description() string {
 	return "Replies with information about a resident or townless player."
 }
 
-func (cmd PlayerCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "query",
-			Description: "Query information about a player. Similar to /res in-game, but works for non-emc players.",
-			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("name", "The name of the player to query.", 3, 36),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "compare",
-			Description: "Compare differences in statistics between two players.",
-			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("player-a", "The initial player name to compare with B.", 3, 36),
-				discordutil.RequiredStringOption("player-b", "The secondary player name to compare with A.", 3, 36),
-			},
-		},
+func (cmd PlayerCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("query", "Query information about a player. Similar to /res in-game, but works for non-emc players.",
+			discordutil.RequiredStringOption("name", "The name of the player to query.", 3, 36),
+		),
+		// discordutil.SubcommandOption("compare", "Compare differences in statistics between two players.",
+		// 	discordutil.RequiredStringOption("player-a", "The initial player name to compare with B.", 3, 36),
+		// 	discordutil.RequiredStringOption("player-b", "The secondary player name to compare with A.", 3, 36),
+		// ),
 	}
 }
 

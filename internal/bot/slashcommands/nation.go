@@ -17,6 +17,8 @@ import (
 	"github.com/samber/lo/parallel"
 )
 
+var nationInputOpt = discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 40, true)
+
 type NationCommand struct{}
 
 func (cmd NationCommand) Name() string { return "nation" }
@@ -24,49 +26,23 @@ func (cmd NationCommand) Description() string {
 	return "Base command for nation related subcommands."
 }
 
-func (cmd NationCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "query",
-			Description: "Query information about a nation. Similar to /n in-game.",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 36, true),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "activity",
-			Description: "See the last online and purge date of each resident in a town.",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 40, true),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "online",
-			Description: "Query the online status of a nation's residents. Alias of /online nation",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("name", "The name of the nation to query.", 2, 40, true),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "list",
-			Description: "Sends a paginator enabling navigation through all existing nations.",
-			Options: AppCommandOpts{
-				discordutil.StringOption("sort", "Optional nation list sorting. Without this, nations are sorted by residents -> towns -> size.", nil, nil,
-					//discordutil.Choice("None", "none"),               // "No list sorting. The entropy enjoyer's choice."
-					discordutil.Choice("Alphabetical", "alphabetical"), // "Sort the list alphabetically by name."
-					discordutil.Choice("Founded", "founded"),           // "Sort the list by date founded. Oldest -> Newest."
-					discordutil.Choice("Residents", "residents"),       // "Sort the list solely by the number of residents."
-					discordutil.Choice("Towns", "towns"),               // "Sort the list solely by the number of towns."
-					discordutil.Choice("Size", "size"),                 //" Sort the list solely by size (chunks claimed)."
-					discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
-					//discordutil.Choice("Towns Overclaimed", "towns-overclaimed"), // "Sort the list by date founded. Oldest -> Newest."
-				),
-			},
-		},
+func (cmd NationCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("query", "Query information about a nation. Similar to /n in-game.", nationInputOpt),
+		discordutil.SubcommandOption("activity", "See the last online and purge date of each resident in a town.", nationInputOpt),
+		discordutil.SubcommandOption("online", "Query the online status of a nation's residents. Alias of /online nation", nationInputOpt),
+		discordutil.SubcommandOption("list", "Sends a paginator enabling navigation through all existing nations.",
+			discordutil.StringOption("sort", "Optional nation list sorting. Without this, nations are sorted by residents -> towns -> size.", nil, nil,
+				//discordutil.Choice("None", "none"),               // "No list sorting. The entropy enjoyer's choice."
+				discordutil.Choice("Alphabetical", "alphabetical"), // "Sort the list alphabetically by name."
+				discordutil.Choice("Founded", "founded"),           // "Sort the list by date founded. Oldest -> Newest."
+				discordutil.Choice("Residents", "residents"),       // "Sort the list solely by the number of residents."
+				discordutil.Choice("Towns", "towns"),               // "Sort the list solely by the number of towns."
+				discordutil.Choice("Size", "size"),                 //" Sort the list solely by size (chunks claimed)."
+				discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
+				//discordutil.Choice("Towns Overclaimed", "towns-overclaimed"), // "Sort the list by date founded. Oldest -> Newest."
+			),
+		),
 	}
 }
 

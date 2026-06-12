@@ -24,7 +24,7 @@ func (cmd RuinedCommand) Description() string {
 	return "Retrieves a list of all ruined towns with their time of ruin."
 }
 
-func (cmd RuinedCommand) Options() AppCommandOpts {
+func (cmd RuinedCommand) Options() []AppCommandOpt {
 	return nil
 }
 

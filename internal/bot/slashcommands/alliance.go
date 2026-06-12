@@ -23,6 +23,8 @@ const EDITOR_ROLE = "966359842417705020"
 const SR_EDITOR_ROLE = "1143253762039873646"
 const ALLIANCE_BACKUP_CHANNEL = "1438592337335947314"
 
+var allianceInputOpt = discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true)
+
 type AllianceCommand struct{}
 
 func (cmd AllianceCommand) Name() string { return "alliance" }
@@ -30,102 +32,23 @@ func (cmd AllianceCommand) Description() string {
 	return "Query a single alliance or navigate through existing alliances."
 }
 
-func (cmd AllianceCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "list",
-			Description: "Sends a paginator enabling navigation through all registered alliances.",
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "query",
-			Description: "Query information about an alliance (meganation, organisation or pact).",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "nations",
-			Description: "Sends a list of all nations in an alliance. Useful for viewing a large alliance.",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "score",
-			Description: "Provides a breakdown of this alliance's score, which affects its rank.",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "create",
-			Description: "Create an alliance. EDITORS ONLY",
-		},
-		{
-			// TODO: Maybe turn into modal with text inputs "Identifier" and "Disband Reason".
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "disband",
-			Description: "Disband an alliance. EDITORS ONLY",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
-			Name:        "update",
-			Description: "Add/remove info to/from an alliance. EDITORS ONLY",
-			Options: AppCommandOpts{
-				{
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Name:        "multi",
-					Description: "Add/remove >=1 nation(s) from >=1 alliances at once.",
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Name:        "nations",
-					Description: "Add/remove >=1 nation(s) from a single alliance.",
-					Options: AppCommandOpts{
-						discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
-					},
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Name:        "leaders",
-					Description: "Add/remove leaders from an alliance.",
-					Options: AppCommandOpts{
-						discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
-					},
-				},
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
-			Name:        "edit",
-			Description: "Bulk overwrite info of an alliance. EDITORS ONLY",
-			Options: AppCommandOpts{
-				{
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Name:        "functional",
-					Description: "Edit alliance fields that are required for basic functionality.",
-					Options: AppCommandOpts{
-						discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
-					},
-				},
-				{
-					Type:        discordgo.ApplicationCommandOptionSubCommand,
-					Name:        "optional",
-					Description: "Edit alliance fields that are not tied to its functionality.",
-					Options: AppCommandOpts{
-						discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
-					},
-				},
-			},
-		},
+func (cmd AllianceCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("list", "Sends a paginator enabling navigation through all registered alliances."),
+		discordutil.SubcommandOption("query", "Query information about an alliance (meganation, organisation or pact).", allianceInputOpt),
+		discordutil.SubcommandOption("nations", "Sends a list of all nations in an alliance. Useful for viewing a large alliance.", allianceInputOpt),
+		discordutil.SubcommandOption("score", "Provides a breakdown of this alliance's score, which affects its rank.", allianceInputOpt),
+		discordutil.SubcommandOption("create", "Create an alliance. EDITORS ONLY"),
+		discordutil.SubcommandOption("disband", "Disband an alliance. EDITORS ONLY", allianceInputOpt),
+		discordutil.SubcommandGroupOption("update", "Add/remove info to/from an alliance. EDITORS ONLY",
+			discordutil.SubcommandOption("multi", "Add/remove >=1 nation(s) from >=1 alliances at once."),
+			discordutil.SubcommandOption("nations", "Add/remove >=1 nation(s) from a single alliance.", allianceInputOpt),
+			discordutil.SubcommandOption("leaders", "Add/remove leaders from an alliance.", allianceInputOpt),
+		),
+		discordutil.SubcommandGroupOption("edit", "Bulk overwrite info of an alliance. EDITORS ONLY",
+			discordutil.SubcommandOption("functional", "Edit alliance fields that are required for basic functionality.", allianceInputOpt),
+			discordutil.SubcommandOption("optional", "Edit alliance fields that are not tied to its functionality.", allianceInputOpt),
+		),
 	}
 }
 

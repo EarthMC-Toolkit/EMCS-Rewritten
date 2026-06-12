@@ -154,50 +154,26 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 		CustomID: "alliance_creator",
 		Title:    "Alliance Creator",
 		Components: []discordgo.MessageComponent{
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "identifier",
-				Label:       "Query Identifier (3-16 chars)",
-				Placeholder: "Enter a unique short name used to query this alliance.",
-				Required:    true,
-				Style:       discordgo.TextInputShort,
-				MinLength:   3,
-				MaxLength:   16,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "label",
-				Label:       "Alliance Name (4-64 chars)",
-				Placeholder: "Enter this alliance's full name.",
-				Required:    true,
-				Style:       discordgo.TextInputShort,
-				MinLength:   4,
-				MaxLength:   64,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "representative",
-				Label:       "Representative Discord ID",
-				Placeholder: "Enter the Discord ID of the user representing this alliance.",
-				Required:    true,
-				Style:       discordgo.TextInputShort,
-				MinLength:   17,
-				MaxLength:   19,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "nations",
-				Label:       "Own Nations",
-				Placeholder: "Enter a comma-seperated list of nations in THIS alliance only.",
-				Required:    true,
-				MinLength:   3,
-				Style:       discordgo.TextInputParagraph,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "parent",
-				Label:       "Parent Alliance",
-				Placeholder: "(Optional) Enter the identifier of this alliance's parent alliance.",
-				Required:    false,
-				MinLength:   3,
-				MaxLength:   16,
-				Style:       discordgo.TextInputShort,
-			}),
+			discordutil.RequiredTextInputShort(
+				"identifier", "Query Identifier (3-16 chars)",
+				"Enter a unique short name used to query this alliance.", 3, 16,
+			),
+			discordutil.RequiredTextInputShort(
+				"label", "Alliance Name (4-64 chars)",
+				"Enter this alliance's full name.", 4, 64,
+			),
+			discordutil.RequiredTextInputShort(
+				"representative", "Representative Discord ID",
+				"Enter the Discord ID of the user representing this alliance.", 17, 19,
+			),
+			discordutil.RequiredTextInputParagraph(
+				"nations", "Own Nations",
+				"Enter a comma-seperated list of nations in THIS alliance only.", 3, 0,
+			),
+			discordutil.TextInputShort(
+				"parent", "Parent Alliance",
+				"(Optional) Enter the identifier of this alliance's parent alliance.", 3, 16,
+			),
 		},
 	})
 }

@@ -22,6 +22,8 @@ const PURGE_DAYS = 42
 const PURGE_DAYS_SEC = uint64(PURGE_DAYS * 24 * 3600) // PURGE_DAYS as seconds
 const UINT64_MAX = ^uint64(0)
 
+var townInputOpt = discordutil.AutocompleteStringOption("name", "The name of the town to query.", 2, 40, true)
+
 type TownCommand struct{}
 
 func (cmd TownCommand) Name() string { return "town" }
@@ -29,71 +31,44 @@ func (cmd TownCommand) Description() string {
 	return "Base command for town related subcommands."
 }
 
-func (cmd TownCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "query",
-			Description: "Query information about a town. Similar to /t in-game.",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("name", "The name of the town to query.", 2, 36, true),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "activity",
-			Description: "See the last online and purge date of each resident in a town.",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("name", "The name of the town to query.", 2, 40, true),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "online",
-			Description: "Query the online status of a town's residents. Alias of /online town",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("name", "The name of the town to query.", 2, 40, true),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "list",
-			Description: "Sends a paginator enabling navigation through all existing towns.",
-			Options: AppCommandOpts{
-				discordutil.StringOption("sort", "Optional town list sorting. Without this, towns are sorted by residents -> size.", nil, nil,
-					//discordutil.Choice("None", "none"),                 // "No list sorting. The entropy enjoyer's choice."
-					discordutil.Choice("Alphabetical", "alphabetical"), // "Sort the list alphabetically by name."
-					discordutil.Choice("Founded", "founded"),           // "Sort the list by date founded. Oldest -> Newest."
-					discordutil.Choice("Residents", "residents"),       // "Sort the list solely by the number of residents."
-					discordutil.Choice("Size", "size"),                 // "Sort the list solely by size (chunks claimed)."
-					discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
-					discordutil.Choice("Ruined", "ruined"),             // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
-					discordutil.Choice("Overclaimed", "overclaimed"),   // "Sort the list by overclaim status. Oldest -> Newest."
-					discordutil.Choice("For Sale", "for-sale"),         // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
-					discordutil.Choice("Has Nation", "has-nation"),
-					discordutil.Choice("Can Outsiders Spawn", "can-outsiders-spawn"), // "Sort the list by outsider spawn status. Enabled -> Not enabled."
-					discordutil.Choice("Open", "open"),                               // "Sort the list by open status. Open -> Not open."
-					discordutil.Choice("Public", "public"),                           // "Sort the list by public status. Public -> Not public."
-					discordutil.Choice("Neutral", "neutral"),                         // "Sort the list by neutral status. Neutral -> Not neutral."
-				),
-				discordutil.AutocompleteStringOption("nation", "Filter by towns within a specified nation.", 2, 40, false),
-				discordutil.StringOption("status", "Filter by towns with the specified status active.", nil, nil,
-					discordutil.Choice("Ruined", "ruined"),
-					discordutil.Choice("Overclaimed", "overclaimed"),
-					discordutil.Choice("For Sale", "for-sale"),
-					discordutil.Choice("Can Outsiders Spawn", "can-outsiders-spawn"),
-					discordutil.Choice("Open", "open"),
-					discordutil.Choice("Public", "public"),
-					discordutil.Choice("Neutral", "neutral"),
-				),
-				discordutil.StringOption("flags", "Filter by towns with the specified flag toggled on.", nil, nil,
-					discordutil.Choice("Explosions", "explosions"),
-					discordutil.Choice("Mobs", "mobs"),
-					discordutil.Choice("Fire", "fire"),
-					discordutil.Choice("PVP", "pvp"),
-				),
-			},
-		},
+func (cmd TownCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("query", "Query information about a town. Similar to /t in-game.", townInputOpt),
+		discordutil.SubcommandOption("activity", "Query the last online and purge dates of a town's residents.", townInputOpt),
+		discordutil.SubcommandOption("online", "Query the online status of a town's residents. Alias of /online town", townInputOpt),
+		discordutil.SubcommandOption("list", "Sends a paginator enabling navigation through all existing towns.",
+			discordutil.StringOption("sort", "Optional town list sorting. Without this, towns are sorted by residents -> size.", nil, nil,
+				discordutil.Choice("Alphabetical", "alphabetical"), // "Sort the list alphabetically by name."
+				discordutil.Choice("Founded", "founded"),           // "Sort the list by date founded. Oldest -> Newest."
+				discordutil.Choice("Residents", "residents"),       // "Sort the list solely by the number of residents."
+				discordutil.Choice("Size", "size"),                 // "Sort the list solely by size (chunks claimed)."
+				discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
+				discordutil.Choice("Ruined", "ruined"),             // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
+				discordutil.Choice("Overclaimed", "overclaimed"),   // "Sort the list by overclaim status. Oldest -> Newest."
+				discordutil.Choice("For Sale", "for-sale"),         // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
+				discordutil.Choice("Has Nation", "has-nation"),
+				discordutil.Choice("Can Outsiders Spawn", "can-outsiders-spawn"), // "Sort the list by outsider spawn status. Enabled -> Not enabled."
+				discordutil.Choice("Open", "open"),                               // "Sort the list by open status. Open -> Not open."
+				discordutil.Choice("Public", "public"),                           // "Sort the list by public status. Public -> Not public."
+				discordutil.Choice("Neutral", "neutral"),                         // "Sort the list by neutral status. Neutral -> Not neutral."
+			),
+			discordutil.AutocompleteStringOption("nation", "Filter by towns within a specified nation.", 2, 40, false),
+			discordutil.StringOption("status", "Filter by towns with the specified status active.", nil, nil,
+				discordutil.Choice("Ruined", "ruined"),
+				discordutil.Choice("Overclaimed", "overclaimed"),
+				discordutil.Choice("For Sale", "for-sale"),
+				discordutil.Choice("Can Outsiders Spawn", "can-outsiders-spawn"),
+				discordutil.Choice("Open", "open"),
+				discordutil.Choice("Public", "public"),
+				discordutil.Choice("Neutral", "neutral"),
+			),
+			discordutil.StringOption("flags", "Filter by towns with the specified flag toggled on.", nil, nil,
+				discordutil.Choice("Explosions", "explosions"),
+				discordutil.Choice("Mobs", "mobs"),
+				discordutil.Choice("Fire", "fire"),
+				discordutil.Choice("PVP", "pvp"),
+			),
+		),
 	}
 }
 
@@ -493,7 +468,6 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 				continue
 			}
 
-			//daysOffline := (now - *lo/1000) / 86400
 			purgeTimeStr := formattedPurgeTime(now, *lo/1000)
 			balanceStr := logutil.HumanizedSprintf("%s `%d`G", shared.EMOJIS.GOLD_INGOT, int(res.Stats.Balance))
 
@@ -509,8 +483,7 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 		}
 	}
 
-	// chinese motorcycle
-	return nil, paginator.Start()
+	return nil, paginator.Start() // chinese motorcycle
 }
 
 // Given the current time and last online, this func outputs a formatted time
@@ -546,7 +519,6 @@ func tryGetTown(mdb *database.Database, townName string) (*oapi.TownInfo, error)
 			return strings.EqualFold(townName, info.Name) || townName == info.UUID
 		})
 	}
-
 	if town == nil {
 		return nil, fmt.Errorf("Town `%s` does not seem to exist.", townName)
 	}

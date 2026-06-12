@@ -19,22 +19,17 @@ func (cmd DevCommand) Description() string {
 
 // Subcommand "purge" will only work with the GUILD_MEMBERS intent which requires
 // your bot to be verified, which you can apply for when you reach >100 servers.
-func (cmd DevCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
+func (cmd DevCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
 		// {
 		// 	Type:        discordgo.ApplicationCommandOptionSubCommand,
 		// 	Name:        "reload",
 		// 	Description: "Reloads the bot by refreshing command 'Execute' definitions.",
 		// },
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "purge",
-			Description: "Leaves guilds based on low member count. Helps combat abuse.",
-			Options: AppCommandOpts{
-				discordutil.IntegerOption("threshold", "Guilds above this member count will not be left.", 1, MAX_THRESHOLD, true),
-				discordutil.BoolOption("approx-only", "Determines whether to leave using only approx mem count."),
-			},
-		},
+		discordutil.SubcommandOption("purge", "Leaves guilds based on low member count. Helps combat abuse.",
+			discordutil.IntegerOption("threshold", "Guilds above this member count will not be left.", 1, MAX_THRESHOLD, true),
+			discordutil.BoolOption("approx-only", "Determines whether to leave using only approx mem count."),
+		),
 	}
 }
 

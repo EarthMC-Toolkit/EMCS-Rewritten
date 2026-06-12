@@ -126,17 +126,19 @@ func (cmd ExampleCommand) Description() string {
 	return "This is an example description for a slash command."
 }
 
-func (cmd ExampleCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "query",
-			Description: "Query information about XYZ.",
-			Options: AppCommandOpts{
-				discordutil.AutocompleteStringOption("name", "The name of the thing to query.", 2, 36, true),
-			},
+func (cmd ExampleCommand) Options() []AppCommandOpt {
+	// NOTE: Helper funcs like SubcommandOption() and SubcommandGroupOption() from the 
+	// 		 discordutil package are preferred as help compact and tidy up this func.
+	var queryOpt = AppCommandOpt{
+		Type:        discordgo.ApplicationCommandOptionSubCommand,
+		Name:        "query",
+		Description: "Query information about XYZ.",
+		Options: []AppCommandOpt{
+			discordutil.AutocompleteStringOption("name", "The name of the thing to query.", 2, 36, true),
 		},
 	}
+
+	return []AppCommandOpt{queryOpt}
 }
 
 // Allows this command to handle its own execution (via SlashCommand interface) once registered.

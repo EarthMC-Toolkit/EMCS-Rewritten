@@ -19,30 +19,9 @@ func (cmd ServerCommand) Description() string {
 	return "Base command for server related subcommands."
 }
 
-func (cmd ServerCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "info",
-			Description: "Replies with information about the server (time, new day, vp).",
-		},
-		// {
-		// 	Type:        discordgo.ApplicationCommandOptionSubCommand,
-		// 	Name:        "player-stats",
-		// 	Description: "Sends a paginated list with the server's all-time player statistics.",
-		// 	Options: AppCommandOpts{
-		// 		{
-		// 			Type:        discordgo.ApplicationCommandOptionString,
-		// 			Name:        "sort",
-		// 			Description: "Sort order of the keys used before displaying the list.",
-		// 			Required:    true,
-		// 			Choices: []*discordgo.ApplicationCommandOptionChoice{
-		// 				{Name: "Grouped", Value: "grouped"},
-		// 				{Name: "Alphabetical", Value: "alphabetical"},
-		// 			},
-		// 		},
-		// 	},
-		// },
+func (cmd ServerCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("info", "Replies with information about the server (time, new day, vp)."),
 	}
 }
 

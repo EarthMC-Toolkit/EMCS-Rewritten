@@ -13,8 +13,8 @@ func (cmd ResidentCommand) Description() string {
 	return "Replies with information about a player. Alias of /player query"
 }
 
-func (cmd ResidentCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
+func (cmd ResidentCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
 		discordutil.RequiredStringOption("name", "The name of the player to query.", 3, 36),
 	}
 }

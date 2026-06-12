@@ -26,16 +26,11 @@ func (cmd QuartersCommand) Description() string {
 	return "For all things relating to the quarters plugin."
 }
 
-func (cmd QuartersCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "forsale",
-			Description: "Retrieve a list of all quarters for sale in a town.",
-			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("name", "The name of the town to query.", 2, 40),
-			},
-		},
+func (cmd QuartersCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("forsale", "Retrieve a list of all quarters for sale in a town.",
+			discordutil.RequiredStringOption("name", "The name of the town to query.", 2, 40),
+		),
 	}
 }
 

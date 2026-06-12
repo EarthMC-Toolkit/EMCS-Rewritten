@@ -9,13 +9,25 @@ func Choice[T any](name string, value T) *discordgo.ApplicationCommandOptionChoi
 	}
 }
 
-func SubcommandOption(name, description string, options ...*discordgo.ApplicationCommandOption) *discordgo.ApplicationCommandOption {
+func CommandOption(
+	optType discordgo.ApplicationCommandOptionType,
+	name, description string,
+	options ...*discordgo.ApplicationCommandOption,
+) *discordgo.ApplicationCommandOption {
 	return &discordgo.ApplicationCommandOption{
-		Type:        discordgo.ApplicationCommandOptionSubCommand,
+		Type:        optType,
 		Name:        name,
 		Description: description,
 		Options:     options,
 	}
+}
+
+func SubcommandOption(name, description string, options ...*discordgo.ApplicationCommandOption) *discordgo.ApplicationCommandOption {
+	return CommandOption(discordgo.ApplicationCommandOptionSubCommand, name, description, options...)
+}
+
+func SubcommandGroupOption(name, description string, options ...*discordgo.ApplicationCommandOption) *discordgo.ApplicationCommandOption {
+	return CommandOption(discordgo.ApplicationCommandOptionSubCommandGroup, name, description, options...)
 }
 
 func BoolOption(name, description string) *discordgo.ApplicationCommandOption {
@@ -88,6 +100,37 @@ func TextInputActionRow(input discordgo.TextInput) discordgo.ActionsRow {
 	return discordgo.ActionsRow{
 		Components: []discordgo.MessageComponent{input},
 	}
+}
+
+func TextInput(style discordgo.TextInputStyle, cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
+	return discordgo.TextInput{
+		CustomID:    cid,
+		Label:       label,
+		Placeholder: placeholder,
+		MinLength:   int(minLen),
+		MaxLength:   int(maxLen),
+		Style:       style,
+	}
+}
+
+func TextInputShort(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
+	return TextInput(discordgo.TextInputShort, cid, label, placeholder, minLen, maxLen)
+}
+
+func TextInputParagraph(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
+	return TextInput(discordgo.TextInputParagraph, cid, label, placeholder, minLen, maxLen)
+}
+
+func RequiredTextInputShort(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
+	ti := TextInput(discordgo.TextInputShort, cid, label, placeholder, minLen, maxLen)
+	ti.Required = true
+	return ti
+}
+
+func RequiredTextInputParagraph(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
+	ti := TextInput(discordgo.TextInputParagraph, cid, label, placeholder, minLen, maxLen)
+	ti.Required = true
+	return ti
 }
 
 func SelectMenuActionRow(menu discordgo.SelectMenu) discordgo.ActionsRow {

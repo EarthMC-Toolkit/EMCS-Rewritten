@@ -136,45 +136,21 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 		CustomID: "alliance_editor_functional@" + alliance.Identifier,
 		Title:    "Alliance Editor - Functional Fields",
 		Components: []discordgo.MessageComponent{
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "identifier",
-				Label:       "Query Identifier (3-16 chars)",
-				Placeholder: alliance.Identifier,
-				Style:       discordgo.TextInputShort,
-				MinLength:   3,
-				MaxLength:   16,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "label",
-				Label:       "Alliance Name (4-64 chars)",
-				Placeholder: alliance.Label,
-				Style:       discordgo.TextInputShort,
-				MinLength:   4,
-				MaxLength:   64,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "representative",
-				Label:       "Representative Discord ID",
-				Placeholder: *alliance.RepresentativeID,
-				Style:       discordgo.TextInputShort,
-				MinLength:   17,
-				MaxLength:   19,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "nations",
-				Label:       "Own Nations",
-				Placeholder: nationsPlaceholder,
-				MinLength:   3,
-				Style:       discordgo.TextInputParagraph,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "parent",
-				Label:       "Parent Alliance",
-				Placeholder: parentPlaceholder,
-				MinLength:   3,
-				MaxLength:   16,
-				Style:       discordgo.TextInputShort,
-			}),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputShort("identifier", "Query Identifier (3-16 chars)", alliance.Identifier, 3, 16),
+			),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputShort("label", "Alliance Name (4-64 chars)", alliance.Label, 4, 64),
+			),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputShort("representative", "Representative Discord ID", *alliance.RepresentativeID, 17, 19),
+			),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputShort("nations", "Own Nations", nationsPlaceholder, 3, 0),
+			),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputShort("parent", "Parent Alliance", parentPlaceholder, 3, 16),
+			),
 		},
 	})
 }
@@ -225,89 +201,43 @@ func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, all
 		CustomID: "alliance_editor_optional@" + alliance.Identifier,
 		Title:    "Alliance Editor - Optional Fields",
 		Components: []discordgo.MessageComponent{
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "type",
-				Label:       "Alliance Type (mega/org/pact)",
-				Placeholder: string(alliance.Type),
-				MinLength:   3,
-				MaxLength:   4,
-				Style:       discordgo.TextInputShort,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "discord",
-				Label:       "Permanent Discord Invite",
-				Placeholder: discordPlaceholder,
-				Style:       discordgo.TextInputShort,
-				MinLength:   4,
-				MaxLength:   40,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "image",
-				Label:       "Image/Flag URL",
-				Placeholder: imagePlaceholder,
-				Style:       discordgo.TextInputShort,
-				MinLength:   20,
-				MaxLength:   500,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "colours",
-				Label:       "Colours (Used by bot & extension)",
-				Placeholder: coloursPlaceholder,
-				MinLength:   4,
-				Style:       discordgo.TextInputShort,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "leaders",
-				Label:       "Leader IGNs (comma-separated)",
-				Placeholder: leaderPlaceholder,
-				Style:       discordgo.TextInputParagraph,
-				MinLength:   3,
-				MaxLength:   320, // Minecraft max name length is 16. Should suffice for many leaders.
-			}),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputShort("type", "Alliance Type (mega/org/pact)", string(alliance.Type), 3, 4),
+			),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputShort("discord", "Permanent Discord Invite", discordPlaceholder, 4, 40),
+			),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputShort("image", "Image/Flag URL", imagePlaceholder, 20, 500),
+			),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputShort("colours", "Colours (Used by bot & extension)", coloursPlaceholder, 4, 16),
+			),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputParagraph("leaders", "Leader IGNs (comma-seperated)", leaderPlaceholder, 3, 320),
+			),
 		},
 	})
 }
 
 func openEditorModalMultiUpdate(s *discordgo.Session, i *discordgo.Interaction) error {
-	//requireSelectMenu := false
 	return discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
 		CustomID: "alliance_editor_multi",
 		Title:    "Alliance Editor - Multi",
 		Flags:    discordgo.MessageFlagsIsComponentsV2,
 		Components: []discordgo.MessageComponent{
-			// discordutil.Label("Add method", "Add nations directly or to puppets", discordgo.SelectMenu{
-			// 	CustomID: "alliances-add-method",
-			// 	MenuType: discordgo.StringSelectMenu,
-			// 	Required: &requireSelectMenu,
-			// 	Options: []discordgo.SelectMenuOption{
-			// 		{Label: "Direct/Parent only", Value: "direct", Default: true},
-			// 		{Label: "Add to puppets (if applicable)", Value: "puppets"},
-			// 	},
-			// }),
-			discordutil.Label("Nations to add", "Please use a comma-seperated list", discordgo.TextInput{
-				CustomID:    "nations-add",
-				Placeholder: "Enter list of nation names...",
-				Style:       discordgo.TextInputParagraph,
-				MinLength:   2,
-			}),
-			discordutil.Label("Alliances to add the nations to", "Please use a comma-seperated list", discordgo.TextInput{
-				CustomID:    "alliances-add",
-				Placeholder: "Enter list of alliance identifiers..",
-				Style:       discordgo.TextInputParagraph,
-				MinLength:   2,
-			}),
-			discordutil.Label("Nations to remove", "Please use a comma-seperated list", discordgo.TextInput{
-				CustomID:    "nations-remove",
-				Placeholder: "Enter list of nation names...",
-				Style:       discordgo.TextInputParagraph,
-				MinLength:   2,
-			}),
-			discordutil.Label("Alliances to remove the nations from", "Please use a comma-seperated list", discordgo.TextInput{
-				CustomID:    "alliances-remove",
-				Placeholder: "Enter list of alliance identifiers..",
-				Style:       discordgo.TextInputParagraph,
-				MinLength:   2,
-			}),
+			discordutil.Label("Nations to add", "Please use a comma-seperated list",
+				discordutil.TextInputParagraph("nations-add", "", "Enter list of nation names...", 2, 0),
+			),
+			discordutil.Label("Alliances to add the nations to", "Please use a comma-seperated list",
+				discordutil.TextInputParagraph("alliances-add", "", "Enter list of alliance identifiers..", 2, 0),
+			),
+			discordutil.Label("Nations to remove", "Please use a comma-seperated list",
+				discordutil.TextInputParagraph("nations-remove", "", "Enter list of nation names...", 2, 0),
+			),
+			discordutil.Label("Alliances to remove the nations from", "Please use a comma-seperated list",
+				discordutil.TextInputParagraph("alliances-remove", "", "Enter list of alliance identifiers..", 2, 0),
+			),
 		},
 	})
 }
@@ -317,20 +247,12 @@ func openEditorModalNationsUpdate(s *discordgo.Session, i *discordgo.Interaction
 		CustomID: "alliance_editor_nations@" + alliance.Identifier,
 		Title:    "Alliance Editor - Nations Field",
 		Components: []discordgo.MessageComponent{
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "add",
-				Label:       "Nations to Add (comma-seperated)",
-				Placeholder: "Enter list of nation names...",
-				Style:       discordgo.TextInputParagraph,
-				MinLength:   2,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "remove",
-				Label:       "Nations to Remove (comma-seperated)",
-				Placeholder: "Enter list of nation names...",
-				Style:       discordgo.TextInputParagraph,
-				MinLength:   2,
-			}),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputParagraph("add", "Nations to Add (comma-seperated)", "Enter list of nation names...", 2, 0),
+			),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputParagraph("remove", "Nations to Remove (comma-seperated)", "Enter list of nation names...", 2, 0),
+			),
 		},
 	})
 }
@@ -340,20 +262,12 @@ func openEditorModalLeadersUpdate(s *discordgo.Session, i *discordgo.Interaction
 		CustomID: "alliance_editor_leaders@" + alliance.Identifier,
 		Title:    "Alliance Editor - Leaders Field",
 		Components: []discordgo.MessageComponent{
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "add",
-				Label:       "Leaders to Add (comma-seperated)",
-				Placeholder: "Enter list of IGNs...",
-				Style:       discordgo.TextInputParagraph,
-				MinLength:   3,
-			}),
-			discordutil.TextInputActionRow(discordgo.TextInput{
-				CustomID:    "remove",
-				Label:       "Leaders to Remove (comma-seperated)",
-				Placeholder: "Enter list of IGNs...",
-				Style:       discordgo.TextInputParagraph,
-				MinLength:   3,
-			}),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputParagraph("add", "Leaders to Add (comma-seperated)", "Enter list of IGNs...", 3, 0),
+			),
+			discordutil.TextInputActionRow(
+				discordutil.TextInputParagraph("remove", "Leaders to Remove (comma-seperated)", "Enter list of IGNs...", 3, 0),
+			),
 		},
 	})
 }
@@ -1120,6 +1034,8 @@ func generateAllianceID() (id uint64, createdTs uint64) {
 	return (createdTs << 16) | suffix, createdTs
 }
 
+var VALID_IMG_EXTENSIONS = [4]string{".png", ".jpg", ".jpeg", ".webp"}
+
 func validateAllianceImage(rawURL string) (string, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -1152,9 +1068,7 @@ func validateAllianceImage(rawURL string) (string, error) {
 	}
 
 	ext := strings.ToLower(path.Ext(strings.TrimRight(u.Path, "/")))
-	switch ext {
-	case ".png", ".jpg", ".jpeg", ".webp":
-	default:
+	if !slices.Contains(VALID_IMG_EXTENSIONS[:], ext) {
 		return "", errors.New("url does not point to an image type")
 	}
 
@@ -1169,7 +1083,6 @@ func validateNations(nationStore *store.Store[oapi.NationInfo], input []string) 
 	nameMap := nationStore.EntriesFunc(func(n oapi.NationInfo) string {
 		return strings.ToLower(n.Name)
 	})
-
 	for _, name := range input {
 		if n, ok := nameMap[strings.ToLower(name)]; ok {
 			valid = append(valid, n)

@@ -23,39 +23,15 @@ func (cmd NewsCommand) Description() string {
 	return "Retrieve news articles provided by the current news provider."
 }
 
-func (cmd NewsCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "latest",
-			Description: "Shows the latest articles.",
-			Options: AppCommandOpts{
-				discordutil.IntegerOption("count", "The number of news entries to show (max 20).", 1, 20, false),
-			},
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "changelogs",
-			Description: "Shows a list of all reported server changelogs.",
-		},
-		{
-			// TODO: Maybe just use a 'term' option for searching instead of a nation-specific subcommand?
-			// 		 Would be more flexible (alliances, towns etc) and future-proof.
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "search",
-			Description: "Shows all news articles relating to the specified term.",
-			Options: AppCommandOpts{
-				discordutil.RequiredStringOption("term", "The text to match news headlines by.", 2, 60),
-			},
-		},
-		// {
-		// 	Type:        discordgo.ApplicationCommandOptionSubCommand,
-		// 	Name:        "alliance",
-		// 	Description: "Shows all news articles relating to the the specified alliance.",
-		// 	Options: AppCommandOpts{
-		// 		discordutil.AutocompleteStringOption("identifier", "The alliance's identifier/short name.", 3, 16, true),
-		// 	},
-		// },
+func (cmd NewsCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("latest", "Shows the latest articles.",
+			discordutil.IntegerOption("count", "The number of news entries to show (max 20).", 1, 20, false),
+		),
+		discordutil.SubcommandOption("changelogs", "Shows a list of all reported server changelogs."),
+		discordutil.SubcommandOption("search", "Shows all news articles relating to the specified term.",
+			discordutil.RequiredStringOption("term", "The text to match news headlines by.", 2, 60),
+		),
 	}
 }
 

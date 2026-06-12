@@ -22,18 +22,10 @@ func (cmd UsageCommand) Description() string {
 	return "Get info on your personal bot usage or view the global usage leaderboard."
 }
 
-func (cmd UsageCommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "self",
-			Description: "Output info about your own bot usage statistics.",
-		},
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "leaderboard",
-			Description: "View the bot usage statistics globally via a leaderboard.",
-		},
+func (cmd UsageCommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("self", "Output info about your own bot usage statistics."),
+		discordutil.SubcommandOption("leaderboard", "View the bot usage statistics globally via a leaderboard."),
 	}
 }
 

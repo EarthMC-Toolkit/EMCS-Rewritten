@@ -20,7 +20,7 @@ func (cmd TownlessCommand) Description() string {
 	return "Retrieve information on townless players."
 }
 
-func (cmd TownlessCommand) Options() AppCommandOpts {
+func (cmd TownlessCommand) Options() []AppCommandOpt {
 	return nil
 }
 

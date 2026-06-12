@@ -18,21 +18,13 @@ func (cmd SSECommand) Description() string {
 	return "Base command for subcommands relating to Server Events/SSE."
 }
 
-func (cmd SSECommand) Options() AppCommandOpts {
-	return AppCommandOpts{
-		{
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Name:        "configure",
-			Description: "Sets up the current channel to receive certain chosen server events.",
-		},
+func (cmd SSECommand) Options() []AppCommandOpt {
+	return []AppCommandOpt{
+		discordutil.SubcommandOption("configure", "Sets up the current channel to receive certain chosen server events."),
 	}
 }
 
 func (cmd SSECommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	// if err := discordutil.DeferReply(s, i.Interaction); err != nil {
-	// 	return err
-	// }
-
 	cdata := i.ApplicationCommandData()
 	if opt := cdata.GetOption("configure"); opt != nil {
 		if i.Member != nil {
@@ -135,7 +127,7 @@ func buildSelectMenu(selected []string) discordgo.ActionsRow {
 		menuOption("Nation Merged", "event-nation-merged", "When a nation merges with another nation.", selected),
 	}
 
-	var min, max = 1, len(menuOpts)
+	min, max := 1, len(menuOpts)
 	return discordutil.SelectMenuActionRow(discordgo.SelectMenu{
 		// Select menu, as other components, must have a customID, so we set it to this value.
 		CustomID:    "sse_setup",
