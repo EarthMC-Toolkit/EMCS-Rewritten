@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/samber/lo"
 	"github.com/samber/lo/parallel"
 )
 
@@ -28,12 +29,12 @@ func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
 		return p.UUID
 	})
 
-	players, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
+	players, errs, chunks := oapi.QueryPlayers(ids...).ExecuteConcurrent()
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
 	if len(players) == 0 {
-		return nil, errors.New("failed to query online players, received 0 players from QueryConcurrent")
+		return nil, fmt.Errorf("failed to query online players, received 0 players from QueryConcurrent [%d Chunks]", chunks)
 	}
 
 	return players, nil
@@ -44,25 +45,24 @@ func QueryOnlinePlayers() ([]oapi.PlayerInfo, error) {
 //
 // Returns back the same list of online players as a single slice.
 // Essentially, this acts as a conversion between []mapi.OnlinePlayer and []oapi.PlayerInfo.
-func QueryVisiblePlayers() ([]oapi.PlayerInfo, error) {
+func QueryVisiblePlayers() ([]oapi.PlayerInfo, []mapi.MapPlayer, error) {
 	visible, err := mapi.GetVisiblePlayers()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	ids := parallel.Map(visible, func(p mapi.MapPlayer, _ int) string {
-		return p.UUID
+	ids := lo.Map(visible, func(p mapi.MapPlayer, _ int) string {
+		return mapi.NormalizeUUID(p.UUID)
 	})
 
-	players, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
+	players, errs, chunks := oapi.QueryPlayers(ids...).ExecuteConcurrent()
 	if len(errs) > 0 {
-		return nil, errors.Join(errs...)
+		return nil, nil, errors.Join(errs...)
 	}
 	if len(players) == 0 {
-		return nil, errors.New("failed to query visible players, received 0 players from QueryConcurrent")
+		return nil, nil, fmt.Errorf("failed to query visible players, received 0 players from QueryConcurrent [%d Chunks]", chunks)
 	}
 
-	return players, nil
+	return players, visible, nil
 }
 
 // Runs a GET query for the town list, then POST queries every town concurrently using its UUID.
@@ -78,12 +78,12 @@ func QueryAllTowns() ([]oapi.TownInfo, error) {
 		return e.UUID
 	})
 
-	towns, errs, _ := oapi.QueryTowns(ids...).ExecuteConcurrent()
+	towns, errs, chunks := oapi.QueryTowns(ids...).ExecuteConcurrent()
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
 	if len(towns) == 0 {
-		return nil, errors.New("failed to query all towns, received 0 towns from QueryConcurrent")
+		return nil, fmt.Errorf("failed to query all towns, received 0 towns from QueryConcurrent [%d Chunks]", chunks)
 	}
 
 	return towns, nil

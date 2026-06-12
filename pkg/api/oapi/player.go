@@ -1,6 +1,11 @@
 package oapi
 
-import "slices"
+import (
+	"slices"
+)
+
+// In order of priority so we show "better" roles first.
+var TOWNY_ROLES = [...]string{"Councillor", "Assistant", "Helper", "Builder", "Recruiter"}
 
 type OnlineResponse struct {
 	Count   uint16   `json:"count"`
@@ -49,11 +54,11 @@ type PlayerInfo struct {
 	Perms         Perms                `json:"perms"`
 }
 
-func (p PlayerInfo) GetUUID() string {
-	return p.UUID
+func (p PlayerInfo) Bal() float32 {
+	return p.Stats.Balance
 }
 
-func (p PlayerInfo) GetRank() string {
+func (p PlayerInfo) Rank() string {
 	if p.Status.IsKing {
 		return "Nation Leader"
 	}
@@ -64,10 +69,7 @@ func (p PlayerInfo) GetRank() string {
 	return "Resident"
 }
 
-// In order of priority so we show "better" roles first.
-var TOWNY_ROLES = [...]string{"Councillor", "Assistant", "Helper", "Builder", "Recruiter"}
-
-func (p PlayerInfo) GetRankOrRole() string {
+func (p PlayerInfo) RankOrRole() string {
 	if p.Status.IsKing {
 		return "Nation Leader"
 	}

@@ -322,7 +322,7 @@ func executeNationActivity(s *discordgo.Session, i *discordgo.Interaction, natio
 
 			fmt.Fprintf(&content,
 				"**%s** (%s) - Online <t:%d:R>. Purges %s. %s\n",
-				res.Name, res.GetRankOrRole(), *lo/1000, purgeTimeStr, balanceStr,
+				res.Name, res.RankOrRole(), *lo/1000, purgeTimeStr, balanceStr,
 			)
 		}
 

@@ -74,3 +74,20 @@ func encodePerm(perm [4]bool) string {
 
 	return string(b)
 }
+
+// Filters out any bad entities (due to error or opt-out) from a known good list.
+// func FilterEntities(plist []Entity, uuids ...string) ([]string, error) {
+// 	validSet := make(map[string]struct{}, len(plist))
+// 	for _, e := range plist {
+// 		validSet[e.UUID] = struct{}{}
+// 	}
+
+// 	filtered := make([]string, 0, len(uuids))
+// 	for _, id := range uuids {
+// 		if _, ok := validSet[id]; ok {
+// 			filtered = append(filtered, id)
+// 		}
+// 	}
+
+// 	return filtered, nil
+// }

@@ -116,7 +116,7 @@ func executeOnlineTown(s *discordgo.Session, i *discordgo.Interaction, townName 
 
 	return sendPlayersPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
 		balStr := fmt.Sprintf("%s `%0.f`G", shared.EMOJIS.GOLD_INGOT, p.Stats.Balance)
-		return fmt.Sprintf("`%s` (%s) %s\n", p.Name, p.GetRank(), balStr)
+		return fmt.Sprintf("`%s` (%s) %s\n", p.Name, p.Rank(), balStr)
 	})
 }
 
@@ -155,7 +155,7 @@ func executeOnlineNation(s *discordgo.Session, i *discordgo.Interaction, nationN
 
 	return sendPlayersPaginator(s, i, online, 15, func(p oapi.PlayerInfo) string {
 		balStr := fmt.Sprintf("%s `%0.f`G", shared.EMOJIS.GOLD_INGOT, p.Stats.Balance)
-		return fmt.Sprintf("`%s` of **%s** (%s) %s\n", p.Name, *p.Town.Name, p.GetRank(), balStr)
+		return fmt.Sprintf("`%s` of **%s** (%s) %s\n", p.Name, *p.Town.Name, p.Rank(), balStr)
 	})
 }
 

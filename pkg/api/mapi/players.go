@@ -18,11 +18,11 @@ func (loc Location) ToMapLink(zoom uint8) string {
 }
 
 type MapPlayer struct {
-	UUID        string `json:"uuid"`
-	Name        string `json:"name"`
-	DisplayName string `json:"display_name"`
-	World       string `json:"world"`
-	Yaw         int32  `json:"yaw"`
+	UUID        string  `json:"uuid"`
+	Name        string  `json:"name"`
+	DisplayName *string `json:"display_name"`
+	World       string  `json:"world"`
+	Yaw         int32   `json:"yaw"`
 	Location
 }
 
@@ -39,4 +39,20 @@ func GetVisiblePlayers() ([]MapPlayer, error) {
 	}
 
 	return res.Players, nil
+}
+
+// Convert a non-hyphenated UUID to one containing hyphens
+// which most things (including the EMC API) expect.
+//
+// If the input uuid is not 32 characters in length, it will be returned as is.
+func NormalizeUUID(uuid string) string {
+	if len(uuid) != 32 {
+		return uuid
+	}
+
+	return uuid[:8] + "-" +
+		uuid[8:12] + "-" +
+		uuid[12:16] + "-" +
+		uuid[16:20] + "-" +
+		uuid[20:]
 }

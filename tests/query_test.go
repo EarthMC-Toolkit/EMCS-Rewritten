@@ -46,8 +46,8 @@ func TestGetVisiblePlayers(t *testing.T) {
 func TestQueryVisiblePlayers(t *testing.T) {
 	//t.SkipNow()
 
-	players, err := api.QueryVisiblePlayers()
-	logutil.LogValOrErr(t, len(players), err)
+	players, _, err := api.QueryVisiblePlayers()
+	logutil.LogValOrErr(t, players, err)
 }
 
 func TestQueryAllTowns(t *testing.T) {

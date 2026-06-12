@@ -1034,7 +1034,7 @@ func generateAllianceID() (id uint64, createdTs uint64) {
 	return (createdTs << 16) | suffix, createdTs
 }
 
-var VALID_IMG_EXTENSIONS = [4]string{".png", ".jpg", ".jpeg", ".webp"}
+var VALID_IMG_EXTENSIONS = [...]string{".png", ".jpg", ".jpeg", ".webp"}
 
 func validateAllianceImage(rawURL string) (string, error) {
 	u, err := url.Parse(rawURL)

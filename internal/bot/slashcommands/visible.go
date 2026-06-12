@@ -1,7 +1,9 @@
 package slashcommands
 
 import (
-	"emcsrw/pkg/api/mapi"
+	"emcsrw/internal/shared"
+	"emcsrw/pkg/api"
+	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils/discordutil"
 	"fmt"
 	"strings"
@@ -26,13 +28,18 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		return err
 	}
 
-	visible, err := mapi.GetVisiblePlayers()
+	oapiPlayers, visible, err := api.QueryVisiblePlayers()
 	if err != nil {
 		_, err := discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
 			Content: "An error occurred during the map request or response parsing :(",
 		})
 
 		return err
+	}
+
+	playerLookup := make(map[string]oapi.PlayerInfo, len(oapiPlayers))
+	for _, p := range oapiPlayers {
+		playerLookup[p.Name] = p
 	}
 
 	count := len(visible)
@@ -53,8 +60,27 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 		b := strings.Builder{} // build the description faster than regular Sprintf concat
 		for idx, p := range visible[start:end] {
-			loc := fmt.Sprintf("%d, %d, %d", p.X, p.Y, p.Z)
-			fmt.Fprintf(&b, "%d. **%s** | `%s`\n", start+idx+1, p.Name, loc)
+			pinfo := playerLookup[p.Name]
+
+			townName := "Townless"
+			if pinfo.Town.Name != nil {
+				townName = *pinfo.Town.Name
+			}
+
+			locStr := fmt.Sprintf("[%d, %d, %d](https://map.earthmc.net/?x=%d&z=%d&zoom=4)", p.X, p.Y, p.Z, p.X, p.Z)
+			balStr := fmt.Sprintf("`%0.0f`G %s", pinfo.Bal(), shared.EMOJIS.GOLD_INGOT)
+
+			registeredStr := fmt.Sprintf("<t:%d:R>", pinfo.Timestamps.Registered/1000)
+
+			joinedTownStr := "N/A"
+			if pinfo.Timestamps.JoinedTownAt != nil {
+				joinedTownStr = fmt.Sprintf("<t:%d:R>", *pinfo.Timestamps.JoinedTownAt/1000)
+			}
+
+			fmt.Fprintf(&b, "%d. **%s** (%s) | %s | %s\nRank: %s | Registered: %s | Joined Town: %s\n",
+				start+idx+1, p.Name, townName, locStr, balStr,
+				pinfo.RankOrRole(), registeredStr, joinedTownStr,
+			)
 		}
 
 		title := fmt.Sprintf("List of Visible Players [%d]", count)
