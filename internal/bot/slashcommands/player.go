@@ -107,7 +107,7 @@ func buildBasicPlayerEmbed(playerName string, desc string) (*discordgo.MessageEm
 		return strings.EqualFold(p.Name, playerName)
 	})
 	if err != nil {
-		return nil, nil
+		return nil, fmt.Errorf("error querying player `%s`: opted-out or does not exist", playerName)
 	}
 
 	return shared.NewBasicPlayerEmbed(*p, desc), nil
