@@ -37,7 +37,7 @@ func DeferReply(s *discordgo.Session, i *discordgo.Interaction) error {
 	})
 }
 
-// SendReply sends the initial response to an interaction.
+// Sends an initial response to an interaction with the specified data if applicable.
 //
 // This must only be used if the interaction has NOT already been acknowledged.
 // If the interaction was previously deferred (via DeferReply) or already
@@ -53,14 +53,13 @@ func SendReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.I
 	})
 }
 
-// EditReply edits the original interaction response message.
+// Edits the original interaction response message with new data.
 //
-// This should be used when the interaction has already been acknowledged,
-// most commonly after calling DeferReply. It modifies the original message
-// rather than creating a new one.
+// This should be used when the interaction has already been acknowledged as
+// it will modify the original message rather than creating a new one.
 //
 // Typical usage:
-//   - After DeferReply
+//   - After DeferReply or SendReply
 //   - Updating paginated responses
 //   - Updating content after performing longer operations
 func EditReply(s *discordgo.Session, i *discordgo.Interaction, data *discordgo.InteractionResponseData) (*discordgo.Message, error) {

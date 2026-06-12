@@ -62,13 +62,13 @@ func NewMessageBuilder() *MessageBuilder {
 	return &MessageBuilder{}
 }
 
-func (b *MessageBuilder) SetContent(content *string) {
-	var c string
-	if content != nil {
-		c = *content
-	}
+func (b *MessageBuilder) SetContent(content string) {
+	b.Content = content
+}
 
-	b.Content = c
+func (b *MessageBuilder) SetEmbeds(embeds ...*discordgo.MessageEmbed) *MessageBuilder {
+	b.Embeds = embeds
+	return b
 }
 
 func (b *MessageBuilder) AddEmbed(embed *discordgo.MessageEmbed) *MessageBuilder {

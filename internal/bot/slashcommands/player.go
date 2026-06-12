@@ -32,10 +32,6 @@ func (cmd PlayerCommand) Options() []AppCommandOpt {
 }
 
 func (cmd PlayerCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	if err := discordutil.DeferReply(s, i.Interaction); err != nil {
-		return err
-	}
-
 	cdata := i.ApplicationCommandData()
 	if opt := cdata.GetOption("query"); opt != nil {
 		playerNameArg := opt.GetOption("name").StringValue()
@@ -43,6 +39,10 @@ func (cmd PlayerCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 	if opt := cdata.GetOption("compare"); opt != nil {
+		if err := discordutil.DeferReply(s, i.Interaction); err != nil {
+			return err
+		}
+
 		discordutil.ReplyWithError(s, i.Interaction, errors.New("Command not implemented yet."))
 		return nil
 	}
@@ -51,11 +51,14 @@ func (cmd PlayerCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 }
 
 func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerName string) (*discordgo.Message, error) {
+	msg := discordutil.NewMessageBuilder()
+
 	tokens := oapi.Dispatcher.GetBucketTokens()
 	if len(tokens) < 1 {
-		discordutil.FollowupContentEphemeral(s, i,
-			shared.EMOJIS.LOADING+" No tokens available to query the API. Queuing your request..",
-		)
+		msg.SetContent(shared.EMOJIS.LOADING + " No tokens available to query the API. Queuing your request..")
+		discordutil.SendReply(s, i, msg.InteractionData())
+	} else {
+		discordutil.DeferReply(s, i)
 	}
 
 	players, apiErr := oapi.QueryPlayers(strings.ToLower(playerName)).Execute()
@@ -64,28 +67,33 @@ func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerNa
 		embed, err := buildBasicPlayerEmbed(playerName, desc)
 		if err != nil {
 			content := fmt.Sprintf("An error occurred retrieving player information :(```%s```", apiErr)
-			return discordutil.FollowupContent(s, i, content)
+			msg.SetContent(content)
+		} else {
+			msg.SetEmbeds(embed)
 		}
 
-		return discordutil.FollowupEmbeds(s, i, embed)
+		return discordutil.EditReply(s, i, msg.InteractionData())
 	}
 
 	// API is up, but no results.
 	if len(players) == 0 {
 		desc := ":warning: Limited data available. This player has chosen to opt out of the EarthMC API, what a *pussy*."
 		embed, err := buildBasicPlayerEmbed(playerName, desc)
-		if err == nil {
+		if err != nil {
 			content := fmt.Sprintf("Player `%s` could not be retrieved from the EarthMC API.", playerName)
 			content += "\nIt is possible that this player is both townless and has opted-out."
-			return discordutil.FollowupContent(s, i, content)
+
+			msg.SetContent(content)
+		} else {
+			msg.SetEmbeds(embed)
 		}
 
-		return discordutil.FollowupEmbeds(s, i, embed)
+		return discordutil.EditReply(s, i, msg.InteractionData())
 	}
 
 	// API is up and results received, everything working normally.
-	embed := shared.NewPlayerEmbed(s, players[0])
-	return discordutil.FollowupEmbeds(s, i, embed)
+	msg.SetEmbeds(shared.NewPlayerEmbed(s, players[0]))
+	return discordutil.EditReply(s, i, msg.InteractionData())
 }
 
 func buildBasicPlayerEmbed(playerName string, desc string) (*discordgo.MessageEmbed, error) {
