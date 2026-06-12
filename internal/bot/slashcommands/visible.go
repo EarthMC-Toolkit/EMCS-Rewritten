@@ -3,7 +3,9 @@ package slashcommands
 import (
 	"emcsrw/internal/shared"
 	"emcsrw/pkg/api"
+	"emcsrw/pkg/api/mapi"
 	"emcsrw/pkg/api/oapi"
+	"emcsrw/pkg/utils"
 	"emcsrw/pkg/utils/discordutil"
 	"fmt"
 	"strings"
@@ -42,6 +44,11 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		playerLookup[p.Name] = p
 	}
 
+	// sort alphabetically
+	utils.KeySort(visible, []utils.KeySortOption[mapi.MapPlayer]{
+		{Compare: func(a, b mapi.MapPlayer) bool { return a.Name < b.Name }}, // ascending (A-Z)
+	})
+
 	count := len(visible)
 	if count == 0 {
 		_, err := discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
@@ -51,7 +58,7 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		return err
 	}
 
-	perPage := 15
+	perPage := 10
 	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, count, perPage).
 		WithTimeout(30 * time.Second)
 
@@ -77,14 +84,14 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 				joinedTownStr = fmt.Sprintf("<t:%d:R>", *pinfo.Timestamps.JoinedTownAt/1000)
 			}
 
-			fmt.Fprintf(&b, "%d. **%s** (%s) | %s | %s\nRank: %s | Registered: %s | Joined Town: %s\n",
+			fmt.Fprintf(&b, "%d. **%s** (%s) | %s | %s\nRank: `%s` | Registered: %s | Joined Town: %s\n\n",
 				start+idx+1, p.Name, townName, locStr, balStr,
 				pinfo.RankOrRole(), registeredStr, joinedTownStr,
 			)
 		}
 
 		title := fmt.Sprintf("List of Visible Players [%d]", count)
-		desc := b.String() + fmt.Sprintf("\nPage %d/%d", curPage+1, paginator.TotalPages())
+		desc := b.String() + fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
 
 		embed := discordutil.NewEmbedBuilder(&discordutil.BLURPLE, &title, &desc, nil)
 		data.Embeds = append(data.Embeds, embed.Build())
