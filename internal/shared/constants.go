@@ -32,7 +32,7 @@ var EMOJIS = struct {
 	GOLD_INGOT     Emoji
 	CHUNK          Emoji
 }{
-	LOADING:        "<:loading:1514744298527133900>",
+	LOADING:        "<a:loading:1514744298527133900>", // animated
 	CIRCLE_CHECK:   "<:circle_check:1448776921994367078>",
 	CIRCLE_CROSS:   "<:circle_cross:1448776923093139579>",
 	ENTRY:          "<:entry:1448776924653555904>",
