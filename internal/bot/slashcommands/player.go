@@ -57,6 +57,7 @@ func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerNa
 	if len(tokens) < 1 {
 		msg.SetContent(shared.EMOJIS.LOADING + " No tokens available to query the API. Queuing your request..")
 		discordutil.SendReply(s, i, msg.InteractionData())
+		msg.SetContent("")
 	} else {
 		discordutil.DeferReply(s, i)
 	}
