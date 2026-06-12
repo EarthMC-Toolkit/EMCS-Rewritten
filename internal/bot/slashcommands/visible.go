@@ -51,7 +51,7 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		return err
 	}
 
-	perPage := 20
+	perPage := 15
 	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, count, perPage).
 		WithTimeout(30 * time.Second)
 
