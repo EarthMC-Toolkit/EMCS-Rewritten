@@ -8,6 +8,7 @@ import (
 	"emcsrw/pkg/utils/discordutil"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -15,9 +16,8 @@ import (
 	"github.com/samber/lo"
 )
 
-const FALL_DAYS = 42                                  // Total days a mayor can be inactive until their town falls.
-const FALLING_TFRAME = 7                              // Time frame in days at which to include falling towns.
-const INACTIVE_THRESHOLD = FALL_DAYS - FALLING_TFRAME // Threshold at which a player is considered inactive after.
+const FALL_DAYS = 42     // Total days a mayor can be inactive until their town falls.
+const FALLING_TFRAME = 7 // Time frame in days at which to include falling towns.
 
 // TODO: Add a rate limiter to this command to stop the token bucket being empty.
 // Keep a record of time last used per user, and allow again after X minutes.
@@ -27,7 +27,7 @@ type FallingCommand struct {
 
 func (cmd FallingCommand) Name() string { return "falling" }
 func (cmd FallingCommand) Description() string {
-	return "See info about falling towns, their fall date and the closest route to them."
+	return "See info about falling towns, their fall date, balance etc."
 }
 
 func (cmd FallingCommand) Options() []AppCommandOpt {
@@ -46,7 +46,7 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		return err
 	}
 
-	falling, err := GetFallingTowns(mdb)
+	falling, err := ComputeFallingTowns(mdb, time.Now(), FALLING_TFRAME*24*time.Hour)
 	if err != nil {
 		return err
 	}
@@ -65,23 +65,21 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 		descBuilder := strings.Builder{} // More performant than concat via regular Sprintf
 		for idx, t := range items {
-			last := time.UnixMilli(t.MayorLastOnline)
-
-			ruinAt := last.Add(FALL_DAYS * 24 * time.Hour)            // RUIN: next new day after threshold
-			deletionAt := nextNewDayAfter(ruinAt.Add(72 * time.Hour)) // DELETION: next new day after 3d of ruin
-
 			X, Y, Z := t.SpawnLocation()
 			locationLink := fmt.Sprintf(
 				"[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)",
 				X, Y, Z, X, Z,
 			)
 
-			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
-			balance := logutil.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
-
-			fmt.Fprintf(&descBuilder, "%d. **%s** will fall into ruin <t:%d:R> at %s. %sG %s\nDeletion on `%s` (<t:%d:R>).\n\n",
-				start+idx+1, t.Name, ruinAt.Unix(), locationLink, balance, chunks, // first line
-				utils.FormatTime(deletionAt), deletionAt.Unix(), // second line
+			chunks := logutil.HumanizedSprintf("`%d` %s", shared.EMOJIS.CHUNK, t.Size())
+			balance := logutil.HumanizedSprintf("`%0.0f` %s", shared.EMOJIS.GOLD_INGOT, t.Bal())
+			residents := logutil.HumanizedSprintf("`%d`", t.NumResidents())
+			fmt.Fprintf(&descBuilder, "%d. **%s** is scheduled to fall <t:%d:R> at %s.\n"+
+				"Mayor: `%s` (online <t:%d:R>). Deletion on `%s` (<t:%d:R>).\n"+
+				"Residents: %s Balance: %sG Chunks: %s\n\n",
+				start+idx+1, t.Name, t.RuinAt.Unix(), locationLink, // line 1
+				utils.FormatTime(t.DeletionAt), t.DeletionAt.Unix(), // line 2
+				t.Mayor.Name, t.MayorLastOnline.Unix(), residents, balance, chunks, // line 3
 			)
 		}
 
@@ -98,81 +96,71 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 type FallingTown struct {
 	oapi.TownInfo
-	MayorLastOnline int64
+	MayorLastOnline time.Time
+	RuinAt          time.Time
+	DeletionAt      time.Time
+	DaysInactive    float64
 }
 
-func GetFallingTowns(mdb *database.Database) ([]FallingTown, error) {
+func ComputeFallingTowns(mdb *database.Database, now time.Time, window time.Duration) ([]FallingTown, error) {
 	townStore, err := database.GetStore(mdb, database.TOWNS_STORE)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get all mayors and create a lookup map to their town.
+	// mayor UUID → town
 	mayorTownLookup := townStore.EntriesFunc(func(t oapi.TownInfo) string {
 		return t.Mayor.UUID
 	})
-	mayorIds := lo.Keys(mayorTownLookup)
-	mayors, err := oapi.QueryPlayers(mayorIds...).Execute()
-	if err != nil {
-		return nil, err
+
+	mayorIDs := lo.Keys(mayorTownLookup)
+	mayors, errs, _ := oapi.QueryPlayers(mayorIDs...).ExecuteConcurrent()
+	if len(errs) > 0 {
+		return nil, errs[0]
 	}
 
-	// Remove players that are active and not near falling yet.
-	mayors = filterActiveMayors(mayors, time.Now())
-	sortLeastActive(mayors)
-
-	falling := lo.Map(mayors, func(m oapi.PlayerInfo, _ int) FallingTown {
-		return FallingTown{
-			TownInfo:        mayorTownLookup[m.UUID],
-			MayorLastOnline: int64(*m.Timestamps.LastOnline),
-		}
-	})
-
-	// Sort towns by least amount of residents first
-	utils.KeySort(falling, []utils.KeySortOption[FallingTown]{{
-		Compare: func(a, b FallingTown) bool {
-			return a.TownInfo.NumResidents() < b.TownInfo.NumResidents()
-		},
-	}})
-
-	return falling, nil
-}
-
-// Filters out any mayors not between INACTIVE_THRESHOLD and FALL_DAYS.
-// Aka removes active mayors, keeping the inactive ones who's towns are about to fall.
-func filterActiveMayors(mayors []oapi.PlayerInfo, now time.Time) []oapi.PlayerInfo {
 	day := 24 * time.Hour
-	return lo.Filter(mayors, func(p oapi.PlayerInfo, _ int) bool {
-		if p.Timestamps.LastOnline == nil {
-			return false // must be an NPC (already ruined town). also filter them out
+	ft := make([]FallingTown, 0, len(mayors))
+	for _, m := range mayors {
+		if m.Timestamps.LastOnline == nil {
+			continue // NPCs excluded
 		}
 
-		ts := int64(*p.Timestamps.LastOnline)
-		inactive := now.Sub(time.UnixMilli(ts))
+		lo := time.UnixMilli(int64(*m.Timestamps.LastOnline))
 
-		return inactive >= INACTIVE_THRESHOLD*day && inactive <= FALL_DAYS*day
+		ruinAt := lo.Add(FALL_DAYS * day)
+		timeToRuin := ruinAt.Sub(now) // remaining duration until this town hits its ruin time
+		if timeToRuin < 0 {
+			continue // already ruined
+		}
+		if timeToRuin > window {
+			continue // not within the window (FALLING_TFRAME) before actual ruin (FALL_DAYS)
+		}
+
+		if town, ok := mayorTownLookup[m.UUID]; !ok {
+			continue
+		} else {
+			ruinAt := lo.Add(FALL_DAYS * day)
+			deletionAt := nextNewDayAfter(ruinAt.Add(72 * time.Hour))
+			ft = append(ft, FallingTown{
+				TownInfo:        town,
+				MayorLastOnline: lo,
+				RuinAt:          ruinAt,
+				DeletionAt:      deletionAt,
+				DaysInactive:    now.Sub(lo).Hours() / 24,
+			})
+		}
+	}
+
+	// Sorts by mayor inactivity duration, then by town size when inactivity is equal.
+	sort.Slice(ft, func(i, j int) bool {
+		if ft[i].DaysInactive == ft[j].DaysInactive {
+			return ft[i].TownInfo.NumResidents() < ft[j].TownInfo.NumResidents()
+		}
+		return ft[i].DaysInactive > ft[j].DaysInactive
 	})
-}
 
-// Sorts a list of players by least active first using their LastOnline timestamp.
-func sortLeastActive(players []oapi.PlayerInfo) {
-	utils.KeySort(players, []utils.KeySortOption[oapi.PlayerInfo]{{
-		Compare: func(a, b oapi.PlayerInfo) bool {
-			aLo := a.Timestamps.LastOnline
-			bLo := b.Timestamps.LastOnline
-
-			switch {
-			case aLo == nil && bLo == nil:
-				return false
-			case aLo == nil:
-				return true // NPCs first
-			case bLo == nil:
-				return false
-			default:
-				return *aLo < *bLo
-			}
-		},
-	}})
+	return ft, nil
 }
 
 func nextNewDayAfter(t time.Time) time.Time {
