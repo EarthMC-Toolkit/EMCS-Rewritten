@@ -70,6 +70,10 @@ func (p PlayerInfo) Rank() string {
 }
 
 func (p PlayerInfo) RankOrRole() string {
+	if p.Town.UUID == nil {
+		return "Townless"
+	}
+
 	if p.Status.IsKing {
 		return "Nation Leader"
 	}

@@ -18,7 +18,7 @@ type VisibleCommand struct{}
 
 func (cmd VisibleCommand) Name() string { return "visible" }
 func (cmd VisibleCommand) Description() string {
-	return "Shows the list of online players that are not currently under a block."
+	return "Shows the list of players (with bal, join date etc) currently visible on the map. Expires after 2m."
 }
 
 func (cmd VisibleCommand) Options() []AppCommandOpt {
@@ -60,7 +60,7 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 	perPage := 10
 	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, count, perPage).
-		WithTimeout(30 * time.Second)
+		WithTimeout(2 * time.Second)
 
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(count)
