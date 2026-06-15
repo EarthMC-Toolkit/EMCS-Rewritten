@@ -80,7 +80,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 
 			fmt.Fprintf(&descBuilder, "%d. **%s** (%s) fell into ruin <t:%d:R> at %s.\n"+
 				"Deletion on `%s` (<t:%d:R>).\n"+
-				"Mayor: `%s` Residents: %s Balance: %sG Chunks: %s\n\n",
+				"Mayor: `%s` Residents: %s Balance: %s Chunks: %s\n\n",
 				start+idx+1, t.Name, nationName, ruinedTs/1000, locationLink,
 				utils.FormatTime(nextNewDay), nextNewDay.Unix(),
 				t.Mayor.Name, residents, balance, chunks,

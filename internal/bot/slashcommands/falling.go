@@ -74,11 +74,11 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 			residents := logutil.HumanizedSprintf("`%d`", t.NumResidents())
 			balance := logutil.HumanizedSprintf("`%0.0f` %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
 			chunks := logutil.HumanizedSprintf("`%d` %s", t.Size(), shared.EMOJIS.CHUNK)
-			fmt.Fprintf(&descBuilder, "%d. **%s** (%s) is scheduled to fall <t:%d:R> at %s.\n"+
-				"Mayor: `%s` (online <t:%d:R>). Deletion on `%s` (<t:%d:R>).\n"+
-				"Residents: %s Balance: %sG Chunks: %s\n\n",
-				start+idx+1, t.Name, nationName, t.RuinAt.Unix(), locationLink, // line 1
-				t.Mayor.Name, t.MayorLastOnline.Unix(), utils.FormatTime(t.DeletionAt), t.DeletionAt.Unix(), // line 2
+			fmt.Fprintf(&descBuilder, "%d. **%s** (%s) is scheduled to fall <t:%d:R> at %s. Deletion on `%s` (<t:%d:R>).\n"+
+				"Mayor: `%s` (online <t:%d:R>).\n"+
+				"Residents: %s Balance: %s Chunks: %s\n\n",
+				start+idx+1, t.Name, nationName, t.RuinAt.Unix(), locationLink, utils.FormatTime(t.DeletionAt), t.DeletionAt.Unix(), // line 1
+				t.Mayor.Name, t.MayorLastOnline.Unix(), // line 2
 				residents, balance, chunks, // line 3
 			)
 		}
