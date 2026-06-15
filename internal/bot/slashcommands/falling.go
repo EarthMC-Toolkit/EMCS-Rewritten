@@ -61,7 +61,6 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		start, end := paginator.CurrentPageBounds(totalCount)
 
 		items := falling[start:end]
-		pageCount := len(items)
 
 		descBuilder := strings.Builder{} // More performant than concat via regular Sprintf
 		for idx, t := range items {
@@ -84,7 +83,7 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		}
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
-		title := fmt.Sprintf("[%d] List of Falling Towns | %s", pageCount, pageStr)
+		title := fmt.Sprintf("[%d] List of Falling Towns | %s", totalCount, pageStr)
 		desc := descBuilder.String()
 
 		embed := discordutil.NewEmbedBuilder(&discordutil.YELLOW, &title, &desc, nil)

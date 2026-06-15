@@ -53,7 +53,6 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		start, end := paginator.CurrentPageBounds(totalCount)
 
 		items := ruined[start:end]
-		pageCount := len(items)
 
 		descBuilder := strings.Builder{} // More performant than concat via regular Sprintf
 		for idx, t := range items {
@@ -81,7 +80,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		}
 
 		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
-		title := fmt.Sprintf("[%d] List of Ruined Towns | %s", pageCount, pageStr)
+		title := fmt.Sprintf("[%d] List of Ruined Towns | %s", totalCount, pageStr)
 		desc := descBuilder.String()
 
 		embed := discordutil.NewEmbedBuilder(&discordutil.DARK_GOLD, &title, &desc, nil)
