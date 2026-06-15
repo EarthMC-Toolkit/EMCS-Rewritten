@@ -46,7 +46,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		}
 
 		scheduler.Instance.Schedule("DataUpdate", func() { dataUpdateTask(s, mdb) }, true, 1*time.Minute)
-		scheduler.Instance.Schedule("ServerInfo", func() { serverInfoTask(s, mdb) }, true, 1*time.Minute)
+		scheduler.Instance.Schedule("ServerInfo", func() { serverInfoTask(s, mdb) }, true, 30*time.Second)
 
 		if cid, err := config.GetEnviroVar("NEWS_CHANNEL_ID"); err == nil {
 			scheduler.Instance.Schedule("NewsEntries", func() { newsTask(s, cid, mdb) }, true, 2*time.Minute)
