@@ -65,10 +65,7 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		descBuilder := strings.Builder{} // More performant than concat via regular Sprintf
 		for idx, t := range items {
 			X, Y, Z := t.SpawnLocation()
-			locationLink := fmt.Sprintf(
-				"[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)",
-				X, Y, Z, X, Z,
-			)
+			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=6)", X, Y, Z, X, Z)
 
 			chunks := logutil.HumanizedSprintf("`%d` %s", t.Size(), shared.EMOJIS.CHUNK)
 			balance := logutil.HumanizedSprintf("`%0.0f` %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
