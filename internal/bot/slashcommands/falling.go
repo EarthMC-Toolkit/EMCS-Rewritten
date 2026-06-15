@@ -115,37 +115,32 @@ func ComputeFallingTowns(mdb *database.Database, now time.Time, window time.Dura
 		return nil, errs[0]
 	}
 
-	day := 24 * time.Hour
 	ft := make([]FallingTown, 0, len(mayors))
 	for _, m := range mayors {
 		if m.Timestamps.LastOnline == nil {
 			continue // NPCs excluded
 		}
 
-		lo := time.UnixMilli(int64(*m.Timestamps.LastOnline))
-
-		ruinAt := lo.Add(FALL_DAYS * day)
-		timeToRuin := ruinAt.Sub(now) // remaining duration until this town hits its ruin time
-		if timeToRuin < 0 {
-			continue // already ruined
-		}
-		if timeToRuin > window {
-			continue // not within the window (FALLING_TFRAME) before actual ruin (FALL_DAYS)
-		}
-
-		if town, ok := mayorTownLookup[m.UUID]; !ok {
+		town, ok := mayorTownLookup[m.UUID]
+		if !ok {
 			continue
-		} else {
-			ruinAt := lo.Add(FALL_DAYS * day)
-			deletionAt := nextNewDayAfter(ruinAt.Add(72 * time.Hour))
-			ft = append(ft, FallingTown{
-				TownInfo:        town,
-				MayorLastOnline: lo,
-				RuinAt:          ruinAt,
-				DeletionAt:      deletionAt,
-				DaysInactive:    now.Sub(lo).Hours() / 24,
-			})
 		}
+
+		lo := time.UnixMilli(int64(*m.Timestamps.LastOnline))
+		ruinAt := nextNewDayAfter(lo.Add(FALL_DAYS * 24 * time.Hour))
+		timeToRuin := ruinAt.Sub(now) // remaining duration until this town hits its ruin time
+		if timeToRuin < 0 || timeToRuin > window {
+			continue // remaining duration until this town hits its ruin time
+		}
+
+		deletionAt := nextNewDayAfter(ruinAt.Add(72 * time.Hour))
+		ft = append(ft, FallingTown{
+			TownInfo:        town,
+			MayorLastOnline: lo,
+			RuinAt:          ruinAt,
+			DeletionAt:      deletionAt,
+			DaysInactive:    now.Sub(lo).Hours() / 24,
+		})
 	}
 
 	// Sorts by mayor inactivity duration, then by town size when inactivity is equal.
