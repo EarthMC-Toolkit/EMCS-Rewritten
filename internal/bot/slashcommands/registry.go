@@ -112,7 +112,7 @@ func RegisterAllCommands() {
 	Register(TownCommand{})
 	Register(NationCommand{})
 	Register(RuinedCommand{})
-	//Register(FallingCommand{})
+	Register(FallingCommand{})
 
 	Register(PlayerCommand{})
 	Register(ResidentCommand{})
