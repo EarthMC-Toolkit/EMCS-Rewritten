@@ -65,21 +65,10 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 		descBuilder := strings.Builder{} // More performant than concat via regular Sprintf
 		for idx, t := range items {
-			last := time.Unix(t.MayorLastOnline, 0)
-			inactiveAt := last.Add(FALL_DAYS * 24 * time.Hour)
+			last := time.UnixMilli(t.MayorLastOnline)
 
-			// RUIN: next new day after inactivity
-			ruinAt := time.Date(inactiveAt.Year(), inactiveAt.Month(), inactiveAt.Day(), 10, 0, 0, 0, time.UTC)
-			if !ruinAt.After(inactiveAt) {
-				ruinAt = ruinAt.Add(24 * time.Hour)
-			}
-
-			// DELETION: 3d after ruin
-			after72h := ruinAt.Add(72 * time.Hour)
-			deletionAt := time.Date(after72h.Year(), after72h.Month(), after72h.Day(), 10, 0, 0, 0, time.UTC)
-			if !deletionAt.After(after72h) {
-				deletionAt = deletionAt.Add(24 * time.Hour)
-			}
+			ruinAt := last.Add(FALL_DAYS * 24 * time.Hour)            // RUIN: next new day after threshold
+			deletionAt := nextNewDayAfter(ruinAt.Add(72 * time.Hour)) // DELETION: next new day after 3d of ruin
 
 			X, Y, Z := t.SpawnLocation()
 			locationLink := fmt.Sprintf(
@@ -128,7 +117,7 @@ func GetFallingTowns(mdb *database.Database) ([]FallingTown, error) {
 		return nil, err
 	}
 
-	// Remove players that are active and not near falling.
+	// Remove players that are active and not near falling yet.
 	mayors = filterActiveMayors(mayors, time.Now())
 	sortLeastActive(mayors)
 
@@ -149,18 +138,19 @@ func GetFallingTowns(mdb *database.Database) ([]FallingTown, error) {
 	return falling, nil
 }
 
-// Filters out any mayors not within INACTIVE_THRESHOLD->FALL_DAYS of inactivity.
+// Filters out any mayors not between INACTIVE_THRESHOLD and FALL_DAYS.
+// Aka removes active mayors, keeping the inactive ones who's towns are about to fall.
 func filterActiveMayors(mayors []oapi.PlayerInfo, now time.Time) []oapi.PlayerInfo {
+	day := 24 * time.Hour
 	return lo.Filter(mayors, func(p oapi.PlayerInfo, _ int) bool {
 		if p.Timestamps.LastOnline == nil {
 			return false // must be an NPC (already ruined town). also filter them out
 		}
 
-		lo := int64(*p.Timestamps.LastOnline)
-		inactive := now.Sub(time.Unix(lo, 0))
+		ts := int64(*p.Timestamps.LastOnline)
+		inactive := now.Sub(time.UnixMilli(ts))
 
-		day := 24 * time.Hour
-		return inactive >= INACTIVE_THRESHOLD*day && inactive <= 42*day
+		return inactive >= INACTIVE_THRESHOLD*day && inactive <= FALL_DAYS*day
 	})
 }
 
@@ -183,4 +173,13 @@ func sortLeastActive(players []oapi.PlayerInfo) {
 			}
 		},
 	}})
+}
+
+func nextNewDayAfter(t time.Time) time.Time {
+	newDay := time.Date(t.Year(), t.Month(), t.Day(), 10, 0, 0, 0, time.UTC)
+	if !newDay.After(t) {
+		newDay = newDay.Add(24 * time.Hour)
+	}
+
+	return newDay
 }
