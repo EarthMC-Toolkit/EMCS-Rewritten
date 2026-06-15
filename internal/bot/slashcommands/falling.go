@@ -2,11 +2,13 @@ package slashcommands
 
 import (
 	"emcsrw/internal/database"
-	"emcsrw/internal/database/store"
 	"emcsrw/internal/shared"
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils"
 	"emcsrw/pkg/utils/discordutil"
+	"emcsrw/pkg/utils/logutil"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -33,8 +35,6 @@ func (cmd FallingCommand) Options() []AppCommandOpt {
 }
 
 func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	//discordutil.ReplyWithError(s, i.Interaction, errors.New("Command not implemented yet."))
-
 	msg := discordutil.NewMessageBuilder()
 	msg.SetContent(shared.EMOJIS.LOADING + " This command may take a short while, please wait...")
 	if err := discordutil.SendReply(s, i.Interaction, msg.InteractionData()); err != nil {
@@ -46,19 +46,78 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		return err
 	}
 
-	townStore, err := database.GetStore(mdb, database.TOWNS_STORE)
+	falling, err := GetFallingTowns(mdb)
 	if err != nil {
 		return err
 	}
 
-	_, err = sendFallingTowns(s, i.Interaction, townStore)
-	return err
+	totalCount := len(falling)
+
+	perPage := 10
+	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, totalCount, perPage).
+		WithTimeout(10 * time.Minute)
+
+	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
+		start, end := paginator.CurrentPageBounds(totalCount)
+
+		items := falling[start:end]
+		pageCount := len(items)
+
+		descBuilder := strings.Builder{} // More performant than concat via regular Sprintf
+		for idx, t := range items {
+			last := time.Unix(t.MayorLastOnline, 0)
+			inactiveAt := last.Add(FALL_DAYS * 24 * time.Hour)
+
+			// RUIN: next new day after inactivity
+			ruinAt := time.Date(inactiveAt.Year(), inactiveAt.Month(), inactiveAt.Day(), 10, 0, 0, 0, time.UTC)
+			if !ruinAt.After(inactiveAt) {
+				ruinAt = ruinAt.Add(24 * time.Hour)
+			}
+
+			// DELETION: 3d after ruin
+			after72h := ruinAt.Add(72 * time.Hour)
+			deletionAt := time.Date(after72h.Year(), after72h.Month(), after72h.Day(), 10, 0, 0, 0, time.UTC)
+			if !deletionAt.After(after72h) {
+				deletionAt = deletionAt.Add(24 * time.Hour)
+			}
+
+			X, Y, Z := t.SpawnLocation()
+			locationLink := fmt.Sprintf(
+				"[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)",
+				X, Y, Z, X, Z,
+			)
+
+			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
+			balance := logutil.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
+
+			fmt.Fprintf(&descBuilder, "%d. **%s** will fall into ruin <t:%d:R> at %s. %sG %s\nDeletion on `%s` (<t:%d:R>).\n\n",
+				start+idx+1, t.Name, ruinAt.Unix(), locationLink, balance, chunks, // first line
+				utils.FormatTime(deletionAt), deletionAt.Unix(), // second line
+			)
+		}
+
+		pageStr := fmt.Sprintf("Page %d/%d", curPage+1, paginator.TotalPages())
+		title := fmt.Sprintf("[%d] List of Falling Towns | %s", pageCount, pageStr)
+		desc := descBuilder.String()
+
+		embed := discordutil.NewEmbedBuilder(&discordutil.YELLOW, &title, &desc, nil)
+		data.Embeds = []*discordgo.MessageEmbed{embed.Build()}
+	}
+
+	return paginator.Start()
 }
 
-func sendFallingTowns(
-	s *discordgo.Session, i *discordgo.Interaction,
-	townStore *store.Store[oapi.TownInfo],
-) (*discordgo.Message, error) {
+type FallingTown struct {
+	oapi.TownInfo
+	MayorLastOnline int64
+}
+
+func GetFallingTowns(mdb *database.Database) ([]FallingTown, error) {
+	townStore, err := database.GetStore(mdb, database.TOWNS_STORE)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get all mayors and create a lookup map to their town.
 	mayorTownLookup := townStore.EntriesFunc(func(t oapi.TownInfo) string {
 		return t.Mayor.UUID
@@ -73,15 +132,21 @@ func sendFallingTowns(
 	mayors = filterActiveMayors(mayors, time.Now())
 	sortLeastActive(mayors)
 
-	// Get the towns of the remaining mayors
-	towns := lo.Map(mayors, func(m oapi.PlayerInfo, _ int) oapi.TownInfo {
-		return mayorTownLookup[m.UUID]
+	falling := lo.Map(mayors, func(m oapi.PlayerInfo, _ int) FallingTown {
+		return FallingTown{
+			TownInfo:        mayorTownLookup[m.UUID],
+			MayorLastOnline: int64(*m.Timestamps.LastOnline),
+		}
 	})
-	sortLowestRes(towns) // Sort towns by amount of residents, lowest first.
 
-	// Output paginator
+	// Sort towns by least amount of residents first
+	utils.KeySort(falling, []utils.KeySortOption[FallingTown]{{
+		Compare: func(a, b FallingTown) bool {
+			return a.TownInfo.NumResidents() < b.TownInfo.NumResidents()
+		},
+	}})
 
-	return nil, nil
+	return falling, nil
 }
 
 // Filters out any mayors not within INACTIVE_THRESHOLD->FALL_DAYS of inactivity.
@@ -116,14 +181,6 @@ func sortLeastActive(players []oapi.PlayerInfo) {
 			default:
 				return *aLo < *bLo
 			}
-		},
-	}})
-}
-
-func sortLowestRes(towns []oapi.TownInfo) {
-	utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{{
-		Compare: func(a, b oapi.TownInfo) bool {
-			return a.NumResidents() < b.NumResidents()
 		},
 	}})
 }
