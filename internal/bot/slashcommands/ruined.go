@@ -44,14 +44,13 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	}
 
 	totalCount := len(ruined)
-	perPage := 10
 
+	perPage := 6
 	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, totalCount, perPage).
 		WithTimeout(10 * time.Minute)
 
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(totalCount)
-
 		items := ruined[start:end]
 
 		descBuilder := strings.Builder{} // More performant than concat via regular Sprintf
@@ -67,15 +66,24 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 				nextNewDay = nextNewDay.Add(24 * time.Hour)
 			}
 
-			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
-			balance := logutil.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
+			nationName := "No Nation"
+			if t.Nation.Name != nil {
+				nationName = *t.Nation.Name
+			}
 
 			X, Y, Z := t.SpawnLocation()
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=6)", X, Y, Z, X, Z)
 
-			fmt.Fprintf(&descBuilder, "%d. **%s** fell into ruin <t:%d:R> at %s. %sG %s\nDeletion on `%s` (<t:%d:R>).\n\n",
-				start+idx+1, t.Name, ruinedTs/1000, locationLink, balance, chunks,
+			residents := logutil.HumanizedSprintf("`%d`", t.NumResidents())
+			balance := logutil.HumanizedSprintf("`%0.0f` %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
+			chunks := logutil.HumanizedSprintf("`%d` %s", t.Size(), shared.EMOJIS.CHUNK)
+
+			fmt.Fprintf(&descBuilder, "%d. **%s** (%s) fell into ruin <t:%d:R> at %s.\n"+
+				"Deletion on `%s` (<t:%d:R>).\n"+
+				"Mayor: `%s` Residents: %s Balance: %sG Chunks: %s\n\n",
+				start+idx+1, t.Name, nationName, ruinedTs/1000, locationLink,
 				utils.FormatTime(nextNewDay), nextNewDay.Unix(),
+				t.Mayor.Name, residents, balance, chunks,
 			)
 		}
 

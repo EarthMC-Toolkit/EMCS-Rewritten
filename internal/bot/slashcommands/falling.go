@@ -53,27 +53,31 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 	totalCount := len(falling)
 
-	perPage := 10
+	perPage := 6
 	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, totalCount, perPage).
 		WithTimeout(10 * time.Minute)
 
 	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
 		start, end := paginator.CurrentPageBounds(totalCount)
-
 		items := falling[start:end]
 
 		descBuilder := strings.Builder{} // More performant than concat via regular Sprintf
 		for idx, t := range items {
+			nationName := "No Nation"
+			if t.Nation.Name != nil {
+				nationName = *t.Nation.Name
+			}
+
 			X, Y, Z := t.SpawnLocation()
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=6)", X, Y, Z, X, Z)
 
-			chunks := logutil.HumanizedSprintf("`%d` %s", t.Size(), shared.EMOJIS.CHUNK)
-			balance := logutil.HumanizedSprintf("`%0.0f` %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
 			residents := logutil.HumanizedSprintf("`%d`", t.NumResidents())
-			fmt.Fprintf(&descBuilder, "%d. **%s** is scheduled to fall <t:%d:R> at %s.\n"+
+			balance := logutil.HumanizedSprintf("`%0.0f` %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
+			chunks := logutil.HumanizedSprintf("`%d` %s", t.Size(), shared.EMOJIS.CHUNK)
+			fmt.Fprintf(&descBuilder, "%d. **%s** (%s) is scheduled to fall <t:%d:R> at %s.\n"+
 				"Mayor: `%s` (online <t:%d:R>). Deletion on `%s` (<t:%d:R>).\n"+
 				"Residents: %s Balance: %sG Chunks: %s\n\n",
-				start+idx+1, t.Name, t.RuinAt.Unix(), locationLink, // line 1
+				start+idx+1, t.Name, nationName, t.RuinAt.Unix(), locationLink, // line 1
 				t.Mayor.Name, t.MayorLastOnline.Unix(), utils.FormatTime(t.DeletionAt), t.DeletionAt.Unix(), // line 2
 				residents, balance, chunks, // line 3
 			)
@@ -120,7 +124,6 @@ func ComputeFallingTowns(mdb *database.Database, now time.Time, window time.Dura
 		if m.Timestamps.LastOnline == nil {
 			continue // NPCs excluded
 		}
-
 		town, ok := mayorTownLookup[m.UUID]
 		if !ok {
 			continue
