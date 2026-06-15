@@ -9,6 +9,7 @@ import (
 	"emcsrw/pkg/utils/logutil"
 	"emcsrw/pkg/utils/sets"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -17,6 +18,8 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 )
+
+var npcRgx = regexp.MustCompile(`^NPC\d+$`)
 
 // Creates a single embed showing info from the given Alliance.
 func NewAllianceEmbed(
@@ -396,8 +399,15 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 		spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
 	)
 
-	mayorStr := fmt.Sprintf("[%s](%s)", town.Mayor.Name, NAMEMC_URL+town.Mayor.Name)
-	founderStr := fmt.Sprintf("[%s](%s)", town.Founder, NAMEMC_URL+town.Founder)
+	mayorStr := fmt.Sprintf("`%s`", town.Mayor.Name)
+	if npcRgx.MatchString(town.Mayor.Name) {
+		mayorStr = fmt.Sprintf("[%s](%s)", town.Mayor.Name, NAMEMC_URL+town.Mayor.UUID)
+	}
+
+	founderStr := fmt.Sprintf("`%s`", town.Founder)
+	if npcRgx.MatchString(town.Founder) {
+		founderStr = fmt.Sprintf("[%s](%s)", town.Founder, NAMEMC_URL+town.Founder)
+	}
 
 	status := town.Status
 	flags := town.Perms.Flags
@@ -473,11 +483,16 @@ func NewNationEmbed(
 	foundedTs := nation.Timestamps.Registered / 1000 // Seconds
 	dateFounded := fmt.Sprintf("<t:%d:R>", foundedTs)
 
+	leaderStr := fmt.Sprintf("`%s`", leaderName)
+	if npcRgx.MatchString(leaderName) {
+		leaderStr = fmt.Sprintf("[%s](%s)", leaderName, nation.King.UUID)
+	}
+
 	colour := nation.FillColourInt()
 	title := fmt.Sprintf("Nation Information | `%s` | %s `%s`", nation.Name, "⭐", capitalName)
 	embed := discordutil.NewEmbedBuilder(&colour, &title, &board, nil)
 	embed.SetFields(
-		NewEmbedField("Leader", fmt.Sprintf("[%s](%s)", leaderName, NAMEMC_URL+nation.King.UUID), true),
+		NewEmbedField("Leader", leaderStr, true),
 		NewEmbedField("Location", locationLink, true),
 		NewEmbedField("Founded", dateFounded, true),
 		NewEmbedField("Stats", statsStr, true),

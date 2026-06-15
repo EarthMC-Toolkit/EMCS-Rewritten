@@ -2,6 +2,7 @@ package slashcommands
 
 import (
 	"emcsrw/pkg/utils/logutil"
+	"fmt"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -89,10 +90,12 @@ func AllNames() (names []string) {
 }
 
 func Register(cmd SlashCommand) {
-	// if _, exists := commands[cmd.Name()]; exists {
-	// 	fmt.Printf("Command '%s' is already registered!\n", cmd.Name())
-	// 	return
-	// }
+	if len(cmd.Name()) > 32 {
+		fmt.Printf("Error registering command with invalid name: '%s'. Must be 1-32 chars.", cmd.Name())
+	}
+	if len(cmd.Description()) > 100 {
+		fmt.Printf("Error registering command '%s'. Description must be 1-100 chars.", cmd.Name())
+	}
 
 	commands[cmd.Name()] = cmd
 }

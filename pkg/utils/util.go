@@ -239,10 +239,10 @@ type KeySortOption[T any] struct {
 	Compare func(a, b T) bool // returns true if a should come before b
 }
 
-// KeySort sorts arr in-place by keys in order.
+// KeySort sorts slice s in-place by keys (order is kept).
 // First key is the primary sort key, second key is less important, and so on.
-func KeySort[T any](arr []T, keys []KeySortOption[T]) []T {
-	slices.SortFunc(arr, func(a, b T) int {
+func KeySort[T any](s []T, keys []KeySortOption[T]) []T {
+	slices.SortFunc(s, func(a, b T) int {
 		for _, k := range keys {
 			if k.Compare(a, b) {
 				return -1 // a comes before b
@@ -256,7 +256,7 @@ func KeySort[T any](arr []T, keys []KeySortOption[T]) []T {
 		return 0
 	})
 
-	return arr
+	return s
 }
 
 func SortToggledOn[T any](arr []T, rank func(T) bool) []T {

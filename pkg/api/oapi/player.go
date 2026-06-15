@@ -15,7 +15,7 @@ type OnlineResponse struct {
 type PlayerTimestamps struct {
 	Timestamps
 	JoinedTownAt *uint64 `json:"joinedTownAt"`
-	LastOnline   *uint64 `json:"lastOnline"`
+	LastOnline   *uint64 `json:"lastOnline"` // nil if player is an NPC
 }
 
 type PlayerStatus struct {

@@ -114,7 +114,13 @@ func (s *Store[T]) Entries() StoreData[T] {
 
 // Similar to Entries(), this func will return a map, with the new keys being customizable based on keyFunc.
 // However, unlike Entries(), no shallow copy is made since the keys are being re-mapped anyway.
-// This is useful for creating a new map where the key is based on a specific field of value.
+// This is useful for creating a new map where the key is based on a specific field value.
+//
+// For example, a lookup map (where the key is based on the mayor field) can be created with the following code:
+//
+//	mayorTownLookup := townStore.EntriesFunc(func(t oapi.TownInfo) string {
+//		return t.Mayor.UUID
+//	})
 func (s *Store[T]) EntriesFunc(f func(value T) string) map[string]T {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

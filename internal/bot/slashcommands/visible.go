@@ -18,7 +18,7 @@ type VisibleCommand struct{}
 
 func (cmd VisibleCommand) Name() string { return "visible" }
 func (cmd VisibleCommand) Description() string {
-	return "Shows the list of players (with bal, join date etc) currently visible on the map. Expires after 2m."
+	return "Shows a list of currently visible players on the map. Does not update positions. Expires after 2min."
 }
 
 func (cmd VisibleCommand) Options() []AppCommandOpt {
