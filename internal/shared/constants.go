@@ -2,6 +2,7 @@ package shared
 
 const NOSTRA_RELEASE_TIMESTAMP = 1776132038538
 const NAMEMC_URL = "https://namemc.com/profile/"
+const SKIN_URL = "https://visage.surgeplay.com"
 
 const DEFAULT_TOWN_BOARD = "/town set board [msg]"
 const DEFAULT_ABOUT = "/res set about [msg]"

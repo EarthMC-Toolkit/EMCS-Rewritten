@@ -222,14 +222,17 @@ func NewBasicPlayerEmbed(player database.BasicPlayer, description string) *disco
 	}
 
 	title := fmt.Sprintf("Player Information | `%s`", player.Name)
-
 	embed := discordutil.NewEmbedBuilder(&discordutil.DARK_PURPLE, &title, &description, nil)
-	embed.SetThumbnail(fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID), nil)
 	embed.SetFields(
 		NewEmbedField("Affiliation", affiliation, true),
 		NewEmbedField("Rank", player.RankString(), true), // TODO: Add town ranks using player.Town.Ranks
 		NewEmbedField("Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false),
 	)
+
+	sb, err := NewSkinBuilder(player.UUID, SkinTypeBust3D, SkinFormatPNG, 230)
+	if err == nil {
+		embed.SetThumbnail(sb.Build(), nil)
+	}
 
 	return embed.Build()
 }
@@ -314,13 +317,17 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 	}
 
 	embed := discordutil.NewEmbedBuilder(&discordutil.DARK_PURPLE, &title, nil, nil)
-	embed.SetThumbnail(fmt.Sprintf("https://visage.surgeplay.com/bust/%s.png?width=230&height=230", player.UUID), nil)
 	embed.SetFields(
 		// Affiliation (prepended)
 		// Rank (prepended)
 		NewEmbedField("Balance", logutil.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, EMOJIS.GOLD_INGOT), true),
 		NewEmbedField("Status", status, true),
 	)
+
+	sb, err := NewSkinBuilder(player.UUID, SkinTypeBust3D, SkinFormatPNG, 230)
+	if err == nil {
+		embed.SetThumbnail(sb.Build(), nil)
+	}
 
 	if player.About != nil {
 		about := *player.About
@@ -339,11 +346,12 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 	embed.AddField("Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false)
 
 	if player.Discord != nil {
+		mentionStr := fmt.Sprintf("<@%s>", *player.Discord)
 		if user, err := s.User(*player.Discord); err != nil {
-			embed.AddField("Discord", fmt.Sprintf("<@%s> (%s)", user.ID, user.String()), false)
-		} else {
-			embed.AddField("Discord", fmt.Sprintf("<@%s>", *player.Discord), false)
+			mentionStr = fmt.Sprintf("<@%s> (%s)", user.ID, user.String())
 		}
+
+		embed.AddField("Discord", mentionStr, false)
 	}
 
 	// Second field

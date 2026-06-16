@@ -5,6 +5,8 @@ import (
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils/discordutil"
 	"fmt"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/samber/lo"
@@ -126,4 +128,64 @@ func BuildNationRanksString(nation oapi.NationInfo) string {
 
 	// Output all as [0] Chancellor, [0] Diplomat etc.
 	return strings.Join(lines, "\n")
+}
+
+type SkinType string
+
+const (
+	SkinTypeFace2D      SkinType = "face"      // A simple 2D face. The helmet is rendered slightly larger than the face.
+	SkinTypeFront2D     SkinType = "front"     // A square waist-up flat render of the player.
+	SkinTypeFrontFull2D SkinType = "frontfull" // A flat render of the entire player.
+	SkinTypeHead3D      SkinType = "head"      // Just the player's severed head.
+	SkinTypeBust3D      SkinType = "bust"      // A square waist-up render of the player.
+	SkinTypeFull3D      SkinType = "full"      // A render of the entire player.
+)
+
+type SkinFormat string
+
+const (
+	SkinFormatPNG  SkinFormat = "png"
+	SkinFormatJXL  SkinFormat = "jxl"
+	SkinFormatWEBP SkinFormat = "webp"
+)
+
+type SkinBuilder struct {
+	URL   *url.URL
+	Query url.Values
+}
+
+// subject can be a name or uuid
+func NewSkinBuilder(subject string, skinType SkinType, format SkinFormat, size uint16) (*SkinBuilder, error) {
+	skinURL, err := url.Parse(fmt.Sprintf("%s/%s/%d/%s.%s", SKIN_URL, string(skinType), size, subject, string(format)))
+	if err != nil {
+		return nil, err
+	}
+
+	return &SkinBuilder{
+		URL:   skinURL,
+		Query: skinURL.Query(),
+	}, nil
+}
+
+func (sb *SkinBuilder) SetLossless() *SkinBuilder {
+	sb.Query.Add("quality", "lossless")
+	return sb
+}
+
+func (sb *SkinBuilder) SetAngle(yaw, pitch, roll int16) *SkinBuilder {
+	if yaw != 0 {
+		sb.Query.Set("y", strconv.Itoa(int(yaw)))
+	}
+	if pitch != 0 {
+		sb.Query.Set("p", strconv.Itoa(int(pitch)))
+	}
+	if roll != 0 {
+		sb.Query.Set("r", strconv.Itoa(int(roll)))
+	}
+	return sb
+}
+
+func (sb *SkinBuilder) Build() string {
+	sb.URL.RawQuery = sb.Query.Encode()
+	return sb.URL.String()
 }
