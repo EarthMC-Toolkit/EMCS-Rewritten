@@ -47,6 +47,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 
 		scheduler.Instance.Schedule("DataUpdate", func() { dataUpdateTask(s, mdb) }, true, 1*time.Minute)
 		scheduler.Instance.Schedule("ServerInfo", func() { serverInfoTask(s, mdb) }, true, 30*time.Second)
+		scheduler.Instance.Schedule("FallingTowns", func() { fallingTownsTask(mdb) }, true, 3*time.Minute)
 
 		if cid, err := config.GetEnviroVar("NEWS_CHANNEL_ID"); err == nil {
 			scheduler.Instance.Schedule("NewsEntries", func() { newsTask(s, cid, mdb) }, true, 2*time.Minute)
@@ -235,10 +236,27 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 	}
 }
 
+func fallingTownsTask(mdb *database.Database) {
+	fallingTownsStore, err := database.GetStore(mdb, database.FALLING_TOWNS_STORE)
+	if err != nil {
+		logutil.Printf(logutil.RED, "\nERR | cannot schedule FallingTowns task:\n\t%s", err)
+		return
+	}
+
+	fallingTownsStore.OverwriteFunc(true, func() (map[database.MayorUUID]database.FallingTown, error) {
+		fallingTownsMap, err := database.ComputeFallingTowns(mdb, database.FALLING_TFRAME*24*time.Hour)
+		if err != nil {
+			return fallingTownsMap, err
+		}
+
+		return fallingTownsMap, nil
+	})
+}
+
 func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 	serverStore, err := database.GetStore(mdb, database.SERVER_STORE)
 	if err != nil {
-		logutil.Printf(logutil.RED, "\nERR | cannot schedule serverinfo task:\n\t%s", err)
+		logutil.Printf(logutil.RED, "\nERR | cannot schedule ServerInfo task:\n\t%s", err)
 		return
 	}
 	if info, err := serverStore.SetKeyFunc("info", func() (oapi.ServerInfo, error) {
@@ -261,7 +279,7 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 func newsTask(s *discordgo.Session, channelID string, mdb *database.Database) {
 	newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
 	if err != nil {
-		logutil.Printf(logutil.RED, "\nERR | cannot schedule news task:\n\t%s", err)
+		logutil.Printf(logutil.RED, "\nERR | cannot schedule NewsEntries task:\n\t%s", err)
 		return
 	}
 

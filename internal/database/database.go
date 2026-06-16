@@ -36,15 +36,16 @@ func NewStoreDefinition[T any](name string) StoreDefinition[T] {
 // Then assign it to a DB in TryInit() below.
 
 var (
-	SERVER_STORE    = NewStoreDefinition[oapi.ServerInfo]("server")
-	TOWNS_STORE     = NewStoreDefinition[oapi.TownInfo]("towns")
-	NATIONS_STORE   = NewStoreDefinition[oapi.NationInfo]("nations")
-	ENTITIES_STORE  = NewStoreDefinition[oapi.EntityList]("entities")
-	PLAYERS_STORE   = NewStoreDefinition[BasicPlayer]("players")
-	ALLIANCES_STORE = NewStoreDefinition[Alliance]("alliances")
-	NEWS_STORE      = NewStoreDefinition[NewsEntry]("news")
+	FALLING_TOWNS_STORE = NewStoreDefinition[FallingTown]("falling-towns") // Key is town UUID
+	TOWNS_STORE         = NewStoreDefinition[oapi.TownInfo]("towns")       // Key is town UUID
+	NATIONS_STORE       = NewStoreDefinition[oapi.NationInfo]("nations")   // Key is nation UUID
+	ENTITIES_STORE      = NewStoreDefinition[oapi.EntityList]("entities")  // Keys: residentlist, townlesslist
+	SERVER_STORE        = NewStoreDefinition[oapi.ServerInfo]("server")    // Key is "info"
+	PLAYERS_STORE       = NewStoreDefinition[BasicPlayer]("players")       // Key is player UUID
+	ALLIANCES_STORE     = NewStoreDefinition[Alliance]("alliances")        // Key is alliance UUID
+	NEWS_STORE          = NewStoreDefinition[NewsEntry]("news")            // Key is a Discord message ID
+	USAGE_USERS_STORE   = NewStoreDefinition[UserUsage]("usage-users")     // TODO: This should not be attached to a store but live in /db.
 	//SSE_STORE         = NewStoreDefinition[UserUsage]("sse")
-	USAGE_USERS_STORE = NewStoreDefinition[UserUsage]("usage-users") // TODO: This should not be attached to a store but live in /db.
 )
 
 // =============================================================
@@ -142,14 +143,15 @@ func TryInit(mapName string) *Database {
 	// Define all stores we want to exist on this new database.
 	// If a store does not exist, it is created under the ./db/<mapName> dir.
 	AssignStore(mdb, SERVER_STORE)
+	AssignStore(mdb, FALLING_TOWNS_STORE)
 	AssignStore(mdb, TOWNS_STORE)
 	AssignStore(mdb, NATIONS_STORE)
-	AssignStore(mdb, ENTITIES_STORE) // Store keys: residentlist, townlesslist
+	AssignStore(mdb, ENTITIES_STORE)
 	AssignStore(mdb, PLAYERS_STORE)
 	AssignStore(mdb, ALLIANCES_STORE)
 	AssignStore(mdb, NEWS_STORE)
 	AssignStore(mdb, USAGE_USERS_STORE)
-	//AssignStoreToDB[map[string]any](mdb, USAGE_LEADERBOARD_STORE)
+	//AssignStore(mdb, USAGE_LEADERBOARD_STORE)
 
 	logutil.Printf(logutil.HIDDEN, "DEBUG | Initialized database for map '%s'.\n", mapName)
 	return mdb

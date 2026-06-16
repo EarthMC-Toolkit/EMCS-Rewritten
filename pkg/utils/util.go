@@ -110,9 +110,9 @@ func FormatTime(t time.Time) string {
 		suffix = "rd"
 	}
 
-	return fmt.Sprintf("%s, %s %d%s %dAM UTC",
-		t.Weekday().String()[:3], // First three letters of the weekday word.
-		t.Month().String()[:3],   // First three letters of the month word.
+	return fmt.Sprintf("%s %d%s %dAM UTC",
+		//t.Weekday().String()[:3], // First three letters of the weekday word.
+		t.Month().String()[:3], // First three letters of the month word.
 		day, suffix, t.Hour()%12,
 	)
 }

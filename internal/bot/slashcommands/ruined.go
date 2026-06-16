@@ -21,7 +21,7 @@ type RuinedCommand struct{}
 
 func (cmd RuinedCommand) Name() string { return "ruined" }
 func (cmd RuinedCommand) Description() string {
-	return "Retrieves a list of all ruined towns with their time of ruin."
+	return "Sends a list of all ruined towns with their time of ruin."
 }
 
 func (cmd RuinedCommand) Options() []AppCommandOpt {
@@ -45,7 +45,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 
 	totalCount := len(ruined)
 
-	perPage := 6
+	perPage := 5
 	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, totalCount, perPage).
 		WithTimeout(10 * time.Minute)
 

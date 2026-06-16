@@ -24,11 +24,8 @@ func (cmd NewDayCommand) Description() string {
 func (cmd NewDayCommand) Options() []AppCommandOpt {
 	return []AppCommandOpt{
 		discordutil.SubcommandOption("when", "Sends the amount of time until the elusive new day occurs."),
-		// {
-		// 	Type:        discordgo.ApplicationCommandOptionSubCommand,
-		// 	Name:        "falling",
-		// 	Description: "Sends a list of all towns close to falling (within 7 days).",
-		// },
+		//discordutil.SubcommandOption("falling", ""),
+		//discordutil.SubcommandOption("ruined", ""),
 	}
 }
 
