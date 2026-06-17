@@ -12,11 +12,11 @@ const FALLING_TFRAME = 7 // Time frame in days at which to include falling towns
 
 type MayorUUID = string
 type FallingTown struct {
-	oapi.TownInfo   // TODO: Maybe just replace this with the town UUID and use TOWNS_STORE to retrieve info
-	MayorLastOnline time.Time
-	RuinAt          time.Time
-	DeletionAt      time.Time
-	DaysInactive    float64
+	oapi.TownInfo                  // TODO: Maybe just replace this with the town UUID and use TOWNS_STORE to retrieve info
+	RuinAt           time.Time     // The time at which this town will fall into ruin (next new day 42d after MayorLastOnline).
+	DeletionAt       time.Time     // The time at which this falling town will be deleted (next new day 3d after ruin).
+	MayorLastOnline  time.Time     // The time at which the mayor last came online.
+	InactiveDuration time.Duration // Duration in minutes the mayor has been inactive.
 }
 
 func ComputeFallingTowns(mdb *Database, window time.Duration) (map[MayorUUID]FallingTown, error) {
@@ -57,11 +57,11 @@ func ComputeFallingTowns(mdb *Database, window time.Duration) (map[MayorUUID]Fal
 
 		deletionAt := nextNewDayAfter(ruinAt.Add(72 * time.Hour))
 		fts[town.UUID] = FallingTown{
-			TownInfo:        town,
-			MayorLastOnline: lo,
-			RuinAt:          ruinAt,
-			DeletionAt:      deletionAt,
-			DaysInactive:    now.Sub(lo).Hours() / 24,
+			TownInfo:         town,
+			MayorLastOnline:  lo,
+			RuinAt:           ruinAt,
+			DeletionAt:       deletionAt,
+			InactiveDuration: now.Sub(lo),
 		}
 	}
 

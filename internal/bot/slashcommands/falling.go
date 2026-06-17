@@ -15,6 +15,73 @@ import (
 	"github.com/samber/lo"
 )
 
+var fallingTownSorts = map[string]func([]database.FallingTown){
+	"alphabetical": func(towns []database.FallingTown) {
+		utils.KeySort(towns, []utils.KeySortOption[database.FallingTown]{
+			{Compare: func(a, b database.FallingTown) bool { return a.Name < b.Name }},
+		})
+	},
+	"residents": func(towns []database.FallingTown) {
+		utils.KeySort(towns, []utils.KeySortOption[database.FallingTown]{
+			{Compare: func(a, b database.FallingTown) bool { return a.NumResidents() > b.NumResidents() }},
+		})
+	},
+	"size": func(towns []database.FallingTown) {
+		utils.KeySort(towns, []utils.KeySortOption[database.FallingTown]{
+			{Compare: func(a, b database.FallingTown) bool { return a.Size() > b.Size() }},
+		})
+	},
+	"founded": func(towns []database.FallingTown) {
+		utils.KeySort(towns, []utils.KeySortOption[database.FallingTown]{
+			{Compare: func(a, b database.FallingTown) bool {
+				return a.Timestamps.Registered < b.Timestamps.Registered
+			}},
+		})
+	},
+	"balance": func(towns []database.FallingTown) {
+		utils.KeySort(towns, []utils.KeySortOption[database.FallingTown]{
+			{Compare: func(a, b database.FallingTown) bool { return a.Bal() > b.Bal() }},
+		})
+	},
+	"overclaimed": func(towns []database.FallingTown) {
+		utils.RankSortAscending(towns, func(t database.FallingTown) int {
+			switch {
+			case t.Status.Overclaimed:
+				return 0
+			case t.Status.Overclaimed:
+				return 1
+			default:
+				return 2
+			}
+		})
+	},
+	"has-nation": func(towns []database.FallingTown) {
+		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+			return t.Status.HasNation
+		})
+	},
+	"can-outsiders-spawn": func(towns []database.FallingTown) {
+		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+			return t.Status.CanOutsidersSpawn
+		})
+	},
+	"open": func(towns []database.FallingTown) {
+		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+			return t.Status.Open
+		})
+	},
+	"public": func(towns []database.FallingTown) {
+		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+			return t.Status.Public
+		})
+	},
+	"neutral": func(towns []database.FallingTown) {
+		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+			return t.Status.Neutral
+		})
+	},
+}
+
 // TODO: Add a rate limiter to this command to stop the token bucket being empty.
 // Keep a record of time last used per user, and allow again after X minutes.
 type FallingCommand struct {
@@ -27,7 +94,39 @@ func (cmd FallingCommand) Description() string {
 }
 
 func (cmd FallingCommand) Options() []AppCommandOpt {
-	return nil
+	return []AppCommandOpt{
+		discordutil.StringOption("sort", "Optional town list sorting. Without this, towns are sorted by residents -> size.", nil, nil,
+			discordutil.Choice("Alphabetical", "alphabetical"), // "Sort the list alphabetically by name."
+			discordutil.Choice("Founded", "founded"),           // "Sort the list by date founded. Oldest -> Newest."
+			discordutil.Choice("Residents", "residents"),       // "Sort the list solely by the number of residents."
+			discordutil.Choice("Size", "size"),                 // "Sort the list solely by size (chunks claimed)."
+			discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
+			discordutil.Choice("Ruined", "ruined"),             // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
+			discordutil.Choice("Overclaimed", "overclaimed"),   // "Sort the list by overclaim status. Oldest -> Newest."
+			discordutil.Choice("For Sale", "for-sale"),         // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
+			discordutil.Choice("Has Nation", "has-nation"),
+			discordutil.Choice("Can Outsiders Spawn", "can-outsiders-spawn"), // "Sort the list by outsider spawn status. Enabled -> Not enabled."
+			discordutil.Choice("Open", "open"),                               // "Sort the list by open status. Open -> Not open."
+			discordutil.Choice("Public", "public"),                           // "Sort the list by public status. Public -> Not public."
+			discordutil.Choice("Neutral", "neutral"),                         // "Sort the list by neutral status. Neutral -> Not neutral."
+		),
+		discordutil.AutocompleteStringOption("nation", "Filter by towns within a specified nation.", 2, 40, false),
+		discordutil.StringOption("status", "Filter by towns with the specified status active.", nil, nil,
+			discordutil.Choice("Ruined", "ruined"),
+			discordutil.Choice("Overclaimed", "overclaimed"),
+			discordutil.Choice("For Sale", "for-sale"),
+			discordutil.Choice("Can Outsiders Spawn", "can-outsiders-spawn"),
+			discordutil.Choice("Open", "open"),
+			discordutil.Choice("Public", "public"),
+			discordutil.Choice("Neutral", "neutral"),
+		),
+		discordutil.StringOption("flags", "Filter by towns with the specified flag toggled on.", nil, nil,
+			discordutil.Choice("Explosions", "explosions"),
+			discordutil.Choice("Mobs", "mobs"),
+			discordutil.Choice("Fire", "fire"),
+			discordutil.Choice("PVP", "pvp"),
+		),
+	}
 }
 
 func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
@@ -48,12 +147,61 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 	}
 
 	falling := fallingTownsStore.Values()
-	sort.Slice(falling, func(i, j int) bool {
-		if falling[i].DaysInactive == falling[j].DaysInactive {
-			return falling[i].TownInfo.NumResidents() < falling[j].TownInfo.NumResidents()
+
+	cdata := i.ApplicationCommandData()
+	if opt := cdata.GetOption("nation"); opt != nil {
+		nationInput := opt.StringValue()
+
+		// parse input so "Japan" and "Japan (Capital: Chiyoda)" both work by extracting the nation name before any parentheses,
+		// since that's what the autocomplete displays and it seems reasonable to expect users to copy-paste from autocomplete results.
+		// "((Japan))", "(Japan (blahblah))" etc. also need to work incase of stupid nation names.
+		nationName := strings.TrimSpace(nationInput)
+		for strings.HasPrefix(nationName, "(") && strings.HasSuffix(nationName, ")") {
+			nationName = strings.TrimSpace(nationName[1 : len(nationName)-1])
 		}
-		return falling[i].DaysInactive > falling[j].DaysInactive
-	})
+		if i := strings.IndexRune(nationName, '('); i >= 0 {
+			nationName = strings.TrimSpace(nationName[:i])
+		}
+
+		falling = lo.Filter(falling, func(t database.FallingTown, _ int) bool {
+			if t.Nation.UUID == nil {
+				return false
+			}
+
+			return strings.EqualFold(*t.Nation.Name, nationName)
+		})
+	}
+
+	// Apply custom filter if chosen
+	if opt := cdata.GetOption("status"); opt != nil {
+		if filter, ok := statusFilters[opt.StringValue()]; ok {
+			falling = lo.Filter(falling, func(t database.FallingTown, _ int) bool {
+				return filter(t.TownInfo)
+			})
+		}
+	}
+	if opt := cdata.GetOption("flags"); opt != nil {
+		if filter, ok := flagFilters[opt.StringValue()]; ok {
+			falling = lo.Filter(falling, func(t database.FallingTown, _ int) bool {
+				return filter(t.TownInfo)
+			})
+		}
+	}
+
+	// Apply custom sort if chosen
+	if opt := cdata.GetOption("sort"); opt != nil {
+		if sorter, ok := fallingTownSorts[opt.StringValue()]; ok {
+			sorter(falling)
+		}
+	} else {
+		// Default sort (least active mayor first)
+		sort.Slice(falling, func(i, j int) bool {
+			if falling[i].InactiveDuration == falling[j].InactiveDuration {
+				return falling[i].TownInfo.NumResidents() < falling[j].TownInfo.NumResidents()
+			}
+			return falling[i].InactiveDuration > falling[j].InactiveDuration
+		})
+	}
 
 	totalCount := len(falling)
 
