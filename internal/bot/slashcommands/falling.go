@@ -55,6 +55,11 @@ var fallingTownSorts = map[string]func([]database.FallingTown){
 			}
 		})
 	},
+	"capital": func(towns []database.FallingTown) {
+		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+			return t.Status.Capital
+		})
+	},
 	"has-nation": func(towns []database.FallingTown) {
 		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
 			return t.Status.HasNation
@@ -101,9 +106,9 @@ func (cmd FallingCommand) Options() []AppCommandOpt {
 			discordutil.Choice("Residents", "residents"),       // "Sort the list solely by the number of residents."
 			discordutil.Choice("Size", "size"),                 // "Sort the list solely by size (chunks claimed)."
 			discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
-			discordutil.Choice("Ruined", "ruined"),             // "Sort the list by ruin status."
-			discordutil.Choice("Overclaimed", "overclaimed"),   // "Sort the list by overclaim status. Oldest -> Newest."
-			discordutil.Choice("For Sale", "for-sale"),         // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
+			discordutil.Choice("Capital", "capital"),
+			discordutil.Choice("Overclaimed", "overclaimed"), // "Sort the list by overclaim status. Oldest -> Newest."
+			discordutil.Choice("For Sale", "for-sale"),       // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
 			discordutil.Choice("Has Nation", "has-nation"),
 			discordutil.Choice("Can Outsiders Spawn", "can-outsiders-spawn"), // "Sort the list by outsider spawn status. Enabled -> Not enabled."
 			discordutil.Choice("Open", "open"),                               // "Sort the list by open status. Open -> Not open."
@@ -112,7 +117,7 @@ func (cmd FallingCommand) Options() []AppCommandOpt {
 		),
 		discordutil.AutocompleteStringOption("nation", "Filter by towns within a specified nation.", 2, 40, false),
 		discordutil.StringOption("status", "Filter by towns with the specified status active.", nil, nil,
-			discordutil.Choice("Ruined", "ruined"),
+			discordutil.Choice("Capital", "capital"),
 			discordutil.Choice("Overclaimed", "overclaimed"),
 			discordutil.Choice("For Sale", "for-sale"),
 			discordutil.Choice("Can Outsiders Spawn", "can-outsiders-spawn"),

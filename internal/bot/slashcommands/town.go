@@ -26,6 +26,7 @@ var townInputOpt = discordutil.AutocompleteStringOption("name", "The name of the
 
 // #region Filter & sort callbacks
 var statusFilters = map[string]func(oapi.TownInfo) bool{
+	"capital":             func(t oapi.TownInfo) bool { return t.Status.Capital },
 	"ruined":              func(t oapi.TownInfo) bool { return t.Status.Ruined },
 	"overclaimed":         func(t oapi.TownInfo) bool { return t.Status.Overclaimed },
 	"for-sale":            func(t oapi.TownInfo) bool { return t.Status.ForSale },
@@ -98,6 +99,11 @@ var townSorts = map[string]func([]oapi.TownInfo){
 			return int(*t.Stats.ForSalePrice * 100.0)
 		})
 	},
+	"capital": func(towns []oapi.TownInfo) {
+		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+			return t.Status.Capital
+		})
+	},
 	"has-nation": func(towns []oapi.TownInfo) {
 		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
 			return t.Status.HasNation
@@ -146,6 +152,7 @@ func (cmd TownCommand) Options() []AppCommandOpt {
 				discordutil.Choice("Residents", "residents"),       // "Sort the list solely by the number of residents."
 				discordutil.Choice("Size", "size"),                 // "Sort the list solely by size (chunks claimed)."
 				discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
+				discordutil.Choice("Capital", "capital"),           // "Sort the list by capital status."
 				discordutil.Choice("Ruined", "ruined"),             // "Sort the list by ruin status."
 				discordutil.Choice("Overclaimed", "overclaimed"),   // "Sort the list by overclaim status. Oldest -> Newest."
 				discordutil.Choice("For Sale", "for-sale"),         // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
@@ -157,6 +164,7 @@ func (cmd TownCommand) Options() []AppCommandOpt {
 			),
 			discordutil.AutocompleteStringOption("nation", "Filter by towns within a specified nation.", 2, 40, false),
 			discordutil.StringOption("status", "Filter by towns with the specified status active.", nil, nil,
+				discordutil.Choice("Capital", "capital"),
 				discordutil.Choice("Ruined", "ruined"),
 				discordutil.Choice("Overclaimed", "overclaimed"),
 				discordutil.Choice("For Sale", "for-sale"),
