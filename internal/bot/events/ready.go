@@ -371,7 +371,7 @@ func TrySendRenamedNotif(s *discordgo.Session, channelID string, towns map[strin
 		)
 
 		chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, cur.Size())
-		balance := logutil.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, cur.Bal())
+		balance := logutil.HumanizedSprintf("%s `%.0f`", shared.EMOJIS.GOLD_INGOT, cur.Bal())
 		desc = append(desc, fmt.Sprintf(
 			"`%s` was renamed to `%s`.\nLocated at %s.\nFounder: `%s` %sG %s Chunks",
 			old.Name, cur.Name, locationLink, cur.Founder, balance, chunks,
@@ -402,7 +402,7 @@ func TrySendCreatedNotif(s *discordgo.Session, channelID string, towns []oapi.To
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
 			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
-			balance := logutil.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
+			balance := logutil.HumanizedSprintf("%s `%.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 
 			openEmoji := lo.Ternary(t.Status.Open, shared.EMOJIS.CIRCLE_CHECK, shared.EMOJIS.CIRCLE_CROSS)
 			outsidersEmoji := lo.Ternary(t.Status.CanOutsidersSpawn, shared.EMOJIS.CIRCLE_CHECK, shared.EMOJIS.CIRCLE_CROSS)
@@ -443,7 +443,7 @@ func TrySendRuinedNotif(s *discordgo.Session, channelID string, towns map[string
 	if count > 0 {
 		desc := parallel.Map(ruined, func(t oapi.TownInfo, _ int) string {
 			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
-			balance := logutil.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
+			balance := logutil.HumanizedSprintf("%s `%.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 
 			ruinedTs := *t.Timestamps.RuinedAt
 			ruinedTime := time.UnixMilli(int64(*t.Timestamps.RuinedAt))
@@ -489,7 +489,7 @@ func TrySendFallenNotif(s *discordgo.Session, channelID string, towns []oapi.Tow
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)", spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z)
 
 			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
-			balance := logutil.HumanizedSprintf("%s `%0.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
+			balance := logutil.HumanizedSprintf("%s `%.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 			return fmt.Sprintf(
 				"`%s` was deleted. Located at %s.\nFounder: `%s` %sG %s Chunks",
 				t.Name, locationLink, t.Founder, balance, chunks,
@@ -563,7 +563,7 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 			}
 
 			left = append(left, logutil.HumanizedSprintf(
-				"`%s` left %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s",
+				"`%s` left %s (**%s**)\nMayor: `%s`, Balance: `%.0f` %s",
 				name, town.Name, nation,
 				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT,
 			))
@@ -581,7 +581,7 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 			}
 
 			joined = append(joined, logutil.HumanizedSprintf(
-				"`%s` joined %s (**%s**)\nMayor: `%s`, Balance: `%0.0f`G %s",
+				"`%s` joined %s (**%s**)\nMayor: `%s`, Balance: `%.0f` %s",
 				name, town.Name, nation,
 				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT,
 			))

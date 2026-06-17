@@ -135,7 +135,7 @@ func (cmd QuartersCommand) Execute(s *discordgo.Session, i *discordgo.Interactio
 			//NewEmbedField("Creator", fmt.Sprintf("`%s`", creator), true),
 			NewEmbedField("Type", fmt.Sprintf("`%s`", q.Type), true),
 			NewEmbedField("Embassy", fmt.Sprintf("`%t`", q.Status.IsEmbassy), true),
-			NewEmbedField("Price", fmt.Sprintf("`%.0f`G %s", price, shared.EMOJIS.GOLD_INGOT), true),
+			NewEmbedField("Price", fmt.Sprintf("`%.0f` %s", price, shared.EMOJIS.GOLD_INGOT), true),
 		)
 
 		data.Embeds = []*discordgo.MessageEmbed{embed.Build()}

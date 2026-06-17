@@ -24,6 +24,109 @@ const UINT64_MAX = ^uint64(0)
 
 var townInputOpt = discordutil.AutocompleteStringOption("name", "The name of the town to query.", 2, 40, true)
 
+// #region Filter & sort callbacks
+var statusFilters = map[string]func(oapi.TownInfo) bool{
+	"ruined":              func(t oapi.TownInfo) bool { return t.Status.Ruined },
+	"overclaimed":         func(t oapi.TownInfo) bool { return t.Status.Overclaimed },
+	"for-sale":            func(t oapi.TownInfo) bool { return t.Status.ForSale },
+	"can-outsiders-spawn": func(t oapi.TownInfo) bool { return t.Status.CanOutsidersSpawn },
+	"open":                func(t oapi.TownInfo) bool { return t.Status.Open },
+	"public":              func(t oapi.TownInfo) bool { return t.Status.Public },
+	"neutral":             func(t oapi.TownInfo) bool { return t.Status.Neutral },
+}
+
+var flagFilters = map[string]func(oapi.TownInfo) bool{
+	"explosions": func(t oapi.TownInfo) bool { return t.Perms.Flags.Explosions },
+	"mobs":       func(t oapi.TownInfo) bool { return t.Perms.Flags.Mobs },
+	"fire":       func(t oapi.TownInfo) bool { return t.Perms.Flags.Fire },
+	"pvp":        func(t oapi.TownInfo) bool { return t.Perms.Flags.PVP },
+}
+
+var townSorts = map[string]func([]oapi.TownInfo){
+	"alphabetical": func(towns []oapi.TownInfo) {
+		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+			{Compare: func(a, b oapi.TownInfo) bool { return a.Name < b.Name }},
+		})
+	},
+	"residents": func(towns []oapi.TownInfo) {
+		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+			{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }},
+		})
+	},
+	"size": func(towns []oapi.TownInfo) {
+		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+			{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
+		})
+	},
+	"founded": func(towns []oapi.TownInfo) {
+		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+			{Compare: func(a, b oapi.TownInfo) bool {
+				return a.Timestamps.Registered < b.Timestamps.Registered
+			}},
+		})
+	},
+	"balance": func(towns []oapi.TownInfo) {
+		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+			{Compare: func(a, b oapi.TownInfo) bool { return a.Bal() > b.Bal() }},
+		})
+	},
+	"ruined": func(towns []oapi.TownInfo) {
+		utils.RankSortDescending(towns, func(t oapi.TownInfo) int {
+			if !t.Status.Ruined {
+				return 0
+			}
+			return int(*t.Timestamps.RuinedAt)
+		})
+	},
+	"overclaimed": func(towns []oapi.TownInfo) {
+		utils.RankSortAscending(towns, func(t oapi.TownInfo) int {
+			switch {
+			case t.Status.Overclaimed:
+				return 0
+			case t.Status.Overclaimed:
+				return 1
+			default:
+				return 2
+			}
+		})
+	},
+	"for-sale": func(towns []oapi.TownInfo) {
+		utils.RankSortDescending(towns, func(t oapi.TownInfo) int {
+			if !t.Status.ForSale || t.Stats.ForSalePrice == nil {
+				return 0
+			}
+			return int(*t.Stats.ForSalePrice * 100.0)
+		})
+	},
+	"has-nation": func(towns []oapi.TownInfo) {
+		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+			return t.Status.HasNation
+		})
+	},
+	"can-outsiders-spawn": func(towns []oapi.TownInfo) {
+		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+			return t.Status.CanOutsidersSpawn
+		})
+	},
+	"open": func(towns []oapi.TownInfo) {
+		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+			return t.Status.Open
+		})
+	},
+	"public": func(towns []oapi.TownInfo) {
+		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+			return t.Status.Public
+		})
+	},
+	"neutral": func(towns []oapi.TownInfo) {
+		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+			return t.Status.Neutral
+		})
+	},
+}
+
+// #endregion
+
 type TownCommand struct{}
 
 func (cmd TownCommand) Name() string { return "town" }
@@ -212,7 +315,6 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 	if err != nil {
 		return err
 	}
-
 	if townStore.Count() == 0 {
 		_, err := discordutil.EditReply(s, i, &discordgo.InteractionResponseData{
 			Content: "No towns seem to exist? Something may have gone wrong with the database or town store.",
@@ -246,132 +348,32 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 			return strings.EqualFold(*t.Nation.Name, nationName)
 		})
 	}
+
+	// Apply custom filter if chosen
 	if opt := listOpt.GetOption("status"); opt != nil {
-		switch opt.StringValue() {
-		case "ruined":
+		if filter, ok := statusFilters[opt.StringValue()]; ok {
 			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Status.Ruined
-			})
-		case "overclaimed":
-			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Status.Overclaimed
-			})
-		case "for-sale":
-			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Status.ForSale
-			})
-		case "can-outsiders-spawn":
-			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Status.CanOutsidersSpawn
-			})
-		case "open":
-			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Status.Open
-			})
-		case "public":
-			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Status.Public
-			})
-		case "neutral":
-			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Status.Neutral
+				return filter(t)
 			})
 		}
 	}
 	if opt := listOpt.GetOption("flags"); opt != nil {
-		switch opt.StringValue() {
-		case "explosions":
+		if filter, ok := flagFilters[opt.StringValue()]; ok {
 			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Perms.Flags.Explosions
-			})
-		case "mobs":
-			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Perms.Flags.Mobs
-			})
-		case "fire":
-			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Perms.Flags.Fire
-			})
-		case "pvp":
-			towns = lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
-				return t.Perms.Flags.PVP
+				return filter(t)
 			})
 		}
 	}
+
+	// Apply custom sort if chosen
 	if opt := listOpt.GetOption("sort"); opt != nil {
-		switch opt.StringValue() {
-		case "alphabetical":
-			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
-				{Compare: func(a, b oapi.TownInfo) bool { return a.Name < b.Name }}, // ascending (A-Z)
-			})
-		case "residents":
-			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
-				{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
-			})
-		case "size":
-			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
-				{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }}, // descending (highest first)
-			})
-		case "founded":
-			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
-				{Compare: func(a, b oapi.TownInfo) bool { return a.Timestamps.Registered < b.Timestamps.Registered }}, // ascending (oldest-newest)
-			})
-		case "balance":
-			utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
-				{Compare: func(a, b oapi.TownInfo) bool { return a.Bal() > b.Bal() }}, // descending (highest first)
-			})
-		case "ruined":
-			utils.RankSortDescending(towns, func(t oapi.TownInfo) int {
-				if !t.Status.Ruined {
-					return 0
-				}
-
-				return int(*t.Timestamps.RuinedAt)
-			})
-		case "overclaimed":
-			utils.RankSortAscending(towns, func(t oapi.TownInfo) int {
-				switch {
-				case t.Status.Overclaimed:
-					return 0
-				case t.Status.Overclaimed:
-					return 1
-				default:
-					return 2
-				}
-			})
-		case "for-sale":
-			utils.RankSortDescending(towns, func(t oapi.TownInfo) int {
-				if !t.Status.ForSale || t.Stats.ForSalePrice == nil {
-					return 0
-				}
-
-				return int(*t.Stats.ForSalePrice * 100.0)
-			})
-		case "has-nation":
-			utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
-				return t.Status.HasNation
-			})
-		case "can-outsiders-spawn":
-			utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
-				return t.Status.CanOutsidersSpawn
-			})
-		case "open":
-			utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
-				return t.Status.Open
-			})
-		case "public":
-			utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
-				return t.Status.Public
-			})
-		case "neutral":
-			utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
-				return t.Status.Neutral
-			})
+		if sorter, ok := townSorts[opt.StringValue()]; ok {
+			sorter(towns)
 		}
 	} else {
-		// No sort option provided, use default sort (residents -> size).
+		// default sort
 		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
-			{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
+			{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }},
 			{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
 		})
 	}
@@ -392,12 +394,12 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 				nationName = *t.Nation.Name
 			}
 
-			size := logutil.HumanizedSprintf("`%d`/`%d` %s (Worth `%d`G %s)",
+			size := logutil.HumanizedSprintf("`%d`/`%d` %s (Worth `%d` %s)",
 				t.Size(), t.MaxSize(), shared.EMOJIS.CHUNK,
 				t.Worth(), shared.EMOJIS.GOLD_INGOT,
 			)
 
-			balance := logutil.HumanizedSprintf("`%0.f`G %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
+			balance := logutil.HumanizedSprintf("`%0.f` %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
 			residents := logutil.HumanizedSprintf("`%d`", len(t.Residents))
 
 			overclaimed := lo.Ternary(t.Status.Overclaimed, shared.EMOJIS.CIRCLE_CHECK, shared.EMOJIS.CIRCLE_CROSS)
@@ -469,7 +471,7 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 			}
 
 			purgeTimeStr := formattedPurgeTime(now, *lo/1000)
-			balanceStr := logutil.HumanizedSprintf("%s `%d`G", shared.EMOJIS.GOLD_INGOT, int(res.Stats.Balance))
+			balanceStr := logutil.HumanizedSprintf("%s `%.0f`G", shared.EMOJIS.GOLD_INGOT, res.Stats.Balance)
 
 			fmt.Fprintf(&content,
 				"**%s** (%s) - Online <t:%d:R>. Purges %s. %s\n",

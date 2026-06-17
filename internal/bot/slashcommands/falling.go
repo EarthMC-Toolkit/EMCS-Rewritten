@@ -76,7 +76,7 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=6)", X, Y, Z, X, Z)
 
 			residents := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.RESIDENT_PURPLE, t.NumResidents())
-			balance := logutil.HumanizedSprintf("%s `%0.0f` ", shared.EMOJIS.GOLD_INGOT, t.Bal())
+			balance := logutil.HumanizedSprintf("%s `%.0f` ", shared.EMOJIS.GOLD_INGOT, t.Bal())
 			chunks := logutil.HumanizedSprintf("%s `%d` ", shared.EMOJIS.CHUNK, t.Size())
 
 			emojis := shared.EMOJIS

@@ -320,7 +320,7 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 	embed.SetFields(
 		// Affiliation (prepended)
 		// Rank (prepended)
-		NewEmbedField("Balance", logutil.HumanizedSprintf("`%.0f`G %s", player.Stats.Balance, EMOJIS.GOLD_INGOT), true),
+		NewEmbedField("Balance", logutil.HumanizedSprintf("`%.0f` %s", player.Stats.Balance, EMOJIS.GOLD_INGOT), true),
 		NewEmbedField("Status", status, true),
 	)
 
@@ -393,7 +393,7 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 
 	spawn := town.Coordinates.Spawn
 
-	balanceStr := logutil.HumanizedSprintf("`%.0f`G %s", town.Bal(), EMOJIS.GOLD_INGOT)
+	balanceStr := logutil.HumanizedSprintf("`%.0f` %s", town.Bal(), EMOJIS.GOLD_INGOT)
 	residentsStr := logutil.HumanizedSprintf("`%d`", town.Stats.NumResidents)
 	trustedOutlawsStr := logutil.HumanizedSprintf("`%d`/`%d`", town.Stats.NumTrusted, town.Stats.NumOutlaws)
 

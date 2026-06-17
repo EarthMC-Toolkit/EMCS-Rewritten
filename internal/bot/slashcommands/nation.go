@@ -245,10 +245,10 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 
 		nationStrings := []string{}
 		for idx, n := range nations[start:end] {
-			balance := logutil.HumanizedSprintf("`%0.f`G %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
+			balance := logutil.HumanizedSprintf("`%.0f` %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
 			towns := logutil.HumanizedSprintf("`%d`", n.NumTowns())
 			residents := logutil.HumanizedSprintf("`%d`", n.NumResidents())
-			size := logutil.HumanizedSprintf("`%d` %s (Worth `%d`G %s)",
+			size := logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)",
 				n.Size(), shared.EMOJIS.CHUNK,
 				n.Worth(), shared.EMOJIS.GOLD_INGOT,
 			)
@@ -318,7 +318,7 @@ func executeNationActivity(s *discordgo.Session, i *discordgo.Interaction, natio
 
 			//daysOffline := (now - *lo/1000) / 86400
 			purgeTimeStr := formattedPurgeTime(now, *lo/1000)
-			balanceStr := logutil.HumanizedSprintf("%s `%d`G", shared.EMOJIS.GOLD_INGOT, int(res.Stats.Balance))
+			balanceStr := logutil.HumanizedSprintf("%s `%.0f`G", shared.EMOJIS.GOLD_INGOT, res.Stats.Balance)
 
 			fmt.Fprintf(&content,
 				"**%s** (%s) - Online <t:%d:R>. Purges %s. %s\n",

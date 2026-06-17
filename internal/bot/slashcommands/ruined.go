@@ -75,7 +75,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=6)", X, Y, Z, X, Z)
 
 			residents := logutil.HumanizedSprintf("`%d`", t.NumResidents())
-			balance := logutil.HumanizedSprintf("`%0.0f` %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
+			balance := logutil.HumanizedSprintf("`%.0f` %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
 			chunks := logutil.HumanizedSprintf("`%d` %s", t.Size(), shared.EMOJIS.CHUNK)
 
 			fmt.Fprintf(&descBuilder, "%d. **%s** (%s) fell into ruin <t:%d:R> at %s.\n"+

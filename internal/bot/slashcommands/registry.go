@@ -106,30 +106,33 @@ func init() {
 }
 
 func RegisterAllCommands() {
-	Register(DevCommand{})
-
-	Register(AllianceCommand{})
-	Register(TownCommand{})
-	Register(NationCommand{})
-	Register(RuinedCommand{})
-	Register(FallingCommand{})
-
+	// Main (Player)
 	Register(PlayerCommand{})
 	Register(ResidentCommand{})
-	Register(VisibleCommand{})
-	Register(TownlessCommand{})
 	Register(OnlineCommand{})
+	Register(TownlessCommand{})
+	Register(VisibleCommand{})
 
-	Register(RouteCommand{})
-	Register(NewDayCommand{})
+	// Main (Other)
+	Register(TownCommand{})
+	Register(NationCommand{})
+	Register(AllianceCommand{})
+	Register(RuinedCommand{})
+	Register(FallingCommand{})
 	Register(QuartersCommand{})
-	Register(MysteryMasterCommand{})
-	Register(ServerCommand{})
-	Register(VotePartyCommand{})
-	Register(UsageCommand{})
 
-	Register(SSECommand{})
+	// Util
+	Register(ServerCommand{})
 	Register(NewsCommand{})
+	Register(RouteCommand{})
+	Register(VotePartyCommand{})
+	Register(NewDayCommand{})
+	Register(MysteryMasterCommand{})
+	Register(SSECommand{})
+
+	// Misc
+	Register(DevCommand{})
+	Register(UsageCommand{})
 }
 
 // ======================================= COMMAND TEMPLATE =======================================

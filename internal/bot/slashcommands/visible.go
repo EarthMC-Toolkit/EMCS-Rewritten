@@ -75,7 +75,7 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 			}
 
 			locStr := fmt.Sprintf("[%d, %d, %d](https://map.earthmc.net/?x=%d&z=%d&zoom=4)", p.X, p.Y, p.Z, p.X, p.Z)
-			balStr := fmt.Sprintf("`%0.0f`G %s", pinfo.Bal(), shared.EMOJIS.GOLD_INGOT)
+			balStr := fmt.Sprintf("`%.0f` %s", pinfo.Bal(), shared.EMOJIS.GOLD_INGOT)
 
 			registeredStr := fmt.Sprintf("<t:%d:R>", pinfo.Timestamps.Registered/1000)
 

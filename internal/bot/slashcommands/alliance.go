@@ -346,10 +346,10 @@ func queryAllianceNations(s *discordgo.Session, i *discordgo.Interaction, cdata 
 		for idx, entry := range nations[start:end] {
 			n := entry.Nation
 
-			balance := logutil.HumanizedSprintf("`%0.f`G %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
+			balance := logutil.HumanizedSprintf("`%0.f` %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
 			towns := logutil.HumanizedSprintf("`%d`", n.NumTowns())
 			residents := logutil.HumanizedSprintf("`%d`", n.NumResidents())
-			size := logutil.HumanizedSprintf("`%d` %s (Worth `%d`G %s)",
+			size := logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)",
 				n.Size(), shared.EMOJIS.CHUNK,
 				n.Worth(), shared.EMOJIS.GOLD_INGOT,
 			)
