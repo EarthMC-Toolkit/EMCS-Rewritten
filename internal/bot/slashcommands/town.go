@@ -146,7 +146,7 @@ func (cmd TownCommand) Options() []AppCommandOpt {
 				discordutil.Choice("Residents", "residents"),       // "Sort the list solely by the number of residents."
 				discordutil.Choice("Size", "size"),                 // "Sort the list solely by size (chunks claimed)."
 				discordutil.Choice("Balance", "balance"),           // "Sort the list solely by balance."
-				discordutil.Choice("Ruined", "ruined"),             // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
+				discordutil.Choice("Ruined", "ruined"),             // "Sort the list by ruin status."
 				discordutil.Choice("Overclaimed", "overclaimed"),   // "Sort the list by overclaim status. Oldest -> Newest."
 				discordutil.Choice("For Sale", "for-sale"),         // "Sort the list by for sale status. For Sale (highest-lowest) -> Not For Sale."
 				discordutil.Choice("Has Nation", "has-nation"),
