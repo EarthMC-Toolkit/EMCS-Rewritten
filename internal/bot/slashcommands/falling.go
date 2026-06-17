@@ -254,3 +254,16 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 	return paginator.Start()
 }
+
+func (cmd FallingCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error {
+	cdata := i.ApplicationCommandData()
+	if len(cdata.Options) == 0 {
+		return nil
+	}
+
+	if cdata.GetOption("nation") != nil {
+		return nationNameAutocomplete(s, i, cdata)
+	}
+
+	return nil
+}

@@ -251,7 +251,8 @@ func traverseCommandOption(opt *discordgo.ApplicationCommandInteractionDataOptio
 		return opt // No nested options, return this one
 	}
 
-	// Check if the first child is a subcommand or group. Otherwise it's an argument
+	// Check if the first child is a subcommand or group, otherwise it's an argument.
+	// 1 = subcmd | 2 = subcmd group (see discordgo.ApplicationCommandOptionType)
 	optType := opt.Options[0].Type
 	if optType != 1 && optType != 2 {
 		return opt
