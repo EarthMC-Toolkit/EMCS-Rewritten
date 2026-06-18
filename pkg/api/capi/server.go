@@ -123,8 +123,9 @@ func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 		// Every interval, refresh the stores so they reflect their respective DB files (source of truth)
 		StartStoreSync(
 			30*time.Second, dbName,
-			allianceStore, nationStore, entitiesStore,
-			newsStore, playersStore,
+			fallingTownStore, townStore, nationStore, allianceStore,
+			entitiesStore, playersStore,
+			newsStore,
 		)
 
 		ServeFalling(mux, dbName, fallingTownStore)
@@ -139,11 +140,13 @@ func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 
 func StartStoreSync(
 	interval time.Duration, mdbName string,
-	allianceStore *store.Store[database.Alliance],
+	fallingTownStore *store.Store[database.FallingTown],
+	townStore *store.Store[oapi.TownInfo],
 	nationStore *store.Store[oapi.NationInfo],
+	allianceStore *store.Store[database.Alliance],
 	entitiesStore *store.Store[oapi.EntityList],
-	newsStore *store.Store[database.NewsEntry],
 	playersStore *store.Store[database.BasicPlayer],
+	newsStore *store.Store[database.NewsEntry],
 ) {
 	go func() {
 		ticker := time.NewTicker(interval)
@@ -152,6 +155,8 @@ func StartStoreSync(
 		for range ticker.C {
 			logutil.Println(logutil.BLUE, "Syncing stores with data from underlying DB files for map: ", mdbName)
 
+			_ = fallingTownStore.LoadFromFile()
+			_ = townStore.LoadFromFile()
 			_ = allianceStore.LoadFromFile()
 			_ = nationStore.LoadFromFile()
 			_ = entitiesStore.LoadFromFile()
