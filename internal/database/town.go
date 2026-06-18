@@ -1,7 +1,9 @@
 package database
 
 import (
+	"emcsrw/internal/database/store"
 	"emcsrw/pkg/api/oapi"
+	"sort"
 	"time"
 
 	"github.com/samber/lo"
@@ -75,4 +77,17 @@ func nextNewDayAfter(t time.Time) time.Time {
 	}
 
 	return newDay
+}
+
+func GetRuinedTowns(townStore *store.Store[oapi.TownInfo]) []oapi.TownInfo {
+	towns := townStore.Values()
+	ruined := lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
+		return t.Status.Ruined
+	})
+	sort.Slice(ruined, func(i, j int) bool {
+		// Sort by longest time ruined first. A nil panic shouldn't occur since we already filtered out non-ruins.
+		return *ruined[i].Timestamps.RuinedAt < *ruined[j].Timestamps.RuinedAt
+	})
+
+	return ruined
 }

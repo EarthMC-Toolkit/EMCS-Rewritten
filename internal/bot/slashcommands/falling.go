@@ -7,7 +7,6 @@ import (
 	"emcsrw/pkg/utils/discordutil"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -199,12 +198,10 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 			sorter(falling)
 		}
 	} else {
-		// Default sort (least active mayor first)
-		sort.Slice(falling, func(i, j int) bool {
-			if falling[i].InactiveDuration == falling[j].InactiveDuration {
-				return falling[i].TownInfo.NumResidents() < falling[j].TownInfo.NumResidents()
-			}
-			return falling[i].InactiveDuration > falling[j].InactiveDuration
+		// Default sort (most inactive mayor first, then least amt of residents)
+		utils.KeySort(falling, []utils.KeySortOption[database.FallingTown]{
+			{Compare: func(a, b database.FallingTown) bool { return a.InactiveDuration > b.InactiveDuration }},
+			{Compare: func(a, b database.FallingTown) bool { return a.NumResidents() < b.NumResidents() }},
 		})
 	}
 

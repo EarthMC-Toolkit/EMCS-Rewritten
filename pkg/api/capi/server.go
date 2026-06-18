@@ -89,7 +89,11 @@ func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 			continue
 		}
 
-		allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
+		fallingTownStore, err := database.GetStore(mdb, database.FALLING_TOWNS_STORE)
+		if err != nil {
+			return nil, err
+		}
+		townStore, err := database.GetStore(mdb, database.TOWNS_STORE)
 		if err != nil {
 			return nil, err
 		}
@@ -97,15 +101,19 @@ func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 		if err != nil {
 			return nil, err
 		}
+		allianceStore, err := database.GetStore(mdb, database.ALLIANCES_STORE)
+		if err != nil {
+			return nil, err
+		}
 		entitiesStore, err := database.GetStore(mdb, database.ENTITIES_STORE)
 		if err != nil {
 			return nil, err
 		}
-		newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
+		playersStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
 		if err != nil {
 			return nil, err
 		}
-		playersStore, err := database.GetStore(mdb, database.PLAYERS_STORE)
+		newsStore, err := database.GetStore(mdb, database.NEWS_STORE)
 		if err != nil {
 			return nil, err
 		}
@@ -119,15 +127,11 @@ func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 			newsStore, playersStore,
 		)
 
-		if err = ServeAlliances(mux, dbName, allianceStore, nationStore, entitiesStore); err != nil {
-			return nil, err
-		}
-		if err = ServeNews(mux, dbName, newsStore); err != nil {
-			return nil, err
-		}
-		if err = ServePlayers(mux, dbName, playersStore); err != nil {
-			return nil, err
-		}
+		ServeFalling(mux, dbName, fallingTownStore)
+		ServeRuined(mux, dbName, townStore)
+		ServeAlliances(mux, dbName, allianceStore, nationStore, entitiesStore)
+		ServePlayers(mux, dbName, playersStore)
+		ServeNews(mux, dbName, newsStore)
 	}
 
 	return mux, nil

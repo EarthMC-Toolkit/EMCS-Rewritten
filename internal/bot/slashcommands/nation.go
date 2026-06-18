@@ -297,7 +297,7 @@ func executeNationActivity(s *discordgo.Session, i *discordgo.Interaction, natio
 
 	count := len(residents)
 	slices.SortFunc(residents, func(a, b oapi.PlayerInfo) int {
-		return utils.ComparePtr(b.Timestamps.LastOnline, a.Timestamps.LastOnline, UINT64_MAX) // sort by most active
+		return utils.CmpPtrDefault(b.Timestamps.LastOnline, a.Timestamps.LastOnline, UINT64_MAX) // sort by most active
 	})
 
 	perPage := 10

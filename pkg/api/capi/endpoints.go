@@ -8,6 +8,7 @@ import (
 	"emcsrw/internal/database"
 	"emcsrw/internal/database/store"
 	"emcsrw/pkg/api/oapi"
+	"emcsrw/pkg/utils"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/yuin/goldmark"
@@ -67,9 +69,6 @@ type CacheEntry struct {
 
 type DatabaseName = string
 
-var alliancesCache = map[DatabaseName]*CacheEntry{} // Cache the response per map
-var alliancesCacheMu sync.RWMutex
-
 var md = goldmark.New(goldmark.WithRendererOptions(html.WithUnsafe()))
 
 func ServeBase(mux *http.ServeMux) error {
@@ -118,12 +117,43 @@ func ServeBotInvite(mux *http.ServeMux) error {
 	return nil
 }
 
+func ServeFalling(
+	mux *http.ServeMux, mdbName string,
+	fallingTownStore *store.Store[database.FallingTown],
+) {
+	fallingEndpoint := fmt.Sprintf("/%s/falling", mdbName)
+	mux.HandleFunc(fallingEndpoint, TTLGzipHandler(90*time.Second, func() []database.FallingTown {
+		falling := fallingTownStore.Values()
+
+		// Default sort (most inactive mayor first, then least amt of residents)
+		utils.KeySort(falling, []utils.KeySortOption[database.FallingTown]{
+			{Compare: func(a, b database.FallingTown) bool { return a.InactiveDuration > b.InactiveDuration }},
+			{Compare: func(a, b database.FallingTown) bool { return a.NumResidents() < b.NumResidents() }},
+		})
+
+		return falling
+	}))
+}
+
+func ServeRuined(
+	mux *http.ServeMux, mdbName string,
+	townStore *store.Store[oapi.TownInfo],
+) {
+	ruinedEndpoint := fmt.Sprintf("/%s/ruined", mdbName)
+	mux.HandleFunc(ruinedEndpoint, TTLGzipHandler(90*time.Second, func() []oapi.TownInfo {
+		return database.GetRuinedTowns(townStore)
+	}))
+}
+
 func ServeAlliances(
 	mux *http.ServeMux, mdbName string,
 	allianceStore *store.Store[database.Alliance],
 	nationStore *store.Store[oapi.NationInfo],
 	entitiesStore *store.Store[oapi.EntityList],
-) error {
+) {
+	var alliancesCache = map[DatabaseName]*CacheEntry{} // Cache the response per map
+	var alliancesCacheMu sync.RWMutex
+
 	alliancesEndpoint := fmt.Sprintf("/%s/alliances", mdbName)
 	mux.HandleFunc(alliancesEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		alliances := allianceStore.Values()
@@ -133,7 +163,7 @@ func ServeAlliances(
 			return a.Identifier, int64(*a.UpdatedTimestamp)
 		})
 
-		etag := fmt.Sprintf(`"%x"`, sha1.Sum([]byte(currentHash)))
+		etag := `"` + currentHash + `"`
 		if r.Header.Get("If-None-Match") == etag {
 			w.WriteHeader(http.StatusNotModified)
 			return
@@ -179,11 +209,9 @@ func ServeAlliances(
 		w.Header().Set("Vary", "Accept-Encoding")
 		w.Write(data)
 	})
-
-	return nil
 }
 
-func ServeNews(mux *http.ServeMux, mdbName string, newsStore *store.Store[database.NewsEntry]) error {
+func ServeNews(mux *http.ServeMux, mdbName string, newsStore *store.Store[database.NewsEntry]) {
 	newsEndpoint := fmt.Sprintf("/%s/news", mdbName)
 	mux.HandleFunc(newsEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		newsValues := lo.MapToSlice(newsStore.Entries(), func(key string, n database.NewsEntry) NewsEntry {
@@ -229,11 +257,9 @@ func ServeNews(mux *http.ServeMux, mdbName string, newsStore *store.Store[databa
 		w.Header().Set("Vary", "Accept-Encoding")
 		w.Write(buf.Bytes())
 	})
-
-	return nil
 }
 
-func ServePlayers(mux *http.ServeMux, mdbName string, playersStore *store.Store[database.BasicPlayer]) error {
+func ServePlayers(mux *http.ServeMux, mdbName string, playersStore *store.Store[database.BasicPlayer]) {
 	playersEndpoint := fmt.Sprintf("/%s/players", mdbName)
 	mux.HandleFunc(playersEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		limiter := getLimiter(r.RemoteAddr, playersEndpoint, PLAYERS_RPM)
@@ -277,8 +303,57 @@ func ServePlayers(mux *http.ServeMux, mdbName string, playersStore *store.Store[
 
 		json.NewEncoder(gz).Encode(playerStoreValues)
 	})
+}
 
-	return nil
+func TTLGzipHandler[T any](
+	ttl time.Duration,
+	dataFunc func() []T,
+) http.HandlerFunc {
+	var cache []byte
+	var cacheExp time.Time
+	var mu sync.RWMutex
+
+	write := func(w http.ResponseWriter, data []byte) {
+		w.Header().Set("Cache-Control", "public, max-age=120")
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Vary", "Accept-Encoding")
+		w.Write(data)
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		now := time.Now()
+
+		mu.RLock()
+		if now.Before(cacheExp) && cache != nil {
+			data := cache
+			mu.RUnlock()
+			write(w, data)
+			return
+		}
+		mu.RUnlock()
+
+		mu.Lock()
+		defer mu.Unlock()
+
+		now = time.Now()
+		if now.Before(cacheExp) && cache != nil {
+			write(w, cache)
+			return
+		}
+
+		dataSlice := dataFunc()
+		data, err := gzipJSON(dataSlice, 1)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		cache = data
+		cacheExp = now.Add(ttl)
+
+		write(w, data)
+	}
 }
 
 func gzipJSON[T any](v T, level int) ([]byte, error) {

@@ -3,18 +3,14 @@ package slashcommands
 import (
 	"emcsrw/internal/database"
 	"emcsrw/internal/shared"
-	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils"
 	"emcsrw/pkg/utils/discordutil"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
-	"log"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/samber/lo"
 )
 
 type RuinedCommand struct{}
@@ -33,16 +29,12 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	ruined, err := GetRuinedTowns()
+	townStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
 	if err != nil {
-		log.Printf("failed to get towns from db:\n%v", err)
-		_, err := discordutil.EditReply(s, i.Interaction, &discordgo.InteractionResponseData{
-			Content: "An error occurred retrieving towns from the database. Check the console.",
-		})
-
 		return err
 	}
 
+	ruined := database.GetRuinedTowns(townStore)
 	totalCount := len(ruined)
 
 	perPage := 5
@@ -96,22 +88,4 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	}
 
 	return paginator.Start()
-}
-
-func GetRuinedTowns() ([]oapi.TownInfo, error) {
-	townsStore, err := database.GetStoreForMap(shared.ACTIVE_MAP, database.TOWNS_STORE)
-	if err != nil {
-		return nil, err
-	}
-
-	towns := townsStore.Entries()
-	ruined := lo.FilterMapToSlice(towns, func(_ string, t oapi.TownInfo) (oapi.TownInfo, bool) {
-		return t, t.Status.Ruined
-	})
-
-	sort.Slice(ruined, func(i, j int) bool {
-		return *ruined[i].Timestamps.RuinedAt < *ruined[j].Timestamps.RuinedAt
-	})
-
-	return ruined, nil
 }
