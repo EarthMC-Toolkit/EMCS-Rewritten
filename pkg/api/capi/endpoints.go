@@ -26,6 +26,8 @@ import (
 
 // Req/m for each endpoint
 const (
+	// FALLING_RPM   = 2
+	// RUINED_RPM    = 4
 	ALLIANCES_RPM = 8
 	NEWS_RPM      = 6
 	PLAYERS_RPM   = 3
@@ -38,9 +40,11 @@ To access data for a specific map, navigate to "https://emcstats.bot.nu/mapName/
 For example, "/nostra/alliances" for alliance data on the Nostra map.
 
 The following endpoints are available:
+- /falling
+- /ruined
 - /alliances
-- /news
 - /players
+- /news
 `
 
 type BasicPlayer struct {
@@ -314,7 +318,7 @@ func TTLGzipHandler[T any](
 	var mu sync.RWMutex
 
 	write := func(w http.ResponseWriter, data []byte) {
-		w.Header().Set("Cache-Control", "public, max-age=120")
+		w.Header().Set("Cache-Control", "public, max-age=90")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Content-Encoding", "gzip")
 		w.Header().Set("Vary", "Accept-Encoding")
@@ -343,7 +347,7 @@ func TTLGzipHandler[T any](
 		}
 
 		dataSlice := dataFunc()
-		data, err := gzipJSON(dataSlice, 1)
+		data, err := gzipJSON(dataSlice, 2)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
