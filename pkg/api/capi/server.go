@@ -153,7 +153,7 @@ func StartStoreSync(
 		defer ticker.Stop()
 
 		for range ticker.C {
-			logutil.Println(logutil.BLUE, "Syncing stores with data from underlying DB files for map: ", mdbName)
+			logutil.Logln(logutil.BLUE, "Syncing stores with data from underlying DB files for map: ", mdbName)
 
 			_ = fallingTownStore.LoadFromFile()
 			_ = townStore.LoadFromFile()
