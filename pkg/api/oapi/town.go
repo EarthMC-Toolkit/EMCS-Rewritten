@@ -78,11 +78,11 @@ type TownInfo struct {
 	Stats       TownStats            `json:"stats"`
 	Coordinates TownCoords           `json:"coordinates"`
 	Ranks       TownRanks            `json:"ranks"`
-	Trusted     []Entity             `json:"trusted"`
-	Outlaws     []Entity             `json:"outlaws"`
 	Perms       Perms                `json:"perms"`
-	Quarters    []Entity             `json:"quarters"`
-	Warps       []TownWarp           `json:"warps"`
+	Trusted     []Entity             `json:"trusted,omitempty"`
+	Outlaws     []Entity             `json:"outlaws,omitempty"`
+	Quarters    []Entity             `json:"quarters,omitempty"`
+	Warps       []TownWarp           `json:"warps,omitempty"`
 }
 
 func (t TownInfo) GetUUID() string {
