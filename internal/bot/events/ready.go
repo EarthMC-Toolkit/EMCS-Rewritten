@@ -1,9 +1,7 @@
 package events
 
 import (
-	"cmp"
 	"fmt"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -221,8 +219,8 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 		// Town flow event notifications sent to channel TFLOW_CHANNEL_ID.
 		TrySendCreatedNotif(s, cid, towns, staleTowns)
 		TrySendRenamedNotif(s, cid, townList, staleTowns)
-		TrySendRuinedNotif(s, cid, townList, staleTowns)
-		TrySendFallenNotif(s, cid, towns, staleTowns)
+		//TrySendRuinedNotif(s, cid, townList, staleTowns)
+		TrySendDeletedNotif(s, cid, towns, staleTowns)
 	} else {
 		logutil.Printf(logutil.YELLOW, "\nWARNING | TFLOW_CHANNEL_ID not set. Skipping town flow event notifications.\n")
 	}
@@ -424,60 +422,61 @@ func TrySendCreatedNotif(s *discordgo.Session, channelID string, towns []oapi.To
 	}
 }
 
-func TrySendRuinedNotif(s *discordgo.Session, channelID string, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
-	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
-		return t.UUID, t, t.Status.Ruined
-	})
+// func TrySendRuinedNotif(s *discordgo.Session, channelID string, towns map[string]oapi.TownInfo, staleTowns []oapi.TownInfo) {
+// 	staleRuined := lo.FilterSliceToMap(staleTowns, func(t oapi.TownInfo) (string, oapi.TownInfo, bool) {
+// 		return t.UUID, t, t.Status.Ruined
+// 	})
 
-	ruined := lo.FilterMapToSlice(towns, func(_ string, t oapi.TownInfo) (oapi.TownInfo, bool) {
-		_, wasRuined := staleRuined[t.UUID]
-		return t, !wasRuined && t.Status.Ruined
-	})
+// 	ruined := lo.FilterMapToSlice(towns, func(_ string, t oapi.TownInfo) (oapi.TownInfo, bool) {
+// 		_, wasRuined := staleRuined[t.UUID]
+// 		return t, !wasRuined && t.Status.Ruined
+// 	})
 
-	// Sort by oldest RuinedAt (aka least amount of time until deletion)
-	slices.SortFunc(ruined, func(a, b oapi.TownInfo) int {
-		return cmp.Compare(*a.Timestamps.RuinedAt, *b.Timestamps.RuinedAt)
-	})
+// 	// Sort by oldest RuinedAt (aka least amount of time until deletion)
+// 	slices.SortFunc(ruined, func(a, b oapi.TownInfo) int {
+// 		return cmp.Compare(*a.Timestamps.RuinedAt, *b.Timestamps.RuinedAt)
+// 	})
 
-	count := len(ruined)
-	if count > 0 {
-		desc := parallel.Map(ruined, func(t oapi.TownInfo, _ int) string {
-			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
-			balance := logutil.HumanizedSprintf("%s `%.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
+// 	count := len(ruined)
+// 	if count > 0 {
+// 		desc := parallel.Map(ruined, func(t oapi.TownInfo, _ int) string {
+// 			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
+// 			balance := logutil.HumanizedSprintf("%s `%.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 
-			ruinedTs := *t.Timestamps.RuinedAt
-			ruinedTime := time.UnixMilli(int64(*t.Timestamps.RuinedAt))
-			after72h := ruinedTime.Add(72 * time.Hour)
+// 			ruinedTs := *t.Timestamps.RuinedAt
+// 			ruinedTime := time.UnixMilli(int64(*t.Timestamps.RuinedAt))
+// 			after72h := ruinedTime.Add(72 * time.Hour)
 
-			nextNewDay := time.Date(after72h.Year(), after72h.Month(), after72h.Day(), 11, 0, 0, 0, time.UTC)
-			if !nextNewDay.After(after72h) {
-				nextNewDay = nextNewDay.Add(24 * time.Hour)
-			}
+// 			nextNewDay := time.Date(after72h.Year(), after72h.Month(), after72h.Day(), 11, 0, 0, 0, time.UTC)
+// 			if !nextNewDay.After(after72h) {
+// 				nextNewDay = nextNewDay.Add(24 * time.Hour)
+// 			}
 
-			spawn := t.Coordinates.Spawn
-			locationLink := fmt.Sprintf(
-				"[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)",
-				spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
-			)
+// 			spawn := t.Coordinates.Spawn
+// 			locationLink := fmt.Sprintf(
+// 				"[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=5)",
+// 				spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
+// 			)
 
-			return fmt.Sprintf(
-				"`%s` fell into ruin <t:%d:R> at %s. %sG %s\nDeletion on `%s` (<t:%d:R>).",
-				t.Name, ruinedTs/1000, locationLink, balance, chunks, utils.FormatTime(nextNewDay), nextNewDay.Unix(),
-			)
-		})
+// 			return fmt.Sprintf(
+// 				"`%s` fell into ruin <t:%d:R> at %s. %s %s\nDeletion on `%s` (<t:%d:R>).",
+// 				t.Name, ruinedTs/1000, locationLink, balance, chunks,
+// 				utils.FormatTime(nextNewDay), nextNewDay.Unix(),
+// 			)
+// 		})
 
-		_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("Town Flow | Ruin Events [%d]", count),
-			Description: strings.Join(desc, "\n\n"),
-			Color:       discordutil.DARK_GOLD,
-		})
-		if err != nil {
-			logutil.Logf(logutil.RED, "error sending town flow ruin event:\n\t%v", err)
-		}
-	}
-}
+// 		_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
+// 			Title:       fmt.Sprintf("Town Flow | Ruin Events [%d]", count),
+// 			Description: strings.Join(desc, "\n\n"),
+// 			Color:       discordutil.DARK_GOLD,
+// 		})
+// 		if err != nil {
+// 			logutil.Logf(logutil.RED, "error sending town flow ruin event:\n\t%v", err)
+// 		}
+// 	}
+// }
 
-func TrySendFallenNotif(s *discordgo.Session, channelID string, towns []oapi.TownInfo, staleTowns []oapi.TownInfo) {
+func TrySendDeletedNotif(s *discordgo.Session, channelID string, towns []oapi.TownInfo, staleTowns []oapi.TownInfo) {
 	diff, _ := utils.DifferenceBy(staleTowns, towns, func(t oapi.TownInfo) string {
 		return t.UUID
 	})
@@ -491,7 +490,7 @@ func TrySendFallenNotif(s *discordgo.Session, channelID string, towns []oapi.Tow
 			chunks := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.CHUNK, t.Size())
 			balance := logutil.HumanizedSprintf("%s `%.0f`", shared.EMOJIS.GOLD_INGOT, t.Bal())
 			return fmt.Sprintf(
-				"`%s` was deleted. Located at %s.\nFounder: `%s` %sG %s Chunks",
+				"`%s` was deleted. Located at %s.\nFounder: `%s` %s %s",
 				t.Name, locationLink, t.Founder, balance, chunks,
 			)
 		})
@@ -502,7 +501,7 @@ func TrySendFallenNotif(s *discordgo.Session, channelID string, towns []oapi.Tow
 			Color:       discordutil.RED,
 		})
 		if err != nil {
-			logutil.Logf(logutil.RED, "error sending town flow fall event:\n\t%v", err)
+			logutil.Logf(logutil.RED, "error sending town flow fall event(s):\n\t%v", err)
 		}
 	}
 }
@@ -549,6 +548,13 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 		}
 	}
 
+	nationName := func(t oapi.TownInfo) string {
+		if t.Nation.Name != nil {
+			return *t.Nation.Name
+		}
+		return "No Nation"
+	}
+
 	// who left
 	for uuid, town := range staleResMap {
 		if _, ok := resMap[uuid]; !ok {
@@ -557,14 +563,9 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 				continue // Left a town but not townless. Likely purged?
 			}
 
-			nation := "No Nation"
-			if town.Nation.Name != nil {
-				nation = *town.Nation.Name
-			}
-
 			left = append(left, logutil.HumanizedSprintf(
 				"`%s` left %s (**%s**)\nMayor: `%s`, Balance: `%.0f` %s",
-				name, town.Name, nation,
+				name, town.Name, nationName(town),
 				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT,
 			))
 		}
@@ -574,15 +575,9 @@ func CalcLeftJoined(towns, staleTowns []oapi.TownInfo, townless, residents oapi.
 	for uuid, town := range resMap {
 		if _, ok := staleResMap[uuid]; !ok {
 			name := residents[uuid]
-
-			nation := "No Nation"
-			if town.Nation.Name != nil {
-				nation = *town.Nation.Name
-			}
-
 			joined = append(joined, logutil.HumanizedSprintf(
 				"`%s` joined %s (**%s**)\nMayor: `%s`, Balance: `%.0f` %s",
-				name, town.Name, nation,
+				name, town.Name, nationName(town),
 				town.Mayor.Name, town.Bal(), shared.EMOJIS.GOLD_INGOT,
 			))
 		}
