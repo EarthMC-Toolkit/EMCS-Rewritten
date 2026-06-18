@@ -195,19 +195,19 @@ func UpdateData(mdb *database.Database) (
 
 // #region DB store update tasks
 func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
-	fmt.Println()
-	logutil.Logln(logutil.BLUEBG, "[OnReady]: Running data update task...")
+	logutil.Space()
+	logutil.Logln(logutil.BLUEBG, "[OnReady]: Running DataUpdate task...")
 
 	start := time.Now()
 	townList, staleTownList, townless, residents, err := UpdateData(mdb)
 
-	fmt.Println() // use \n without log.Printf messing up date/time
+	logutil.Space() // use \n without log.Printf messing up date/time
 	if err != nil {
-		logutil.Logln(logutil.REDBG, "[OnReady]: Failed data update task:")
+		logutil.Logln(logutil.REDBG, "[OnReady]: Failed DataUpdate task:")
 		logutil.Printf(logutil.RED, "%s\n", err)
 	} else {
 		elapsed := time.Since(start)
-		logutil.Logf(logutil.GREEN, "[OnReady]: Finished data update task. Took: %s\n", elapsed.String())
+		logutil.Logf(logutil.GREEN, "[OnReady]: Finished DataUpdate task. Took: %s\n", elapsed.String())
 	}
 
 	towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
@@ -235,20 +235,31 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 }
 
 func fallingTownsTask(mdb *database.Database) {
+	logutil.Space()
+	logutil.Logln(logutil.BLUEBG, "[OnReady]: Running FallingTowns task...")
+
+	start := time.Now()
+
 	fallingTownsStore, err := database.GetStore(mdb, database.FALLING_TOWNS_STORE)
-	if err != nil {
-		logutil.Printf(logutil.RED, "\nERR | cannot schedule FallingTowns task:\n\t%s", err)
-		return
+	if err == nil {
+		_, err = fallingTownsStore.OverwriteFunc(true, func() (map[database.MayorUUID]database.FallingTown, error) {
+			fallingTownsMap, err := database.ComputeFallingTowns(mdb, database.FALLING_TFRAME*24*time.Hour)
+			if err != nil {
+				return fallingTownsMap, err
+			}
+
+			return fallingTownsMap, nil
+		})
 	}
 
-	fallingTownsStore.OverwriteFunc(true, func() (map[database.MayorUUID]database.FallingTown, error) {
-		fallingTownsMap, err := database.ComputeFallingTowns(mdb, database.FALLING_TFRAME*24*time.Hour)
-		if err != nil {
-			return fallingTownsMap, err
-		}
-
-		return fallingTownsMap, nil
-	})
+	logutil.Space() // use \n without log.Printf messing up date/time
+	if err != nil {
+		logutil.Logln(logutil.REDBG, "[OnReady]: Failed FallingTowns task:")
+		logutil.Printf(logutil.RED, "%s\n", err)
+	} else {
+		elapsed := time.Since(start)
+		logutil.Logf(logutil.GREEN, "[OnReady]: Finished FallingTowns task. Took: %s\n", elapsed.String())
+	}
 }
 
 func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
