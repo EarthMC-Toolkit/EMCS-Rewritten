@@ -2,6 +2,10 @@ package oapi
 
 var rnao = [4]byte{'r', 'n', 'a', 'o'}
 
+type InhabitedEntity interface {
+	GetResidents() []Entity
+}
+
 type Entity struct {
 	Name string `json:"name"`
 	UUID string `json:"uuid"`
@@ -77,6 +81,18 @@ func encodePerm(perm [4]bool) string {
 	}
 
 	return string(b)
+}
+
+// Builds a lookup map from resident UUID to their parent entity V.
+// The returned map stores pointers to avoid copying said parent.
+func BuildResLookup[K comparable, V InhabitedEntity](m map[K]V) map[string]*V {
+	out := make(map[string]*V)
+	for _, t := range m {
+		for _, r := range t.GetResidents() {
+			out[r.UUID] = &t
+		}
+	}
+	return out
 }
 
 // Filters out any bad entities (due to error or opt-out) from a known good list.

@@ -103,8 +103,16 @@ func (n NationInfo) PlayerRanks(name string) []string {
 	})
 }
 
+func (n NationInfo) GetName() string {
+	return n.Name
+}
+
 func (n NationInfo) GetUUID() string {
 	return n.UUID
+}
+
+func (n NationInfo) GetResidents() []Entity {
+	return n.Residents
 }
 
 func (n NationInfo) Bal() float32 {

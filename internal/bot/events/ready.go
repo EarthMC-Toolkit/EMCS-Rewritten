@@ -96,22 +96,22 @@ func UpdateData(mdb *database.Database) (
 	}
 
 	//#region ============ GATHER DATA USING TOWNS ============
-	residentList, nlist := make(oapi.EntityList), make(oapi.EntityList)
+	residentEntities, nationEntities := make(oapi.EntityList), make(oapi.EntityList)
 	for _, t := range townList {
 		for _, r := range t.Residents {
-			residentList[r.UUID] = r.Name
+			residentEntities[r.UUID] = r.Name
 		}
 		if t.Nation.UUID != nil {
-			nlist[*t.Nation.UUID] = *t.Nation.Name
+			nationEntities[*t.Nation.UUID] = *t.Nation.Name
 		}
 	}
 
 	entityStore.SetKeyFunc("residentlist", func() (entities oapi.EntityList, err error) {
-		return residentList, nil
+		return residentEntities, nil
 	})
 
 	nationList, _ := nationStore.OverwriteFunc(false, true, func() (map[string]oapi.NationInfo, error) {
-		uuids := lo.Keys(nlist)
+		uuids := lo.Keys(nationEntities)
 		res, _, _ := oapi.QueryNations(uuids...).ExecuteConcurrent()
 		return lo.SliceToMap(res, func(n oapi.NationInfo) (string, oapi.NationInfo) {
 			return n.UUID, n
@@ -119,15 +119,15 @@ func UpdateData(mdb *database.Database) (
 	})
 	//#endregion
 
-	//#region ============ SPLIT RESIDENTS FROM TOWNLESS ============
+	//#region ============ SPLIT RESIDENTS & TOWNLESS INTO SEPERATE LISTS ============
 	players, err := oapi.QueryList(oapi.ENDPOINT_PLAYERS).Execute()
 	if err != nil {
-		return townList, staleTowns, nil, residentList, err
+		return townList, staleTowns, nil, residentEntities, err
 	}
 
-	townlessList, _ := entityStore.SetKeyFunc("townlesslist", func() (oapi.EntityList, error) {
+	townlessEntities, _ := entityStore.SetKeyFunc("townlesslist", func() (oapi.EntityList, error) {
 		entities := lo.FilterMap(players, func(p oapi.Entity, _ int) (oapi.Entity, bool) {
-			_, ok := residentList[p.UUID]
+			_, ok := residentEntities[p.UUID]
 			return p, !ok
 		})
 
@@ -138,33 +138,21 @@ func UpdateData(mdb *database.Database) (
 	//#endregion
 
 	//#region Populate player store with basic player info
-	// Use pointers so the town struct isn't copied every time.
-	// This should help with mem usage when we use it in building a basic player map.
-	playerTownLookup := make(map[string]*oapi.TownInfo, len(residentList))
-	for _, town := range townList {
-		for _, r := range town.Residents {
-			playerTownLookup[r.UUID] = &town
-		}
-	}
-	playerNationLookup := make(map[string]*oapi.NationInfo, len(residentList))
-	for _, nation := range nationList {
-		for _, r := range nation.Residents {
-			playerNationLookup[r.UUID] = &nation
-		}
-	}
+	resTownLookup := oapi.BuildResLookup(townList)
+	resNationLookup := oapi.BuildResLookup(nationList)
 
 	playerStore.OverwriteFunc(false, true, func() (map[string]database.BasicPlayer, error) {
 		playersMap := make(map[string]database.BasicPlayer)
-		for uuid, name := range townlessList {
+		for uuid, name := range townlessEntities {
 			playersMap[uuid] = database.NewBasicPlayer(uuid, name)
 		}
-		for uuid, name := range residentList {
+		for uuid, name := range residentEntities {
 			bp := database.NewBasicPlayer(uuid, name)
 			rank := database.RankTypeResident
 
-			// Get player town by their UUID. While the town should always exist,
-			// this prevents a potential panic and keeps them townless.
-			if t, ok := playerTownLookup[uuid]; ok {
+			// Get player town by their UUID. While the town should always exist, this
+			// prevents a potential panic and keeps them townless in that case.
+			if t, ok := resTownLookup[uuid]; ok {
 				bp.Town = &t.Entity
 				if t.Mayor.UUID == uuid {
 					rank = database.RankTypeMayor
@@ -172,10 +160,8 @@ func UpdateData(mdb *database.Database) (
 
 				if t.Nation.UUID != nil {
 					bp.Nation = &oapi.Entity{Name: *t.Nation.Name, UUID: *t.Nation.UUID}
-					if n, ok := playerNationLookup[uuid]; ok {
-						if n.King.UUID == uuid {
-							rank = database.RankTypeLeader
-						}
+					if n, ok := resNationLookup[uuid]; ok && n.King.UUID == uuid {
+						rank = database.RankTypeLeader
 					}
 				}
 			}
@@ -189,8 +175,8 @@ func UpdateData(mdb *database.Database) (
 	//#endregion
 
 	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
-	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentList), len(townlessList))
-	return townList, staleTowns, townlessList, residentList, err
+	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentEntities), len(townlessEntities))
+	return townList, staleTowns, townlessEntities, residentEntities, err
 }
 
 // #region DB store update tasks

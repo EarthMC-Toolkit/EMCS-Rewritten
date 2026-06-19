@@ -85,8 +85,16 @@ type TownInfo struct {
 	Warps       []TownWarp           `json:"warps,omitempty"`
 }
 
+func (t TownInfo) GetName() string {
+	return t.Name
+}
+
 func (t TownInfo) GetUUID() string {
 	return t.UUID
+}
+
+func (t TownInfo) GetResidents() []Entity {
+	return t.Residents
 }
 
 func (t TownInfo) Bal() float32 {
