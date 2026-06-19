@@ -64,8 +64,8 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			emojis := shared.EMOJIS
 
 			residents := logutil.HumanizedSprintf("`%d` %s", t.NumResidents(), emojis.RESIDENT_PURPLE)
-			balance := logutil.HumanizedSprintf("`%.0f` %s", t.Bal(), emojis.GOLD_INGOT)
 			chunks := logutil.HumanizedSprintf("`%d` %s", t.Size(), emojis.CHUNK)
+			balance := logutil.HumanizedSprintf("`%.0f` %s", t.Bal(), emojis.GOLD_INGOT)
 
 			// open := fmt.Sprintf("%s Open", lo.Ternary(t.Status.Open, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
 			// spawn := fmt.Sprintf("%s Outsider Spawn", lo.Ternary(t.Status.CanOutsidersSpawn, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
@@ -76,11 +76,11 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 
 			fmt.Fprintf(&descBuilder, "%d. **%s** fell into ruin <t:%d:R> at %s.\n"+
 				"Deletion on `%s` (<t:%d:R>).\n"+
-				"Mayor: `%s` • %s • %s • %s\n",
+				"%s %s %s • Mayor: `%s`\n\n",
 				// "%s %s %s | %s %s\n\n",
 				start+idx+1, t.Name, ruinedTs/1000, locationLink,
 				utils.FormatTime(nextNewDay), nextNewDay.Unix(),
-				t.Mayor.Name, residents, balance, chunks,
+				residents, chunks, balance, t.Mayor.Name,
 				//open, spawn, pvp,
 			)
 		}
