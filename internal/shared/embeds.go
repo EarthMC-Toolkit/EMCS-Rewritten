@@ -419,7 +419,7 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 
 	status := town.Status
 	flags := town.Perms.Flags
-	build, destroy, sw, itemUse := town.Perms.GetPermStrings()
+	build, destroy, sw, itemUse := town.Perms.EncodeAll()
 
 	embed := discordutil.NewEmbedBuilder(&colour, &townTitle, &desc, nil)
 	embed.SetFields(

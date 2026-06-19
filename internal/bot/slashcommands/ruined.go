@@ -59,33 +59,30 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 				nextNewDay = nextNewDay.Add(24 * time.Hour)
 			}
 
-			nationName := "No Nation"
-			if t.Nation.Name != nil {
-				nationName = *t.Nation.Name
-			}
-
 			X, Y, Z := t.SpawnLocation()
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=6)", X, Y, Z, X, Z)
 
 			emojis := shared.EMOJIS
 
-			residents := logutil.HumanizedSprintf("%s `%d`", t.NumResidents(), emojis.RESIDENT_PURPLE)
-			balance := logutil.HumanizedSprintf("%s `%.0f`", t.Bal(), emojis.GOLD_INGOT)
-			chunks := logutil.HumanizedSprintf("%s `%d`", t.Size(), emojis.CHUNK)
+			residents := logutil.HumanizedSprintf("`%d` %s", t.NumResidents(), emojis.RESIDENT_PURPLE)
+			balance := logutil.HumanizedSprintf("`%.0f` %s", t.Bal(), emojis.GOLD_INGOT)
+			chunks := logutil.HumanizedSprintf("`%d` %s", t.Size(), emojis.CHUNK)
 
-			capital := fmt.Sprintf("%s Capital", lo.Ternary(t.Status.Capital, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
 			open := fmt.Sprintf("%s Open", lo.Ternary(t.Status.Open, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
 			spawn := fmt.Sprintf("%s Outsider Spawn", lo.Ternary(t.Status.CanOutsidersSpawn, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
 			pvp := fmt.Sprintf("%s PVP", lo.Ternary(t.Perms.Flags.PVP, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
 
-			fmt.Fprintf(&descBuilder, "%d. **%s** (%s) fell into ruin <t:%d:R> at %s.\n"+
+			sw := fmt.Sprintf("Switch: %s", t.Perms.EncodeSingle(t.Perms.Switch))
+			itemUse := fmt.Sprintf("ItemUse: %s", t.Perms.EncodeSingle(t.Perms.ItemUse))
+
+			fmt.Fprintf(&descBuilder, "%d. **%s** fell into ruin <t:%d:R> at %s.\n"+
 				"Deletion on `%s` (<t:%d:R>).\n"+
 				"Mayor: `%s` • %s • %s • %s\n"+
-				"%s %s %s %s\n\n",
-				start+idx+1, t.Name, nationName, ruinedTs/1000, locationLink,
+				"%s %s %s | %s %s\n\n",
+				start+idx+1, t.Name, ruinedTs/1000, locationLink,
 				utils.FormatTime(nextNewDay), nextNewDay.Unix(),
 				t.Mayor.Name, residents, balance, chunks,
-				capital, open, spawn, pvp,
+				open, spawn, pvp, sw, itemUse,
 			)
 		}
 

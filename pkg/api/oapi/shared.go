@@ -49,6 +49,10 @@ type Perms struct {
 	} `json:"flags"`
 }
 
+func (p Perms) EncodeSingle(perm [4]bool) string {
+	return encodePerm(perm)
+}
+
 // Encodes all town permissions (Build, Destroy, Switch, ItemUse) into their RNAO string equivalents as seen in Towny.
 //
 // Here are some examples of what each one could look like:
@@ -57,7 +61,7 @@ type Perms struct {
 //	"r-r----"
 //	"--r-r--"
 //	"-------"
-func (p Perms) GetPermStrings() (string, string, string, string) {
+func (p Perms) EncodeAll() (string, string, string, string) {
 	return encodePerm(p.Build), encodePerm(p.Destroy), encodePerm(p.Switch), encodePerm(p.ItemUse)
 }
 
