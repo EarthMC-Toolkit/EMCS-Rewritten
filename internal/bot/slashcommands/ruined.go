@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/samber/lo"
 )
 
 type RuinedCommand struct{}
@@ -38,7 +37,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 	ruined := database.GetRuinedTowns(townStore)
 	totalCount := len(ruined)
 
-	perPage := 5
+	perPage := 10
 	paginator := discordutil.NewInteractionPaginator(s, i.Interaction, totalCount, perPage).
 		WithTimeout(10 * time.Minute)
 
@@ -68,21 +67,21 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			balance := logutil.HumanizedSprintf("`%.0f` %s", t.Bal(), emojis.GOLD_INGOT)
 			chunks := logutil.HumanizedSprintf("`%d` %s", t.Size(), emojis.CHUNK)
 
-			open := fmt.Sprintf("%s Open", lo.Ternary(t.Status.Open, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
-			spawn := fmt.Sprintf("%s Outsider Spawn", lo.Ternary(t.Status.CanOutsidersSpawn, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
-			pvp := fmt.Sprintf("%s PVP", lo.Ternary(t.Perms.Flags.PVP, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
+			// open := fmt.Sprintf("%s Open", lo.Ternary(t.Status.Open, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
+			// spawn := fmt.Sprintf("%s Outsider Spawn", lo.Ternary(t.Status.CanOutsidersSpawn, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
+			// pvp := fmt.Sprintf("%s PVP", lo.Ternary(t.Perms.Flags.PVP, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
 
-			sw := fmt.Sprintf("Switch: %s", t.Perms.EncodeSingle(t.Perms.Switch))
-			itemUse := fmt.Sprintf("ItemUse: %s", t.Perms.EncodeSingle(t.Perms.ItemUse))
+			// sw := fmt.Sprintf("Switch: %s", t.Perms.EncodeSingle(t.Perms.Switch))
+			// itemUse := fmt.Sprintf("ItemUse: %s", t.Perms.EncodeSingle(t.Perms.ItemUse))
 
 			fmt.Fprintf(&descBuilder, "%d. **%s** fell into ruin <t:%d:R> at %s.\n"+
 				"Deletion on `%s` (<t:%d:R>).\n"+
-				"Mayor: `%s` • %s • %s • %s\n"+
-				"%s %s %s | %s %s\n\n",
+				"Mayor: `%s` • %s • %s • %s\n",
+				// "%s %s %s | %s %s\n\n",
 				start+idx+1, t.Name, ruinedTs/1000, locationLink,
 				utils.FormatTime(nextNewDay), nextNewDay.Unix(),
 				t.Mayor.Name, residents, balance, chunks,
-				open, spawn, pvp, sw, itemUse,
+				//open, spawn, pvp,
 			)
 		}
 
