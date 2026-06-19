@@ -31,7 +31,7 @@ func TestExecuteConcurrent(t *testing.T) {
 
 	start := time.Now()
 	players, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
-	t.Logf("Querying %d entities concurrently took %s", len(players), time.Since(start))
+	t.Logf("Querying %d entities concurrently took %s", len(players), time.Since(start).Round(1*time.Second))
 
 	logutil.LogValOrErr(t, players[0], errors.Join(errs...))
 }
@@ -112,7 +112,7 @@ func TestQueryPlayersList(t *testing.T) {
 		t.Fatal(errors.Join(errs...))
 	}
 
-	t.Logf("Sent %d requests for %d players. Took %s", reqAmt, len(players), time.Since(start))
+	t.Logf("Sent %d requests for %d players. Took %s", reqAmt, len(players), time.Since(start).Round(1*time.Second))
 
 	opNames := lo.FilterMap(players, func(p oapi.PlayerInfo, _ int) (string, bool) {
 		return p.Name, p.Status.IsOnline

@@ -57,13 +57,14 @@ func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 	serverTod := info.Timestamps.ServerTimeOfDay
 
 	secUntilNewDay := (newDayTime - serverTod + secInADay) % secInADay
+
 	now := time.Now().Unix()
 	sec := now + secUntilNewDay
 
 	title := "New Day | Time Information"
 	desc := fmt.Sprintf(
 		"The next Towny new day occurs in <t:%d:R>.\nExactly %s from now.",
-		sec, utils.FormatElapsed(secUntilNewDay),
+		sec, utils.FormatElapsed(time.Duration(secUntilNewDay)*time.Second),
 	)
 
 	embed := discordutil.NewEmbedBuilder(&discordutil.DARK_PURPLE, &title, &desc, nil)

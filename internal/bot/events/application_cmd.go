@@ -4,6 +4,7 @@ import (
 	"emcsrw/internal/bot/slashcommands"
 	"emcsrw/internal/database"
 	"emcsrw/internal/shared"
+	"emcsrw/pkg/utils"
 	"emcsrw/pkg/utils/config"
 	"emcsrw/pkg/utils/discordutil"
 	"emcsrw/pkg/utils/logutil"
@@ -46,7 +47,7 @@ func OnApplicationCommandInteractionCreate(s *discordgo.Session, i *discordgo.In
 
 	start := time.Now()
 	err := cmd.Execute(s, i)
-	elapsed := time.Since(start)
+	elapsed := utils.FormatElapsed(time.Since(start))
 
 	success := err == nil
 	fmt.Println()

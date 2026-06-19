@@ -75,25 +75,31 @@ func HumanizeDuration(minutes float64) (float64, string) {
 //
 //	"1hr, 5m and 10s"
 //	"5m and 10s"
-//	"10s"
-func FormatElapsed(secs int64) string {
-	hours := secs / 3600
-	minutes := (secs % 3600) / 60
-	seconds := secs % 60
+//	"10.52s"
+//	"500.52ms"
+func FormatElapsed(d time.Duration) string {
+	d = d.Round(time.Millisecond)
 
-	if hours > 0 {
-		h := "hrs"
-		if hours == 1 {
-			h = "hr"
+	hrs := int64(d / time.Hour)
+	mins := int64((d % time.Hour) / time.Minute)
+	secs := int64((d % time.Minute) / time.Second)
+	ms := float64(d%time.Second) / float64(time.Millisecond)
+
+	if hrs > 0 {
+		hrPostfix := "hrs"
+		if hrs == 1 {
+			hrPostfix = "hr"
 		}
-		return fmt.Sprintf("`%d%s`, `%dm` and `%ds`", hours, h, minutes, seconds)
+		return fmt.Sprintf("`%d%s`, `%dm` and `%ds`", hrs, hrPostfix, mins, secs)
+	}
+	if mins > 0 {
+		return fmt.Sprintf("`%dm` and `%ds`", mins, secs)
+	}
+	if secs > 0 {
+		return fmt.Sprintf("`%.2fs`", float64(secs)+ms/1000)
 	}
 
-	if minutes > 0 {
-		return fmt.Sprintf("`%dm` and `%ds`", minutes, seconds)
-	}
-
-	return fmt.Sprintf("`%ds`", seconds)
+	return fmt.Sprintf("`%.2fms`", ms)
 }
 
 // Formats a time.Time to a string in the format "Wed, Jan 2nd 3PM UTC".

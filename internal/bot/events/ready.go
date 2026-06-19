@@ -206,8 +206,8 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 		logutil.Logln(logutil.REDBG, "[OnReady]: Failed DataUpdate task:")
 		logutil.Printf(logutil.RED, "%s\n", err)
 	} else {
-		elapsed := time.Since(start)
-		logutil.Logf(logutil.GREEN, "[OnReady]: Finished DataUpdate task. Took: %s\n", elapsed.String())
+		elapsed := utils.FormatElapsed(time.Since(start))
+		logutil.Logf(logutil.GREEN, "[OnReady]: Finished DataUpdate task. Took: %s\n", elapsed)
 	}
 
 	//#region Send town and player flow events
@@ -259,8 +259,8 @@ func fallingTownsTask(mdb *database.Database) {
 		logutil.Logln(logutil.REDBG, "[OnReady]: Failed FallingTowns task:")
 		logutil.Printf(logutil.RED, "%s\n", err)
 	} else {
-		elapsed := time.Since(start)
-		logutil.Logf(logutil.GREEN, "[OnReady]: Finished FallingTowns task. Took: %s\n", elapsed.String())
+		elapsed := utils.FormatElapsed(time.Since(start))
+		logutil.Logf(logutil.GREEN, "[OnReady]: Finished FallingTowns task. Took: %s\n", elapsed)
 	}
 }
 
