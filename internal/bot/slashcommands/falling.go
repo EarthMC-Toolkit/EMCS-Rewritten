@@ -237,11 +237,11 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 			fmt.Fprintf(&descBuilder, "%d. **%s** (%s) will fall <t:%d:R> at %s.\n"+
 				"Deletion on `%s` (<t:%d:R>).\n"+
-				"Mayor: `%s` (online <t:%d:R>) • %s • %s • %s\n"+
+				"%s %s %s • Mayor: `%s` (online <t:%d:R>)\n"+
 				"%s %s %s %s\n\n",
 				start+idx+1, t.Name, nationName, t.RuinAt.Unix(), locationLink, // line 1
 				utils.FormatTime(t.DeletionAt), t.DeletionAt.Unix(), // line 2
-				t.Mayor.Name, t.MayorLastOnline.Unix(), residents, balance, chunks, // line 3
+				residents, chunks, balance, t.Mayor.Name, t.MayorLastOnline.Unix(), // line 3
 				capital, open, spawn, pvp, // line 4
 			)
 		}
