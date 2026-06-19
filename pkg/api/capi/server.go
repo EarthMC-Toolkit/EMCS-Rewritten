@@ -155,6 +155,8 @@ func StartStoreSync(
 		for range ticker.C {
 			logutil.Logln(logutil.BLUE, "Syncing stores with data from underlying DB files for map: ", mdbName)
 
+			// The API has it's own version of the stores which don't match the bot, so loading from
+			// the DB is required to keep data synced since we can't use stores from the bot process.
 			_ = fallingTownStore.LoadFromFile()
 			_ = townStore.LoadFromFile()
 			_ = allianceStore.LoadFromFile()

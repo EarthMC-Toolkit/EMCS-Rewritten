@@ -225,11 +225,11 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 			X, Y, Z := t.SpawnLocation()
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=6)", X, Y, Z, X, Z)
 
-			residents := logutil.HumanizedSprintf("%s `%d`", shared.EMOJIS.RESIDENT_PURPLE, t.NumResidents())
-			balance := logutil.HumanizedSprintf("%s `%.0f` ", shared.EMOJIS.GOLD_INGOT, t.Bal())
-			chunks := logutil.HumanizedSprintf("%s `%d` ", shared.EMOJIS.CHUNK, t.Size())
-
 			emojis := shared.EMOJIS
+			residents := logutil.HumanizedSprintf("%s `%d`", emojis.RESIDENT_PURPLE, t.NumResidents())
+			balance := logutil.HumanizedSprintf("%s `%.0f` ", emojis.GOLD_INGOT, t.Bal())
+			chunks := logutil.HumanizedSprintf("%s `%d` ", emojis.CHUNK, t.Size())
+
 			capital := fmt.Sprintf("%s Capital", lo.Ternary(t.Status.Capital, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
 			open := fmt.Sprintf("%s Open", lo.Ternary(t.Status.Open, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
 			spawn := fmt.Sprintf("%s Outsider Spawn", lo.Ternary(t.Status.CanOutsidersSpawn, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
@@ -237,7 +237,7 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 
 			fmt.Fprintf(&descBuilder, "%d. **%s** (%s) will fall <t:%d:R> at %s.\n"+
 				"Deletion on `%s` (<t:%d:R>).\n"+
-				"Mayor: `%s` (online <t:%d:R>). %s • %s • %s\n"+
+				"Mayor: `%s` (online <t:%d:R>) • %s • %s • %s\n"+
 				"%s %s %s %s\n\n",
 				start+idx+1, t.Name, nationName, t.RuinAt.Unix(), locationLink, // line 1
 				utils.FormatTime(t.DeletionAt), t.DeletionAt.Unix(), // line 2

@@ -165,20 +165,26 @@ func (s *Store[T]) Overwrite(value StoreData[T]) {
 // Runs func f whos returned value is used to overwrite the data within store.
 //
 // If an error occurs during the func, the error is logged and returned, and the DB write will not occur.
-func (s *Store[T]) OverwriteFunc(allowEmpty bool, f func() (map[string]T, error)) (map[string]T, error) {
+func (s *Store[T]) OverwriteFunc(allowEmpty bool, save bool, f func() (map[string]T, error)) (map[string]T, error) {
 	v, err := f()
 	if err != nil {
-		logutil.Logf(logutil.RED, "could not overwrite data in db at %s:\n%v", s.CleanPath(), err)
+		logutil.Logf(logutil.RED, "ERR | failed to overwrite data in db at %s:\n\t%s", s.CleanPath(), err)
 		return v, err
 	}
 
 	if len(v) < 1 && !allowEmpty {
 		err := fmt.Errorf("retrieved value is empty which is not allowed for this store.")
-		logutil.Logf(logutil.RED, "could not overwrite data in db at %s:\n%v", s.CleanPath(), err)
+		logutil.Logf(logutil.RED, "ERR | failed to overwrite data in db at %s:\n\t%s", s.CleanPath(), err)
 		return nil, err
 	}
 
 	s.Overwrite(v)
+	if save {
+		if err := s.WriteSnapshot(); err != nil {
+			logutil.Logf(logutil.RED, "\nERR | failed to write snapshot at %s:\n\t%s", s.CleanPath(), err)
+		}
+	}
+
 	return v, err
 }
 

@@ -81,7 +81,7 @@ func UpdateData(mdb *database.Database) (
 	staleTowns = townStore.Entries()
 	logutil.Printf(logutil.HIDDEN, "DEBUG | Stale towns: %d", len(staleTowns))
 
-	townList, err := townStore.OverwriteFunc(false, func() (map[string]oapi.TownInfo, error) {
+	townList, err := townStore.OverwriteFunc(false, true, func() (map[string]oapi.TownInfo, error) {
 		res, err := api.QueryAllTowns()
 		if err != nil {
 			return nil, err
@@ -110,7 +110,7 @@ func UpdateData(mdb *database.Database) (
 		return residentList, nil
 	})
 
-	nationList, _ := nationStore.OverwriteFunc(false, func() (map[string]oapi.NationInfo, error) {
+	nationList, _ := nationStore.OverwriteFunc(false, true, func() (map[string]oapi.NationInfo, error) {
 		uuids := lo.Keys(nlist)
 		res, _, _ := oapi.QueryNations(uuids...).ExecuteConcurrent()
 		return lo.SliceToMap(res, func(n oapi.NationInfo) (string, oapi.NationInfo) {
@@ -153,7 +153,7 @@ func UpdateData(mdb *database.Database) (
 		}
 	}
 
-	playerStore.OverwriteFunc(false, func() (map[string]database.BasicPlayer, error) {
+	playerStore.OverwriteFunc(false, true, func() (map[string]database.BasicPlayer, error) {
 		playersMap := make(map[string]database.BasicPlayer)
 		for uuid, name := range townlessList {
 			playersMap[uuid] = database.NewBasicPlayer(uuid, name)
@@ -210,6 +210,7 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 		logutil.Logf(logutil.GREEN, "[OnReady]: Finished DataUpdate task. Took: %s\n", elapsed.String())
 	}
 
+	//#region Send town and player flow events
 	towns := lo.MapToSlice(townList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
 	staleTowns := lo.MapToSlice(staleTownList, func(_ string, t oapi.TownInfo) oapi.TownInfo { return t })
 
@@ -232,6 +233,7 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 	} else {
 		logutil.Printf(logutil.YELLOW, "\nWARNING | PFLOW_CHANNEL_ID not set. Skipping player flow event notifications.\n")
 	}
+	//#endregion
 }
 
 func fallingTownsTask(mdb *database.Database) {
@@ -242,7 +244,7 @@ func fallingTownsTask(mdb *database.Database) {
 
 	fallingTownsStore, err := database.GetStore(mdb, database.FALLING_TOWNS_STORE)
 	if err == nil {
-		_, err = fallingTownsStore.OverwriteFunc(true, func() (map[database.MayorUUID]database.FallingTown, error) {
+		_, err = fallingTownsStore.OverwriteFunc(true, true, func() (map[database.MayorUUID]database.FallingTown, error) {
 			fallingTownsMap, err := database.ComputeFallingTowns(mdb, database.FALLING_TFRAME*24*time.Hour)
 			if err != nil {
 				return fallingTownsMap, err

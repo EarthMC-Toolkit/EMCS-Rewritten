@@ -63,6 +63,6 @@ func (s *Scheduler) Shutdown(timeoutDuration time.Duration) string {
 	case <-done:
 		return "All tasks finished"
 	case <-time.After(timeoutDuration):
-		return "Timeout reached; exiting"
+		return "Timeout reached, exiting.."
 	}
 }

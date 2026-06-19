@@ -111,6 +111,6 @@ func Shutdown(s *discordgo.Session, activeMapDB *database.Database) {
 
 	// Write every store to disk safely. Any store errs during this are combined into single error.
 	if err := activeMapDB.Flush(); err != nil {
-		logutil.Logf(logutil.RED, "error closing DB: %v", err)
+		logutil.Logf(logutil.RED, "error flushing DB: %v", err)
 	}
 }

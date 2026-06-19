@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo"
 )
 
 type RuinedCommand struct{}
@@ -66,16 +67,25 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 			X, Y, Z := t.SpawnLocation()
 			locationLink := fmt.Sprintf("[%.0f, %.0f, %.0f](https://map.earthmc.net?x=%f&z=%f&zoom=6)", X, Y, Z, X, Z)
 
-			residents := logutil.HumanizedSprintf("`%d`", t.NumResidents())
-			balance := logutil.HumanizedSprintf("`%.0f` %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)
-			chunks := logutil.HumanizedSprintf("`%d` %s", t.Size(), shared.EMOJIS.CHUNK)
+			emojis := shared.EMOJIS
+
+			residents := logutil.HumanizedSprintf("%s `%d`", t.NumResidents(), emojis.RESIDENT_PURPLE)
+			balance := logutil.HumanizedSprintf("%s `%.0f`", t.Bal(), emojis.GOLD_INGOT)
+			chunks := logutil.HumanizedSprintf("%s `%d`", t.Size(), emojis.CHUNK)
+
+			capital := fmt.Sprintf("%s Capital", lo.Ternary(t.Status.Capital, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
+			open := fmt.Sprintf("%s Open", lo.Ternary(t.Status.Open, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
+			spawn := fmt.Sprintf("%s Outsider Spawn", lo.Ternary(t.Status.CanOutsidersSpawn, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
+			pvp := fmt.Sprintf("%s PVP", lo.Ternary(t.Perms.Flags.PVP, emojis.CIRCLE_CHECK, emojis.CIRCLE_CROSS))
 
 			fmt.Fprintf(&descBuilder, "%d. **%s** (%s) fell into ruin <t:%d:R> at %s.\n"+
 				"Deletion on `%s` (<t:%d:R>).\n"+
-				"Mayor: `%s` Residents: %s Balance: %s Chunks: %s\n\n",
+				"Mayor: `%s` • %s • %s • %s\n"+
+				"%s %s %s %s\n\n",
 				start+idx+1, t.Name, nationName, ruinedTs/1000, locationLink,
 				utils.FormatTime(nextNewDay), nextNewDay.Unix(),
 				t.Mayor.Name, residents, balance, chunks,
+				capital, open, spawn, pvp,
 			)
 		}
 
