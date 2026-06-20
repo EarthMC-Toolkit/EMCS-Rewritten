@@ -79,7 +79,7 @@ func NewAllianceEmbed(
 	stats := fmt.Sprintf("Towns: %s\nNations: %s\nResidents: %s\nSize: %s",
 		logutil.HumanizedSprintf("`%d`", len(towns)),
 		logutil.HumanizedSprintf("`%d`", nationsAmt),
-		logutil.HumanizedSprintf("`%d`", residentsAmt),
+		logutil.HumanizedSprintf("`%d` %s", residentsAmt, EMOJIS.RESIDENT_PURPLE),
 		logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, EMOJIS.CHUNK, wealth, EMOJIS.GOLD_INGOT),
 	)
 
@@ -394,7 +394,7 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	spawn := town.Coordinates.Spawn
 
 	balanceStr := logutil.HumanizedSprintf("`%.0f` %s", town.Bal(), EMOJIS.GOLD_INGOT)
-	residentsStr := logutil.HumanizedSprintf("`%d`", town.Stats.NumResidents)
+	residentsStr := logutil.HumanizedSprintf("`%d` %s", town.Stats.NumResidents, EMOJIS.RESIDENT_PURPLE)
 	trustedOutlawsStr := logutil.HumanizedSprintf("`%d`/`%d`", town.Stats.NumTrusted, town.Stats.NumOutlaws)
 
 	sizeStr := logutil.HumanizedSprintf("`%d`/`%d` %s (Worth: `%d` %s)",
