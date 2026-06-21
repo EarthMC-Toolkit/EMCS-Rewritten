@@ -73,15 +73,11 @@ func Serve(mux *http.ServeMux, port uint) *http.Server {
 
 func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 	mux = http.NewServeMux()
-	if err = ServeBase(mux); err != nil {
-		return nil, err
-	}
-	if err = ServeTerms(mux); err != nil {
-		return nil, err
-	}
-	if err = ServeBotInvite(mux); err != nil {
-		return nil, err
-	}
+
+	ServeBase(mux)      // Welcome endpoint at domain base (also shown for unknown endpoints).
+	ServeTerms(mux)     // Legal jargon page including TOS and Privacy Policy. See TERMS.md file.
+	ServeBotInvite(mux) // A redirect to invite the bot through Discord.
+	ServeProxy(mux)     // Custom CORS proxy with auth. Client must specify X-Proxy-Key and SECRET_KEY must match.
 
 	for _, mdb := range mdbs {
 		if mdb == nil {

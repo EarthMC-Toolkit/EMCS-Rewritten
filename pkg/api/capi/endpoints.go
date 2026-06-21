@@ -9,6 +9,8 @@ import (
 	"emcsrw/internal/database/store"
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils"
+	"emcsrw/pkg/utils/config"
+	"emcsrw/pkg/utils/logutil"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -75,7 +77,7 @@ type DatabaseName = string
 
 var md = goldmark.New(goldmark.WithRendererOptions(html.WithUnsafe()))
 
-func ServeBase(mux *http.ServeMux) error {
+func ServeBase(mux *http.ServeMux) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte(strings.TrimPrefix(BASE_WELCOME_STR, "\n")))
@@ -84,11 +86,9 @@ func ServeBase(mux *http.ServeMux) error {
 		w.Header().Set("Content-Type", "image/png")
 		http.ServeFile(w, r, "./icon.png")
 	})
-
-	return nil
 }
 
-func ServeTerms(mux *http.ServeMux) error {
+func ServeTerms(mux *http.ServeMux) {
 	mux.HandleFunc("/terms", func(w http.ResponseWriter, r *http.Request) {
 		data, err := os.ReadFile("TERMS.md")
 		if err != nil {
@@ -109,16 +109,23 @@ func ServeTerms(mux *http.ServeMux) error {
 		md.Convert(data, w) // Render the terms file (converts markdown to HTML).
 		w.Write([]byte(`</body></html>`))
 	})
-
-	return nil
 }
 
-func ServeBotInvite(mux *http.ServeMux) error {
+func ServeBotInvite(mux *http.ServeMux) {
 	mux.HandleFunc("/invite", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "https://discord.com/oauth2/authorize?client_id=656231016385478657", http.StatusFound)
 	})
+}
 
-	return nil
+func ServeProxy(mux *http.ServeMux) {
+	v, err := config.GetEnviroVar("PROXY_SECRET")
+	if err != nil {
+		logutil.Println(logutil.RED, "ERR | attempted to serve CORS proxy without a valid PROXY_SECRET")
+		return
+	}
+
+	proxy := &Proxy{secret: v, authHeader: "X-Proxy-Key"}
+	mux.HandleFunc("/proxy", proxy.handler)
 }
 
 func ServeFalling(
