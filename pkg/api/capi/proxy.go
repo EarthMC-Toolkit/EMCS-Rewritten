@@ -2,31 +2,41 @@ package capi
 
 import (
 	"bytes"
+	"emcsrw/pkg/utils/logutil"
 	"errors"
+	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 )
 
 var noRedirectClient = &http.Client{
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
+		if len(via) > 3 {
+			return errors.New("too many redirects. sussy baka")
+		}
+
+		logutil.Println(logutil.BLUE, "allowed redirect to: ", req.URL.String())
+		return nil
 	},
 }
 
 // Proxy is a simple authenticated CORS reverse proxy.
 type Proxy struct {
-	rl          *RateLimit
-	allowedHost string
+	allowedHosts []string
+
+	rl  *RateLimit
+	rpm int
 }
 
-func NewProxy(rl *RateLimit, allowedHost string) *Proxy {
-	return &Proxy{rl: rl, allowedHost: allowedHost}
+func NewProxy(rl *RateLimit, reqPerMin uint8, allowedHosts []string) *Proxy {
+	return &Proxy{rl: rl, rpm: int(reqPerMin), allowedHosts: allowedHosts}
 }
 
-// Validates auth, handles CORS preflight, parses the target URL and
-// forwards the request to the upstream HTTPS endpoint.
+// Handles CORS preflight, parses the target URL and forwards the request to the upstream HTTPS endpoint.
 func (p *Proxy) handler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		handleOptions(w)
@@ -48,12 +58,13 @@ func (p *Proxy) handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Proxy) allow(r *http.Request) bool {
-	lim := p.rl.clientLimiter(r, 30) // amt of reqs/min allowed per client
+	lim := p.rl.clientLimiter(r, p.rpm) // amt of reqs/min allowed per client
 	return lim.Allow()
 }
 
 func (p *Proxy) isAllowedHost(hostname string) bool {
-	return hostname == p.allowedHost || strings.HasSuffix(hostname, "."+p.allowedHost)
+	hostname = strings.ToLower(hostname)
+	return slices.Contains(p.allowedHosts, hostname)
 }
 
 // Extracts and validates the target URL from the raw request query string.
@@ -63,7 +74,7 @@ func (p *Proxy) getTargetUrl(r *http.Request) (*url.URL, error) {
 		return nil, errors.New("missing target param")
 	}
 	if strings.Count(strings.ToLower(targetParam), "https://") > 2 {
-		return nil, errors.New("max 2 urls exceeded. target must ultimately point to " + p.allowedHost + " (wayback allowed)")
+		return nil, errors.New("target exceeded max 2 embedded urls")
 	}
 
 	u, err := url.Parse(targetParam)
@@ -79,27 +90,30 @@ func (p *Proxy) getTargetUrl(r *http.Request) (*url.URL, error) {
 
 	// In case we are retrieving an archive we need to allow that, but perform some extra
 	// validations to avoid malicious rogue actors that want to molest our sweet proxy >:(
-	if u.Host == "web.archive.org" {
+	host := u.Hostname()
+	if host == "web.archive.org" {
 		idx := strings.Index(strings.ToLower(u.Path), "https://")
 		if idx == -1 {
 			return nil, errors.New("no embedded url")
 		}
 
-		u, err = url.Parse(u.Path[idx:])
+		innerURL, err := url.Parse(u.Path[idx:])
 		if err != nil {
 			return nil, errors.New("invalid url given to wayback")
 		}
-		if u.Scheme == "" {
+		if innerURL.Host == "" {
 			return nil, errors.New("missing host in wayback url")
 		}
-		if u.Scheme != "https" {
+		if innerURL.Scheme != "https" {
 			return nil, errors.New("invalid target. scheme must be https")
 		}
+
+		host = innerURL.Hostname()
 	}
 
 	// No archive and not allowed host, NONE SHALL PASS
-	if !p.isAllowedHost(u.Hostname()) {
-		return nil, errors.New("blocked host: " + u.Hostname() + ". target does not ultimately point to " + p.allowedHost)
+	if !p.isAllowedHost(host) {
+		return nil, fmt.Errorf("blocked host \"%s\". target must ultimately point to %s", u.Hostname(), p.allowedHosts[0])
 	}
 
 	return u, nil
@@ -119,8 +133,7 @@ func (p *Proxy) forward(w http.ResponseWriter, r *http.Request, targetUrl *url.U
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-
-	req.Header = r.Header.Clone()
+	req.Header = sanitizeHeader(r)
 
 	resp, err := noRedirectClient.Do(req)
 	if err != nil {
@@ -133,8 +146,19 @@ func (p *Proxy) forward(w http.ResponseWriter, r *http.Request, targetUrl *url.U
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "*")
 
+	// MANDATORY. So upstream can handle response headers correctly.
+	maps.Copy(w.Header(), resp.Header)
+
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
+}
+
+// Responds to CORS preflight requests initiated via the OPTIONS method.
+func handleOptions(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func cloneBody(r *http.Request) ([]byte, error) {
@@ -145,10 +169,35 @@ func cloneBody(r *http.Request) ([]byte, error) {
 	return io.ReadAll(r.Body)
 }
 
-// Responds to CORS preflight requests initiated via the OPTIONS method.
-func handleOptions(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.WriteHeader(http.StatusNoContent)
+// Copies the Header from r and removes browser-specific context and fingerprinting
+// fields that are not required for upstream API compatibility or proxy functionality.
+//
+// It also adds privacy fields to the header that the upstream server can optionally respect.
+func sanitizeHeader(r *http.Request) http.Header {
+	h := r.Header.Clone() // Copy header fields from the original req
+
+	// Remove browser navigation, fingerprinting and tracking fields
+	h.Del("Referer")
+	h.Del("Origin")
+	h.Del("Sec-Fetch-Dest")
+	h.Del("Sec-Fetch-Mode")
+	h.Del("Sec-Fetch-Site")
+	h.Del("Sec-Fetch-User")
+	h.Del("Sec-Ch-Ua")
+	h.Del("Sec-CH-UA")
+	h.Del("Sec-Ch-Ua-Mobile")
+	h.Del("Sec-CH-UA-Mobile")
+	h.Del("Sec-Ch-Ua-Platform")
+	h.Del("Sec-CH-UA-Platform")
+	h.Del("Sec-Ch-Ua-Platform-Version")
+	h.Del("Sec-CH-UA-Platform-Version")
+	h.Del("Sec-Ch-Ua-Full-Version-List")
+	h.Del("Sec-CH-UA-Full-Version-List")
+
+	// Privacy (bc why not)
+	h.Set("DNT", "1")
+	h.Set("X-Do-Not-Track", "1")
+	h.Set("Sec-GPC", "1")
+
+	return h
 }

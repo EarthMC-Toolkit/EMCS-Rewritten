@@ -76,7 +76,7 @@ func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 
 	apiRL := NewRateLimit(true, 2)    // per IP, per endpoint
 	proxyRL := NewRateLimit(false, 3) // per IP
-	proxy := NewProxy(proxyRL, "earthmc.net")
+	proxy := NewProxy(proxyRL, PROXY_RPM, []string{"earthmc.net", "map.earthmc.net", "api.earthmc.net"})
 
 	ServeBase(mux)         // Welcome endpoint at domain base (also shown for unknown endpoints).
 	ServeTerms(mux)        // Legal jargon page including TOS and Privacy Policy. See TERMS.md file.

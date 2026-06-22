@@ -33,6 +33,7 @@ const (
 	ALLIANCES_RPM = 8
 	NEWS_RPM      = 6
 	PLAYERS_RPM   = 3
+	PROXY_RPM     = 30
 )
 
 const BASE_WELCOME_STR = `
