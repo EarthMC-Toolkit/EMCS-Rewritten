@@ -52,8 +52,8 @@ func (p *Proxy) allow(r *http.Request) bool {
 	return lim.Allow()
 }
 
-func (p *Proxy) isAllowedHost(host string) bool {
-	return host == p.allowedHost || strings.HasSuffix(host, "."+p.allowedHost)
+func (p *Proxy) isAllowedHost(hostname string) bool {
+	return hostname == p.allowedHost || strings.HasSuffix(hostname, "."+p.allowedHost)
 }
 
 // Extracts and validates the target URL from the raw request query string.
@@ -98,8 +98,8 @@ func (p *Proxy) getTargetUrl(r *http.Request) (*url.URL, error) {
 	}
 
 	// No archive and not allowed host, NONE SHALL PASS
-	if !p.isAllowedHost(u.Host) {
-		return nil, errors.New("blocked host. target does not ultimately point to " + p.allowedHost)
+	if !p.isAllowedHost(u.Hostname()) {
+		return nil, errors.New("blocked host: " + u.Hostname() + ". target does not ultimately point to " + p.allowedHost)
 	}
 
 	return u, nil
