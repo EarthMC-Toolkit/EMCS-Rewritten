@@ -74,10 +74,14 @@ func Serve(mux *http.ServeMux, port uint) *http.Server {
 func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 	mux = http.NewServeMux()
 
-	ServeBase(mux)      // Welcome endpoint at domain base (also shown for unknown endpoints).
-	ServeTerms(mux)     // Legal jargon page including TOS and Privacy Policy. See TERMS.md file.
-	ServeBotInvite(mux) // A redirect to invite the bot through Discord.
-	ServeProxy(mux)     // Custom CORS proxy with auth. Client must specify X-Proxy-Key and SECRET_KEY must match.
+	apiRL := NewRateLimit(true, 2)    // per IP, per endpoint
+	proxyRL := NewRateLimit(false, 3) // per IP
+	proxy := NewProxy(proxyRL, "earthmc.net")
+
+	ServeBase(mux)         // Welcome endpoint at domain base (also shown for unknown endpoints).
+	ServeTerms(mux)        // Legal jargon page including TOS and Privacy Policy. See TERMS.md file.
+	ServeBotInvite(mux)    // A redirect to invite the bot through Discord.
+	ServeProxy(mux, proxy) // Custom CORS proxy with auth. Client must specify X-Proxy-Key and SECRET_KEY must match.
 
 	for _, mdb := range mdbs {
 		if mdb == nil {
@@ -126,9 +130,9 @@ func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 
 		ServeFalling(mux, dbName, fallingTownStore)
 		ServeRuined(mux, dbName, townStore)
-		ServeAlliances(mux, dbName, allianceStore, nationStore, entitiesStore)
-		ServePlayers(mux, dbName, playersStore)
-		ServeNews(mux, dbName, newsStore)
+		ServeAlliances(mux, apiRL, dbName, allianceStore, nationStore, entitiesStore)
+		ServePlayers(mux, apiRL, dbName, playersStore)
+		ServeNews(mux, apiRL, dbName, newsStore)
 	}
 
 	return mux, nil

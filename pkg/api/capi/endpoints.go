@@ -9,8 +9,6 @@ import (
 	"emcsrw/internal/database/store"
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils"
-	"emcsrw/pkg/utils/config"
-	"emcsrw/pkg/utils/logutil"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -25,6 +23,8 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/renderer/html"
 )
+
+var md = goldmark.New(goldmark.WithRendererOptions(html.WithUnsafe()))
 
 // Req/m for each endpoint
 const (
@@ -73,10 +73,6 @@ type CacheEntry struct {
 	Data []Alliance // parsed alliances
 }
 
-type DatabaseName = string
-
-var md = goldmark.New(goldmark.WithRendererOptions(html.WithUnsafe()))
-
 func ServeBase(mux *http.ServeMux) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
@@ -117,14 +113,7 @@ func ServeBotInvite(mux *http.ServeMux) {
 	})
 }
 
-func ServeProxy(mux *http.ServeMux) {
-	v, err := config.GetEnviroVar("PROXY_SECRET")
-	if err != nil {
-		logutil.Println(logutil.RED, "ERR | attempted to serve CORS proxy without a valid PROXY_SECRET")
-		return
-	}
-
-	proxy := &Proxy{secret: v, authHeader: "X-Proxy-Key"}
+func ServeProxy(mux *http.ServeMux, proxy *Proxy) {
 	mux.HandleFunc("/proxy", proxy.handler)
 }
 
@@ -157,12 +146,12 @@ func ServeRuined(
 }
 
 func ServeAlliances(
-	mux *http.ServeMux, mdbName string,
+	mux *http.ServeMux, rl *RateLimit, mdbName string,
 	allianceStore *store.Store[database.Alliance],
 	nationStore *store.Store[oapi.NationInfo],
 	entitiesStore *store.Store[oapi.EntityList],
 ) {
-	var alliancesCache = map[DatabaseName]*CacheEntry{} // Cache the response per map
+	var alliancesCache = map[string]*CacheEntry{} // Cache response per map (key is map name)
 	var alliancesCacheMu sync.RWMutex
 
 	alliancesEndpoint := fmt.Sprintf("/%s/alliances", mdbName)
@@ -189,9 +178,9 @@ func ServeAlliances(
 			parsedAlliances = entry.Data
 		} else {
 			// cache miss → apply limiter
-			limiter := getLimiter(getClientIP(r), alliancesEndpoint, ALLIANCES_RPM)
+			limiter := rl.clientLimiter(r, ALLIANCES_RPM)
 			if !limiter.Allow() {
-				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+				http.Error(w, "Rate Limit Exceeded", http.StatusTooManyRequests)
 				return
 			}
 
@@ -222,7 +211,10 @@ func ServeAlliances(
 	})
 }
 
-func ServeNews(mux *http.ServeMux, mdbName string, newsStore *store.Store[database.NewsEntry]) {
+func ServeNews(
+	mux *http.ServeMux, rl *RateLimit, mdbName string,
+	newsStore *store.Store[database.NewsEntry],
+) {
 	newsEndpoint := fmt.Sprintf("/%s/news", mdbName)
 	mux.HandleFunc(newsEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		newsValues := lo.MapToSlice(newsStore.Entries(), func(key string, n database.NewsEntry) NewsEntry {
@@ -243,9 +235,9 @@ func ServeNews(mux *http.ServeMux, mdbName string, newsStore *store.Store[databa
 		}
 
 		// rate limit applies only when serving data
-		limiter := getLimiter(getClientIP(r), newsEndpoint, NEWS_RPM)
+		limiter := rl.clientLimiter(r, NEWS_RPM)
 		if !limiter.Allow() {
-			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+			http.Error(w, "Rate Limit Exceeded", http.StatusTooManyRequests)
 			return
 		}
 
@@ -270,12 +262,15 @@ func ServeNews(mux *http.ServeMux, mdbName string, newsStore *store.Store[databa
 	})
 }
 
-func ServePlayers(mux *http.ServeMux, mdbName string, playersStore *store.Store[database.BasicPlayer]) {
+func ServePlayers(
+	mux *http.ServeMux, rl *RateLimit, mdbName string,
+	playersStore *store.Store[database.BasicPlayer],
+) {
 	playersEndpoint := fmt.Sprintf("/%s/players", mdbName)
 	mux.HandleFunc(playersEndpoint, func(w http.ResponseWriter, r *http.Request) {
-		limiter := getLimiter(r.RemoteAddr, playersEndpoint, PLAYERS_RPM)
+		limiter := rl.clientLimiter(r, PLAYERS_RPM)
 		if !limiter.Allow() {
-			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+			http.Error(w, "Rate Limit Exceeded", http.StatusTooManyRequests)
 			return
 		}
 
