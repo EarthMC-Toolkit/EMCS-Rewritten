@@ -6,11 +6,9 @@ import (
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils/logutil"
 	"errors"
-	"slices"
 	"testing"
 	"time"
 
-	"github.com/samber/lo"
 	"github.com/samber/lo/parallel"
 )
 
@@ -114,18 +112,125 @@ func TestQueryPlayersList(t *testing.T) {
 
 	t.Logf("Sent %d requests for %d players. Took %s", reqAmt, len(players), time.Since(start).Round(1*time.Second))
 
-	opNames := lo.FilterMap(players, func(p oapi.PlayerInfo, _ int) (string, bool) {
-		return p.Name, p.Status.IsOnline
-	})
-	slices.Sort(opNames)
+	// opNames := lo.FilterMap(players, func(p oapi.PlayerInfo, _ int) (string, bool) {
+	// 	return p.Name, p.Status.IsOnline
+	// })
+	// slices.Sort(opNames)
 
-	opNames72h := lo.FilterMap(players, func(p oapi.PlayerInfo, _ int) (string, bool) {
-		return p.Name, isBetweenNowAndDuration(p.Timestamps.LastOnline, 72*time.Hour)
-	})
-	slices.Sort(opNames72h)
+	weekAgo := 7 * 24 * time.Hour
+	monthAgo := 30 * 24 * time.Hour
+	purgeAgo := 42 * 24 * time.Hour
 
-	t.Logf("Currently Online: %d\nNames: %v", len(opNames), opNames)
-	t.Logf("Online Last 72h: %d\nNames: %v", len(opNames72h), opNames72h)
+	// cumulative stats
+	var activeTownless7d, activeResidents7d int
+	var activeTownless1m, activeResidents1m int
+	var purgedTownless, purgedResidents int
+
+	// retention in the last month
+	var week1, week2, week3, week4 int
+	var total, totalNew int
+	var newActive7d, newActive30d int
+
+	nostraRelease := time.UnixMilli(1776384000000)
+	now := time.Now()
+	for _, p := range players {
+		if p.Timestamps.LastOnline == nil {
+			continue // remove NPCs
+		}
+		total++
+
+		registered := time.UnixMilli(int64(p.Timestamps.Registered))
+		lo := time.UnixMilli(int64(*p.Timestamps.LastOnline))
+		age := now.Sub(lo)
+
+		if registered.After(nostraRelease) {
+			totalNew++
+
+			if age <= weekAgo {
+				newActive7d++
+			}
+			if age <= monthAgo {
+				newActive30d++
+			}
+		}
+
+		if age <= weekAgo {
+			if p.Status.HasTown {
+				activeResidents7d++
+			} else {
+				activeTownless7d++
+			}
+		}
+		if age <= monthAgo {
+			if p.Status.HasTown {
+				activeResidents1m++
+			} else {
+				activeTownless1m++
+			}
+		}
+		if age >= purgeAgo {
+			if p.Status.HasTown {
+				purgedResidents++
+			} else {
+				purgedTownless++
+			}
+		}
+
+		switch {
+		case age <= weekAgo:
+			week1++
+		case age <= weekAgo*2:
+			week2++
+		case age <= weekAgo*3:
+			week3++
+		case age <= weekAgo*4:
+			week4++
+		}
+	}
+
+	t.Logf("\n")
+	t.Logf("Total Players (excluding NPCS):				%d", total)
+	t.Logf("Registered after Nostra release (Apr 17):	%d", totalNew)
+
+	t.Logf("\n")
+	t.Logf("Players online in the last 7 days (cumulative)")
+	t.Logf("\tTownless:			%d", activeTownless7d)
+	t.Logf("\tResidents: 		%d", activeResidents7d)
+	t.Logf("\tCombined: 		%d\n", activeTownless7d+activeResidents7d)
+
+	t.Logf("\n")
+	t.Logf("Players online in the last 30 days (cumulative)")
+	t.Logf("\tTownless: 		%d", activeTownless1m)
+	t.Logf("\tResidents: 		%d", activeResidents1m)
+	t.Logf("\tCombined: 		%d\n", activeTownless1m+activeResidents1m)
+
+	t.Logf("\n")
+	t.Logf("Purged players (>=42 days ago) (cumulative)")
+	t.Logf("\tTownless: 		%d", purgedTownless)
+	t.Logf("\tResidents: 		%d", purgedResidents)
+	t.Logf("\tCombined: 		%d\n", purgedTownless+purgedResidents)
+
+	retentionTotal := week1 + week2 + week3 + week4
+	t.Logf("\n")
+	t.Logf("Retention buckets (last 28 days)\n")
+	t.Logf("\t22-28 days ago: 	%d (%.1f%%)", week4, 100*float64(week4)/float64(retentionTotal))
+	t.Logf("\t15-21 days ago: 	%d (%.1f%%)", week3, 100*float64(week3)/float64(retentionTotal))
+	t.Logf("\t8-14 days ago:  	%d (%.1f%%)", week2, 100*float64(week2)/float64(retentionTotal))
+	t.Logf("\t0-7 days ago:		%d (%.1f%%)", week1, 100*float64(week1)/float64(retentionTotal))
+
+	residentRetention := float64(activeResidents7d) / float64(activeResidents1m)
+	townlessRetention := float64(activeTownless7d) / float64(activeTownless1m)
+
+	t.Logf("\n")
+	t.Logf("Resident weekly retention: %.1f%%", residentRetention*100)
+	t.Logf("Townless weekly retention: %.1f%%", townlessRetention*100)
+
+	newRetention7d := float64(newActive7d) / float64(totalNew) * 100
+	newRetention30d := float64(newActive30d) / float64(totalNew) * 100
+
+	t.Logf("\n")
+	t.Logf("New player retention (7d): 	%.1f%%", newRetention7d)
+	t.Logf("New player retention (30d): %.1f%%", newRetention30d)
 }
 
 // func TestQueryPlayersConcurrent(t *testing.T) {
