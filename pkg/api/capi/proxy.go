@@ -6,12 +6,23 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"net/http"
 	"net/url"
 	"slices"
 	"strings"
 )
+
+// Header fields specified by RFC 7230 that aren't supposed to be forwaded.
+var hopByHop = map[string]bool{
+	"Connection":          true,
+	"Keep-Alive":          true,
+	"Proxy-Authenticate":  true,
+	"Proxy-Authorization": true,
+	"Te":                  true,
+	"Trailer":             true,
+	"Transfer-Encoding":   true,
+	"Upgrade":             true,
+}
 
 var noRedirectClient = &http.Client{
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -24,12 +35,11 @@ var noRedirectClient = &http.Client{
 	},
 }
 
-// Proxy is a simple authenticated CORS reverse proxy.
+// A simple CORS reverse proxy, where only a whitelist of hosts are allowed.
 type Proxy struct {
 	allowedHosts []string
-
-	rl  *RateLimit
-	rpm int
+	rl           *RateLimit
+	rpm          int
 }
 
 func NewProxy(rl *RateLimit, reqPerMin uint8, allowedHosts []string) *Proxy {
@@ -38,8 +48,10 @@ func NewProxy(rl *RateLimit, reqPerMin uint8, allowedHosts []string) *Proxy {
 
 // Handles CORS preflight, parses the target URL and forwards the request to the upstream HTTPS endpoint.
 func (p *Proxy) handler(w http.ResponseWriter, r *http.Request) {
+	setCORS(w)
+
 	if r.Method == http.MethodOptions {
-		handleOptions(w)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -142,23 +154,25 @@ func (p *Proxy) forward(w http.ResponseWriter, r *http.Request, targetUrl *url.U
 	}
 	defer resp.Body.Close()
 
-	// Allows CORS access so JS in the browser can read the response.
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "*")
-
 	// MANDATORY. So upstream can handle response headers correctly.
-	maps.Copy(w.Header(), resp.Header)
+	for k, v := range resp.Header {
+		if hk := http.CanonicalHeaderKey(k); hopByHop[hk] {
+			continue
+		}
+
+		if !strings.HasPrefix(strings.ToLower(k), "access-control-") {
+			w.Header().Set(k, v[0])
+		}
+	}
 
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
 }
 
-// Responds to CORS preflight requests initiated via the OPTIONS method.
-func handleOptions(w http.ResponseWriter) {
+func setCORS(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func cloneBody(r *http.Request) ([]byte, error) {
@@ -176,9 +190,8 @@ func cloneBody(r *http.Request) ([]byte, error) {
 func sanitizeHeader(r *http.Request) http.Header {
 	h := r.Header.Clone() // Copy header fields from the original req
 
-	// Remove browser navigation, fingerprinting and tracking fields
+	// Remove fingerprinting and tracking fields
 	h.Del("Referer")
-	h.Del("Origin")
 	h.Del("Sec-Fetch-Dest")
 	h.Del("Sec-Fetch-Mode")
 	h.Del("Sec-Fetch-Site")
