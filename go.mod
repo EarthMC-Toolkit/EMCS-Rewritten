@@ -23,6 +23,7 @@ require (
 require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/rogpeppe/go-internal v1.15.0
+	github.com/rs/cors v1.11.1
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0

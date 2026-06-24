@@ -22,6 +22,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/renderer/html"
+
+	"github.com/rs/cors"
 )
 
 var md = goldmark.New(goldmark.WithRendererOptions(html.WithUnsafe()))
@@ -115,7 +117,15 @@ func ServeBotInvite(mux *http.ServeMux) {
 }
 
 func ServeProxy(mux *http.ServeMux, proxy *Proxy) {
-	mux.HandleFunc("/proxy", proxy.handler)
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedHeaders:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowCredentials: true,
+		Debug:            false,
+	})
+
+	mux.Handle("/proxy", c.Handler(http.HandlerFunc(proxy.handler)))
 }
 
 func ServeFalling(

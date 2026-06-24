@@ -12,21 +12,9 @@ import (
 	"strings"
 )
 
-// Header fields specified by RFC 7230 that aren't supposed to be forwaded.
-var hopByHop = map[string]bool{
-	"Connection":          true,
-	"Keep-Alive":          true,
-	"Proxy-Authenticate":  true,
-	"Proxy-Authorization": true,
-	"Te":                  true,
-	"Trailer":             true,
-	"Transfer-Encoding":   true,
-	"Upgrade":             true,
-}
-
 var noRedirectClient = &http.Client{
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		if len(via) > 3 {
+		if len(via) > 5 {
 			return errors.New("too many redirects. sussy baka")
 		}
 
@@ -48,13 +36,6 @@ func NewProxy(rl *RateLimit, reqPerMin uint8, allowedHosts []string) *Proxy {
 
 // Handles CORS preflight, parses the target URL and forwards the request to the upstream HTTPS endpoint.
 func (p *Proxy) handler(w http.ResponseWriter, r *http.Request) {
-	setCORS(w)
-
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
 	turl, err := p.getTargetUrl(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -154,25 +135,14 @@ func (p *Proxy) forward(w http.ResponseWriter, r *http.Request, targetUrl *url.U
 	}
 	defer resp.Body.Close()
 
-	// MANDATORY. So upstream can handle response headers correctly.
-	for k, v := range resp.Header {
-		if hk := http.CanonicalHeaderKey(k); hopByHop[hk] {
-			continue
-		}
-
-		if !strings.HasPrefix(strings.ToLower(k), "access-control-") {
-			w.Header().Set(k, v[0])
+	for k, vv := range resp.Header {
+		for _, v := range vv {
+			w.Header().Add(k, v)
 		}
 	}
 
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
-}
-
-func setCORS(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 }
 
 func cloneBody(r *http.Request) ([]byte, error) {
