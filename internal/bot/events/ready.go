@@ -495,7 +495,7 @@ func TrySendDeletedNotif(s *discordgo.Session, channelID string, towns []oapi.To
 		})
 
 		_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("Town Flow | Fall Events [%d]", count),
+			Title:       fmt.Sprintf("Town Flow | Deletion Events [%d]", count),
 			Description: strings.Join(desc, "\n\n"),
 			Color:       discordutil.RED,
 		})
