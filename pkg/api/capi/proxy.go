@@ -3,6 +3,7 @@ package capi
 import (
 	"bytes"
 	"emcsrw/pkg/utils/logutil"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -115,13 +116,13 @@ func (p *Proxy) getTargetUrl(r *http.Request) (*url.URL, error) {
 // Proxies the request to the validated HTTPS target, buffering the request body
 // for safe forwarding and streaming the upstream response back to the client.
 func (p *Proxy) forward(w http.ResponseWriter, r *http.Request, targetUrl *url.URL) {
-	body, err := cloneBody(r)
+	reqBody, err := cloneBody(r)
 	if err != nil {
-		http.Error(w, "failed to read body", http.StatusBadRequest)
+		http.Error(w, "failed to read req body", http.StatusBadRequest)
 		return
 	}
 
-	req, err := http.NewRequest(r.Method, targetUrl.String(), bytes.NewReader(body))
+	req, err := http.NewRequest(r.Method, targetUrl.String(), bytes.NewReader(reqBody))
 	if err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
@@ -135,14 +136,33 @@ func (p *Proxy) forward(w http.ResponseWriter, r *http.Request, targetUrl *url.U
 	}
 	defer resp.Body.Close()
 
-	for k, vv := range resp.Header {
-		for _, v := range vv {
-			w.Header().Add(k, v)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, "failed to read resp body", http.StatusBadRequest)
+		return
+	}
+
+	ctype := resp.Header.Get("Content-Type")
+	if strings.Contains(ctype, "application/json") {
+		if !json.Valid(body) {
+			logutil.Println(logutil.RED, "INVALID JSON FROM UPSTREAM:", ctype, string(body[:min(len(body), 300)]))
+			http.Error(w, "invalid json from upstream", http.StatusBadGateway)
+			return
 		}
 	}
 
+	for k, vv := range resp.Header {
+		if !strings.EqualFold(k, "Content-Length") && !strings.EqualFold(k, "Content-Type") {
+			w.Header()[k] = vv
+		}
+	}
+
+	if ctype != "" {
+		w.Header().Set("Content-Type", ctype)
+	}
+
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	_, _ = w.Write(body)
 }
 
 func cloneBody(r *http.Request) ([]byte, error) {
