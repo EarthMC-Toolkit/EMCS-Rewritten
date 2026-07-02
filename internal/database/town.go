@@ -9,8 +9,8 @@ import (
 	"github.com/samber/lo"
 )
 
-const FALL_DAYS = 42     // Total days a mayor can be inactive until their town falls.
-const FALLING_TFRAME = 7 // Time frame in days at which to include falling towns.
+const FALL_DAYS = 42 * 24 * time.Hour     // Total days a mayor can be inactive until their town falls.
+const FALLING_TFRAME = 7 * 24 * time.Hour // Time frame in days at which to include falling towns.
 
 type MayorUUID = string
 type FallingTown struct {
@@ -19,6 +19,11 @@ type FallingTown struct {
 	DeletionAt       time.Time `json:"deletionAt"`       // The time at which this falling town will be deleted (next new day 3d after ruin).
 	MayorLastOnline  time.Time `json:"mayorLastOnline"`  // The time at which the mayor last came online.
 	InactiveDuration int32     `json:"inactiveDuration"` // Duration in minutes the mayor has been inactive.
+}
+
+type RuinedTown struct {
+	oapi.TownInfo
+	DeletionAt time.Time `json:"deletionAt"` // The time at which this town will be deleted (next new day 3d after its ruin time).
 }
 
 func ComputeFallingTowns(mdb *Database, window time.Duration) (map[MayorUUID]FallingTown, error) {
@@ -51,13 +56,17 @@ func ComputeFallingTowns(mdb *Database, window time.Duration) (map[MayorUUID]Fal
 		}
 
 		lo := time.UnixMilli(int64(*m.Timestamps.LastOnline))
-		ruinAt := nextNewDayAfter(lo.Add(FALL_DAYS * 24 * time.Hour))
-		timeToRuin := ruinAt.Sub(now) // remaining duration until this town hits its ruin time
+
+		ruinRaw := lo.Add(FALL_DAYS)
+		ruinAt := nextNewDayAfter(ruinRaw)
+
+		timeToRuin := ruinAt.Sub(now)
 		if timeToRuin < 0 || timeToRuin > window {
-			continue // remaining duration until this town hits its ruin time
+			continue
 		}
 
-		deletionAt := nextNewDayAfter(ruinAt.Add(72 * time.Hour))
+		deletionRaw := ruinRaw.Add(72 * time.Hour)
+		deletionAt := nextNewDayAfter(deletionRaw)
 		fts[town.UUID] = FallingTown{
 			TownInfo:         town,
 			MayorLastOnline:  lo,
@@ -70,16 +79,7 @@ func ComputeFallingTowns(mdb *Database, window time.Duration) (map[MayorUUID]Fal
 	return fts, nil
 }
 
-func nextNewDayAfter(t time.Time) time.Time {
-	newDay := time.Date(t.Year(), t.Month(), t.Day(), 10, 0, 0, 0, time.UTC)
-	if !newDay.After(t) {
-		newDay = newDay.Add(24 * time.Hour)
-	}
-
-	return newDay
-}
-
-func GetRuinedTowns(townStore *store.Store[oapi.TownInfo]) []oapi.TownInfo {
+func ComputeRuinedTowns(townStore *store.Store[oapi.TownInfo]) []RuinedTown {
 	towns := townStore.Values()
 	ruined := lo.Filter(towns, func(t oapi.TownInfo, _ int) bool {
 		return t.Status.Ruined
@@ -89,5 +89,27 @@ func GetRuinedTowns(townStore *store.Store[oapi.TownInfo]) []oapi.TownInfo {
 		return *ruined[i].Timestamps.RuinedAt < *ruined[j].Timestamps.RuinedAt
 	})
 
-	return ruined
+	ruinedTowns := make([]RuinedTown, len(ruined))
+	for i, town := range ruined {
+		ruinAt := time.UnixMilli(int64(*town.Timestamps.RuinedAt))
+
+		deletionRaw := ruinAt.Add(72 * time.Hour)
+		deletionAt := nextNewDayAfter(deletionRaw)
+
+		ruinedTowns[i] = RuinedTown{
+			TownInfo:   town,
+			DeletionAt: deletionAt,
+		}
+	}
+
+	return ruinedTowns
+}
+
+func nextNewDayAfter(t time.Time) time.Time {
+	newDay := time.Date(t.Year(), t.Month(), t.Day(), 10, 0, 0, 0, time.UTC)
+	if !newDay.After(t) {
+		newDay = newDay.Add(24 * time.Hour)
+	}
+
+	return newDay
 }

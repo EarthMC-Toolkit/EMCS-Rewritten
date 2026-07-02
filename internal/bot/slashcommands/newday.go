@@ -3,6 +3,7 @@ package slashcommands
 import (
 	"emcsrw/internal/database"
 	"emcsrw/internal/shared"
+	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils"
 	"emcsrw/pkg/utils/discordutil"
 	"fmt"
@@ -12,7 +13,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-const secInADay = 86400
+const DAY_SECS = 60 * 60 * 24
 
 type NewDayCommand struct{}
 
@@ -53,18 +54,12 @@ func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 		})
 	}
 
-	newDayTime := info.Timestamps.NewDayTime
-	serverTod := info.Timestamps.ServerTimeOfDay
-
-	secUntilNewDay := (newDayTime - serverTod + secInADay) % secInADay
-
-	now := time.Now().Unix()
-	sec := now + secUntilNewDay
+	ts, secUntilNewDay := secUntilNewDay(info)
 
 	title := "New Day | Time Information"
 	desc := fmt.Sprintf(
 		"The next Towny new day occurs in <t:%d:R>.\nExactly %s from now.",
-		sec, utils.FormatElapsed(time.Duration(secUntilNewDay)*time.Second),
+		ts, utils.FormatElapsed(time.Duration(secUntilNewDay)*time.Second),
 	)
 
 	embed := discordutil.NewEmbedBuilder(&discordutil.DARK_PURPLE, &title, &desc, nil)
@@ -73,6 +68,16 @@ func executeNewDayWhen(s *discordgo.Session, i *discordgo.Interaction) error {
 	})
 
 	return nil
+}
+
+func secUntilNewDay(info *oapi.ServerInfo) (unix int64, sec int64) {
+	newDayTime := info.Timestamps.NewDayTime
+	serverTod := info.Timestamps.ServerTimeOfDay
+
+	secUntilNewDay := (newDayTime - serverTod + DAY_SECS) % DAY_SECS
+
+	now := time.Now().Unix()
+	return now + secUntilNewDay, secUntilNewDay
 }
 
 // Minecraft ticks until next in-game day

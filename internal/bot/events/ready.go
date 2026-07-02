@@ -231,7 +231,7 @@ func fallingTownsTask(mdb *database.Database) {
 	fallingTownsStore, err := database.GetStore(mdb, database.FALLING_TOWNS_STORE)
 	if err == nil {
 		_, err = fallingTownsStore.OverwriteFunc(true, true, func() (map[database.MayorUUID]database.FallingTown, error) {
-			fallingTownsMap, err := database.ComputeFallingTowns(mdb, database.FALLING_TFRAME*24*time.Hour)
+			fallingTownsMap, err := database.ComputeFallingTowns(mdb, database.FALLING_TFRAME)
 			if err != nil {
 				return fallingTownsMap, err
 			}

@@ -34,7 +34,7 @@ func (cmd RuinedCommand) Execute(s *discordgo.Session, i *discordgo.InteractionC
 		return err
 	}
 
-	ruined := database.GetRuinedTowns(townStore)
+	ruined := database.ComputeRuinedTowns(townStore)
 	totalCount := len(ruined)
 
 	perPage := 10

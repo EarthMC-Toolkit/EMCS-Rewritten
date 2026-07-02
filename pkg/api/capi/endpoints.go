@@ -151,8 +151,8 @@ func ServeRuined(
 	townStore *store.Store[oapi.TownInfo],
 ) {
 	ruinedEndpoint := fmt.Sprintf("/%s/ruined", mdbName)
-	mux.HandleFunc(ruinedEndpoint, TTLGzipHandler(90*time.Second, func() []oapi.TownInfo {
-		return database.GetRuinedTowns(townStore)
+	mux.HandleFunc(ruinedEndpoint, TTLGzipHandler(90*time.Second, func() []database.RuinedTown {
+		return database.ComputeRuinedTowns(townStore)
 	}))
 }
 
