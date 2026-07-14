@@ -137,7 +137,7 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 		Title:    "Alliance Editor - Functional Fields",
 		Components: []discordgo.MessageComponent{
 			discordutil.TextInputActionRow(
-				discordutil.TextInputShort("identifier", "Query Identifier (3-16 chars)", alliance.Identifier, 3, 16),
+				discordutil.TextInputShort("identifier", "Query Identifier (3-12 chars)", alliance.Identifier, 3, 12),
 			),
 			discordutil.TextInputActionRow(
 				discordutil.TextInputShort("label", "Alliance Name (4-64 chars)", alliance.Label, 4, 64),

@@ -156,8 +156,8 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 		Flags:    discordgo.MessageFlagsIsComponentsV2,
 		Components: []discordgo.MessageComponent{
 			discordutil.TextInputActionRow(discordutil.RequiredTextInputShort(
-				"identifier", "Query Identifier (3-16 chars)",
-				"Enter a unique short name used to query this alliance.", 3, 16,
+				"identifier", "Query Identifier (3-12 chars)",
+				"Enter a unique short name used to query this alliance.", 3, 12,
 			)),
 			discordutil.TextInputActionRow(discordutil.RequiredTextInputShort(
 				"label", "Alliance Name (4-64 chars)",
