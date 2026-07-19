@@ -66,20 +66,19 @@ func (e *NewsEntry) Context() string {
 	return fmt.Sprintf(" (%s) %s", imgLinks, timestamp)
 }
 
-func NewNewsEntry(msg *discordgo.Message) NewsEntry {
+func NewNewsEntry(m *discordgo.Message) NewsEntry {
 	entry := NewsEntry{
 		//ID:        msg.ID,
-		Message:   msg.Content,
-		Timestamp: msg.Timestamp.UnixMilli(),
+		Message:   m.Content,
+		Timestamp: m.Timestamp.UnixMilli(),
 	}
 
 	// If there are attachments in the message, push attachment.url to images
-	for _, attachment := range msg.Attachments {
+	for _, attachment := range m.Attachments {
 		urlStr := attachment.URL
 		if IMAGE_REGEX.MatchString(urlStr) {
 			u, err := url.Parse(urlStr)
 			if err == nil {
-				u.RawQuery = ""
 				u.Fragment = ""
 				urlStr = u.String()
 			}
@@ -92,7 +91,7 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 	cleanedMsg := NTIMES_LOGO_REPLACER.Replace(entry.Message)
 
 	// Content has at least one image link.
-	if matches := IMAGE_REGEX.FindAllString(msg.Content, -1); len(matches) > 0 {
+	if matches := IMAGE_REGEX.FindAllString(m.Content, -1); len(matches) > 0 {
 		entry.Images = append(entry.Images, matches...)
 		cleanedMsg = strings.TrimSpace(IMAGE_REGEX.ReplaceAllString(cleanedMsg, "")) // TODO: is this is necessary if we match bold anyway?
 	}
@@ -120,7 +119,7 @@ type NewsMessageID = string
 
 // Converts Discord messages into a map of [NewsEntry] (headline, timestamp etc) keyed by the message ID.
 // It filters out invalid messages (non-news, mentions-only, missing logo) and the output contains only unique headlines.
-func MessagesToNewsEntries(msgs []*discordgo.Message) map[NewsMessageID]NewsEntry {
+func MessagesToNewsEntries(s *discordgo.Session, msgs []*discordgo.Message) map[NewsMessageID]NewsEntry {
 	entries := make(map[NewsMessageID]NewsEntry, len(msgs))
 	seen := sets.New[string]() // headline tracker to remove dupes
 

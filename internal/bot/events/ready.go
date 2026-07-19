@@ -286,7 +286,7 @@ func newsTask(s *discordgo.Session, channelID string, mdb *database.Database) {
 		return
 	}
 
-	entries := database.MessagesToNewsEntries(newsMsgs) // removes duplicate headlines
+	entries := database.MessagesToNewsEntries(s, newsMsgs) // removes duplicate headlines
 	if mdb.Name() == shared.SUPPORTED_MAPS.NOSTRA {
 		for id, entry := range entries {
 			// We don't want to include news from before Nostra release.
