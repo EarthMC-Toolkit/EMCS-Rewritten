@@ -75,15 +75,16 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 
 	// If there are attachments in the message, push attachment.url to images
 	for _, attachment := range msg.Attachments {
-		if IMAGE_REGEX.MatchString(attachment.URL) {
-			u, err := url.Parse(attachment.URL)
+		urlStr := attachment.URL
+		if IMAGE_REGEX.MatchString(urlStr) {
+			u, err := url.Parse(urlStr)
 			if err == nil {
 				u.RawQuery = ""
 				u.Fragment = ""
-				entry.Images = append(entry.Images, u.String())
+				urlStr = u.String()
 			}
 
-			entry.Images = append(entry.Images, attachment.URL)
+			entry.Images = append(entry.Images, urlStr)
 		}
 	}
 
