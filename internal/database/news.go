@@ -6,6 +6,7 @@ import (
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils/sets"
 	"fmt"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -75,6 +76,13 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 	// If there are attachments in the message, push attachment.url to images
 	for _, attachment := range msg.Attachments {
 		if IMAGE_REGEX.MatchString(attachment.URL) {
+			u, err := url.Parse(attachment.URL)
+			if err == nil {
+				u.RawQuery = ""
+				u.Fragment = ""
+				entry.Images = append(entry.Images, u.String())
+			}
+
 			entry.Images = append(entry.Images, attachment.URL)
 		}
 	}
@@ -85,7 +93,7 @@ func NewNewsEntry(msg *discordgo.Message) NewsEntry {
 	// Content has at least one image link.
 	if matches := IMAGE_REGEX.FindAllString(msg.Content, -1); len(matches) > 0 {
 		entry.Images = append(entry.Images, matches...)
-		cleanedMsg = strings.TrimSpace(IMAGE_REGEX.ReplaceAllString(cleanedMsg, "")) // TODO: is this is necessary if we match bold anyway
+		cleanedMsg = strings.TrimSpace(IMAGE_REGEX.ReplaceAllString(cleanedMsg, "")) // TODO: is this is necessary if we match bold anyway?
 	}
 
 	entry.Headline = extractHeadline(cleanedMsg)
