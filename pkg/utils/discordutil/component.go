@@ -114,11 +114,15 @@ func TextInput(style discordgo.TextInputStyle, cid, label, placeholder string, m
 }
 
 func TextInputShort(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
-	return TextInput(discordgo.TextInputShort, cid, label, placeholder, minLen, maxLen)
+	ti := TextInput(discordgo.TextInputShort, cid, label, placeholder, minLen, maxLen)
+	ti.Required = ptr(false)
+	return ti
 }
 
 func TextInputParagraph(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
-	return TextInput(discordgo.TextInputParagraph, cid, label, placeholder, minLen, maxLen)
+	ti := TextInput(discordgo.TextInputParagraph, cid, label, placeholder, minLen, maxLen)
+	ti.Required = ptr(false)
+	return ti
 }
 
 func RequiredTextInputShort(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
