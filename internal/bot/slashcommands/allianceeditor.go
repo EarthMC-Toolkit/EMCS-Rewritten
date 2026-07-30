@@ -137,19 +137,19 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 		Title:    "Alliance Editor - Functional Fields",
 		Components: []discordgo.MessageComponent{
 			discordutil.TextInputActionRow(
-				discordutil.TextInputShort("identifier", "Query Identifier (3-12 chars)", alliance.Identifier, 3, 12),
+				discordutil.RequiredTextInputShort("identifier", "Query Identifier (3-12 chars)", alliance.Identifier, 3, 12),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.TextInputShort("label", "Alliance Name (4-64 chars)", alliance.Label, 4, 64),
+				discordutil.RequiredTextInputShort("label", "Alliance Name (4-64 chars)", alliance.Label, 4, 64),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.TextInputShort("representative", "Representative Discord ID", *alliance.RepresentativeID, 17, 19),
+				discordutil.RequiredTextInputShort("representative", "Representative Discord ID", *alliance.RepresentativeID, 17, 19),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.TextInputShort("nations", "Own Nations", nationsPlaceholder, 3, 0),
+				discordutil.RequiredTextInputParagraph("nations", "Own Nations", nationsPlaceholder, 3, 0),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.TextInputShort("parent", "Parent Alliance", parentPlaceholder, 3, 16),
+				discordutil.TextInputShort("parent", "Parent Alliance (Optional)", parentPlaceholder, 3, 16),
 			),
 		},
 	})

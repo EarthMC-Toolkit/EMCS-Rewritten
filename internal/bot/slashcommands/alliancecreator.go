@@ -172,8 +172,8 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 				"Enter a comma-seperated list of nations in THIS alliance only.", 3, 0,
 			)),
 			discordutil.TextInputActionRow(discordutil.TextInputShort(
-				"parent", "Parent Alliance",
-				"(Optional) Enter the identifier of this alliance's parent alliance.", 3, 16,
+				"parent", "Parent Alliance (Optional)",
+				"Enter the identifier of this alliance's parent alliance.", 3, 16,
 			)),
 		},
 	})
