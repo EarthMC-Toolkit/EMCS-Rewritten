@@ -123,13 +123,13 @@ func TextInputParagraph(cid, label, placeholder string, minLen uint, maxLen uint
 
 func RequiredTextInputShort(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
 	ti := TextInput(discordgo.TextInputShort, cid, label, placeholder, minLen, maxLen)
-	ti.Required = true
+	ti.Required = ptr(true)
 	return ti
 }
 
 func RequiredTextInputParagraph(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
 	ti := TextInput(discordgo.TextInputParagraph, cid, label, placeholder, minLen, maxLen)
-	ti.Required = true
+	ti.Required = ptr(true)
 	return ti
 }
 
@@ -174,4 +174,8 @@ func Label(label string, description string, component discordgo.MessageComponen
 		Description: description,
 		Component:   component,
 	}
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }
