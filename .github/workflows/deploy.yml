@@ -7,6 +7,7 @@ on:
 
 jobs:
   deploy:
+    if: github.repository == 'EarthMC-Toolkit/EMCS-Rewritten'
     runs-on: ubuntu-latest
     env:
       SSH_DIR: /home/runner/.ssh

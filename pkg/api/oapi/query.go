@@ -139,13 +139,6 @@ func (q *PostQuery[T]) ExecuteConcurrent() ([]T, []error, int) {
 	return all, errs, chunkLen
 }
 
-// Sends a ping, aka a HEAD request to url.
-// An enum is returned indicating the type of error we encountered, in addition to an ok
-// boolean which returns true on success (RESPONSE_STATUS_OK), anything else is false.
-func Ping(url string) (requests.ResponseStatus, bool) {
-	return requests.WithResponseStatus(requests.Head(url))
-}
-
 // Queries the Official API with a GET request to the given endpoint.
 // According to docs, this should return a list of entities (name, uuid) relating to the type of said endpoint.
 //

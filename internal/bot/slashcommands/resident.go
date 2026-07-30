@@ -19,6 +19,7 @@ func (cmd ResidentCommand) Options() []AppCommandOpt {
 	}
 }
 
+// This cmd is an alias of /player - so just execute the that func with input arg from this cmd.
 func (cmd ResidentCommand) Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	cdata := i.ApplicationCommandData()
 	playerNameArg := cdata.GetOption("name").StringValue()

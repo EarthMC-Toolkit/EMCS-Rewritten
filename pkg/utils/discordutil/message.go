@@ -3,10 +3,8 @@ package discordutil
 import "github.com/bwmarrin/discordgo"
 
 var WIKI_EMOJI = discordgo.ComponentEmoji{Name: "📰"}
-var DISCORD_EMOJI = discordgo.ComponentEmoji{
-	Name: "discordlogo",
-	ID:   "1513955352608243923",
-}
+var NAMEMC_EMOJI = discordgo.ComponentEmoji{Name: "namemc", ID: "1532281907310755951"}
+var DISCORD_EMOJI = discordgo.ComponentEmoji{Name: "discordlogo", ID: "1513955352608243923"}
 
 // Data shared between both an interaction and a message. This means no matter the method we choose to
 // use to output data from the builder, these fields will be available on the result.
@@ -79,7 +77,7 @@ func (b *MessageBuilder) AddEmbed(embed *discordgo.MessageEmbed) *MessageBuilder
 // NOTE: Only a button with the LinkButton style can have a link. Also, URL is mutually exclusive with CustomID.
 func (b *MessageBuilder) AddButton(
 	label string, style discordgo.ButtonStyle,
-	url *string, emoji *discordgo.ComponentEmoji,
+	url string, emoji *discordgo.ComponentEmoji,
 	customID *string,
 ) *MessageBuilder {
 	btn := discordgo.Button{
@@ -90,10 +88,10 @@ func (b *MessageBuilder) AddButton(
 
 	// enforce Discord rule: link vs interaction button
 	if style == discordgo.LinkButton {
-		if url == nil {
+		if url == "" {
 			panic("link button requires URL")
 		}
-		btn.URL = *url
+		btn.URL = url
 	} else {
 		if customID == nil {
 			panic("non-link button requires customID")

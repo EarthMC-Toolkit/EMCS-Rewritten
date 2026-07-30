@@ -171,10 +171,10 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 	msg := discordutil.NewMessageBuilder()
 	msg.AddEmbed(shared.NewNationEmbed(*nation, newsStore, allianceStore))
 	if nation.Discord != nil {
-		msg.AddButton("Join discord", discordgo.LinkButton, nation.Discord, &discordutil.DISCORD_EMOJI, nil)
+		msg.AddButton("Join discord", discordgo.LinkButton, *nation.Discord, &discordutil.DISCORD_EMOJI, nil)
 	}
 	if nation.Wiki != "" {
-		msg.AddButton("View wiki page", discordgo.LinkButton, &nation.Wiki, &discordutil.WIKI_EMOJI, nil)
+		msg.AddButton("View wiki page", discordgo.LinkButton, nation.Wiki, &discordutil.WIKI_EMOJI, nil)
 	}
 
 	return discordutil.Followup(s, i, msg.WebhookData())

@@ -15,6 +15,13 @@ const AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHT
 var pingClient = http.Client{Timeout: 2 * time.Second} // Use when performing HEAD requests.
 var client = http.Client{Timeout: 6 * time.Second}     // Use when performing all other requests.
 
+// Sends a ping, aka a HEAD request to url.
+// An enum is returned indicating the type of error we encountered, in addition to an ok
+// boolean which returns true on success (RESPONSE_STATUS_OK), anything else is false.
+func Ping(url string) (ResponseStatus, bool) {
+	return WithResponseStatus(Head(url))
+}
+
 // Sends a HEAD request to url, returning the received response.
 func Head(url string) (*http.Response, error) {
 	r, err := pingClient.Head(url)

@@ -309,10 +309,10 @@ func executeTownQuery(s *discordgo.Session, i *discordgo.Interaction, townName s
 	msg := discordutil.NewMessageBuilder()
 	msg.AddEmbed(shared.NewTownEmbed(*town))
 	if town.Discord != nil {
-		msg.AddButton("Join discord", discordgo.LinkButton, town.Discord, &discordutil.DISCORD_EMOJI, nil)
+		msg.AddButton("Join discord", discordgo.LinkButton, *town.Discord, &discordutil.DISCORD_EMOJI, nil)
 	}
 	if town.Wiki != "" {
-		msg.AddButton("View wiki page", discordgo.LinkButton, &town.Wiki, &discordutil.WIKI_EMOJI, nil)
+		msg.AddButton("View wiki page", discordgo.LinkButton, town.Wiki, &discordutil.WIKI_EMOJI, nil)
 	}
 
 	return discordutil.Followup(s, i, msg.WebhookData())

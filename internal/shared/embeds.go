@@ -192,7 +192,7 @@ func NewAllianceEmbed(
 	b := discordutil.NewMessageBuilder()
 	if a.Optional.DiscordCode != nil {
 		inviteURL := fmt.Sprintf("https://discord.gg/%s", *a.Optional.DiscordCode)
-		b.AddButton("Join discord", discordgo.LinkButton, &inviteURL, &discordutil.DISCORD_EMOJI, nil)
+		b.AddButton("Join discord", discordgo.LinkButton, inviteURL, &discordutil.DISCORD_EMOJI, nil)
 	}
 
 	return embed.Build(), b.BuildComponents()
@@ -200,7 +200,7 @@ func NewAllianceEmbed(
 
 // Builds an embed that describes a user with only minimal info.
 //
-// Should be preferred when the user is annoying and has opted-out of the Official API.
+// Should be preferred when the user is annoying and has opted-out of the Official EMC API.
 func NewBasicPlayerEmbed(player database.BasicPlayer, description string) *discordgo.MessageEmbed {
 	var town *oapi.TownInfo
 	if player.Town != nil {
@@ -237,7 +237,7 @@ func NewBasicPlayerEmbed(player database.BasicPlayer, description string) *disco
 	return embed.Build()
 }
 
-// Builds an embed that describes a user using info from the Official API.
+// Builds an embed that describes a user using info from the Official EMC API.
 //
 // Should be preferred when the user exists on said API and has not opted-out.
 func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.MessageEmbed {
@@ -265,6 +265,7 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 		alias = fmt.Sprintf("%s %s", playerName, surname)
 	}
 
+	// equivalent to JS ternary but function is needed to resolve the pointer
 	townName := lo.TernaryF(player.Town.Name == nil, func() string { return "No Town" }, func() string { return *player.Town.Name })
 	nationName := lo.TernaryF(player.Nation.Name == nil, func() string { return "No Nation" }, func() string { return *player.Nation.Name })
 
@@ -280,10 +281,7 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 		}
 	}
 
-	rank := "Resident"
-	if player.Status.IsMayor {
-		rank = "Mayor"
-	}
+	rank := lo.Ternary(player.Status.IsMayor, "Mayor", "Resident")
 	if player.Status.IsKing {
 		rank = "Nation Leader"
 	}
@@ -316,6 +314,7 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 		}), ", ")
 	}
 
+	//#region EMBED CREATION
 	embed := discordutil.NewEmbedBuilder(&discordutil.DARK_PURPLE, &title, nil, nil)
 	embed.SetFields(
 		// Affiliation (prepended)
@@ -343,7 +342,7 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 	embed.AddField("Registered", fmt.Sprintf("<t:%d:R>", registeredTs/1000), true)
 	embed.AddField("Appointed Ranks", fmt.Sprintf("Town: %s\nNation: %s", townRanksStr, nationRanksStr), false)
 	embed.AddField("Friends", friendsStr, false)
-	embed.AddField("Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false)
+	//embed.AddField("Minecraft UUID", fmt.Sprintf("`%s`", player.UUID), false)
 
 	if player.Discord != nil {
 		mentionStr := fmt.Sprintf("<@%s>", *player.Discord)
@@ -361,6 +360,7 @@ func NewPlayerEmbed(s *discordgo.Session, player oapi.PlayerInfo) *discordgo.Mes
 
 	// First field
 	embed.PrependField("Affiliation", affiliation, true)
+	//#endregion
 
 	return embed.Build()
 }
