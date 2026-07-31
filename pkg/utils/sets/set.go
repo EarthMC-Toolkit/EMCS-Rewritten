@@ -15,14 +15,14 @@ func Make[K comparable](capacity int) Set[K] {
 	return make(Set[K], capacity)
 }
 
-func FromSlice[K comparable](keys []K) Set[K] {
-	s := make(Set[K], len(keys))
-	for _, k := range keys {
-		s.Add(k)
-	}
+// func FromSlice[K comparable](keys []K) Set[K] {
+// 	s := make(Set[K], len(keys))
+// 	for _, k := range keys {
+// 		s.Add(k)
+// 	}
 
-	return s
-}
+// 	return s
+// }
 
 func (s Set[K]) Has(key K) bool {
 	_, ok := s[key]

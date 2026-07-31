@@ -20,6 +20,9 @@
 # Go workspace file
 go.work
 
+# Files that we might want later but not ready yet. for stripping dead code
+dead_*.go
+
 .env
 bot/test.go
 tests/db/

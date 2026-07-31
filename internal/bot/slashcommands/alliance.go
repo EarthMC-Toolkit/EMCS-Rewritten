@@ -162,7 +162,7 @@ func (cmd AllianceCommand) HandleModal(s *discordgo.Session, i *discordgo.Intera
 		prefix, ident, _ := strings.Cut(customID, "@")
 		alliance, err := allianceStore.Get(strings.ToLower(ident))
 		if err != nil {
-			discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
+			discordutil.FollowupContent(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident), true)
 			return err
 		}
 
@@ -270,7 +270,7 @@ func queryAlliance(s *discordgo.Session, i *discordgo.Interaction, cdata discord
 	ident := cdata.GetOption("query").GetOption("identifier").StringValue()
 	alliance, err := allianceStore.Get(strings.ToLower(ident))
 	if err != nil {
-		_, err := discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
+		_, err := discordutil.FollowupContent(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident), true)
 		return err
 	}
 
@@ -314,7 +314,7 @@ func queryAllianceNations(s *discordgo.Session, i *discordgo.Interaction, cdata 
 	ident := cdata.GetOption("nations").GetOption("identifier").StringValue() // input alliance name
 	alliance, err := allianceStore.Get(strings.ToLower(ident))
 	if err != nil {
-		_, err := discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
+		_, err := discordutil.FollowupContent(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident), true)
 		return err
 	}
 
@@ -395,7 +395,7 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 	ident := cdata.GetOption("score").GetOption("identifier").StringValue()
 	alliance, err := allianceStore.Get(strings.ToLower(ident))
 	if err != nil {
-		_, err := discordutil.FollowupContentEphemeral(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident))
+		_, err := discordutil.FollowupContent(s, i, fmt.Sprintf("Could not find alliance by identifier: `%s`.", ident), true)
 		return err
 	}
 

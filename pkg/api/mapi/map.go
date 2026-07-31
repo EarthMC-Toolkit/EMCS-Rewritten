@@ -1,9 +1,5 @@
 package mapi
 
-import (
-	"emcsrw/pkg/utils/requests"
-)
-
 const (
 	MAP_DOMAIN  = "https://map.earthmc.net"
 	MARKERS_URL = MAP_DOMAIN + "/tiles/minecraft_overworld/markers.json"
@@ -43,13 +39,13 @@ type Marker struct {
 	Points  []Point2D `json:"points"`
 }
 
-type ParsedMarker struct {
-}
+// type ParsedMarker struct {
+// }
 
-func GetMarkers() (map[string]ParsedMarker, error) {
-	_, err := requests.JsonGet[[]Layer](MARKERS_URL)
+// func GetMarkers() (map[string]ParsedMarker, error) {
+// 	_, err := requests.JsonGet[[]Layer](MARKERS_URL)
 
-	// parse markers
+// 	// parse markers
 
-	return nil, err
-}
+// 	return nil, err
+// }

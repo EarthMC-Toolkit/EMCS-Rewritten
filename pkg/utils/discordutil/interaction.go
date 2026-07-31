@@ -127,7 +127,7 @@ func ReplyWithGenericError(s *discordgo.Session, i *discordgo.Interaction) {
 	})
 	if err != nil {
 		// Must be deferred, send follow up.
-		FollowupContentEphemeral(s, i, content)
+		FollowupContent(s, i, content, true)
 	}
 }
 
@@ -142,7 +142,7 @@ func ReplyWithError(s *discordgo.Session, i *discordgo.Interaction, err error) {
 	})
 	if err != nil {
 		// Must be deferred, send follow up.
-		FollowupContentEphemeral(s, i, content)
+		FollowupContent(s, i, content, true)
 	}
 }
 
@@ -158,7 +158,7 @@ func ReplyWithPanicError(s *discordgo.Session, i *discordgo.Interaction, err any
 
 	if err != nil {
 		// Must be deferred, send follow up.
-		FollowupContentEphemeral(s, i, content)
+		FollowupContent(s, i, content, true)
 	}
 }
 
@@ -175,19 +175,13 @@ func FollowupEmbeds(s *discordgo.Session, i *discordgo.Interaction, embeds ...*d
 	})
 }
 
-// Calls FollowUp with the supplied content.
-func FollowupContent(s *discordgo.Session, i *discordgo.Interaction, content string) (*discordgo.Message, error) {
-	return Followup(s, i, &discordgo.WebhookParams{
-		Content: content,
-	})
-}
-
-// Calls FollowUp with the supplied content which will only be visible to the interaction author.
-func FollowupContentEphemeral(s *discordgo.Session, i *discordgo.Interaction, content string) (*discordgo.Message, error) {
-	return Followup(s, i, &discordgo.WebhookParams{
-		Content: content,
-		Flags:   discordgo.MessageFlagsEphemeral,
-	})
+// Calls FollowUp with the supplied content. If ephemeral is true, the response will only be visible to the interaction author.
+func FollowupContent(s *discordgo.Session, i *discordgo.Interaction, content string, ephemeral bool) (*discordgo.Message, error) {
+	p := &discordgo.WebhookParams{Content: content}
+	if ephemeral {
+		p.Flags = discordgo.MessageFlagsEphemeral
+	}
+	return Followup(s, i, p)
 }
 
 // Return the User of the interaction invoker using either the guild member or

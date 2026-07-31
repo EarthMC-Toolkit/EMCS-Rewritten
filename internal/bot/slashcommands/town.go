@@ -303,7 +303,7 @@ func executeTownQuery(s *discordgo.Session, i *discordgo.Interaction, townName s
 
 	town, err := tryGetTown(mdb, townName)
 	if err != nil {
-		return discordutil.FollowupContentEphemeral(s, i, err.Error())
+		return discordutil.FollowupContent(s, i, err.Error(), true)
 	}
 
 	msg := discordutil.NewMessageBuilder()
@@ -443,7 +443,7 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 
 	town, err := tryGetTown(mdb, townName)
 	if err != nil {
-		return discordutil.FollowupContentEphemeral(s, i, err.Error())
+		return discordutil.FollowupContent(s, i, err.Error(), true)
 	}
 
 	ids := parallel.Map(town.Residents, func(e oapi.Entity, _ int) string {
@@ -454,7 +454,7 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 	residents, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
 	if len(errs) > 0 {
 		errStr := fmt.Sprintf("Failed to query player data for residents of `%s`.```%s```", town.Name, errs[0].Error())
-		return discordutil.FollowupContentEphemeral(s, i, errStr)
+		return discordutil.FollowupContent(s, i, errStr, true)
 	}
 
 	count := len(residents)

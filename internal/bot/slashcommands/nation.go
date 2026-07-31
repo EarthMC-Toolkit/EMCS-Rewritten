@@ -162,7 +162,7 @@ func executeQueryNation(s *discordgo.Session, i *discordgo.Interaction, nationNa
 
 	nation, err := tryGetNation(mdb, nationName)
 	if err != nil {
-		return discordutil.FollowupContentEphemeral(s, i, err.Error())
+		return discordutil.FollowupContent(s, i, err.Error(), true)
 	}
 
 	allianceStore, _ := database.GetStore(mdb, database.ALLIANCES_STORE)
@@ -282,7 +282,7 @@ func executeNationActivity(s *discordgo.Session, i *discordgo.Interaction, natio
 
 	nation, err := tryGetNation(mdb, nationName)
 	if err != nil {
-		return discordutil.FollowupContentEphemeral(s, i, err.Error())
+		return discordutil.FollowupContent(s, i, err.Error(), true)
 	}
 
 	ids := parallel.Map(nation.Residents, func(e oapi.Entity, _ int) string {
@@ -292,7 +292,7 @@ func executeNationActivity(s *discordgo.Session, i *discordgo.Interaction, natio
 	residents, errs, _ := oapi.QueryPlayers(ids...).ExecuteConcurrent()
 	if len(errs) > 0 {
 		errStr := fmt.Sprintf("Failed to query player data for residents of `%s`.```%s```", nation.Name, errs[0].Error())
-		return discordutil.FollowupContentEphemeral(s, i, errStr)
+		return discordutil.FollowupContent(s, i, errStr, true)
 	}
 
 	count := len(residents)

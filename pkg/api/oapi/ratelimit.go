@@ -66,14 +66,14 @@ func (b *RequestBucket) WaitForToken() {
 }
 
 // Attempts to acquire a token without blocking the goroutine, reporting whether acquisition succeeded.
-func (b *RequestBucket) TryWaitForToken() bool {
-	select {
-	case <-b.tokens:
-		return true
-	default:
-		return false
-	}
-}
+// func (b *RequestBucket) TryWaitForToken() bool {
+// 	select {
+// 	case <-b.tokens:
+// 		return true
+// 	default:
+// 		return false
+// 	}
+// }
 
 // A dispatcher is responsible for queuing and sending requests.
 // It does this by waiting for a "token" from its internal bucket.

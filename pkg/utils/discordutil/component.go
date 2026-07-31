@@ -161,15 +161,15 @@ func SelectMenuOption(label, value, desc string, isDefault bool) discordgo.Selec
 	}
 }
 
-func SelectMenuOptionEmoji(label, value, desc string, isDefault bool, emoji *discordgo.ComponentEmoji) discordgo.SelectMenuOption {
-	return discordgo.SelectMenuOption{
-		Label:       label,
-		Value:       value,
-		Description: desc,
-		Emoji:       emoji,
-		Default:     false,
-	}
-}
+// func SelectMenuOptionEmoji(label, value, desc string, isDefault bool, emoji *discordgo.ComponentEmoji) discordgo.SelectMenuOption {
+// 	return discordgo.SelectMenuOption{
+// 		Label:       label,
+// 		Value:       value,
+// 		Description: desc,
+// 		Emoji:       emoji,
+// 		Default:     false,
+// 	}
+// }
 
 // Flags: IsMessageComponentsV2 must also be set when using this new label component.
 func Label(label string, description string, component discordgo.MessageComponent) discordgo.Label {

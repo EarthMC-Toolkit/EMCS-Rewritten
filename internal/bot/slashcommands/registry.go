@@ -81,13 +81,13 @@ func All() map[string]SlashCommand {
 	return commands
 }
 
-func AllNames() (names []string) {
-	for name := range commands {
-		names = append(names, name)
-	}
+// func AllNames() (names []string) {
+// 	for name := range commands {
+// 		names = append(names, name)
+// 	}
 
-	return
-}
+// 	return
+// }
 
 func Register(cmd SlashCommand) {
 	if len(cmd.Name()) > 32 {

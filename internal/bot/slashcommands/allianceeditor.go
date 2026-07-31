@@ -278,7 +278,7 @@ func handleAllianceEditorModalMultiUpdate(
 ) error {
 	inputs := discordutil.GetModalInputs(i)
 	if len(inputs) == 0 {
-		if _, err := discordutil.FollowupContentEphemeral(s, i, "No inputs entered in the modal. Are you high?"); err != nil {
+		if _, err := discordutil.FollowupContent(s, i, "No inputs entered in the modal. Are you high?", true); err != nil {
 			return err
 		}
 	}
@@ -376,12 +376,12 @@ func handleAllianceEditorModalMultiUpdate(
 	}
 
 	if len(parts) > 0 {
-		_, err := discordutil.FollowupContentEphemeral(s, i, strings.Join(parts.Keys(), "\n\n"))
+		_, err := discordutil.FollowupContent(s, i, strings.Join(parts.Keys(), "\n\n"), true)
 		return err
 	}
 	//#endregion
 
-	_, err = discordutil.FollowupContentEphemeral(s, i, "No changes made. Stop wasting my computing resources ya pleb.")
+	_, err = discordutil.FollowupContent(s, i, "No changes made. Stop wasting my computing resources ya pleb.", true)
 	return err
 }
 
@@ -438,7 +438,7 @@ func handleAllianceEditorModalNationsUpdate(
 	})
 
 	if len(messages) > 0 {
-		discordutil.FollowupContentEphemeral(s, i, strings.Join(messages, "\n"))
+		discordutil.FollowupContent(s, i, strings.Join(messages, "\n"), true)
 	}
 
 	return nil
@@ -529,7 +529,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	}
 
 	if len(messages) > 0 {
-		discordutil.FollowupContentEphemeral(s, i, strings.Join(messages, "\n"))
+		discordutil.FollowupContent(s, i, strings.Join(messages, "\n"), true)
 	}
 	//#endregion
 
@@ -841,7 +841,7 @@ func handleAllianceEditorModalOptional(
 			msg += "⚠️ The alliance has no leaders after this edit. You can always change this in future with `/alliance update leaders`."
 		}
 
-		discordutil.FollowupContentEphemeral(s, i, msg)
+		discordutil.FollowupContent(s, i, msg, true)
 	}
 
 	return nil

@@ -53,7 +53,7 @@ func executeServerInfo(s *discordgo.Session, i *discordgo.Interaction) (*discord
 	info, err := serverStore.Get("info")
 	if err != nil {
 		log.Printf("failed to get server info from db:\n%v", err)
-		return discordutil.FollowupContentEphemeral(s, i, "An error occurred retrieving server info from the database. Check the console.")
+		return discordutil.FollowupContent(s, i, "An error occurred retrieving server info from the database. Check the console.", true)
 	}
 
 	timePassed := info.Stats.Time

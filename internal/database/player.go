@@ -1,7 +1,6 @@
 package database
 
 import (
-	"emcsrw/internal/database/store"
 	"emcsrw/pkg/api/oapi"
 )
 
@@ -38,14 +37,14 @@ func NewBasicPlayer(id, name string) BasicPlayer {
 	}
 }
 
-func FindPlayerTown(name string, townStore *store.Store[oapi.TownInfo]) (*oapi.TownInfo, error) {
-	return townStore.Find(func(t oapi.TownInfo) bool {
-		for _, res := range t.Residents {
-			if res.Name == name {
-				return true
-			}
-		}
+// func FindPlayerTown(name string, townStore *store.Store[oapi.TownInfo]) (*oapi.TownInfo, error) {
+// 	return townStore.Find(func(t oapi.TownInfo) bool {
+// 		for _, res := range t.Residents {
+// 			if res.Name == name {
+// 				return true
+// 			}
+// 		}
 
-		return false
-	})
-}
+// 		return false
+// 	})
+// }
