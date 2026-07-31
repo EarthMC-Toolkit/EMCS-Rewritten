@@ -17,8 +17,9 @@ var integrationTypes = []discordgo.ApplicationIntegrationType{
 
 // 0 for Guilds, 2 for DMs, 3 for Private Channels
 var contexts = []discordgo.InteractionContextType{
-	discordgo.InteractionContextBotDM,
 	discordgo.InteractionContextGuild,
+	discordgo.InteractionContextBotDM,
+	discordgo.InteractionContextPrivateChannel,
 }
 
 type AppCommandOpt = *discordgo.ApplicationCommandOption
@@ -128,7 +129,7 @@ func RegisterAllCommands() {
 	Register(VotePartyCommand{})
 	Register(NewDayCommand{})
 	Register(MysteryMasterCommand{})
-	Register(SSECommand{})
+	//Register(SSECommand{})
 
 	// Misc
 	Register(DevCommand{})
