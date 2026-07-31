@@ -47,7 +47,7 @@ func main() {
 
 	s, err := newSession(config.GetBotToken())
 	if err != nil {
-		logutil.Printf(logutil.RED, "\nFATAL | failed to create session:\n\t%s", err)
+		logutil.Printf(logutil.RED, "\nFATAL | Failed to create Discord session:\n\t%s", err)
 		os.Exit(67) // SIX SEVEEEEEEN!!!1!!1!!1
 	}
 	//#endregion
@@ -73,6 +73,8 @@ func newSession(token string) (*discordgo.Session, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	logutil.Println(logutil.HIDDEN, "DEBUG | Discord session created.")
 
 	return s, err
 }
