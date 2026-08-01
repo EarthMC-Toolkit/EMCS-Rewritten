@@ -235,7 +235,7 @@ func (a Alliance) LeaderNames(reslist, townlesslist *oapi.EntityList) (names []s
 
 func (a Alliance) Stats(ownNations []oapi.NationInfo, puppetNations []oapi.NationInfo) (
 	towns []oapi.Entity,
-	residents, area, worth int,
+	residents, area, landValue int,
 ) {
 	nations := append(ownNations, puppetNations...)
 
@@ -256,7 +256,7 @@ func (a Alliance) Stats(ownNations []oapi.NationInfo, puppetNations []oapi.Natio
 
 	townsChunkWorth := (area - townsCount) * 16 // Every chunk after the first free one.
 	townsBaseWorth := townsCount * 64           // Actual cost of town creation.
-	worth = townsChunkWorth + townsBaseWorth
+	landValue = townsChunkWorth + townsBaseWorth
 
 	return
 }

@@ -159,7 +159,7 @@ func (n NationInfo) Size() int {
 	return n.Stats.NumTownBlocks
 }
 
-// Worth returns the economic worth of the nation based on its town claims.
+// LandValue returns the value of the nation's land by totaling its town claims.
 // The first chunk of each town is worth 64G, and each additional chunk is worth 16G.
 //
 // For example, a nation with 2 towns claiming a total of 5 chunks would be worth:

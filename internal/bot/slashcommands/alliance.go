@@ -424,13 +424,13 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 		rankInfo.Stats.Towns, WEIGHTS.Towns, townsCalc,
 	)
 
-	worthCalc := rankInfo.Stats.LandValue * WEIGHTS.LandValue
-	worthStr := logutil.HumanizedSprintf("Land Value: `%.0f` * `%.2f` = **%.0f**",
-		rankInfo.Stats.LandValue, WEIGHTS.LandValue, worthCalc,
+	valueCalc := rankInfo.Stats.LandValue * WEIGHTS.LandValue
+	valueStr := logutil.HumanizedSprintf("Land Value: `%.0f` * `%.2f` = **%.0f**",
+		rankInfo.Stats.LandValue, WEIGHTS.LandValue, valueCalc,
 	)
 
 	scoreStr := logutil.HumanizedSprintf("Total: `%.0f` + `%.0f` + `%.0f` + `%.0f` = **%.0f**",
-		residentsCalc, nationsCalc, townsCalc, worthCalc, rankInfo.Score,
+		residentsCalc, nationsCalc, townsCalc, valueCalc, rankInfo.Score,
 	)
 
 	// normalizedStr := logutil.HumanizedSprintf("Normalized: `%.0f` / 2 = **%.0f**",
@@ -444,7 +444,7 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 
 	title := fmt.Sprintf("Alliance Score Breakdown | `%s` | #%d", alliance.Identifier, rankInfo.Rank)
 	desc := fmt.Sprintf("%s\n\n%s\n%s\n%s\n%s\n\n%s", standingStr,
-		residentsStr, nationsStr, townsStr, worthStr,
+		residentsStr, nationsStr, townsStr, valueStr,
 		scoreStr, //normalizedStr,
 	)
 
@@ -532,14 +532,14 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 			childNationIds := a.ChildAlliances(alliances).NationIds()
 			childNations := nationStore.GetFromSet(childNationIds)
 
-			towns, residents, area, worth := a.Stats(ownNations, childNations)
+			towns, residents, area, landVal := a.Stats(ownNations, childNations)
 			allianceStrings = append(allianceStrings, fmt.Sprintf(
 				"%d. %s (%s)\nLeader(s): %s\nRepresentative: `%s`\nNations: %s\nTowns: %s\nResidents: %s\nSize: %s", start+idx+1,
 				allianceName, a.Type.Colloquial(), leaderStr, representativeName,
 				logutil.HumanizedSprintf("`%d`", len(childNations)+len(ownNations)),
 				logutil.HumanizedSprintf("`%d`", len(towns)),
 				logutil.HumanizedSprintf("`%d`", residents),
-				logutil.HumanizedSprintf("`%d` %s (Valued At `%d` %s)", area, shared.EMOJIS.CHUNK, worth, shared.EMOJIS.GOLD_INGOT),
+				logutil.HumanizedSprintf("`%d` %s (Valued At `%d` %s)", area, shared.EMOJIS.CHUNK, landVal, shared.EMOJIS.GOLD_INGOT),
 			))
 		}
 
