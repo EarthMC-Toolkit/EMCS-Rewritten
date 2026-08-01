@@ -402,9 +402,9 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 				nationName = *t.Nation.Name
 			}
 
-			size := logutil.HumanizedSprintf("`%d`/`%d` %s (Worth `%d` %s)",
+			size := logutil.HumanizedSprintf("`%d`/`%d` %s (Valued At `%d` %s)",
 				t.Size(), t.MaxSize(), shared.EMOJIS.CHUNK,
-				t.Worth(), shared.EMOJIS.GOLD_INGOT,
+				t.LandValue(), shared.EMOJIS.GOLD_INGOT,
 			)
 
 			balance := logutil.HumanizedSprintf("`%0.f` %s", t.Bal(), shared.EMOJIS.GOLD_INGOT)

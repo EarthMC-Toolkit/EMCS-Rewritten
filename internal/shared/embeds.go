@@ -80,7 +80,7 @@ func NewAllianceEmbed(
 		logutil.HumanizedSprintf("`%d`", len(towns)),
 		logutil.HumanizedSprintf("`%d`", nationsAmt),
 		logutil.HumanizedSprintf("`%d` %s", residentsAmt, EMOJIS.RESIDENT_PURPLE),
-		logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, EMOJIS.CHUNK, wealth, EMOJIS.GOLD_INGOT),
+		logutil.HumanizedSprintf("`%d` %s (Valued At `%d` %s)", area, EMOJIS.CHUNK, wealth, EMOJIS.GOLD_INGOT),
 	)
 
 	registered := a.CreatedTimestamp() / 1000
@@ -97,7 +97,7 @@ func NewAllianceEmbed(
 		title += fmt.Sprintf(" | #%d", rankInfo.Rank)
 	}
 
-	desc := fmt.Sprintf("**Leaders(s)**\n%s\n\n**Discord Representative**\n%s", leadersValue, representativeValue)
+	desc := fmt.Sprintf("**Leader(s)**\n%s\n\n**Discord Representative**\n%s", leadersValue, representativeValue)
 
 	embed := discordutil.NewEmbedBuilder(&embedColour, &title, &desc, nil)
 	embed.AddField("Stats", stats, true)
@@ -397,9 +397,9 @@ func NewTownEmbed(town oapi.TownInfo) *discordgo.MessageEmbed {
 	residentsStr := logutil.HumanizedSprintf("`%d` %s", town.Stats.NumResidents, EMOJIS.RESIDENT_PURPLE)
 	trustedOutlawsStr := logutil.HumanizedSprintf("`%d`/`%d`", town.Stats.NumTrusted, town.Stats.NumOutlaws)
 
-	sizeStr := logutil.HumanizedSprintf("`%d`/`%d` %s (Worth: `%d` %s)",
+	sizeStr := logutil.HumanizedSprintf("`%d`/`%d` %s (Valued At `%d` %s)",
 		town.Size(), town.MaxSize(),
-		EMOJIS.CHUNK, town.Worth(), EMOJIS.GOLD_INGOT,
+		EMOJIS.CHUNK, town.LandValue(), EMOJIS.GOLD_INGOT,
 	)
 
 	locationLink := fmt.Sprintf(
@@ -474,9 +474,9 @@ func NewNationEmbed(
 	balanceStr := logutil.HumanizedSprintf("`%.0f` %s", stats.Balance, EMOJIS.GOLD_INGOT)
 	bonusStr := logutil.HumanizedSprintf("`%d` %s", stats.NationBonus, EMOJIS.CHUNK)
 	alliesEnemiesStr := logutil.HumanizedSprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies)
-	sizeStr := logutil.HumanizedSprintf("`%d` %s (Worth: `%d` %s)",
+	sizeStr := logutil.HumanizedSprintf("`%d` %s (Valued At `%d` %s)",
 		nation.Size(), EMOJIS.CHUNK,
-		nation.Worth(), EMOJIS.GOLD_INGOT,
+		nation.LandValue(), EMOJIS.GOLD_INGOT,
 	)
 
 	statsStr := fmt.Sprintf(

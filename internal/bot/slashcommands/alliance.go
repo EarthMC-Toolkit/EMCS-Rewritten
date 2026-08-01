@@ -349,9 +349,9 @@ func queryAllianceNations(s *discordgo.Session, i *discordgo.Interaction, cdata 
 			towns := logutil.HumanizedSprintf("`%d`", n.NumTowns())
 			residents := logutil.HumanizedSprintf("`%d` %s", n.NumResidents(), shared.EMOJIS.RESIDENT_PURPLE)
 			balance := logutil.HumanizedSprintf("`%0.f` %s", n.Bal(), shared.EMOJIS.GOLD_INGOT)
-			size := logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)",
+			size := logutil.HumanizedSprintf("`%d` %s (Valued At `%d` %s)",
 				n.Size(), shared.EMOJIS.CHUNK,
-				n.Worth(), shared.EMOJIS.GOLD_INGOT,
+				n.LandValue(), shared.EMOJIS.GOLD_INGOT,
 			)
 
 			// convert ms to sec for Discord timestamp
@@ -424,9 +424,9 @@ func queryAllianceScore(s *discordgo.Session, i *discordgo.Interaction, cdata di
 		rankInfo.Stats.Towns, WEIGHTS.Towns, townsCalc,
 	)
 
-	worthCalc := rankInfo.Stats.Worth * WEIGHTS.Worth
-	worthStr := logutil.HumanizedSprintf("Worth: `%.0f` * `%.2f` = **%.0f**",
-		rankInfo.Stats.Worth, WEIGHTS.Worth, worthCalc,
+	worthCalc := rankInfo.Stats.LandValue * WEIGHTS.LandValue
+	worthStr := logutil.HumanizedSprintf("Land Value: `%.0f` * `%.2f` = **%.0f**",
+		rankInfo.Stats.LandValue, WEIGHTS.LandValue, worthCalc,
 	)
 
 	scoreStr := logutil.HumanizedSprintf("Total: `%.0f` + `%.0f` + `%.0f` + `%.0f` = **%.0f**",
@@ -539,7 +539,7 @@ func listAlliances(s *discordgo.Session, i *discordgo.Interaction) error {
 				logutil.HumanizedSprintf("`%d`", len(childNations)+len(ownNations)),
 				logutil.HumanizedSprintf("`%d`", len(towns)),
 				logutil.HumanizedSprintf("`%d`", residents),
-				logutil.HumanizedSprintf("`%d` %s (Worth `%d` %s)", area, shared.EMOJIS.CHUNK, worth, shared.EMOJIS.GOLD_INGOT),
+				logutil.HumanizedSprintf("`%d` %s (Valued At `%d` %s)", area, shared.EMOJIS.CHUNK, worth, shared.EMOJIS.GOLD_INGOT),
 			))
 		}
 

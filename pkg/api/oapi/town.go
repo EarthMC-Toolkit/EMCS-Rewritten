@@ -126,24 +126,25 @@ func (t TownInfo) MaxSize() uint32 {
 	return t.Stats.MaxTownBlocks
 }
 
-// Calculate the worth of the town based on its size, where the first chunk is 64G
-// (when the town is created) and each additional chunk is 16G.
-func (t TownInfo) Worth() uint32 {
-	initialCost := uint32(64)
+// Calculates and returns the worth of the town based on its size, where the first chunk is 64G
+// (when the town is created) and each additional chunk is worth 16G. If the town has 0 chunks, it is worth 0G.
+//
+// NOTE: This does not related to the towns bank balance in any way, it is purely land value.
+func (t TownInfo) LandValue() uint32 {
 	if t.Size() <= 1 {
-		return initialCost // Shouldn't rly have a town with 0 chunks, but here just in case.
+		return uint32(0) // Shouldn't rly have a town with 0 chunks, but here just in case.
 	}
 
 	chunkCost := uint32(16)
 	extra := t.Size() - 1
 
-	return initialCost + extra*chunkCost
+	return uint32(64) + (extra * chunkCost)
 }
 
-// Unlike Worth(), this func takes everything into account and provides a breakdown
-// of the towns total wealth including bank balances in addition to chunks.
+// Returns the total wealth of the town, which is the sum of its land value and bank balance.
+// This is a more accurate representation of the town's overall worth.
 func (t TownInfo) Wealth() float32 {
-	return float32(t.Worth()) + t.Bal()
+	return float32(t.LandValue()) + t.Bal()
 }
 
 func (t TownInfo) OverclaimedString() string {

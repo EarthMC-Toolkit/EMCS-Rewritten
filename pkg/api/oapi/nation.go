@@ -165,12 +165,11 @@ func (n NationInfo) Size() int {
 // For example, a nation with 2 towns claiming a total of 5 chunks would be worth:
 // (2 towns * 64G) + (3 extra chunks * 16G) = 128G + 48G = 176G.
 // This calculation does not include the nation's bank balance or any other factors and is purely based on land claims.
-func (n NationInfo) Worth() int {
-	numTowns := n.Stats.NumTowns
-	base := numTowns * 64               // every towns first initial chunk (town creation cost)
-	extra := (n.Size() - numTowns) * 16 // remaining claimed chunks
+func (n NationInfo) LandValue() uint64 {
+	base := n.Stats.NumTowns * 64               // every towns first initial chunk (town creation cost)
+	extra := (n.Size() - n.Stats.NumTowns) * 16 // remaining claimed chunks
 
-	return base + extra
+	return uint64(base + extra)
 }
 
 // NOTE: This is not 100% accurate as it relies on the online players endpoint which only returns a

@@ -30,7 +30,7 @@ type AllianceStats struct {
 	NumResidents       int `json:"numResidents"`
 	NumTowns           int `json:"numTowns"`
 	NumTownBlocks      int `json:"numTownBlocks"`
-	Worth              int `json:"worth"`
+	LandValue          int `json:"landValue"`
 }
 
 // type PuppetMap map[string][]string // Key is puppet alliance identifier, value is all it's nation names.
@@ -64,7 +64,7 @@ func parseAlliance(
 	puppetAlliances := a.ChildAlliances(alliances)
 	puppetNations := nationStore.GetFromSet(puppetAlliances.NationIds())
 
-	towns, residents, area, worth := a.Stats(ownNations, puppetNations)
+	towns, residents, area, landVal := a.Stats(ownNations, puppetNations)
 	return Alliance{
 		UUID:             a.UUID,
 		Identifier:       a.Identifier,
@@ -87,7 +87,7 @@ func parseAlliance(
 			NumResidents:       residents,
 			NumTowns:           len(towns),
 			NumTownBlocks:      area,
-			Worth:              worth,
+			LandValue:          landVal,
 		},
 	}
 }

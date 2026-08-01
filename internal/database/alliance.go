@@ -21,7 +21,7 @@ var DEFAULT_ALLIANCE_WEIGHTS = AllianceWeights{
 	Residents: 20,   // Baseline
 	Nations:   16,   // 20% less important than Residents
 	Towns:     12,   // 40% less important than Residents
-	Worth:     0.02, // Worth of all towns in this alliance. Initial cost + town blocks.
+	LandValue: 0.02, // Land value of all towns in this alliance. Initial cost + town blocks.
 }
 
 type NationEntry struct {
@@ -40,7 +40,7 @@ type AllianceRankInfo struct {
 
 type AllianceWeights AllianceStats
 type AllianceStats struct {
-	Residents, Nations, Towns, Worth float64
+	Residents, Nations, Towns, LandValue float64
 }
 
 type AllianceColours struct {
@@ -277,12 +277,12 @@ func GetRankedAlliances(
 		puppetNationIDs := a.ChildAlliances(alliances).NationIds()
 		puppetNations := nationStore.GetFromSet(puppetNationIDs)
 
-		towns, residents, _, worth := a.Stats(ownNations, puppetNations)
+		towns, residents, _, landVal := a.Stats(ownNations, puppetNations)
 		s := AllianceStats{
 			Residents: float64(residents),
 			Nations:   float64(len(ownNations) + len(puppetNations)),
 			Towns:     float64(len(towns)),
-			Worth:     float64(worth),
+			LandValue: float64(landVal),
 		}
 
 		stats[i] = s
@@ -293,7 +293,7 @@ func GetRankedAlliances(
 		s := stats[i]
 
 		// Scores could be in the millions, scale down to ensure its readable.
-		score := s.Residents*w.Residents + s.Towns*w.Towns + s.Nations*w.Nations + s.Worth*w.Worth
+		score := s.Residents*w.Residents + s.Towns*w.Towns + s.Nations*w.Nations + s.LandValue*w.LandValue
 		ranked[i] = AllianceRankInfo{
 			UUID:  a.UUID,
 			Score: score,
