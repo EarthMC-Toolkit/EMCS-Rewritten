@@ -16,12 +16,17 @@ import (
 
 var IMAGE_REGEX = regexp.MustCompile(`(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp)(?:\?[^\s]*)?)`)
 var BOLD_REGEX = regexp.MustCompile(`\*\*(.*?)\*\*`)
+var TAGS_REGEX = regexp.MustCompile("Tags:\\s*`([^`]*)`")
 
-var NTIMES_LOGO = ":nt:1488052397946310696"
-var NTIMES_LOGO_REPLACER = strings.NewReplacer(
-	"<"+NTIMES_LOGO+">", "",
-	"\u003C"+NTIMES_LOGO+"\u003E", "",
-	"\u003c"+NTIMES_LOGO+"\u003e", "",
+var NTIMES_EMOJI = ":nt:1488052397946310696"
+var NTIMES_BOT_EMOJI = ":emoji:1488052397946310696"
+var NTIMES_EMOJI_REPLACER = strings.NewReplacer(
+	"<"+NTIMES_EMOJI+">", "",
+	"\u003C"+NTIMES_EMOJI+"\u003E", "",
+	"\u003c"+NTIMES_EMOJI+"\u003e", "",
+	"<"+NTIMES_BOT_EMOJI+">", "",
+	"\u003C"+NTIMES_BOT_EMOJI+"\u003E", "",
+	"\u003c"+NTIMES_BOT_EMOJI+"\u003e", "",
 )
 
 // var EMCL_LOGO = ":EMCL:12345678910"
@@ -44,11 +49,13 @@ type NewsEntry struct {
 	Images sets.Set[string] `json:"images"`
 	// The timestamp denoting when the message was posted (ms since the last Unix epoch).
 	Timestamp int64 `json:"timestamp"`
+	// Single comma-seperated string of tags, if any exist in the msg. These are usually only present for reports sent by the bot.
+	Tags string `json:"tags,omitempty"`
 }
 
 // Returns a new string with the headline in bold text and the news provider's emoji before it.
 func (e *NewsEntry) ParsedHeadline() string {
-	return fmt.Sprintf("<%s> **%s**", NTIMES_LOGO, e.Headline)
+	return fmt.Sprintf("<%s> **%s**", NTIMES_EMOJI, e.Headline)
 }
 
 // Returns a new string with attached image hyperlinks in brackets and a relative Discord timestamp attached at the end.
@@ -74,12 +81,15 @@ func (e *NewsEntry) Context() string {
 }
 
 func NewNewsEntry(m *discordgo.Message) NewsEntry {
-	entry := NewsEntry{
-		//ID:        msg.ID,
+	e := NewsEntry{
 		Message:   m.Content,
 		Timestamp: m.Timestamp.UnixMilli(),
 	}
 
+	return ParseEntry(e, m)
+}
+
+func ParseEntry(entry NewsEntry, m *discordgo.Message) NewsEntry {
 	// All attachments that are images should be added to the entry.Images slice,
 	// but any duplicate images found in the message content should be ignored since they are already included.
 	for _, attachment := range m.Attachments {
@@ -95,7 +105,7 @@ func NewNewsEntry(m *discordgo.Message) NewsEntry {
 	}
 
 	// Strip the news logo so it isn't included when we go to set the headline.
-	cleanedMsg := NTIMES_LOGO_REPLACER.Replace(entry.Message)
+	cleanedMsg := NTIMES_EMOJI_REPLACER.Replace(entry.Message)
 
 	// Content has at least one image link.
 	if matches := IMAGE_REGEX.FindAllString(m.Content, -1); len(matches) > 0 {
@@ -104,6 +114,7 @@ func NewNewsEntry(m *discordgo.Message) NewsEntry {
 	}
 
 	entry.Headline = extractHeadline(cleanedMsg)
+	entry.Tags = extractTags(cleanedMsg)
 
 	return entry
 }
@@ -123,6 +134,14 @@ func extractHeadline(msg string) string {
 	return strings.TrimSpace(strings.TrimLeft(before, "# ")) // Remove all markdown headings, we just need the headline text.
 }
 
+func extractTags(msg string) string {
+	if matches := TAGS_REGEX.FindStringSubmatch(msg); len(matches) > 1 {
+		return strings.TrimSpace(matches[1]) // Match [0] is the full string, [1] is the captured group ("alliance, conflict" etc).
+	}
+
+	return ""
+}
+
 type NewsMessageID = string
 
 // Converts Discord messages into a map of [NewsEntry] (headline, timestamp etc) keyed by the message ID.
@@ -137,8 +156,8 @@ func MessagesToNewsEntries(s *discordgo.Session, msgs []*discordgo.Message) map[
 		if strings.HasPrefix(content, "<@") && strings.HasSuffix(content, ">") {
 			continue // mentions without headlines aren't news.
 		}
-		if !strings.Contains(content, NTIMES_LOGO) {
-			continue // message without a logo probably isn't news.
+		if !strings.Contains(content, NTIMES_EMOJI) && !strings.Contains(content, NTIMES_BOT_EMOJI) {
+			continue // message without a logo emoji probably isn't news.
 		}
 
 		entry := NewNewsEntry(msg)
