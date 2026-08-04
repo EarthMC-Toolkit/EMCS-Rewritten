@@ -84,6 +84,7 @@ func NewNewsEntry(m *discordgo.Message) NewsEntry {
 	e := NewsEntry{
 		Message:   m.Content,
 		Timestamp: m.Timestamp.UnixMilli(),
+		Images:    sets.New[string](),
 	}
 
 	return ParseEntry(e, m)
