@@ -30,12 +30,20 @@ var NTIMES_LOGO_REPLACER = strings.NewReplacer(
 // 	"\u003C"+EMCL_LOGO+"\u003E", "",
 // )
 
+// Generic entry representing a news message. This can be used in both cases where
+// news reports were either sent by the NT bot or manually by a reporter.
+//
+// The only difference between the two is that NT bot messages will always
+// have the NT logo in the message, while reporter messages *may* not.
 type NewsEntry struct {
-	//ID        string   `json:"id"`
-	Message   string   `json:"message"`
-	Headline  string   `json:"headline"`
-	Images    []string `json:"images"`
-	Timestamp int64    `json:"timestamp"`
+	// The raw Discord message contents, which may include the news logo, bold text, and image links.
+	Message string `json:"message"`
+	// Extracted from the message content, either from bold text or from the first line after the news logo.
+	Headline string `json:"headline"`
+	// Extracted from both message attachments and any image links in the message content.
+	Images []string `json:"images"`
+	// Taken from the message's timestamp, which is in milliseconds since the epoch.
+	Timestamp int64 `json:"timestamp"`
 }
 
 // Returns a new string with the headline in bold text and the news provider's emoji before it.
@@ -97,6 +105,21 @@ func NewNewsEntry(m *discordgo.Message) NewsEntry {
 	}
 
 	entry.Headline = extractHeadline(cleanedMsg)
+
+	// All attachments that are images should be added to the entry.Images slice,
+	// but any duplicate images found in the message content should be ignored since they are already included.
+	for _, attachment := range m.Attachments {
+		urlStr := attachment.URL
+		if IMAGE_REGEX.MatchString(urlStr) {
+			u, err := url.Parse(urlStr)
+			if err == nil {
+				u.Fragment = ""
+				urlStr = u.String()
+			}
+			entry.Images = append(entry.Images, urlStr)
+		}
+	}
+
 	return entry
 }
 
