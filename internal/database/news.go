@@ -30,19 +30,19 @@ var NTIMES_LOGO_REPLACER = strings.NewReplacer(
 // 	"\u003C"+EMCL_LOGO+"\u003E", "",
 // )
 
-// Generic entry representing a news message. This can be used in both cases where
-// news reports were either sent by the NT bot or manually by a reporter.
+// Generic entry representing a news message. This can be used in both cases where news reports were either
+// sent by the NT bot or manually by a reporter. When sent manually, tags and reporter name may be missing.
 //
 // The only difference between the two is that NT bot messages will always
 // have the NT logo in the message, while reporter messages *may* not.
 type NewsEntry struct {
-	// The raw Discord message contents, which may include the news logo, bold text, and image links.
+	// The raw Discord message contents, which may include the news logo, bold text, image links, tags, credit, reporter.
 	Message string `json:"message"`
 	// Extracted from the message content, either from bold text or from the first line after the news logo.
 	Headline string `json:"headline"`
 	// Extracted from both message attachments and any image links in the message content.
 	Images sets.Set[string] `json:"images"`
-	// Taken from the message's timestamp, which is in milliseconds since the epoch.
+	// The timestamp denoting when the message was posted (ms since the last Unix epoch).
 	Timestamp int64 `json:"timestamp"`
 }
 
