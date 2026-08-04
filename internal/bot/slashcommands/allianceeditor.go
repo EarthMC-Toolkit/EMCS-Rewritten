@@ -22,7 +22,7 @@ import (
 	"github.com/samber/lo"
 )
 
-var REMOVE_KEYWORDS = []string{"none", "remove", "delete"}
+var REMOVE_KEYWORDS = [...]string{"none", "remove", "delete"}
 
 // TODO: Track conflicts also? (Nations specified in both remove and add)
 type UpdateResult struct {
@@ -555,7 +555,7 @@ func handleAllianceEditorModalFunctional(
 	parentInput := strings.ReplaceAll(inputs["parent"], " ", "")
 	parentInputLower := strings.ToLower(parentInput)
 
-	if slices.Contains(REMOVE_KEYWORDS, parentInputLower) {
+	if slices.Contains(REMOVE_KEYWORDS[:], parentInputLower) {
 		parentIdent = nil
 	} else if parentInput != "" {
 		parent, err := allianceStore.Get(parentInputLower)

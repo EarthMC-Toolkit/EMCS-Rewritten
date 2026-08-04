@@ -54,8 +54,8 @@ var MAP_BOUNDS = MapBounds{
 	Top: -32256, Bottom: 32256,
 }
 
-var DIRECTIONS = []string{"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
-var BASE_DIRECTIONS = []string{"N", "E", "S", "W"}
+var DIRECTIONS = [...]string{"N", "NE", "E", "SE", "S", "SW", "W", "NW"}
+var BASE_DIRECTIONS = [...]string{"N", "E", "S", "W"}
 
 type RouteCommand struct{}
 

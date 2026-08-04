@@ -21,8 +21,8 @@ import (
 	"github.com/samber/lo/parallel"
 )
 
-// max amount of messages to fetch from news channel during its scheduled task.
-// should be enough to cover at least a few days/weeks of news depending on activity.
+// Max amount of messages to fetch from news channel during its scheduled task.
+// This should usually be set to a high number, enough to cover at least a few days/weeks of news depending on activity.
 const NEWS_CHANNEL_MAX_FETCH = 500
 
 // VoteParty notification tracking.
@@ -31,11 +31,11 @@ var vpNotified = make(map[int]bool) // Key is each threshold, value is whether n
 var vpLastRemaining int
 var vpLastCheck time.Time
 
-var readyOnce sync.Once // This prevents running tasks more than once if OnReady is called multiple times.
+// Prevents running tasks more than once if OnReady is *somehow* called multiple times.
+var readyOnce sync.Once
 
 func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 	logutil.Logf(logutil.BLUE, "Logged in as: %s\n", s.State.User.Username)
-
 	readyOnce.Do(func() {
 		mdb, err := database.Get(shared.ACTIVE_MAP)
 		if err != nil {
@@ -291,7 +291,7 @@ func newsTask(s *discordgo.Session, channelID string, mdb *database.Database) {
 		for id, entry := range entries {
 			// We don't want to include news from before Nostra release.
 			if entry.Timestamp < shared.NOSTRA_RELEASE_TIMESTAMP {
-				newsStore.Delete(id) // This is a no-op and just ensures old entries are removed if they somehow got in there before.
+				newsStore.Delete(id) // This is a no-op and just ensure we remove old entries if they somehow got in there before.
 				continue
 			}
 
