@@ -50,7 +50,7 @@ type NewsEntry struct {
 	// The timestamp denoting when the message was posted (ms since the last Unix epoch).
 	Timestamp int64 `json:"timestamp"`
 	// Single comma-seperated string of tags, if any exist in the msg. These are usually only present for reports sent by the bot.
-	Tags string `json:"tags,omitempty"`
+	//Tags string `json:"tags,omitempty"`
 }
 
 // Returns a new string with the headline in bold text and the news provider's emoji before it.
@@ -115,7 +115,7 @@ func ParseEntry(entry NewsEntry, m *discordgo.Message) NewsEntry {
 	}
 
 	entry.Headline = extractHeadline(cleanedMsg)
-	entry.Tags = extractTags(cleanedMsg)
+	// entry.Tags = extractTags(cleanedMsg)
 
 	return entry
 }
@@ -126,17 +126,17 @@ func ParseEntry(entry NewsEntry, m *discordgo.Message) NewsEntry {
 //  2. Everything after the news emoji if markdown '#' heading(s) are present.
 //
 // In both cases we only use first line, everything on lines after that gets removed (extra context, credit etc).
-func extractHeadline(msg string) string {
-	if matches := BOLD_REGEX.FindStringSubmatch(msg); len(matches) > 1 {
+func extractHeadline(msgContent string) string {
+	if matches := BOLD_REGEX.FindStringSubmatch(msgContent); len(matches) > 1 {
 		return strings.TrimSpace(matches[1]) // We found text in bold, just return everything inside :)
 	}
 
-	before, _, _ := strings.Cut(msg, "\n")                   // Ensure we strip extra fluff that might be on a new line.
+	before, _, _ := strings.Cut(msgContent, "\n")            // Ensure we strip extra fluff that might be on a new line.
 	return strings.TrimSpace(strings.TrimLeft(before, "# ")) // Remove all markdown headings, we just need the headline text.
 }
 
-func extractTags(msg string) string {
-	if matches := TAGS_REGEX.FindStringSubmatch(msg); len(matches) > 1 {
+func extractTags(msgContent string) string {
+	if matches := TAGS_REGEX.FindStringSubmatch(msgContent); len(matches) > 1 {
 		return strings.TrimSpace(matches[1]) // Match [0] is the full string, [1] is the captured group ("alliance, conflict" etc).
 	}
 
