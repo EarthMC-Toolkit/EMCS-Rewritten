@@ -31,8 +31,10 @@ func (s Set[K]) Has(key K) bool {
 
 // Adds key to this set.
 // If the key needs to be modified or different based on condition, use AppendFunc instead.
-func (s Set[K]) Add(key K) {
-	s[key] = struct{}{}
+func (s Set[K]) Add(keys ...K) {
+	for _, key := range keys {
+		s[key] = struct{}{}
+	}
 }
 
 // Passes the key to func f before adding it to this set.
@@ -44,16 +46,25 @@ func (s Set[K]) Remove(key K) {
 	delete(s, key)
 }
 
-// Returns all elements in this set as a slice.
+// Returns all elements in this Set as a slice.
+// Since a Set can be serialized, this is usually only used for display purposes
+// or when you need to pass the elements to a function that requires a slice.
 func (s Set[K]) Keys() []K {
-	count := len(s)
-	if count == 0 {
-		return make([]K, 0)
-	}
-
-	keys := make([]K, 0, count)
+	keys := make([]K, 0, len(s))
 	for k := range s {
 		keys = append(keys, k)
+	}
+
+	return keys
+}
+
+// Returns all elements in this Set as a slice, transforming each element with the given function f.
+// Since a Set can be serialized, this is usually only used for display purposes
+// or when you need to pass the elements to a function that requires a slice.
+func (s Set[K]) KeysFunc(f func(K) K) []K {
+	keys := make([]K, 0, len(s))
+	for k := range s {
+		keys = append(keys, f(k))
 	}
 
 	return keys

@@ -41,7 +41,7 @@ type NewsEntry struct {
 	// Extracted from the message content, either from bold text or from the first line after the news logo.
 	Headline string `json:"headline"`
 	// Extracted from both message attachments and any image links in the message content.
-	Images []string `json:"images"`
+	Images sets.Set[string] `json:"images"`
 	// Taken from the message's timestamp, which is in milliseconds since the epoch.
 	Timestamp int64 `json:"timestamp"`
 }
@@ -65,10 +65,9 @@ func (e *NewsEntry) Context() string {
 		return timestamp
 	}
 
-	imgs := make([]string, len(e.Images))
-	for j, img := range e.Images {
-		imgs[j] = fmt.Sprintf("[Image](%s)", img)
-	}
+	imgs := e.Images.KeysFunc(func(img string) string {
+		return fmt.Sprintf("[Image](%s)", img)
+	})
 
 	imgLinks := strings.Join(imgs, ", ")
 	return fmt.Sprintf(" (%s) %s", imgLinks, timestamp)
@@ -81,31 +80,6 @@ func NewNewsEntry(m *discordgo.Message) NewsEntry {
 		Timestamp: m.Timestamp.UnixMilli(),
 	}
 
-	// If there are attachments in the message, push attachment.url to images
-	for _, attachment := range m.Attachments {
-		urlStr := attachment.URL
-		if IMAGE_REGEX.MatchString(urlStr) {
-			u, err := url.Parse(urlStr)
-			if err == nil {
-				u.Fragment = ""
-				urlStr = u.String()
-			}
-
-			entry.Images = append(entry.Images, urlStr)
-		}
-	}
-
-	// Strip the news logo so it isn't included when we go to set the headline.
-	cleanedMsg := NTIMES_LOGO_REPLACER.Replace(entry.Message)
-
-	// Content has at least one image link.
-	if matches := IMAGE_REGEX.FindAllString(m.Content, -1); len(matches) > 0 {
-		entry.Images = append(entry.Images, matches...)
-		cleanedMsg = strings.TrimSpace(IMAGE_REGEX.ReplaceAllString(cleanedMsg, "")) // TODO: is this is necessary if we match bold anyway?
-	}
-
-	entry.Headline = extractHeadline(cleanedMsg)
-
 	// All attachments that are images should be added to the entry.Images slice,
 	// but any duplicate images found in the message content should be ignored since they are already included.
 	for _, attachment := range m.Attachments {
@@ -116,9 +90,20 @@ func NewNewsEntry(m *discordgo.Message) NewsEntry {
 				u.Fragment = ""
 				urlStr = u.String()
 			}
-			entry.Images = append(entry.Images, urlStr)
+			entry.Images.Add(urlStr)
 		}
 	}
+
+	// Strip the news logo so it isn't included when we go to set the headline.
+	cleanedMsg := NTIMES_LOGO_REPLACER.Replace(entry.Message)
+
+	// Content has at least one image link.
+	if matches := IMAGE_REGEX.FindAllString(m.Content, -1); len(matches) > 0 {
+		entry.Images.Add(matches...)
+		cleanedMsg = strings.TrimSpace(IMAGE_REGEX.ReplaceAllString(cleanedMsg, "")) // TODO: is this is necessary if we match bold anyway?
+	}
+
+	entry.Headline = extractHeadline(cleanedMsg)
 
 	return entry
 }

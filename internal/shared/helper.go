@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/samber/lo"
 )
@@ -69,7 +70,7 @@ func BuildNewsString(news []database.NewsEntry, max uint8, charLimit uint16) (st
 	size := 0
 
 	for i, entry := range news {
-		if i == int(max) {
+		if i >= int(max) {
 			break
 		}
 
@@ -86,12 +87,13 @@ func BuildNewsString(news []database.NewsEntry, max uint8, charLimit uint16) (st
 			part = "\n\n" + part
 		}
 
-		if size+len(part) > int(charLimit) {
+		partSize := utf8.RuneCountInString(part) // Discord character limits count Unicode characters, not UTF-8 bytes.
+		if size+partSize > int(charLimit) {
 			break
 		}
 
 		b.WriteString(part)
-		size += len(part)
+		size += partSize
 		count++
 	}
 
