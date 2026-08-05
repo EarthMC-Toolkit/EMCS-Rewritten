@@ -19,10 +19,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var (
-	bannedIds sets.Set[string]
-	once      sync.Once
-)
+var bannedIds sets.Set[string]
+var once sync.Once
 
 func OnApplicationCommandInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	defer func() {
@@ -102,7 +100,7 @@ func OnAutocompleteInteractionCreate(s *discordgo.Session, i *discordgo.Interact
 }
 
 func loadBanned() {
-	bannedIds = sets.New[string]()
+	bannedIds = sets.New[string]() // initialize the set, only runs once so keep it here
 
 	idsStr, err := config.GetEnviroVar("BANNED_PLAYERS")
 	if err != nil {

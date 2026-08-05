@@ -10,7 +10,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/joho/godotenv v1.5.1
 	github.com/samber/lo v1.53.0
-	github.com/sanity-io/litter v1.5.8
+	github.com/sanity-io/litter v1.1.0
 	github.com/yuin/goldmark v1.8.5
 )
 
@@ -20,8 +20,8 @@ require (
 )
 
 require (
+	github.com/gofrs/flock v0.13.0
 	github.com/gorilla/websocket v1.5.3 // indirect
-	github.com/rogpeppe/go-internal v1.15.0
 	github.com/rs/cors v1.11.1
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0

@@ -6,33 +6,37 @@ import (
 	"emcsrw/pkg/api/capi"
 	"emcsrw/pkg/utils/config"
 	"emcsrw/pkg/utils/logutil"
-	"log"
+	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/rogpeppe/go-internal/lockedfile"
+	"github.com/gofrs/flock"
 )
 
-const LOCK_FPATH = "/tmp/emcsrw.lock"
+// The cross platform path to the lock file used to prevent multiple instances of the bot from running at the same time.
+//   - Unix: ~/tmp/emcsrw.lock
+//   - Windows: C:\Users\<user>\AppData\Local\Temp\emcsrw.lock
+var lockPath = filepath.Join(os.TempDir(), "emcsrw.lock")
 
-// Creates a lock file and returns a handle to unlock it (remove the file).
-func lockProcess() func() error {
-	lock, err := lockedfile.OpenFile(LOCK_FPATH, os.O_CREATE|os.O_RDWR, 0600)
-	if err != nil {
-		log.Fatal(err)
+// Attempts to acquire an exclusive process lock.
+// Returns an unlock function if successful, or an error if another instance already holds the lock.
+func lockProcess() (func() error, error) {
+	lock := flock.New(lockPath)
+	if locked, err := lock.TryLock(); err != nil {
+		return nil, err
+	} else if !locked {
+		return nil, fmt.Errorf("another instance of EMCS is already running")
 	}
 
-	logutil.Println(logutil.HIDDEN, "DEBUG | Acquired lock from ~"+LOCK_FPATH)
+	logutil.Println(logutil.HIDDEN, "DEBUG | Acquired process lock")
 	return func() error {
-		err := lock.Close()
-		if err != nil {
-			logutil.Println(logutil.RED, "ERR | Failed to close lock at ~"+LOCK_FPATH)
-			return err
+		err := lock.Unlock()
+		if err == nil {
+			logutil.Println(logutil.HIDDEN, "DEBUG | Released process lock")
 		}
-
-		logutil.Println(logutil.HIDDEN, "DEBUG | Removed lock from ~"+LOCK_FPATH)
-		return nil
-	}
+		return err
+	}, nil
 }
 
 func main() {
@@ -40,6 +44,16 @@ func main() {
 	if len(os.Args) < 2 {
 		logutil.Println(logutil.RED, "ERR | missing subcommand. Usage: go run . [sync|bot|api]")
 		return
+	}
+
+	subCmd := os.Args[1]
+	if subCmd == "bot" {
+		unlock, err := lockProcess()
+		if err != nil {
+			logutil.Println(logutil.RED, "ERR |", err)
+			os.Exit(1)
+		}
+		defer unlock()
 	}
 
 	config.LoadEnv()
@@ -52,12 +66,8 @@ func main() {
 	}
 	//#endregion
 
-	subCmd := os.Args[1]
 	switch subCmd {
 	case "bot":
-		unlock := lockProcess()
-		defer unlock()
-
 		bot.Start(s)
 	case "api":
 		capi.Start()
@@ -75,6 +85,5 @@ func newSession(token string) (*discordgo.Session, error) {
 	}
 
 	logutil.Println(logutil.HIDDEN, "DEBUG | Discord session created.")
-
 	return s, err
 }
