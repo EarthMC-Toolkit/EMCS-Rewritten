@@ -50,7 +50,7 @@ func OnReady(s *discordgo.Session, r *discordgo.Ready) {
 		if cid, err := config.GetEnviroVar("NEWS_CHANNEL_ID"); err == nil {
 			scheduler.Instance.Schedule("NewsEntries", func() { newsTask(s, cid, mdb) }, true, 2*time.Minute)
 		} else {
-			logutil.Printf(logutil.YELLOW, "\nWARNING | NEWS_CHANNEL_ID not set. Skipped scheduling of news retrieval task.\n")
+			logutil.Printf(logutil.YELLOW, "\nWARN | NEWS_CHANNEL_ID not set. Skipped scheduling of news retrieval task.\n")
 		}
 
 		// TODO: Create a scheduled task that loops through alliances, removing nations that no longer exist.
@@ -209,7 +209,7 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 		//TrySendRuinedNotif(s, cid, townList, staleTowns)
 		TrySendDeletedNotif(s, cid, towns, staleTowns)
 	} else {
-		logutil.Printf(logutil.YELLOW, "\nWARNING | TFLOW_CHANNEL_ID not set. Skipping town flow event notifications.\n")
+		logutil.Printf(logutil.YELLOW, "\nWARN | TFLOW_CHANNEL_ID not set. Skipping town flow event notifications.\n")
 	}
 
 	cid, err = config.GetEnviroVar("PFLOW_CHANNEL_ID")
@@ -217,7 +217,7 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 		// Player flow event notifications sent to channel PFLOW_CHANNEL_ID.
 		TrySendLeftJoinedNotif(s, cid, towns, staleTowns, townless, residents)
 	} else {
-		logutil.Printf(logutil.YELLOW, "\nWARNING | PFLOW_CHANNEL_ID not set. Skipping player flow event notifications.\n")
+		logutil.Printf(logutil.YELLOW, "\nWARN | PFLOW_CHANNEL_ID not set. Skipping player flow event notifications.\n")
 	}
 	//#endregion
 }
@@ -262,7 +262,7 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 	}); err == nil {
 		cid, err := config.GetEnviroVar("VP_CHANNEL_ID")
 		if err != nil {
-			logutil.Printf(logutil.YELLOW, "\nWARNING | VP_CHANNEL_ID not set. Skipping VoteParty notifications.\n")
+			logutil.Printf(logutil.YELLOW, "\nWARN | VP_CHANNEL_ID not set. Skipping VoteParty notifications.\n")
 		} else {
 			TrySendVotePartyNotif(s, cid, info.VoteParty)
 		}
