@@ -36,6 +36,7 @@ var GUILD_INTENTS = discordgo.IntentGuilds |
 // https://discord.com/developers/docs/events/gateway-events#receive-events
 var EVENT_HANDLERS = [...]any{
 	events.OnReady,
+	events.OnDisconnect,
 	events.OnApplicationCommandInteractionCreate,
 	events.OnModalSubmitInteractionCreate,
 	events.OnSelectMenuInteractionCreate,
@@ -49,6 +50,7 @@ var EVENT_HANDLERS = [...]any{
 func Connect(s *discordgo.Session) *discordgo.Session {
 	s.Identify.Intents = ALL_INTENTS
 	s.SyncEvents = false // Run handlers in a goroutine to prevent a command waiting on another user's command.
+	s.ShouldReconnectOnError = true
 
 	for _, eh := range EVENT_HANDLERS {
 		s.AddHandler(eh)
@@ -91,6 +93,7 @@ func Start(s *discordgo.Session) {
 	sig := <-c
 
 	logutil.Printf(logutil.YELLOW, "\n\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
+	events.ShuttingDown.Store(true)
 	Shutdown(s, activeMapDB)
 	//#endregion
 }
