@@ -80,6 +80,7 @@ func executeLatestNews(
 		return cmp.Compare(b.Timestamp, a.Timestamp)
 	})
 
+	// TODO: Why is this not a paginator?
 	desc, amt := shared.BuildNewsString(articles, count, discordutil.EMBED_DESCRIPTION_LIMIT)
 	title := fmt.Sprintf("[%d] News Articles | Latest", amt)
 
@@ -99,6 +100,7 @@ func executeChangelogNews(
 		return cmp.Compare(b.Timestamp, a.Timestamp)
 	})
 
+	// TODO: Why is this not a paginator?
 	desc, amt := shared.BuildNewsString(articles, 10, discordutil.EMBED_DESCRIPTION_LIMIT)
 	title := fmt.Sprintf("[%d] News Articles | Changelogs", amt)
 
@@ -121,6 +123,7 @@ func executeSearchNews(
 		return cmp.Compare(b.Timestamp, a.Timestamp)
 	})
 
+	// TODO: Why is this not a paginator?
 	desc, amt := shared.BuildNewsString(articles, 20, discordutil.EMBED_DESCRIPTION_LIMIT)
 	title := fmt.Sprintf("[%d] News Articles | Search by term: `%s`", amt, term)
 
