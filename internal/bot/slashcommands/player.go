@@ -5,7 +5,7 @@ import (
 	"emcsrw/internal/shared"
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils/discordutil"
-	"emcsrw/pkg/utils/requests"
+	"emcsrw/pkg/utils/netutil"
 	"errors"
 	"fmt"
 	"strings"
@@ -81,7 +81,7 @@ func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerNa
 			msg.AddButton("NameMC", discordgo.LinkButton, nameMC, &discordutil.NAMEMC_EMOJI, nil)
 
 			wiki := fmt.Sprintf("https://wiki.earthmc.net/wiki/%s", bp.Name)
-			if _, hasWiki := requests.Ping(wiki); hasWiki {
+			if _, hasWiki := netutil.Ping(wiki); hasWiki {
 				msg.AddButton("Wiki Page", discordgo.LinkButton, wiki, &discordutil.WIKI_EMOJI, nil)
 			}
 		}
@@ -110,7 +110,7 @@ func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerNa
 	msg.AddButton("NameMC", discordgo.LinkButton, nameMC, &discordutil.NAMEMC_EMOJI, nil)
 
 	wiki := fmt.Sprintf("https://wiki.earthmc.net/wiki/%s", players[0].Name)
-	if _, hasWiki := requests.Ping(wiki); hasWiki {
+	if _, hasWiki := netutil.Ping(wiki); hasWiki {
 		msg.AddButton("Wiki Page", discordgo.LinkButton, wiki, &discordutil.WIKI_EMOJI, nil)
 	}
 

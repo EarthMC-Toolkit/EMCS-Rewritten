@@ -9,7 +9,7 @@ import (
 	"emcsrw/internal/database/store"
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils"
-	"encoding/binary"
+	"emcsrw/pkg/utils/netutil"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -170,7 +170,7 @@ func ServeAlliances(
 		alliances := allianceStore.Values()
 
 		// compute lightweight hash of alliance identifiers + timestamps
-		currentHash := computeHash(alliances, func(a database.Alliance) (string, int64) {
+		currentHash := netutil.ComputeHash(alliances, func(a database.Alliance) (string, int64) {
 			return a.Identifier, int64(*a.UpdatedTimestamp)
 		})
 
@@ -207,7 +207,7 @@ func ServeAlliances(
 			alliancesCacheMu.Unlock()
 		}
 
-		data, err := gzipJSON(parsedAlliances, 1)
+		data, err := netutil.GzipJSON(parsedAlliances, 1)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -360,7 +360,7 @@ func TTLGzipHandler[T any](
 		}
 
 		dataSlice := dataFunc()
-		data, err := gzipJSON(dataSlice, 2)
+		data, err := netutil.GzipJSON(dataSlice, 2)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -371,34 +371,4 @@ func TTLGzipHandler[T any](
 
 		write(w, data)
 	}
-}
-
-func gzipJSON[T any](v T, level int) ([]byte, error) {
-	buf := bytes.Buffer{}
-	gz, err := gzip.NewWriterLevel(&buf, level)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.NewEncoder(gz).Encode(v); err != nil {
-		gz.Close()
-		return nil, err
-	}
-	if err := gz.Close(); err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
-}
-
-func computeHash[T any](items []T, keyFn func(T) (id string, timestamp int64)) string {
-	h := sha1.New()
-	for _, item := range items {
-		id, ts := keyFn(item)
-		h.Write([]byte(id))
-		var buf [8]byte
-		binary.LittleEndian.PutUint64(buf[:], uint64(ts))
-		h.Write(buf[:])
-	}
-
-	return fmt.Sprintf("%x", h.Sum(nil))
 }

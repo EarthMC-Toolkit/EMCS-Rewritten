@@ -1,7 +1,7 @@
 package oapi
 
 import (
-	"emcsrw/pkg/utils/requests"
+	"emcsrw/pkg/utils/netutil"
 	"sync"
 
 	"github.com/samber/lo"
@@ -46,7 +46,7 @@ func NewGetQuery[T any](endpoint Endpoint) *GetQuery[T] {
 func (q *GetQuery[T]) Execute() (T, error) {
 	resCh := make(chan RequestResult[T], 1)
 	Dispatcher.Enqueue(func() error {
-		res, err := requests.JsonGet[T](q.endpoint)
+		res, err := netutil.JsonGet[T](q.endpoint)
 		resCh <- RequestResult[T]{res, err}
 		return err
 	})
@@ -88,7 +88,7 @@ func (q *PostQuery[T]) WithTemplate(template map[string]bool) *PostQuery[T] {
 func (q *PostQuery[T]) Execute() ([]T, error) {
 	resCh := make(chan RequestResult[[]T], 1)
 	Dispatcher.Enqueue(func() error {
-		results, err := requests.JsonPost[[]T](q.endpoint, q.body)
+		results, err := netutil.JsonPost[[]T](q.endpoint, q.body)
 		resCh <- RequestResult[[]T]{results, err}
 		return err
 	})
@@ -114,7 +114,7 @@ func (q *PostQuery[T]) ExecuteConcurrent() ([]T, []error, int) {
 			defer wg.Done()
 
 			body := NewPostBody(chunkCopy, q.body.Template)
-			results, err := requests.JsonPost[[]T](q.endpoint, body)
+			results, err := netutil.JsonPost[[]T](q.endpoint, body)
 			if err != nil {
 				errCh <- err
 				return err

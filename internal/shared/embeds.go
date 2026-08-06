@@ -470,7 +470,8 @@ func NewNationEmbed(
 		spawn.X, spawn.Y, spawn.Z, spawn.X, spawn.Z,
 	)
 
-	townsResidentsStr := logutil.HumanizedSprintf("`%d`/`%d`", stats.NumTowns, stats.NumResidents)
+	townsStr := logutil.HumanizedSprintf("`%d`", stats.NumTowns)
+	residentsStr := logutil.HumanizedSprintf("`%d`", stats.NumResidents)
 	balanceStr := logutil.HumanizedSprintf("`%.0f` %s", stats.Balance, EMOJIS.GOLD_INGOT)
 	bonusStr := logutil.HumanizedSprintf("`%d` %s", stats.NationBonus, EMOJIS.CHUNK)
 	alliesEnemiesStr := logutil.HumanizedSprintf("`%d`/`%d`", stats.NumAllies, stats.NumEnemies)
@@ -480,8 +481,8 @@ func NewNationEmbed(
 	)
 
 	statsStr := fmt.Sprintf(
-		"Size: %s\nBalance: %s\nTowns/Residents: %s\nAllies/Enemies: %s\nClaim Bonus: %s",
-		sizeStr, balanceStr, townsResidentsStr, alliesEnemiesStr, bonusStr,
+		"Balance: %s\nSize: %s\nTowns: %s\nTotal Residents: %s\nAllies/Enemies: %s\nClaim Bonus: %s",
+		sizeStr, balanceStr, townsStr, residentsStr, alliesEnemiesStr, bonusStr,
 	)
 
 	open := fmt.Sprintf("%s Open", lo.Ternary(nation.Status.Open, ":green_circle:", ":red_circle:"))

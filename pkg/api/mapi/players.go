@@ -1,7 +1,7 @@
 package mapi
 
 import (
-	"emcsrw/pkg/utils/requests"
+	"emcsrw/pkg/utils/netutil"
 	"fmt"
 )
 
@@ -33,7 +33,7 @@ type PlayersResponse struct {
 
 // TODO: Maybe return map instead, using UUID as key for faster lookup?
 func GetVisiblePlayers() ([]MapPlayer, error) {
-	res, err := requests.JsonGet[PlayersResponse](PLAYERS_URL)
+	res, err := netutil.JsonGet[PlayersResponse](PLAYERS_URL)
 	if err != nil {
 		return nil, err
 	}
