@@ -482,7 +482,7 @@ func NewNationEmbed(
 
 	statsStr := fmt.Sprintf(
 		"Balance: %s\nSize: %s\nTowns: %s\nTotal Residents: %s\nAllies/Enemies: %s\nClaim Bonus: %s",
-		sizeStr, balanceStr, townsStr, residentsStr, alliesEnemiesStr, bonusStr,
+		balanceStr, sizeStr, townsStr, residentsStr, alliesEnemiesStr, bonusStr,
 	)
 
 	open := fmt.Sprintf("%s Open", lo.Ternary(nation.Status.Open, ":green_circle:", ":red_circle:"))
