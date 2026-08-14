@@ -2,6 +2,8 @@ package discordutil
 
 import "github.com/bwmarrin/discordgo"
 
+const TEXT_INPUT_PLACEHOLDER_LIMIT = 100
+
 func Choice[T any](name string, value T) *discordgo.ApplicationCommandOptionChoice {
 	return &discordgo.ApplicationCommandOptionChoice{
 		Name:  name,
@@ -113,27 +115,31 @@ func TextInput(style discordgo.TextInputStyle, cid, label, placeholder string, m
 	}
 }
 
-func TextInputShort(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
+func TextInputShort(cid, label, placeholder, defaultValue string, minLen uint, maxLen uint) discordgo.TextInput {
 	ti := TextInput(discordgo.TextInputShort, cid, label, placeholder, minLen, maxLen)
 	ti.Required = ptr(false)
+	ti.Value = defaultValue
 	return ti
 }
 
-func TextInputParagraph(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
+func TextInputParagraph(cid, label, placeholder, defaultValue string, minLen uint, maxLen uint) discordgo.TextInput {
 	ti := TextInput(discordgo.TextInputParagraph, cid, label, placeholder, minLen, maxLen)
 	ti.Required = ptr(false)
+	ti.Value = defaultValue
 	return ti
 }
 
-func RequiredTextInputShort(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
+func RequiredTextInputShort(cid, label, placeholder, defaultValue string, minLen uint, maxLen uint) discordgo.TextInput {
 	ti := TextInput(discordgo.TextInputShort, cid, label, placeholder, minLen, maxLen)
 	ti.Required = ptr(true)
+	ti.Value = defaultValue
 	return ti
 }
 
-func RequiredTextInputParagraph(cid, label, placeholder string, minLen uint, maxLen uint) discordgo.TextInput {
+func RequiredTextInputParagraph(cid, label, placeholder, defaultValue string, minLen uint, maxLen uint) discordgo.TextInput {
 	ti := TextInput(discordgo.TextInputParagraph, cid, label, placeholder, minLen, maxLen)
 	ti.Required = ptr(true)
+	ti.Value = defaultValue
 	return ti
 }
 

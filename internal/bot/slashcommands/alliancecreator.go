@@ -157,23 +157,23 @@ func createAlliance(s *discordgo.Session, i *discordgo.Interaction) error {
 		Components: []discordgo.MessageComponent{
 			discordutil.TextInputActionRow(discordutil.RequiredTextInputShort(
 				"identifier", "Query Identifier (3-12 chars)",
-				"Enter a unique short name used to query this alliance.", 3, 12,
+				"Enter a unique short name used to query this alliance.", "", 3, 12,
 			)),
 			discordutil.TextInputActionRow(discordutil.RequiredTextInputShort(
 				"label", "Alliance Name (4-64 chars)",
-				"Enter this alliance's full name.", 4, 64,
+				"Enter this alliance's full name.", "", 4, 64,
 			)),
 			discordutil.TextInputActionRow(discordutil.RequiredTextInputShort(
 				"representative", "Representative Discord ID",
-				"Enter the Discord ID of the user representing this alliance.", 17, 19,
+				"Enter the Discord ID of the user representing this alliance.", "", 17, 19,
 			)),
 			discordutil.TextInputActionRow(discordutil.RequiredTextInputParagraph(
 				"nations", "Own Nations",
-				"Enter a comma-seperated list of nations in THIS alliance only.", 3, 0,
+				"Enter a comma-seperated list of nations in THIS alliance only.", "", 3, 0,
 			)),
 			discordutil.TextInputActionRow(discordutil.TextInputShort(
 				"parent", "Parent Alliance (Optional)",
-				"Enter the identifier of this alliance's parent alliance.", 3, 16,
+				"Enter the identifier of this alliance's parent alliance.", "", 3, 16,
 			)),
 		},
 	})

@@ -121,10 +121,10 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 	nations := nationStore.GetFromSet(alliance.OwnNations)
 	nationNames := lo.Map(nations, func(n oapi.NationInfo, _ int) string { return n.Name })
 
-	nationsPlaceholder := "Too many nations to display, run /alliance query to see the full list."
 	nationsStr := strings.Join(nationNames, ", ")
-	if len(nationsStr) < 100 {
-		nationsPlaceholder = nationsStr
+	nationsPlaceholder := nationsStr
+	if len(nationsStr) > discordutil.TEXT_INPUT_PLACEHOLDER_LIMIT {
+		nationsPlaceholder = "Too many nations to display, run /alliance query to see the full list."
 	}
 
 	parentPlaceholder := ""
@@ -132,24 +132,25 @@ func openEditorModalFunctional(s *discordgo.Session, i *discordgo.Interaction, a
 		parentPlaceholder = *alliance.Parent
 	}
 
+	repID := *alliance.RepresentativeID
 	return discordutil.OpenModal(s, i, &discordgo.InteractionResponseData{
 		CustomID: "alliance_editor_functional@" + alliance.Identifier,
 		Title:    "Alliance Editor - Functional Fields",
 		Components: []discordgo.MessageComponent{
 			discordutil.TextInputActionRow(
-				discordutil.RequiredTextInputShort("identifier", "Query Identifier (3-12 chars)", alliance.Identifier, 3, 12),
+				discordutil.RequiredTextInputShort("identifier", "Query Identifier (3-12 chars)", alliance.Identifier, alliance.Identifier, 3, 12),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.RequiredTextInputShort("label", "Alliance Name (4-64 chars)", alliance.Label, 4, 64),
+				discordutil.RequiredTextInputShort("label", "Alliance Name (4-64 chars)", alliance.Label, alliance.Label, 4, 64),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.RequiredTextInputShort("representative", "Representative Discord ID", *alliance.RepresentativeID, 17, 19),
+				discordutil.RequiredTextInputShort("representative", "Representative Discord ID", repID, repID, 17, 19),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.RequiredTextInputParagraph("nations", "Own Nations", nationsPlaceholder, 3, 0),
+				discordutil.RequiredTextInputParagraph("nations", "Own Nations", nationsPlaceholder, nationsStr, 3, 0),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.TextInputShort("parent", "Parent Alliance (Optional)", parentPlaceholder, 3, 16),
+				discordutil.TextInputShort("parent", "Parent Alliance (Optional)", parentPlaceholder, parentPlaceholder, 3, 16),
 			),
 		},
 	})
@@ -202,19 +203,19 @@ func openEditorModalOptional(s *discordgo.Session, i *discordgo.Interaction, all
 		Title:    "Alliance Editor - Optional Fields",
 		Components: []discordgo.MessageComponent{
 			discordutil.TextInputActionRow(
-				discordutil.TextInputShort("type", "Alliance Type (mega/org/pact)", string(alliance.Type), 3, 4),
+				discordutil.TextInputShort("type", "Alliance Type (mega/org/pact)", string(alliance.Type), "", 3, 4),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.TextInputShort("discord", "Permanent Discord Invite", discordPlaceholder, 4, 40),
+				discordutil.TextInputShort("discord", "Permanent Discord Invite", discordPlaceholder, "", 4, 40),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.TextInputShort("image", "Image/Flag URL", imagePlaceholder, 20, 500),
+				discordutil.TextInputShort("image", "Image/Flag URL", imagePlaceholder, "", 20, 500),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.TextInputShort("colours", "Colours (Used by bot & extension)", coloursPlaceholder, 4, 16),
+				discordutil.TextInputShort("colours", "Colours (Used by bot & extension)", coloursPlaceholder, "", 4, 16),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.TextInputParagraph("leaders", "Leader IGNs (comma-seperated)", leaderPlaceholder, 3, 320),
+				discordutil.TextInputParagraph("leaders", "Leader IGNs (comma-seperated)", leaderPlaceholder, "", 3, 320),
 			),
 		},
 	})
@@ -227,16 +228,16 @@ func openEditorModalMultiUpdate(s *discordgo.Session, i *discordgo.Interaction) 
 		Flags:    discordgo.MessageFlagsIsComponentsV2,
 		Components: []discordgo.MessageComponent{
 			discordutil.Label("Nations to add", "Please use a comma-seperated list",
-				discordutil.TextInputParagraph("nations-add", "", "Enter list of nation names...", 2, 0),
+				discordutil.TextInputParagraph("nations-add", "", "Enter list of nation names...", "", 2, 0),
 			),
 			discordutil.Label("Alliances to add the nations to", "Please use a comma-seperated list",
-				discordutil.TextInputParagraph("alliances-add", "", "Enter list of alliance identifiers..", 2, 0),
+				discordutil.TextInputParagraph("alliances-add", "", "Enter list of alliance identifiers..", "", 2, 0),
 			),
 			discordutil.Label("Nations to remove", "Please use a comma-seperated list",
-				discordutil.TextInputParagraph("nations-remove", "", "Enter list of nation names...", 2, 0),
+				discordutil.TextInputParagraph("nations-remove", "", "Enter list of nation names...", "", 2, 0),
 			),
 			discordutil.Label("Alliances to remove the nations from", "Please use a comma-seperated list",
-				discordutil.TextInputParagraph("alliances-remove", "", "Enter list of alliance identifiers..", 2, 0),
+				discordutil.TextInputParagraph("alliances-remove", "", "Enter list of alliance identifiers..", "", 2, 0),
 			),
 		},
 	})
@@ -248,10 +249,10 @@ func openEditorModalNationsUpdate(s *discordgo.Session, i *discordgo.Interaction
 		Title:    "Alliance Editor - Nations Field",
 		Components: []discordgo.MessageComponent{
 			discordutil.TextInputActionRow(
-				discordutil.TextInputParagraph("add", "Nations to Add (comma-seperated)", "Enter list of nation names...", 2, 0),
+				discordutil.TextInputParagraph("add", "Nations to Add (comma-seperated)", "Enter list of nation names...", "", 2, 0),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.TextInputParagraph("remove", "Nations to Remove (comma-seperated)", "Enter list of nation names...", 2, 0),
+				discordutil.TextInputParagraph("remove", "Nations to Remove (comma-seperated)", "Enter list of nation names...", "", 2, 0),
 			),
 		},
 	})
@@ -263,10 +264,10 @@ func openEditorModalLeadersUpdate(s *discordgo.Session, i *discordgo.Interaction
 		Title:    "Alliance Editor - Leaders Field",
 		Components: []discordgo.MessageComponent{
 			discordutil.TextInputActionRow(
-				discordutil.TextInputParagraph("add", "Leaders to Add (comma-seperated)", "Enter list of IGNs...", 3, 0),
+				discordutil.TextInputParagraph("add", "Leaders to Add (comma-seperated)", "Enter list of IGNs...", "", 3, 0),
 			),
 			discordutil.TextInputActionRow(
-				discordutil.TextInputParagraph("remove", "Leaders to Remove (comma-seperated)", "Enter list of IGNs...", 3, 0),
+				discordutil.TextInputParagraph("remove", "Leaders to Remove (comma-seperated)", "Enter list of IGNs...", "", 3, 0),
 			),
 		},
 	})
