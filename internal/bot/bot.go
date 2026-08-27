@@ -94,9 +94,9 @@ func Start(s *discordgo.Session) {
 	//defer signal.Stop(c) // Not needed right now. the process exits after Start returns.
 
 	sig := <-c
-
-	logutil.Printf(logutil.YELLOW, "\n\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
 	events.ShuttingDown.Store(true)
+
+	logutil.Printf(logutil.YELLOW, "\n\nReceived signal: %s", strings.ToUpper(sig.String()))
 	Shutdown(s, activeMapDB)
 	//#endregion
 }
@@ -111,17 +111,18 @@ func Shutdown(s *discordgo.Session, activeMapDB *database.Database) {
 		timeout = t
 	}
 
-	logutil.Printf(logutil.BLUE, "\n[Scheduler]: Sending shutdown message. Waiting up to %d seconds or until all tasks finish.", timeout)
+	logutil.Printf(logutil.YELLOW, "\nAttempting graceful shutdown. Waiting up to %d seconds or until all tasks finish.\n", timeout)
 
+	logutil.Println(logutil.FAINT, "DEBUG | Shutdown: Scheduler")
 	msg := scheduler.Instance.Shutdown(time.Duration(timeout) * time.Second)
-	logutil.Println(logutil.BLUE, "[Scheduler]: "+msg)
+	logutil.Logln(logutil.BLUE, "[Scheduler]: "+msg)
 
-	// Since `defer` won't run if the process exits via os.Exit(),
-	// closing explicitly here makes sure we always properly cleanup.
+	logutil.Println(logutil.FAINT, "DEBUG | Shutdown: Discord")
 	if err := s.Close(); err != nil {
 		logutil.Logf(logutil.RED, "error closing Discord session: %v", err)
 	}
 
+	logutil.Println(logutil.FAINT, "DEBUG | Shutdown: DB")
 	// Write every store to disk safely. Any store errs during this are combined into single error.
 	if err := activeMapDB.Flush(); err != nil {
 		logutil.Logf(logutil.RED, "error flushing DB: %v", err)

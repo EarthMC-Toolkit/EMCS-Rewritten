@@ -79,7 +79,7 @@ func UpdateData(mdb *database.Database) (
 	}
 
 	staleTowns = townStore.Entries()
-	logutil.Printf(logutil.HIDDEN, "DEBUG | Stale towns: %d", len(staleTowns))
+	logutil.Printf(logutil.FAINT, "DEBUG | Stale towns: %d", len(staleTowns))
 
 	townList, err := townStore.OverwriteFunc(false, true, func() (map[string]oapi.TownInfo, error) {
 		res, err := api.QueryAllTowns()
@@ -174,8 +174,8 @@ func UpdateData(mdb *database.Database) (
 	})
 	//#endregion
 
-	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
-	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentEntities), len(townlessEntities))
+	logutil.Printf(logutil.FAINT, "\nDEBUG | Towns: %d, Nations: %d", len(townList), len(nationList))
+	logutil.Printf(logutil.FAINT, "\nDEBUG | Total Players: %d, Residents: %d, Townless: %d", len(players), len(residentEntities), len(townlessEntities))
 	return townList, staleTowns, townlessEntities, residentEntities, err
 }
 
@@ -208,7 +208,7 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 		TrySendRenamedNotif(s, cid, townList, staleTowns)
 		//TrySendRuinedNotif(s, cid, townList, staleTowns)
 		TrySendDeletedNotif(s, cid, towns, staleTowns)
-	} else {
+	} else if !ShuttingDown.Load() {
 		logutil.Printf(logutil.YELLOW, "\nWARN | TFLOW_CHANNEL_ID not set. Skipping town flow event notifications.\n")
 	}
 
@@ -216,7 +216,7 @@ func dataUpdateTask(s *discordgo.Session, mdb *database.Database) {
 	if err == nil {
 		// Player flow event notifications sent to channel PFLOW_CHANNEL_ID.
 		TrySendLeftJoinedNotif(s, cid, towns, staleTowns, townless, residents)
-	} else {
+	} else if !ShuttingDown.Load() {
 		logutil.Printf(logutil.YELLOW, "\nWARN | PFLOW_CHANNEL_ID not set. Skipping player flow event notifications.\n")
 	}
 	//#endregion
@@ -261,10 +261,10 @@ func serverInfoTask(s *discordgo.Session, mdb *database.Database) {
 		return info, err
 	}); err == nil {
 		cid, err := config.GetEnviroVar("VP_CHANNEL_ID")
-		if err != nil {
-			logutil.Printf(logutil.YELLOW, "\nWARN | VP_CHANNEL_ID not set. Skipping VoteParty notifications.\n")
-		} else {
+		if err == nil {
 			TrySendVotePartyNotif(s, cid, info.VoteParty)
+		} else if !ShuttingDown.Load() {
+			logutil.Printf(logutil.YELLOW, "\nWARN | VP_CHANNEL_ID not set. Skipping VoteParty notifications.\n")
 		}
 
 		if err := serverStore.WriteSnapshot(); err != nil {

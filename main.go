@@ -29,11 +29,11 @@ func lockProcess() (func() error, error) {
 		return nil, fmt.Errorf("another instance of EMCS is already running")
 	}
 
-	logutil.Println(logutil.HIDDEN, "DEBUG | Acquired process lock")
+	logutil.Println(logutil.FAINT, "DEBUG | Acquired process lock")
 	return func() error {
 		err := lock.Unlock()
 		if err == nil {
-			logutil.Println(logutil.HIDDEN, "DEBUG | Released process lock")
+			logutil.Println(logutil.FAINT, "DEBUG | Released process lock")
 		}
 		return err
 	}, nil
@@ -57,7 +57,7 @@ func main() {
 	}
 
 	config.LoadEnv()
-	logutil.Println(logutil.HIDDEN, "DEBUG | Loaded .env into OS environment.")
+	logutil.Println(logutil.FAINT, "DEBUG | Loaded .env into OS environment.")
 
 	s, err := newSession(config.GetBotToken())
 	if err != nil {
@@ -84,6 +84,6 @@ func newSession(token string) (*discordgo.Session, error) {
 		return nil, err
 	}
 
-	logutil.Println(logutil.HIDDEN, "DEBUG | Discord session created.")
+	logutil.Println(logutil.FAINT, "DEBUG | Discord session created.")
 	return s, err
 }

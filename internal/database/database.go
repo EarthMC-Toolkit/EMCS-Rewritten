@@ -115,7 +115,7 @@ func (db *Database) Flush() error {
 		return errors.Join(errs...)
 	}
 
-	logutil.Printf(logutil.HIDDEN, "\nDEBUG | Successfully flushed all stores to disk.\n")
+	logutil.Printf(logutil.FAINT, "\nDEBUG | Successfully flushed all stores to disk.\n")
 	return nil
 }
 
@@ -153,7 +153,7 @@ func TryInit(mapName string) *Database {
 	AssignStore(mdb, USAGE_USERS_STORE)
 	//AssignStore(mdb, USAGE_LEADERBOARD_STORE)
 
-	logutil.Printf(logutil.HIDDEN, "DEBUG | Initialized database for map '%s'.\n", mapName)
+	logutil.Printf(logutil.FAINT, "DEBUG | Initialized database for map '%s'.\n", mapName)
 	return mdb
 }
 

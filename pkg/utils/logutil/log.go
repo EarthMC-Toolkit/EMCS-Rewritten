@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	HIDDEN = colour.New(colour.FgWhite, colour.Concealed) // DEBUG
+	FAINT  = colour.New(colour.FgWhite, colour.Concealed) // DEBUG
 	WHITE  = colour.New(colour.Bold, colour.FgWhite)      // DEFAULT/NORMAL
 	BLUE   = colour.New(colour.FgHiBlue)                  // INFO/OPERATIONAL (Foreground)
 	BLUEBG = colour.New(colour.BgBlue, colour.FgHiWhite)  // INFO/OPERATIONAL (Background)

@@ -56,7 +56,7 @@ func New[T any](path string) (*Store[T], error) {
 	}
 
 	if !s.IsEmpty() {
-		logutil.Printf(logutil.HIDDEN, "DEBUG | Loaded store from file at: %s\n", s.CleanPath())
+		logutil.Printf(logutil.FAINT, "DEBUG | Loaded store from file at: %s\n", s.CleanPath())
 	}
 
 	//fmt.Printf("\nDEBUG | Loaded store from file at: %s\n", s.CleanPath())
