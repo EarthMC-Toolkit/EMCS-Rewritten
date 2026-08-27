@@ -53,7 +53,7 @@ func main() {
 			logutil.Println(logutil.RED, "ERR |", err)
 			os.Exit(1)
 		}
-		defer unlock()
+		defer unlock() // should run just before main returns and the process exits.
 	}
 
 	config.LoadEnv()

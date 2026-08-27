@@ -5,6 +5,7 @@ import (
 	"emcsrw/internal/bot/scheduler"
 	"emcsrw/internal/database"
 	"emcsrw/internal/shared"
+	"emcsrw/pkg/utils/config"
 	"emcsrw/pkg/utils/logutil"
 	"log"
 	"os"
@@ -17,12 +18,12 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-// ====================== !! WARNING !! ======================
+// ==============================!! WARNING !! ==============================
 // If some of these intents are not granted to you by Discord, the bot may not start correctly.
 // Remove all intents you do not have access to or require and restart the bot again.
 //
 // See the Privileged Intents section: https://docs.discord.com/developers/events/gateway#gateway-intents
-// ===========================================================
+// ==========================================================================
 
 // var DM_INTENTS = dgo.IntentDirectMessages | dgo.IntentDirectMessageReactions
 var ALL_INTENTS = discordgo.IntentMessageContent | GUILD_INTENTS
@@ -90,6 +91,8 @@ func Start(s *discordgo.Session) {
 	//#region Handle graceful shutdown upon a termination signal.
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM) // Interrupt = Ctrl+C | SIGHUP = tmux kill | SIGTERM = kill
+	//defer signal.Stop(c) // Not needed right now. the process exits after Start returns.
+
 	sig := <-c
 
 	logutil.Printf(logutil.YELLOW, "\n\nShutting down bot with signal: %s\n", strings.ToUpper(sig.String()))
@@ -103,10 +106,17 @@ func Start(s *discordgo.Session) {
 func Shutdown(s *discordgo.Session, activeMapDB *database.Database) {
 	//stopSSE()
 
-	msg := scheduler.Instance.Shutdown(30 * time.Second)
+	timeout := 60
+	if t, err := config.ParseEnviroVar[int]("SHUTDOWN_TIMEOUT_SEC"); err == nil {
+		timeout = t
+	}
+
+	logutil.Printf(logutil.BLUE, "\n[Scheduler]: Sending shutdown message. Waiting up to %d seconds or until all tasks finish.", timeout)
+
+	msg := scheduler.Instance.Shutdown(time.Duration(timeout) * time.Second)
 	logutil.Println(logutil.BLUE, "[Scheduler]: "+msg)
 
-	// Since the `defer` keyword only works in successful exits,
+	// Since `defer` won't run if the process exits via os.Exit(),
 	// closing explicitly here makes sure we always properly cleanup.
 	if err := s.Close(); err != nil {
 		logutil.Logf(logutil.RED, "error closing Discord session: %v", err)
