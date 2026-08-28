@@ -65,7 +65,7 @@ func HumanizedSprintf(key message.Reference, a ...any) string {
 }
 
 func Printf(col *colour.Color, format string, args ...any) {
-	if strings.HasPrefix(args[0].(string), "DEBUG") && !DebugLog {
+	if strings.HasPrefix(format, "DEBUG") && !DebugLog {
 		return
 	}
 
@@ -73,7 +73,7 @@ func Printf(col *colour.Color, format string, args ...any) {
 }
 
 func Println(col *colour.Color, args ...any) {
-	if strings.HasPrefix(args[0].(string), "DEBUG") && !DebugLog {
+	if strings.HasPrefix(fmt.Sprint(args...), "DEBUG") && !DebugLog {
 		return
 	}
 
@@ -85,7 +85,7 @@ func Space() {
 }
 
 func Logf(col *colour.Color, format string, args ...any) {
-	if strings.HasPrefix(args[0].(string), "DEBUG") && !DebugLog {
+	if strings.HasPrefix(format, "DEBUG") && !DebugLog {
 		return
 	}
 
@@ -93,7 +93,7 @@ func Logf(col *colour.Color, format string, args ...any) {
 }
 
 func Logln(col *colour.Color, args ...any) {
-	if strings.HasPrefix(args[0].(string), "DEBUG") && !DebugLog {
+	if strings.HasPrefix(fmt.Sprint(args...), "DEBUG") && !DebugLog {
 		return
 	}
 
