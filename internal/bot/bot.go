@@ -52,11 +52,7 @@ func ConnectGateway(s *discordgo.Session) *discordgo.Session {
 	s.Identify.Intents = ALL_INTENTS
 	s.SyncEvents = false // Run handlers in a goroutine to prevent a command waiting on another user's command.
 	s.ShouldReconnectOnError = true
-
-	// Keep these commented unless required to diagnose Discord issues.
-	s.Debug = true
-	s.LogLevel = discordgo.LogError
-
+	s.LogLevel = discordgo.LogError // Keep commented unless required to diagnose Discord issues.
 	for _, h := range EVENT_HANDLERS {
 		s.AddHandler(h)
 	}
