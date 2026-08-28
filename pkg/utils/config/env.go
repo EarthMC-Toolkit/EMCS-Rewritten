@@ -12,8 +12,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Retrieves an OS environment variable by name,
-// failing with an error if non-existent or empty.
+// Retrieves an OS environment variable by name, failing with an error if non-existent or empty.
 func GetEnviroVar(name string) (string, error) {
 	v, found := os.LookupEnv(name)
 	if !found {
@@ -26,8 +25,7 @@ func GetEnviroVar(name string) (string, error) {
 	return v, nil
 }
 
-// Parses an environment variable as the desired type,
-// failing with an error if not possible.
+// Parses an environment variable as the desired type, failing with an error if not possible.
 func ParseEnviroVar[T any](v string) (T, error) {
 	var zero T
 
@@ -101,6 +99,8 @@ func LoadEnv() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	logutil.DebugLog, _ = ParseEnviroVar[bool]("ENABLE_DEBUG_LOG")
 }
 
 func GetBotToken() string {

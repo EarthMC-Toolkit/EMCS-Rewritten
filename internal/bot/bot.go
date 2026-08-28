@@ -48,13 +48,17 @@ var EVENT_HANDLERS = [...]any{
 // Uses session s to open a WebSocket connection to the Discord gateway once all necessary event handlers
 // have been registered via EVENT_HANDLERS - these are called when their respective event is fired by the
 // Discord websocket/gateway API and the function signature matches.
-func Connect(s *discordgo.Session) *discordgo.Session {
+func ConnectGateway(s *discordgo.Session) *discordgo.Session {
 	s.Identify.Intents = ALL_INTENTS
 	s.SyncEvents = false // Run handlers in a goroutine to prevent a command waiting on another user's command.
 	s.ShouldReconnectOnError = true
 
-	for _, eh := range EVENT_HANDLERS {
-		s.AddHandler(eh)
+	// Keep these commented unless required to diagnose Discord issues.
+	s.Debug = true
+	s.LogLevel = discordgo.LogError
+
+	for _, h := range EVENT_HANDLERS {
+		s.AddHandler(h)
 	}
 
 	// Open websocket connection to Discord gateway.
@@ -63,8 +67,24 @@ func Connect(s *discordgo.Session) *discordgo.Session {
 		log.Fatal("Cannot open Discord session: ", err)
 	}
 
-	logutil.Logln(logutil.BLUE, "Established connection to Discord.")
+	logutil.Logln(logutil.BLUE, "Established WS connection to Discord.")
 	return s
+}
+
+func DisconnectGateway(s *discordgo.Session) {
+	done := make(chan error, 1)
+	go func() {
+		done <- s.Close()
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			logutil.Logf(logutil.RED, "error closing Discord session: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		logutil.Println(logutil.RED, "WARN | Call to close Discord session timed out. Continuing shutdown..")
+	}
 }
 
 // Start the bot process (db init, scheduler init, discord connection, etc.) and block
@@ -78,7 +98,7 @@ func Start(s *discordgo.Session) {
 	scheduler.Instance = scheduler.New()
 
 	logutil.Logln(logutil.BLUE, "Connecting to Discord gateway...")
-	Connect(s)
+	ConnectGateway(s)
 
 	// ctx, stopSSE := context.WithCancel(context.Background())
 	// go func() {
@@ -110,20 +130,19 @@ func Shutdown(s *discordgo.Session, activeMapDB *database.Database) {
 	if t, err := config.ParseEnviroVar[int]("SHUTDOWN_TIMEOUT_SEC"); err == nil {
 		timeout = t
 	}
-
 	logutil.Printf(logutil.YELLOW, "\nAttempting graceful shutdown. Waiting up to %d seconds or until all tasks finish.\n", timeout)
 
+	// Begin stopping scheduler tasks and wait for current ones to finish.
 	logutil.Println(logutil.FAINT, "DEBUG | Shutdown: Scheduler")
 	msg := scheduler.Instance.Shutdown(time.Duration(timeout) * time.Second)
 	logutil.Logln(logutil.BLUE, "[Scheduler]: "+msg)
 
+	// Close the existing WS connection with Discord.
 	logutil.Println(logutil.FAINT, "DEBUG | Shutdown: Discord")
-	if err := s.Close(); err != nil {
-		logutil.Logf(logutil.RED, "error closing Discord session: %v", err)
-	}
+	DisconnectGateway(s)
 
+	// Write every store to disk safely. All store errs during this are combined into single error.
 	logutil.Println(logutil.FAINT, "DEBUG | Shutdown: DB")
-	// Write every store to disk safely. Any store errs during this are combined into single error.
 	if err := activeMapDB.Flush(); err != nil {
 		logutil.Logf(logutil.RED, "error flushing DB: %v", err)
 	}

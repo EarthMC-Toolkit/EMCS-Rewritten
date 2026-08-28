@@ -3,6 +3,7 @@ package logutil
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/sanity-io/litter"
 	"golang.org/x/text/language"
@@ -10,6 +11,8 @@ import (
 
 	colour "github.com/fatih/color"
 )
+
+var DebugLog = false
 
 var (
 	FAINT  = colour.New(colour.FgWhite, colour.Concealed) // DEBUG
@@ -62,10 +65,18 @@ func HumanizedSprintf(key message.Reference, a ...any) string {
 }
 
 func Printf(col *colour.Color, format string, args ...any) {
+	if strings.HasPrefix(args[0].(string), "DEBUG") && !DebugLog {
+		return
+	}
+
 	fmt.Print(col.Sprintf(format, args...))
 }
 
 func Println(col *colour.Color, args ...any) {
+	if strings.HasPrefix(args[0].(string), "DEBUG") && !DebugLog {
+		return
+	}
+
 	fmt.Println(col.Sprint(args...))
 }
 
@@ -74,9 +85,17 @@ func Space() {
 }
 
 func Logf(col *colour.Color, format string, args ...any) {
+	if strings.HasPrefix(args[0].(string), "DEBUG") && !DebugLog {
+		return
+	}
+
 	log.Print(col.Sprintf(format, args...))
 }
 
 func Logln(col *colour.Color, args ...any) {
+	if strings.HasPrefix(args[0].(string), "DEBUG") && !DebugLog {
+		return
+	}
+
 	log.Println(col.Sprint(args...))
 }
