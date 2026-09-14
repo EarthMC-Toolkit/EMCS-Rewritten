@@ -100,20 +100,17 @@ func OnAutocompleteInteractionCreate(s *discordgo.Session, i *discordgo.Interact
 }
 
 func loadBanned() {
-	bannedIds = sets.New[string]() // initialize the set, only runs once so keep it here
+	// KEEP THIS HERE. set always needs initializing regardless of whether the env var is set or not.
+	bannedIds = sets.New[string]()
+	if idsStr, err := config.GetEnviroVar("BANNED_PLAYERS"); err == nil {
+		for part := range strings.SplitSeq(idsStr, ",") {
+			id := strings.TrimSpace(part)
+			if id == "" {
+				continue
+			}
 
-	idsStr, err := config.GetEnviroVar("BANNED_PLAYERS")
-	if err != nil {
-		return // var empty or not set, assume its intentional
-	}
-
-	for part := range strings.SplitSeq(idsStr, ",") {
-		id := strings.TrimSpace(part)
-		if id == "" {
-			continue
+			bannedIds.Add(id)
 		}
-
-		bannedIds.Add(id)
 	}
 }
 

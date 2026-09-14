@@ -100,7 +100,7 @@ func LoadEnv() {
 		log.Fatal(err)
 	}
 
-	logutil.DebugLog, _ = ParseEnviroVar[bool]("ENABLE_DEBUG_LOG")
+	logutil.DebugLogEnabled, _ = ParseEnviroVar[bool]("ENABLE_DEBUG_LOG")
 }
 
 func GetBotToken() string {

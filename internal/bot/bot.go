@@ -52,7 +52,6 @@ func ConnectGateway(s *discordgo.Session) *discordgo.Session {
 	s.Identify.Intents = ALL_INTENTS
 	s.SyncEvents = false // Run handlers in a goroutine to prevent a command waiting on another user's command.
 	s.ShouldReconnectOnError = true
-	s.LogLevel = discordgo.LogError // Keep commented unless required to diagnose Discord issues.
 	for _, h := range EVENT_HANDLERS {
 		s.AddHandler(h)
 	}
@@ -85,7 +84,7 @@ func DisconnectGateway(s *discordgo.Session) {
 
 // Start the bot process (db init, scheduler init, discord connection, etc.) and block
 // until a termination signal is received at which point a graceful shutdown will occur.
-func Start(s *discordgo.Session) {
+func Start(s *discordgo.Session) *discordgo.Session {
 	activeMapDB := database.TryInit(shared.ACTIVE_MAP)
 
 	logutil.Logf(logutil.BLUE, "Starting bot with %d threads.", runtime.GOMAXPROCS(-1))
@@ -115,6 +114,8 @@ func Start(s *discordgo.Session) {
 	logutil.Printf(logutil.YELLOW, "\n\nReceived signal: %s", strings.ToUpper(sig.String()))
 	Shutdown(s, activeMapDB)
 	//#endregion
+
+	return s
 }
 
 // Gracefully shutdown the bot by shutting down the data scheduler, closing the websocket connection

@@ -3,16 +3,14 @@ package logutil
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
-
-	"github.com/sanity-io/litter"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 
 	colour "github.com/fatih/color"
 )
 
-var DebugLog = false
+var FileLog *log.Logger
+var DebugLogEnabled = false
 
 var (
 	FAINT  = colour.New(colour.FgWhite, colour.Concealed) // DEBUG
@@ -24,6 +22,16 @@ var (
 	RED    = colour.New(colour.FgHiRed)                   // ERROR (Foreground)
 	REDBG  = colour.New(colour.BgRed, colour.FgHiWhite)   // ERROR (Background)
 )
+
+func InitFile(fpath string) error {
+	file, err := os.OpenFile(fpath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	FileLog = log.New(file, "", log.Ldate|log.Ltime|log.LUTC)
+	return nil
+}
 
 type Loggable interface {
 	Log(args ...any)
@@ -39,33 +47,24 @@ func LogValOrErr(l Loggable, value any, err error) {
 	l.Log(err)
 }
 
-//const DateTimeFormat = "Jan 2 3PM MST"
+func Logf(col *colour.Color, format string, args ...any) {
+	if strings.HasPrefix(format, "DEBUG") && !DebugLogEnabled {
+		return
+	}
 
-// dis printer is bri ish
-var printer = message.NewPrinter(language.BritishEnglish)
-
-func PrettyPrint(v any) (int, error) {
-	return printer.Print(Prettify(v))
+	log.Print(col.Sprintf(format, args...))
 }
 
-func Prettify(v any) string {
-	litter.Config.StripPackageNames = true
-	return litter.Sdump(v)
-}
+func Logln(col *colour.Color, args ...any) {
+	if strings.HasPrefix(fmt.Sprint(args...), "DEBUG") && !DebugLogEnabled {
+		return
+	}
 
-// Calls Sprintf like usual, but in a humanized way. For example:
-//
-//	logutil.HumanizedSprintf("Number is: %d\n", 10000)
-//
-// Outputs:
-//
-//	"Number is: 10,000"
-func HumanizedSprintf(key message.Reference, a ...any) string {
-	return printer.Sprintf(key, a...)
+	log.Println(col.Sprint(args...))
 }
 
 func Printf(col *colour.Color, format string, args ...any) {
-	if strings.HasPrefix(format, "DEBUG") && !DebugLog {
+	if strings.HasPrefix(format, "DEBUG") && !DebugLogEnabled {
 		return
 	}
 
@@ -73,7 +72,7 @@ func Printf(col *colour.Color, format string, args ...any) {
 }
 
 func Println(col *colour.Color, args ...any) {
-	if strings.HasPrefix(fmt.Sprint(args...), "DEBUG") && !DebugLog {
+	if strings.HasPrefix(fmt.Sprint(args...), "DEBUG") && !DebugLogEnabled {
 		return
 	}
 
@@ -82,20 +81,4 @@ func Println(col *colour.Color, args ...any) {
 
 func Space() {
 	fmt.Println()
-}
-
-func Logf(col *colour.Color, format string, args ...any) {
-	if strings.HasPrefix(format, "DEBUG") && !DebugLog {
-		return
-	}
-
-	log.Print(col.Sprintf(format, args...))
-}
-
-func Logln(col *colour.Color, args ...any) {
-	if strings.HasPrefix(fmt.Sprint(args...), "DEBUG") && !DebugLog {
-		return
-	}
-
-	log.Println(col.Sprint(args...))
 }
