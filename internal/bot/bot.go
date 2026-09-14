@@ -37,7 +37,9 @@ var GUILD_INTENTS = discordgo.IntentGuilds |
 // https://discord.com/developers/docs/events/gateway-events#receive-events
 var EVENT_HANDLERS = [...]any{
 	events.OnReady,
+	events.OnConnect,
 	events.OnDisconnect,
+	events.OnResumed,
 	events.OnApplicationCommandInteractionCreate,
 	events.OnModalSubmitInteractionCreate,
 	events.OnSelectMenuInteractionCreate,
