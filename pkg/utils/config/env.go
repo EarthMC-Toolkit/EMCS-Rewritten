@@ -12,6 +12,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// TODO: Migrate this to .env file, config.json or similar. This is a temporary solution for now.
+func DefaultFooter() string {
+	return "EMCS is open source on GitHub. PRs welcome! 💛"
+}
+
 // Retrieves an OS environment variable by name, failing with an error if non-existent or empty.
 func GetEnviroVar(name string) (string, error) {
 	v, found := os.LookupEnv(name)

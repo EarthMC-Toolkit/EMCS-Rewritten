@@ -12,13 +12,20 @@ import (
 )
 
 func IsDev(i *discordgo.Interaction) bool {
-	id, err := config.GetEnviroVar("DEV_ID")
+	idsStr, err := config.GetEnviroVar("DEV_IDS")
 	if err != nil {
 		logutil.Printf(logutil.RED, "\nERR | cannot check if interaction author is dev:\n\t%v", err)
 		return false
 	}
 
-	return id == InteractionAuthor(i).ID
+	ids := strings.FieldsFunc(idsStr, func(r rune) bool {
+		return r == ','
+	})
+	for i := range ids {
+		ids[i] = strings.TrimSpace(ids[i])
+	}
+
+	return slices.Contains(ids, InteractionAuthor(i).ID)
 }
 
 func HasRole(m *discordgo.Member, roleID string) (bool, error) {
