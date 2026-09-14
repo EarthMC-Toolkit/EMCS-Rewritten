@@ -33,11 +33,6 @@ var (
 	DARK        = 0x2c2f33
 )
 
-var DEFAULT_FOOTER = &discordgo.MessageEmbedFooter{
-	IconURL: "https://cdn.discordapp.com/avatars/263377802647175170/a_0cd469f208f88cf98941123eb1b52259.webp?size=512&animated=true",
-	Text:    config.DefaultFooter(), // unless you maintain your own fork, pls keep this as is :)
-}
-
 // TODO: Maybe create a CustomEmbed that wraps MessageEmbed and adds these methods?
 // #region Embed field helper funcs
 
@@ -67,7 +62,7 @@ func PrependField(embed *discordgo.MessageEmbed, name string, value string, inli
 type EmbedBuilder discordgo.MessageEmbed
 
 func NewEmbedBuilder(colour *int, title *string, description *string, footer *discordgo.MessageEmbedFooter) *EmbedBuilder {
-	e := &EmbedBuilder{Type: discordgo.EmbedTypeRich, Color: DEFAULT, Footer: DEFAULT_FOOTER}
+	e := &EmbedBuilder{Type: discordgo.EmbedTypeRich, Color: DEFAULT, Footer: config.GetFooter()}
 	if colour != nil {
 		e.Color = *colour
 	}

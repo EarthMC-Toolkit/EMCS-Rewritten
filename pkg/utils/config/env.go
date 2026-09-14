@@ -9,12 +9,19 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
 )
 
+// Owen3H pfp
+// var icon = "https://cdn.discordapp.com/avatars/263377802647175170/a_0cd469f208f88cf98941123eb1b52259.webp?size=512&animated=true"
+
 // TODO: Migrate this to .env file, config.json or similar. This is a temporary solution for now.
-func DefaultFooter() string {
-	return "EMCS is open source on GitHub. PRs welcome! 💛"
+func GetFooter() *discordgo.MessageEmbedFooter {
+	return &discordgo.MessageEmbedFooter{
+		IconURL: "https://cdn.discordapp.com/attachments/974491955864150046/1548933270098415667/image.png",
+		Text:    "EMCS is open source on GitHub. PRs welcome! 💛", // unless you maintain your own fork, pls keep this as is :)
+	}
 }
 
 // Retrieves an OS environment variable by name, failing with an error if non-existent or empty.
