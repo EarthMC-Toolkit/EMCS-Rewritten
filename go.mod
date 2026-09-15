@@ -2,9 +2,10 @@ module emcsrw
 
 go 1.25.3
 
-// discordgo doesn't do regular releases. point to my fork to use new features
+// discordgo doesn't do regular releases. point to maintained fork until they do. said fork fixes a plethora of issues, 
+// including discord gateway heartbeat and websocket handling fixes we need to keep the bot running reliably.
 require github.com/bwmarrin/discordgo v0.29.0
-replace github.com/bwmarrin/discordgo => github.com/owen3h/discordgo v0.0.0-20260915173946-a5708b2b8ab7
+replace github.com/bwmarrin/discordgo => github.com/0x00-sys/discordgo v0.0.0-20260915084010-a0a456b16f8b
 
 require (
 	github.com/fatih/color v1.19.0
@@ -17,6 +18,7 @@ require (
 require (
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
 )
 
 require (
