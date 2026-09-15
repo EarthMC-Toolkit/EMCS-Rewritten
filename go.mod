@@ -3,14 +3,14 @@ module emcsrw
 go 1.25.3
 
 // discordgo doesn't do regular releases. point to my fork to use new features
-replace github.com/bwmarrin/discordgo => github.com/owen3h/discordgo v0.0.0-20260214123928-f43dd94faaac
+require github.com/bwmarrin/discordgo v0.29.0
+replace github.com/bwmarrin/discordgo => github.com/owen3h/discordgo v0.0.0-20260915173946-a5708b2b8ab7
 
 require (
-	github.com/bwmarrin/discordgo v0.29.0
 	github.com/fatih/color v1.19.0
 	github.com/joho/godotenv v1.5.1
 	github.com/samber/lo v1.53.0
-	github.com/sanity-io/litter v1.1.0
+	github.com/sanity-io/litter v1.5.8
 	github.com/yuin/goldmark v1.8.5
 )
 
