@@ -76,37 +76,16 @@ func executeLatestNews(
 		count = uint8(opt.IntValue())
 	}
 
-	slices.SortFunc(articles, func(a, b database.NewsEntry) int {
-		return cmp.Compare(b.Timestamp, a.Timestamp)
-	})
-
-	// TODO: Why is this not a paginator?
-	desc, amt := shared.BuildNewsString(articles, count, discordutil.EMBED_DESCRIPTION_LIMIT)
-	title := fmt.Sprintf("[%d] News Articles | Latest", amt)
-
-	embed := discordutil.NewEmbedBuilder(&discordutil.AQUA, &title, &desc, nil)
-	_, err := discordutil.FollowupEmbeds(s, i, embed.Build())
-	return err
+	filterSortArticles(articles, "")
+	return sendPaginator(s, i, articles, int(count), "News Articles | Latest")
 }
 
 func executeChangelogNews(
 	s *discordgo.Session, i *discordgo.Interaction,
 	articles []database.NewsEntry,
 ) error {
-	articles = lo.Filter(articles, func(e database.NewsEntry, _ int) bool {
-		return strings.Contains(strings.ToLower(e.Headline), "changelog")
-	})
-	slices.SortFunc(articles, func(a, b database.NewsEntry) int {
-		return cmp.Compare(b.Timestamp, a.Timestamp)
-	})
-
-	// TODO: Why is this not a paginator?
-	desc, amt := shared.BuildNewsString(articles, 10, discordutil.EMBED_DESCRIPTION_LIMIT)
-	title := fmt.Sprintf("[%d] News Articles | Changelogs", amt)
-
-	embed := discordutil.NewEmbedBuilder(&discordutil.AQUA, &title, &desc, nil)
-	_, err := discordutil.FollowupEmbeds(s, i, embed.Build())
-	return err
+	filterSortArticles(articles, "changelog")
+	return sendPaginator(s, i, articles, 10, "News Articles | Changelogs")
 }
 
 func executeSearchNews(
@@ -115,19 +94,40 @@ func executeSearchNews(
 	articles []database.NewsEntry,
 ) error {
 	term := strings.ToLower(opt.GetOption("term").StringValue())
+	filterSortArticles(articles, term)
+	return sendPaginator(s, i, articles, 10, fmt.Sprintf("News Articles | Search by term: `%s`", term))
+}
 
-	articles = lo.Filter(articles, func(e database.NewsEntry, _ int) bool {
-		return strings.Contains(strings.ToLower(e.Headline), term)
-	})
+// Filters articles by the search term and sorts them by timestamp in descending order.
+// If the term is empty, filtering is skipped and only sorting is performed.
+func filterSortArticles(articles []database.NewsEntry, filterTerm string) {
+	if filterTerm != "" {
+		articles = lo.Filter(articles, func(e database.NewsEntry, _ int) bool {
+			return strings.Contains(strings.ToLower(e.Headline), filterTerm)
+		})
+	}
 	slices.SortFunc(articles, func(a, b database.NewsEntry) int {
 		return cmp.Compare(b.Timestamp, a.Timestamp)
 	})
+}
 
-	// TODO: Why is this not a paginator?
-	desc, amt := shared.BuildNewsString(articles, 20, discordutil.EMBED_DESCRIPTION_LIMIT)
-	title := fmt.Sprintf("[%d] News Articles | Search by term: `%s`", amt, term)
+// Sends a paginator for the given articles, with the specified title and description.
+func sendPaginator(
+	s *discordgo.Session, i *discordgo.Interaction,
+	articles []database.NewsEntry, perPage int, title string,
+) error {
+	paginator := discordutil.NewInteractionPaginator(s, i, len(articles), perPage)
+	paginator.PageFunc = func(curPage int, data *discordgo.InteractionResponseData) {
+		start, end := paginator.CurrentPageBounds(len(articles))
+		pageArticles := articles[start:end]
+		pageArticlesCount := uint8(len(pageArticles))
 
-	embed := discordutil.NewEmbedBuilder(&discordutil.AQUA, &title, &desc, nil)
-	_, err := discordutil.FollowupEmbeds(s, i, embed.Build())
-	return err
+		desc, _ := shared.BuildNewsString(pageArticles, pageArticlesCount, discordutil.EMBED_DESCRIPTION_LIMIT)
+		pageTitle := fmt.Sprintf("[%d] %s | Page %d/%d", len(articles), title, curPage+1, paginator.TotalPages())
+
+		embed := discordutil.NewEmbedBuilder(&discordutil.AQUA, &pageTitle, &desc, nil)
+		data.Embeds = []*discordgo.MessageEmbed{embed.Build()}
+	}
+
+	return paginator.Start()
 }
