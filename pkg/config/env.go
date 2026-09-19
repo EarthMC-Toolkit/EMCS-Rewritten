@@ -5,9 +5,7 @@ import (
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
 	"log"
-	"math"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -46,92 +44,18 @@ func ParseEnviroVar[T any](v string) (T, error) {
 	case string:
 		return any(v).(T), nil
 	case bool:
-		b, err := strconv.ParseBool(v)
-		if err != nil {
-			return zero, fmt.Errorf("failed to parse environment var %q as bool: %v", v, err)
-		}
-		return any(b).(T), nil
-
-	// unsigned ints
 	case uint, uint8, uint16, uint32, uint64:
-		u, err := strconv.ParseUint(v, 10, 64)
-		if err != nil {
-			return zero, fmt.Errorf("failed to parse environment var %q as uint: %v", v, err)
-		}
-		switch any(zero).(type) {
-		case uint:
-			if strconv.IntSize == 32 && u > math.MaxUint32 {
-				return zero, fmt.Errorf("environment var %q exceeds uint range", v)
-			}
-			return any(uint(u)).(T), nil
-		case uint8:
-			if u > math.MaxUint8 {
-				return zero, fmt.Errorf("environment var %q exceeds uint8 range", v)
-			}
-			return any(uint8(u)).(T), nil
-		case uint16:
-			if u > math.MaxUint16 {
-				return zero, fmt.Errorf("environment var %q exceeds uint16 range", v)
-			}
-			return any(uint16(u)).(T), nil
-		case uint32:
-			if u > math.MaxUint32 {
-				return zero, fmt.Errorf("environment var %q exceeds uint32 range", v)
-			}
-			return any(uint32(u)).(T), nil
-		case uint64:
-			return any(u).(T), nil
-		}
-
-	// signed ints
 	case int, int8, int16, int32, int64:
-		n, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			return zero, fmt.Errorf("failed to parse environment var %q as int: %v", v, err)
-		}
-		switch any(zero).(type) {
-		case int:
-			if strconv.IntSize == 32 && (n < math.MinInt32 || n > math.MaxInt32) {
-				return zero, fmt.Errorf("environment var %q exceeds int range", v)
-			}
-			return any(int(n)).(T), nil
-		case int8:
-			if n < math.MinInt8 || n > math.MaxInt8 {
-				return zero, fmt.Errorf("environment var %q exceeds int8 range", v)
-			}
-			return any(int8(n)).(T), nil
-		case int16:
-			if n < math.MinInt16 || n > math.MaxInt16 {
-				return zero, fmt.Errorf("environment var %q exceeds int16 range", v)
-			}
-			return any(int16(n)).(T), nil
-		case int32:
-			if n < math.MinInt32 || n > math.MaxInt32 {
-				return zero, fmt.Errorf("environment var %q exceeds int32 range", v)
-			}
-			return any(int32(n)).(T), nil
-		case int64:
-			return any(n).(T), nil
-		}
-
-	// floats
 	case float32, float64:
-		f, err := strconv.ParseFloat(v, 64)
-		if err != nil {
-			return zero, fmt.Errorf("failed to parse environment var %q as float: %v", v, err)
-		}
-		switch any(zero).(type) {
-		case float32:
-			if math.IsInf(f, 0) || math.Abs(f) > math.MaxFloat32 {
-				return zero, fmt.Errorf("environment var %q exceeds float32 range", v)
-			}
-			return any(float32(f)).(T), nil
-		case float64:
-			return any(float64(f)).(T), nil
-		}
+	default:
+		return zero, fmt.Errorf("unsupported environment variable type %T", zero)
 	}
 
-	return zero, fmt.Errorf("unsupported environment variable type %T", zero)
+	if _, err := fmt.Sscan(v, &zero); err != nil {
+		return zero, fmt.Errorf("failed to parse environment var %q as %T: %v", v, zero, err)
+	}
+
+	return zero, nil
 }
 
 func LoadEnv() {
