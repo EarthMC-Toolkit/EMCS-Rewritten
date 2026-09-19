@@ -12,6 +12,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/gofrs/flock"
+	"github.com/samber/lo"
 )
 
 // The cross platform path to the lock file used to prevent multiple instances of the bot from running at the same time.
@@ -44,41 +45,40 @@ func lockProcess() (func() error, error) {
 	}, nil
 }
 
-func main() {
-	//#region Always runs no matter the subcommand
-	if len(os.Args) < 2 {
-		logutil.Println(logutil.RED, "ERR | missing subcommand. Usage: go run . [sync|bot|api]")
-		return
+// Runs bot pre-setup required before it can run.
+// Loads env and ultimately initializing a new discordgo/Discord session.
+//
+// Any errors returned from this func should ALWAYS indicate a fatal shutdown (enforced in main).
+func setup() (*discordgo.Session, error) {
+	// Load vars from appropriate env file into current OS environment.
+	if err := config.LoadEnv(true); err != nil {
+		return nil, err
 	}
-
-	subCmd := os.Args[1]
-	if subCmd == "bot" {
-		unlock, err := lockProcess()
-		if err != nil {
-			logutil.Println(logutil.RED, "ERR |", err)
-			os.Exit(1)
-		}
-		defer unlock() // should run just before main returns and the process exits.
-	}
-
-	config.LoadEnv()
+	logutil.DebugLogEnabled, _ = config.ParseEnviroVar[bool]("ENABLE_DEBUG_LOG")
 	logutil.Println(logutil.FAINT, "DEBUG | Loaded .env into OS environment.")
 
-	s, err := newSession(config.GetBotToken())
+	// Make a Discord session using configured bot token from loaded env.
+	tkn, err := config.GetEnviroVar("BOT_TOKEN")
 	if err != nil {
-		logutil.Printf(logutil.RED, "\nFATAL | Failed to create Discord session:\n\t%s", err)
-		os.Exit(67) // SIX SEVEEEEEEN!!!1!!1!!1
+		return nil, err
 	}
-	//#endregion
+	s, err := discordgo.New("Bot " + tkn)
+	if err != nil {
+		return nil, err
+	}
+	logutil.Println(logutil.FAINT, "DEBUG | Discord session created.")
 
+	return s, nil
+}
+
+func execCliSubcmd(subCmd string, s *discordgo.Session) error {
 	switch subCmd {
 	case "bot":
 		if err := logutil.InitFile(logPath); err != nil {
-			logutil.Println(logutil.RED, "ERR | Failed to initialize log file at ", logPath, ":", err)
-			return
+			return fmt.Errorf("Failed to init log file at %s: %s", logPath, err)
 		}
 
-		s.LogLevel = discordgo.LogError // Keep commented unless required to diagnose Discord issues.
+		s.LogLevel = discordgo.LogError
 		discordgo.Logger = func(msgL, caller int, format string, a ...any) {
 			logutil.FileLog.Printf("DISCORDGO | [DG%d] %s\n", msgL, fmt.Sprintf(format, a...))
 		}
@@ -87,18 +87,45 @@ func main() {
 	case "api":
 		capi.Start()
 	case "register", "sync":
-		slashcommands.SyncRemote(s, config.GetBotID(), "") // Empty str = register commands globally
-	default:
-		logutil.Println(logutil.RED, "ERR | unknown subcommand:", subCmd)
+		appID, err := config.GetEnviroVar("BOT_APP_ID")
+		if err != nil {
+			return err
+		}
+
+		slashcommands.SyncRemote(s, appID, "")
 	}
+
+	return nil
 }
 
-func newSession(token string) (*discordgo.Session, error) {
-	s, err := discordgo.New("Bot " + token)
-	if err != nil {
-		return nil, err
+func main() {
+	if len(os.Args) < 2 {
+		logutil.Exit(1, "ERR | missing subcommand. Usage: go run . [sync|bot|api]")
 	}
 
-	logutil.Println(logutil.FAINT, "DEBUG | Discord session created.")
-	return s, err
+	subCmd := os.Args[1]
+	if !lo.Contains([]string{"bot", "api", "register", "sync"}, subCmd) {
+		logutil.Exit(1, "ERR | unknown subcommand:", subCmd)
+	}
+
+	unlock := func() error { return nil }
+	if subCmd == "bot" {
+		var err error
+		unlock, err = lockProcess()
+		if err != nil {
+			logutil.Exit(1, "ERR |", err)
+		}
+		defer unlock()
+	}
+
+	s, err := setup()
+	if err != nil {
+		unlock()
+		logutil.Fatalf(67, "FATAL | failed before executing subcommand '%s'. error during setup:\n\t%s\n", subCmd, err)
+	}
+
+	if err := execCliSubcmd(subCmd, s); err != nil {
+		unlock()
+		logutil.Fatalf(67, "FATAL | error executing subcommand '%s':\n\t%s\n", subCmd, err)
+	}
 }

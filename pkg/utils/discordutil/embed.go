@@ -1,16 +1,19 @@
 package discordutil
 
 import (
-	"emcsrw/pkg/config"
-
 	"github.com/bwmarrin/discordgo"
 )
 
 const EMBED_FIELD_VALUE_LIMIT = 1024
 const EMBED_DESCRIPTION_LIMIT = 4096
 
+var EMBED_DEFAULT_FOOTER = &discordgo.MessageEmbedFooter{
+	IconURL: "https://cdn.discordapp.com/attachments/974491955864150046/1548933270098415667/image.png",
+	Text:    "EMCS is open source on GitHub. PRs welcome! 💛", // unless you maintain your own fork, pls keep this as is :)
+}
+
 var (
-	DEFAULT     = 0x000000
+	BLANK       = 0x000000 // Called 'DEFAULT' by Discord i think
 	WHITE       = 0xffffff
 	AQUA        = 0x1abc9c
 	GREEN       = 0x2ecc71
@@ -62,7 +65,7 @@ func PrependField(embed *discordgo.MessageEmbed, name string, value string, inli
 type EmbedBuilder discordgo.MessageEmbed
 
 func NewEmbedBuilder(colour *int, title *string, description *string, footer *discordgo.MessageEmbedFooter) *EmbedBuilder {
-	e := &EmbedBuilder{Type: discordgo.EmbedTypeRich, Color: DEFAULT, Footer: config.GetFooter()}
+	e := &EmbedBuilder{Type: discordgo.EmbedTypeRich, Color: BLANK, Footer: EMBED_DEFAULT_FOOTER}
 	if colour != nil {
 		e.Color = *colour
 	}

@@ -23,7 +23,7 @@ func Start() {
 	activeMapDB := database.TryInit(shared.ACTIVE_MAP)
 	auroraDB := database.TryInit(shared.SUPPORTED_MAPS.AURORA)
 
-	port := config.GetApiPort()
+	port := getApiPort()
 	if IsRunning(port) {
 		log.Fatalf("Custom API server already listening on :%d", port)
 		return
@@ -34,7 +34,7 @@ func Start() {
 		log.Fatalf("failed to start Custom API. failed to init mux.\n%s", err)
 	}
 
-	server := Serve(mux, config.GetApiPort())
+	server := Serve(mux, port)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
@@ -191,4 +191,33 @@ func getClientIP(r *http.Request) string {
 	}
 
 	return host
+}
+
+// Retrives the configured port for the Custom API server, defaulting to 7777 if invalid or unspecified.
+func getApiPort() uint {
+	v, err := config.GetEnviroVar("API_PORT")
+	if err != nil {
+		return portFail(err.Error())
+	}
+
+	port, err := config.ParseEnviroVar[uint](v)
+	if err != nil {
+		return portFail(err.Error())
+	}
+
+	switch port {
+	case 80, 443:
+		return port // Allow HTTP and HTTPS default ports
+	default:
+		if port < 1024 || port > 49150 {
+			return portFail("environment variable API_PORT must be 80, 443 or in range 1024-49150")
+		}
+	}
+
+	return port
+}
+
+func portFail(reason string) uint {
+	logutil.Logf(logutil.YELLOW, "\nWARN | Custom API port defaulted to 7777. Reason:\n\t%s\n", reason)
+	return 7777
 }

@@ -25,12 +25,10 @@ var (
 
 func InitFile(fpath string) error {
 	file, err := os.OpenFile(fpath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
+	if err == nil {
+		FileLog = log.New(file, "", log.Ldate|log.Ltime|log.LUTC)
 	}
-
-	FileLog = log.New(file, "", log.Ldate|log.Ltime|log.LUTC)
-	return nil
+	return err
 }
 
 type Loggable interface {
@@ -81,4 +79,19 @@ func Println(col *colour.Color, args ...any) {
 
 func Space() {
 	fmt.Println()
+}
+
+func Exit(code int, args ...any) {
+	Println(YELLOW, args...)
+	os.Exit(code)
+}
+
+func Fatal(code int, args ...any) {
+	Logln(RED, args...)
+	os.Exit(code)
+}
+
+func Fatalf(code int, format string, args ...any) {
+	Logf(RED, format, args...)
+	os.Exit(code)
 }
