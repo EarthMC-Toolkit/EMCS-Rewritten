@@ -5,6 +5,7 @@ import (
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -59,15 +60,27 @@ func ParseEnviroVar[T any](v string) (T, error) {
 		}
 		switch any(zero).(type) {
 		case uint:
+			if strconv.IntSize == 32 && u > math.MaxUint32 {
+				return zero, fmt.Errorf("environment var %q exceeds uint range", v)
+			}
 			return any(uint(u)).(T), nil
 		case uint8:
+			if u > math.MaxUint8 {
+				return zero, fmt.Errorf("environment var %q exceeds uint8 range", v)
+			}
 			return any(uint8(u)).(T), nil
 		case uint16:
+			if u > math.MaxUint16 {
+				return zero, fmt.Errorf("environment var %q exceeds uint16 range", v)
+			}
 			return any(uint16(u)).(T), nil
 		case uint32:
+			if u > math.MaxUint32 {
+				return zero, fmt.Errorf("environment var %q exceeds uint32 range", v)
+			}
 			return any(uint32(u)).(T), nil
 		case uint64:
-			return any(uint64(u)).(T), nil
+			return any(u).(T), nil
 		}
 
 	// signed ints
@@ -78,15 +91,27 @@ func ParseEnviroVar[T any](v string) (T, error) {
 		}
 		switch any(zero).(type) {
 		case int:
+			if strconv.IntSize == 32 && (n < math.MinInt32 || n > math.MaxInt32) {
+				return zero, fmt.Errorf("environment var %q exceeds int range", v)
+			}
 			return any(int(n)).(T), nil
 		case int8:
+			if n < math.MinInt8 || n > math.MaxInt8 {
+				return zero, fmt.Errorf("environment var %q exceeds int8 range", v)
+			}
 			return any(int8(n)).(T), nil
 		case int16:
+			if n < math.MinInt16 || n > math.MaxInt16 {
+				return zero, fmt.Errorf("environment var %q exceeds int16 range", v)
+			}
 			return any(int16(n)).(T), nil
 		case int32:
+			if n < math.MinInt32 || n > math.MaxInt32 {
+				return zero, fmt.Errorf("environment var %q exceeds int32 range", v)
+			}
 			return any(int32(n)).(T), nil
 		case int64:
-			return any(int64(n)).(T), nil
+			return any(n).(T), nil
 		}
 
 	// floats
@@ -97,6 +122,9 @@ func ParseEnviroVar[T any](v string) (T, error) {
 		}
 		switch any(zero).(type) {
 		case float32:
+			if math.IsInf(f, 0) || math.Abs(f) > math.MaxFloat32 {
+				return zero, fmt.Errorf("environment var %q exceeds float32 range", v)
+			}
 			return any(float32(f)).(T), nil
 		case float64:
 			return any(float64(f)).(T), nil

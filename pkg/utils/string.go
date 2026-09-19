@@ -41,7 +41,7 @@ func HexToInt(hex string) int {
 	str := strings.ReplaceAll(hex, "#", "")
 	str = strings.ReplaceAll(str, "0x", "")
 
-	output, _ := strconv.ParseUint(str, 16, 32) // err check not necessary. 0 is returned in all cases
+	output, _ := strconv.ParseUint(str, 16, 0) // err check not necessary. 0 is returned in all cases
 	return int(output)
 }
 
