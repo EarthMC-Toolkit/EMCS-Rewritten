@@ -5,7 +5,7 @@ import (
 	"emcsrw/internal/bot/scheduler"
 	"emcsrw/internal/database"
 	"emcsrw/internal/shared"
-	"emcsrw/pkg/utils/config"
+	"emcsrw/pkg/config"
 	"emcsrw/pkg/utils/logutil"
 	"log"
 	"os"

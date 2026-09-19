@@ -1,7 +1,7 @@
 package store
 
 import (
-	"emcsrw/pkg/utils"
+	"emcsrw/pkg/utils/collections"
 	"emcsrw/pkg/utils/logutil"
 	"emcsrw/pkg/utils/sets"
 	"encoding/json"
@@ -28,7 +28,7 @@ type StoreData[T any] map[StoreKey]T // Stores value not pointer. Use SetKey etc
 //
 // NOTE: Do not use this where a deep copy would be better suited!
 func (sd StoreData[T]) shallowCopy() StoreData[T] {
-	return utils.CopyMap(sd)
+	return collections.CopyMap(sd)
 }
 
 // Essentially a persistent cache that can be interfaced with like a KV store.

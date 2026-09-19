@@ -4,7 +4,7 @@ import (
 	"emcsrw/internal/bot"
 	"emcsrw/internal/bot/slashcommands"
 	"emcsrw/pkg/api/capi"
-	"emcsrw/pkg/utils/config"
+	"emcsrw/pkg/config"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
 	"os"
@@ -18,6 +18,10 @@ import (
 //   - Unix: ~/tmp/emcsrw.lock
 //   - Windows: C:\Users\<user>\AppData\Local\Temp\emcsrw.lock
 var lockPath = filepath.Join(os.TempDir(), "emcsrw.lock")
+
+// The cross platform path to the log file used to log Discord events and errors for diagnostic purposes.
+//   - Unix: ~/tmp/emcsrw.log
+//   - Windows: C:\Users\<user>\AppData\Local\Temp\emcsrw.log
 var logPath = filepath.Join(os.TempDir(), "emcsrw.log")
 
 // Attempts to acquire an exclusive process lock.

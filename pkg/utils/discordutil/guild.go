@@ -1,7 +1,7 @@
 package discordutil
 
 import (
-	"emcsrw/pkg/utils/config"
+	"emcsrw/pkg/config"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
 	"net/url"

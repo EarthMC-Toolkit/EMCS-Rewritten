@@ -8,7 +8,7 @@ import (
 	"emcsrw/internal/database"
 	"emcsrw/internal/database/store"
 	"emcsrw/pkg/api/oapi"
-	"emcsrw/pkg/utils"
+	"emcsrw/pkg/utils/collections"
 	"emcsrw/pkg/utils/netutil"
 	"encoding/json"
 	"fmt"
@@ -137,7 +137,7 @@ func ServeFalling(
 		falling := fallingTownStore.Values()
 
 		// Default sort (most inactive mayor first, then least amt of residents)
-		utils.KeySort(falling, []utils.KeySortOption[database.FallingTown]{
+		collections.KeySort(falling, []collections.KeySortOption[database.FallingTown]{
 			{Compare: func(a, b database.FallingTown) bool { return a.InactiveDuration > b.InactiveDuration }},
 			{Compare: func(a, b database.FallingTown) bool { return a.NumResidents() < b.NumResidents() }},
 		})

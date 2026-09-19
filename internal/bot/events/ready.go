@@ -11,8 +11,9 @@ import (
 	"emcsrw/internal/shared"
 	"emcsrw/pkg/api"
 	"emcsrw/pkg/api/oapi"
+	"emcsrw/pkg/config"
 	"emcsrw/pkg/utils"
-	"emcsrw/pkg/utils/config"
+	"emcsrw/pkg/utils/collections"
 	"emcsrw/pkg/utils/discordutil"
 	"emcsrw/pkg/utils/logutil"
 
@@ -388,7 +389,7 @@ func TrySendRenamedNotif(s *discordgo.Session, channelID string, towns map[strin
 }
 
 func TrySendCreatedNotif(s *discordgo.Session, channelID string, towns []oapi.TownInfo, staleTowns []oapi.TownInfo) {
-	diff, _ := utils.DifferenceBy(towns, staleTowns, func(t oapi.TownInfo) string {
+	diff, _ := collections.DifferenceBy(towns, staleTowns, func(t oapi.TownInfo) string {
 		return t.UUID
 	})
 
@@ -476,7 +477,7 @@ func TrySendCreatedNotif(s *discordgo.Session, channelID string, towns []oapi.To
 // }
 
 func TrySendDeletedNotif(s *discordgo.Session, channelID string, towns []oapi.TownInfo, staleTowns []oapi.TownInfo) {
-	diff, _ := utils.DifferenceBy(staleTowns, towns, func(t oapi.TownInfo) string {
+	diff, _ := collections.DifferenceBy(staleTowns, towns, func(t oapi.TownInfo) string {
 		return t.UUID
 	})
 

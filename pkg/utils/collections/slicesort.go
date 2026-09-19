@@ -1,4 +1,4 @@
-package utils
+package collections
 
 import "slices"
 
@@ -26,8 +26,8 @@ func KeySort[T any](s []T, keys []KeySortOption[T]) []T {
 	return s
 }
 
-func SortToggledOn[T any](arr []T, rank func(T) bool) []T {
-	slices.SortFunc(arr, func(a, b T) int {
+func SortToggledOn[T any](s []T, rank func(T) bool) []T {
+	slices.SortFunc(s, func(a, b T) int {
 		switch {
 		case rank(a) == rank(b):
 			return 0
@@ -38,21 +38,21 @@ func SortToggledOn[T any](arr []T, rank func(T) bool) []T {
 		}
 	})
 
-	return arr
+	return s
 }
 
-func RankSortAscending[T any](arr []T, rank func(T) int) []T {
-	slices.SortFunc(arr, func(a, b T) int {
+func RankSortAscending[T any](s []T, rank func(T) int) []T {
+	slices.SortFunc(s, func(a, b T) int {
 		return rank(a) - rank(b)
 	})
 
-	return arr
+	return s
 }
 
-func RankSortDescending[T any](arr []T, rank func(T) int) []T {
-	slices.SortFunc(arr, func(a, b T) int {
+func RankSortDescending[T any](s []T, rank func(T) int) []T {
+	slices.SortFunc(s, func(a, b T) int {
 		return rank(b) - rank(a)
 	})
 
-	return arr
+	return s
 }

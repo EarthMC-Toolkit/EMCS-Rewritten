@@ -10,15 +10,15 @@ import (
 //	120  -> (2, 'hr')
 //	5    -> (5, 'min')
 //	0.5  -> (30, 'sec')
-func HumanizeDuration(minutes float64) (float64, string) {
-	if minutes >= 60 {
-		return minutes / 60, "hr"
+func HumanizeDuration(mins float64) (float64, string) {
+	if mins >= 60 {
+		return mins / 60, "hr"
 	}
-	if minutes >= 1 {
-		return minutes, "min"
+	if mins >= 1 {
+		return mins, "min"
 	}
 
-	return minutes * 60, "sec"
+	return mins * 60, "sec"
 }
 
 // Converts seconds into a human-readable duration string.

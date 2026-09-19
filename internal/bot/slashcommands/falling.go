@@ -4,6 +4,7 @@ import (
 	"emcsrw/internal/database"
 	"emcsrw/internal/shared"
 	"emcsrw/pkg/utils"
+	"emcsrw/pkg/utils/collections"
 	"emcsrw/pkg/utils/discordutil"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
@@ -16,34 +17,34 @@ import (
 
 var fallingTownSorts = map[string]func([]database.FallingTown){
 	"alphabetical": func(towns []database.FallingTown) {
-		utils.KeySort(towns, []utils.KeySortOption[database.FallingTown]{
+		collections.KeySort(towns, []collections.KeySortOption[database.FallingTown]{
 			{Compare: func(a, b database.FallingTown) bool { return a.Name < b.Name }},
 		})
 	},
 	"residents": func(towns []database.FallingTown) {
-		utils.KeySort(towns, []utils.KeySortOption[database.FallingTown]{
+		collections.KeySort(towns, []collections.KeySortOption[database.FallingTown]{
 			{Compare: func(a, b database.FallingTown) bool { return a.NumResidents() > b.NumResidents() }},
 		})
 	},
 	"size": func(towns []database.FallingTown) {
-		utils.KeySort(towns, []utils.KeySortOption[database.FallingTown]{
+		collections.KeySort(towns, []collections.KeySortOption[database.FallingTown]{
 			{Compare: func(a, b database.FallingTown) bool { return a.Size() > b.Size() }},
 		})
 	},
 	"founded": func(towns []database.FallingTown) {
-		utils.KeySort(towns, []utils.KeySortOption[database.FallingTown]{
+		collections.KeySort(towns, []collections.KeySortOption[database.FallingTown]{
 			{Compare: func(a, b database.FallingTown) bool {
 				return a.Timestamps.Registered < b.Timestamps.Registered
 			}},
 		})
 	},
 	"balance": func(towns []database.FallingTown) {
-		utils.KeySort(towns, []utils.KeySortOption[database.FallingTown]{
+		collections.KeySort(towns, []collections.KeySortOption[database.FallingTown]{
 			{Compare: func(a, b database.FallingTown) bool { return a.Bal() > b.Bal() }},
 		})
 	},
 	"overclaimed": func(towns []database.FallingTown) {
-		utils.RankSortAscending(towns, func(t database.FallingTown) int {
+		collections.RankSortAscending(towns, func(t database.FallingTown) int {
 			switch {
 			case t.Status.Overclaimed:
 				return 0
@@ -55,32 +56,32 @@ var fallingTownSorts = map[string]func([]database.FallingTown){
 		})
 	},
 	"capital": func(towns []database.FallingTown) {
-		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+		collections.SortToggledOn(towns, func(t database.FallingTown) bool {
 			return t.Status.Capital
 		})
 	},
 	"has-nation": func(towns []database.FallingTown) {
-		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+		collections.SortToggledOn(towns, func(t database.FallingTown) bool {
 			return t.Status.HasNation
 		})
 	},
 	"can-outsiders-spawn": func(towns []database.FallingTown) {
-		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+		collections.SortToggledOn(towns, func(t database.FallingTown) bool {
 			return t.Status.CanOutsidersSpawn
 		})
 	},
 	"open": func(towns []database.FallingTown) {
-		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+		collections.SortToggledOn(towns, func(t database.FallingTown) bool {
 			return t.Status.Open
 		})
 	},
 	"public": func(towns []database.FallingTown) {
-		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+		collections.SortToggledOn(towns, func(t database.FallingTown) bool {
 			return t.Status.Public
 		})
 	},
 	"neutral": func(towns []database.FallingTown) {
-		utils.SortToggledOn(towns, func(t database.FallingTown) bool {
+		collections.SortToggledOn(towns, func(t database.FallingTown) bool {
 			return t.Status.Neutral
 		})
 	},
@@ -199,7 +200,7 @@ func (cmd FallingCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 		}
 	} else {
 		// Default sort (most inactive mayor first, then least amt of residents)
-		utils.KeySort(falling, []utils.KeySortOption[database.FallingTown]{
+		collections.KeySort(falling, []collections.KeySortOption[database.FallingTown]{
 			{Compare: func(a, b database.FallingTown) bool { return a.InactiveDuration > b.InactiveDuration }},
 			{Compare: func(a, b database.FallingTown) bool { return a.NumResidents() < b.NumResidents() }},
 		})

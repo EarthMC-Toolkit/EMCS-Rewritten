@@ -5,7 +5,7 @@ import (
 	"emcsrw/internal/shared"
 	"emcsrw/pkg/api"
 	"emcsrw/pkg/api/oapi"
-	"emcsrw/pkg/utils"
+	"emcsrw/pkg/utils/collections"
 	"emcsrw/pkg/utils/discordutil"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
@@ -108,7 +108,7 @@ func nationNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdat
 		// TODO: This is pretty primitive and we should prefer database.GetRankedNations()
 		// 		 when rank caching has been implemented.
 		nations := nationStore.Values()
-		matches = utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+		matches = collections.KeySort(nations, []collections.KeySortOption[oapi.NationInfo]{
 			{Compare: func(a, b oapi.NationInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
 			{Compare: func(a, b oapi.NationInfo) bool { return a.NumTowns() > b.NumTowns() }},
 			{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }},
@@ -200,34 +200,34 @@ func executeListNations(s *discordgo.Session, i *discordgo.Interaction) error {
 	if opt := listOpt.GetOption("sort"); opt != nil {
 		switch opt.StringValue() {
 		case "alphabetical":
-			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+			collections.KeySort(nations, []collections.KeySortOption[oapi.NationInfo]{
 				{Compare: func(a, b oapi.NationInfo) bool { return b.Name > a.Name }}, // ascending (A-Z)
 			})
 		case "residents":
-			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+			collections.KeySort(nations, []collections.KeySortOption[oapi.NationInfo]{
 				{Compare: func(a, b oapi.NationInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
 			})
 		case "towns":
-			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+			collections.KeySort(nations, []collections.KeySortOption[oapi.NationInfo]{
 				{Compare: func(a, b oapi.NationInfo) bool { return a.NumTowns() > b.NumTowns() }}, // descending
 			})
 		case "size":
-			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+			collections.KeySort(nations, []collections.KeySortOption[oapi.NationInfo]{
 				{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }}, // descending
 			})
 		case "balance":
-			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+			collections.KeySort(nations, []collections.KeySortOption[oapi.NationInfo]{
 				{Compare: func(a, b oapi.NationInfo) bool { return a.Bal() > b.Bal() }}, // descending
 			})
 		case "founded":
-			utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+			collections.KeySort(nations, []collections.KeySortOption[oapi.NationInfo]{
 				{Compare: func(a, b oapi.NationInfo) bool { return b.Timestamps.Registered > a.Timestamps.Registered }}, // ascending (oldest-newest)
 			})
 			// case "towns-overclaimed":
 		}
 	} else {
 		// No sort option provided, use default sort (residents -> towns -> size).
-		utils.KeySort(nations, []utils.KeySortOption[oapi.NationInfo]{
+		collections.KeySort(nations, []collections.KeySortOption[oapi.NationInfo]{
 			{Compare: func(a, b oapi.NationInfo) bool { return a.NumResidents() > b.NumResidents() }},
 			{Compare: func(a, b oapi.NationInfo) bool { return a.NumTowns() > b.NumTowns() }},
 			{Compare: func(a, b oapi.NationInfo) bool { return a.Size() > b.Size() }},
@@ -297,7 +297,7 @@ func executeNationActivity(s *discordgo.Session, i *discordgo.Interaction, natio
 
 	count := len(residents)
 	slices.SortFunc(residents, func(a, b oapi.PlayerInfo) int {
-		return utils.CmpPtrDefault(b.Timestamps.LastOnline, a.Timestamps.LastOnline, UINT64_MAX) // sort by most active
+		return CmpPtrDefault(b.Timestamps.LastOnline, a.Timestamps.LastOnline, UINT64_MAX) // sort by most active
 	})
 
 	perPage := 10

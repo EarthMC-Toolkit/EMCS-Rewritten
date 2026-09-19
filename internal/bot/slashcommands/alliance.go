@@ -5,7 +5,7 @@ import (
 	"cmp"
 	"emcsrw/internal/database"
 	"emcsrw/internal/shared"
-	"emcsrw/pkg/utils"
+	"emcsrw/pkg/utils/collections"
 	"emcsrw/pkg/utils/discordutil"
 	"emcsrw/pkg/utils/logutil"
 	"encoding/json"
@@ -328,7 +328,7 @@ func queryAllianceNations(s *discordgo.Session, i *discordgo.Interaction, cdata 
 	nations := alliance.QueryAllNations(alliances, nationStore)
 	nationsCount := len(nations)
 
-	utils.KeySort(nations, []utils.KeySortOption[database.NationEntry]{
+	collections.KeySort(nations, []collections.KeySortOption[database.NationEntry]{
 		{Compare: func(a, b database.NationEntry) bool { return a.Nation.NumResidents() > b.Nation.NumResidents() }},
 		{Compare: func(a, b database.NationEntry) bool { return a.Nation.NumTowns() > b.Nation.NumTowns() }},
 		{Compare: func(a, b database.NationEntry) bool { return a.Nation.Size() > b.Nation.Size() }},

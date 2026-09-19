@@ -1,7 +1,7 @@
 package discordutil
 
 import (
-	"emcsrw/pkg/utils/config"
+	"emcsrw/pkg/config"
 
 	"github.com/bwmarrin/discordgo"
 )

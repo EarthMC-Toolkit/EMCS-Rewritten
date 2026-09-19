@@ -5,8 +5,9 @@ import (
 	"emcsrw/internal/database/store"
 	"emcsrw/internal/shared"
 	"emcsrw/pkg/api/oapi"
+	"emcsrw/pkg/config"
 	"emcsrw/pkg/utils"
-	"emcsrw/pkg/utils/config"
+	"emcsrw/pkg/utils/collections"
 	"emcsrw/pkg/utils/discordutil"
 	"emcsrw/pkg/utils/sets"
 	"errors"
@@ -461,7 +462,7 @@ func handleAllianceEditorModalLeadersUpdate(
 	})
 
 	// start with a set of existing UUIDs for easier add/remove
-	leaderUUIDs := utils.CopyMap(alliance.Optional.Leaders)
+	leaderUUIDs := collections.CopyMap(alliance.Optional.Leaders)
 	inputs := discordutil.GetModalInputs(i)
 
 	var notAdded, notRemoved []string
@@ -856,7 +857,7 @@ func UpdateAllianceNations(
 ) (*UpdateResult, error) {
 	res := NewUpdateResult()
 
-	nationUUIDS := utils.CopyMap(alliance.OwnNations)
+	nationUUIDS := collections.CopyMap(alliance.OwnNations)
 
 	puppetAlliances := alliance.ChildAlliances(allianceStore.Values())
 	puppetNationUUIDs := puppetAlliances.NationIds()
@@ -906,7 +907,7 @@ func UpdateAllianceNations(
 	}
 
 	// Do not update DB if no changes were made from the original.
-	if utils.MapKeysEqual(alliance.OwnNations, nationUUIDS) {
+	if collections.MapKeysEqual(alliance.OwnNations, nationUUIDS) {
 		return res, nil // No error because we want to make sure messages like "Invalid Alliances" still output.
 	}
 
@@ -955,7 +956,7 @@ func MultiUpdateAllianceNations(
 		}
 
 		removed := []string{}
-		nationUUIDs := utils.CopyMap(a.OwnNations)
+		nationUUIDs := collections.CopyMap(a.OwnNations)
 		for _, name := range nationNames {
 			n, ok := nationByName[strings.ToLower(name)]
 			if !ok {
@@ -988,7 +989,7 @@ func MultiUpdateAllianceNations(
 			continue
 		}
 
-		nationUUIDs := utils.CopyMap(a.OwnNations)
+		nationUUIDs := collections.CopyMap(a.OwnNations)
 		puppetUUIDs := a.ChildAlliances(alliances).NationIds()
 
 		var addedNames, alreadyPuppetNames []string

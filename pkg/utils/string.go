@@ -1,9 +1,7 @@
 package utils
 
 import (
-	"cmp"
 	"fmt"
-	"maps"
 	"regexp"
 	"strconv"
 	"strings"
@@ -63,67 +61,6 @@ func ContainsNonAlphanumeric(input string) bool {
 
 	// If there are matches, it means non-alphanumeric characters were found
 	return pattern.MatchString(input)
-}
-
-// Uses the built-in copy function and outputs a shallow copy of the input slice.
-//
-// Elements are copied into a new slice, but if T is a reference type (e.g. pointer, map, slice),
-// the references themselves are copied, not the underlying data.
-func CopySlice[T any](value []T) []T {
-	cpy := make([]T, len(value))
-	copy(cpy, value)
-	return cpy
-}
-
-// Returns a shallow copy of the input map while preserving its type.
-// For example, if a StringSet is passed (underlying map), a StringSet will also be returned.
-func CopyMap[K comparable, V any, M ~map[K]V](m M) M {
-	cpy := make(M, len(m))
-	maps.Copy(cpy, m)
-	return cpy
-}
-
-// Compares two maps for equality based on their keys only.
-func MapKeysEqual[K comparable, V comparable](a, b map[K]V) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for k := range a {
-		if _, ok := b[k]; !ok {
-			return false
-		}
-	}
-
-	return true
-}
-
-// Returns items in listA but not in listB based on keyFunc.
-func DifferenceBy[T any, K comparable](listA []T, listB []T, keyFn func(T) K) ([]T, map[K]struct{}) {
-	seen := make(map[K]struct{}, len(listB))
-	for _, v := range listB {
-		seen[keyFn(v)] = struct{}{}
-	}
-
-	result := make([]T, 0)
-	for _, v := range listA {
-		if _, ok := seen[keyFn(v)]; !ok {
-			result = append(result, v)
-		}
-	}
-
-	return result, seen
-}
-
-func CmpPtrDefault[T cmp.Ordered](v1, v2 *T, defaultVal T) int {
-	av, bv := defaultVal, defaultVal
-	if v1 != nil {
-		av = *v1
-	}
-	if v2 != nil {
-		bv = *v2
-	}
-
-	return cmp.Compare(av, bv)
 }
 
 // Takes an input string and returns a slice containing each of the elements that were seperated by whitespace or sep.

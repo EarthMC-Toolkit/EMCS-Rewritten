@@ -7,7 +7,7 @@ import (
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils"
 	"emcsrw/pkg/utils/discordutil"
-	"emcsrw/pkg/utils/geometry"
+	"emcsrw/pkg/utils/geoutil"
 	"fmt"
 	"math"
 
@@ -242,7 +242,7 @@ func calcTravelTimes(distance float64) *TravelTimes {
 
 // Returns the manhattan distance between two sets of 2D points (X, Y).
 func distanceBetween(loc1 oapi.Location2D, loc2 oapi.Location2D) float64 {
-	return geometry.ManhattanDistance2D(
+	return geoutil.ManhattanDistance2D(
 		float64(loc1.X), float64(loc2.X),
 		float64(loc1.Z), float64(loc2.Z),
 	)

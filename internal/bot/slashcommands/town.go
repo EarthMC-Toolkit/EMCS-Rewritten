@@ -5,7 +5,7 @@ import (
 	"emcsrw/internal/shared"
 	"emcsrw/pkg/api"
 	"emcsrw/pkg/api/oapi"
-	"emcsrw/pkg/utils"
+	"emcsrw/pkg/utils/collections"
 	"emcsrw/pkg/utils/discordutil"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
@@ -45,34 +45,34 @@ var flagFilters = map[string]func(oapi.TownInfo) bool{
 
 var townSorts = map[string]func([]oapi.TownInfo){
 	"alphabetical": func(towns []oapi.TownInfo) {
-		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+		collections.KeySort(towns, []collections.KeySortOption[oapi.TownInfo]{
 			{Compare: func(a, b oapi.TownInfo) bool { return a.Name < b.Name }},
 		})
 	},
 	"residents": func(towns []oapi.TownInfo) {
-		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+		collections.KeySort(towns, []collections.KeySortOption[oapi.TownInfo]{
 			{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }},
 		})
 	},
 	"size": func(towns []oapi.TownInfo) {
-		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+		collections.KeySort(towns, []collections.KeySortOption[oapi.TownInfo]{
 			{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
 		})
 	},
 	"founded": func(towns []oapi.TownInfo) {
-		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+		collections.KeySort(towns, []collections.KeySortOption[oapi.TownInfo]{
 			{Compare: func(a, b oapi.TownInfo) bool {
 				return a.Timestamps.Registered < b.Timestamps.Registered
 			}},
 		})
 	},
 	"balance": func(towns []oapi.TownInfo) {
-		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+		collections.KeySort(towns, []collections.KeySortOption[oapi.TownInfo]{
 			{Compare: func(a, b oapi.TownInfo) bool { return a.Bal() > b.Bal() }},
 		})
 	},
 	"ruined": func(towns []oapi.TownInfo) {
-		utils.RankSortDescending(towns, func(t oapi.TownInfo) int {
+		collections.RankSortDescending(towns, func(t oapi.TownInfo) int {
 			if !t.Status.Ruined {
 				return 0
 			}
@@ -80,7 +80,7 @@ var townSorts = map[string]func([]oapi.TownInfo){
 		})
 	},
 	"overclaimed": func(towns []oapi.TownInfo) {
-		utils.RankSortAscending(towns, func(t oapi.TownInfo) int {
+		collections.RankSortAscending(towns, func(t oapi.TownInfo) int {
 			switch {
 			case t.Status.Overclaimed:
 				return 0
@@ -92,7 +92,7 @@ var townSorts = map[string]func([]oapi.TownInfo){
 		})
 	},
 	"for-sale": func(towns []oapi.TownInfo) {
-		utils.RankSortDescending(towns, func(t oapi.TownInfo) int {
+		collections.RankSortDescending(towns, func(t oapi.TownInfo) int {
 			if !t.Status.ForSale || t.Stats.ForSalePrice == nil {
 				return 0
 			}
@@ -100,32 +100,32 @@ var townSorts = map[string]func([]oapi.TownInfo){
 		})
 	},
 	"capital": func(towns []oapi.TownInfo) {
-		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+		collections.SortToggledOn(towns, func(t oapi.TownInfo) bool {
 			return t.Status.Capital
 		})
 	},
 	"has-nation": func(towns []oapi.TownInfo) {
-		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+		collections.SortToggledOn(towns, func(t oapi.TownInfo) bool {
 			return t.Status.HasNation
 		})
 	},
 	"can-outsiders-spawn": func(towns []oapi.TownInfo) {
-		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+		collections.SortToggledOn(towns, func(t oapi.TownInfo) bool {
 			return t.Status.CanOutsidersSpawn
 		})
 	},
 	"open": func(towns []oapi.TownInfo) {
-		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+		collections.SortToggledOn(towns, func(t oapi.TownInfo) bool {
 			return t.Status.Open
 		})
 	},
 	"public": func(towns []oapi.TownInfo) {
-		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+		collections.SortToggledOn(towns, func(t oapi.TownInfo) bool {
 			return t.Status.Public
 		})
 	},
 	"neutral": func(towns []oapi.TownInfo) {
-		utils.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+		collections.SortToggledOn(towns, func(t oapi.TownInfo) bool {
 			return t.Status.Neutral
 		})
 	},
@@ -251,7 +251,7 @@ func townNameAutocomplete(s *discordgo.Session, i *discordgo.Interaction, cdata 
 
 	if focusedTrimmed == "" {
 		towns := townStore.Values()
-		matches = utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+		matches = collections.KeySort(towns, []collections.KeySortOption[oapi.TownInfo]{
 			{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }}, // descending
 			{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
 		})
@@ -380,7 +380,7 @@ func executeTownList(s *discordgo.Session, i *discordgo.Interaction) error {
 		}
 	} else {
 		// default sort
-		utils.KeySort(towns, []utils.KeySortOption[oapi.TownInfo]{
+		collections.KeySort(towns, []collections.KeySortOption[oapi.TownInfo]{
 			{Compare: func(a, b oapi.TownInfo) bool { return a.NumResidents() > b.NumResidents() }},
 			{Compare: func(a, b oapi.TownInfo) bool { return a.Size() > b.Size() }},
 		})
@@ -459,7 +459,7 @@ func executeTownActivity(s *discordgo.Session, i *discordgo.Interaction, townNam
 
 	count := len(residents)
 	slices.SortFunc(residents, func(a, b oapi.PlayerInfo) int {
-		return utils.CmpPtrDefault(b.Timestamps.LastOnline, a.Timestamps.LastOnline, UINT64_MAX) // sort by most active
+		return CmpPtrDefault(b.Timestamps.LastOnline, a.Timestamps.LastOnline, UINT64_MAX) // sort by most active
 	})
 
 	perPage := 10

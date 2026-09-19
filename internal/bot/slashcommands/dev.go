@@ -8,7 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-const MAX_THRESHOLD = 10
+const MAX_PURGE_THRESHOLD = 10
 
 type DevCommand struct{}
 
@@ -27,7 +27,7 @@ func (cmd DevCommand) Options() []AppCommandOpt {
 		// 	Description: "Reloads the bot by refreshing command 'Execute' definitions.",
 		// },
 		discordutil.SubcommandOption("purge", "Leaves guilds based on low member count. Helps combat abuse.",
-			discordutil.IntegerOption("threshold", "Guilds above this member count will not be left.", 1, MAX_THRESHOLD, true),
+			discordutil.IntegerOption("threshold", "Guilds above this member count will not be left.", 1, MAX_PURGE_THRESHOLD, true),
 			discordutil.BoolOption("approx-only", "Determines whether to leave using only approx mem count."),
 		),
 	}
@@ -163,7 +163,7 @@ func leaveGuilds(
 
 		// don't leave obviously massive guilds.
 		// should narrow down which ones we actually need to look at
-		if g.ApproximateMemberCount > MAX_THRESHOLD {
+		if g.ApproximateMemberCount > MAX_PURGE_THRESHOLD {
 			skippedCount++
 			continue
 		}
@@ -171,7 +171,7 @@ func leaveGuilds(
 		guildsForInspection = append(guildsForInspection, *g)
 	}
 
-	fmt.Printf("\nSkipped %d guilds over MAX_THRESHOLD.\n", skippedCount)
+	fmt.Printf("\nSkipped %d guilds over MAX_PURGE_THRESHOLD.\n", skippedCount)
 
 	for _, g := range guildsForInspection {
 		memCount := g.ApproximateMemberCount

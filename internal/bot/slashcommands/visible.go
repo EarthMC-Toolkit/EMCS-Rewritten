@@ -5,7 +5,7 @@ import (
 	"emcsrw/pkg/api"
 	"emcsrw/pkg/api/mapi"
 	"emcsrw/pkg/api/oapi"
-	"emcsrw/pkg/utils"
+	"emcsrw/pkg/utils/collections"
 	"emcsrw/pkg/utils/discordutil"
 	"fmt"
 	"strings"
@@ -45,7 +45,7 @@ func (cmd VisibleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 	}
 
 	// sort alphabetically
-	utils.KeySort(visible, []utils.KeySortOption[mapi.MapPlayer]{
+	collections.KeySort(visible, []collections.KeySortOption[mapi.MapPlayer]{
 		{Compare: func(a, b mapi.MapPlayer) bool { return a.Name < b.Name }}, // ascending (A-Z)
 	})
 

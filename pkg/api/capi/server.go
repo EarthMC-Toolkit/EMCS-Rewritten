@@ -6,7 +6,7 @@ import (
 	"emcsrw/internal/database/store"
 	"emcsrw/internal/shared"
 	"emcsrw/pkg/api/oapi"
-	"emcsrw/pkg/utils/config"
+	"emcsrw/pkg/config"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
 	"log"
