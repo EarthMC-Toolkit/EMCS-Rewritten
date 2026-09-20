@@ -12,8 +12,9 @@ import (
 func LoadEnv(prod bool) error {
 	files := []string{".env.local", ".env.dev"}
 	if prod {
-		files = []string{".env", ".env.prod", ".env.production"}
+		files = []string{".env"} // ".env.prod", ".env.production"
 	}
+
 	return godotenv.Load(files...)
 }
 
