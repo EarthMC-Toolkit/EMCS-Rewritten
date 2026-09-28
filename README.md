@@ -95,20 +95,21 @@ List of endpoints since 28 Feb 2026:
 - `news`
 
 ## Project Structure
+>- `db` -> Storage dir where permanent data such as alliances are intended to be stored. Git ignored.
+
 >- `main.go` -> Project entrypoint. Responsible for loading `env` and passing bot token to `bot.Run`.
->- `bot` -> Where the bot runs from. Contains all bot logic for commands, events etc.
+>- `internal/bot` -> Where the bot runs from. Contains all bot logic for commands, events etc.
 >   - `events` -> The package where Discord event handlers like `OnReady` are run and are handled.
 > 	- `scheduler` -> Task scheduler logic for running tasks at an interval which can gracefully shutdown.
 > 	- `slashcommands` -> Self explanatory. Contains all slash commands as seperate files which handle their own execution.
 >   - `bot.go` -> The file where the bot connects to Discord, also responsible for setting event handlers and intents.
->- `api` -> Contains packages relating to APIs. Contains funcs that interact with both where necessary.
+>- `internal/database` -> For all code that relates to or interacts with a DB or store/cache.
+>	- `store` -> For interacting with stores themselves after retreiving them from the database.
+>- `internal/shared` -> For things that can be shared, e.g. constants or embed related funcs/vars.
+>- `pkg/api` -> Contains packages relating to APIs. Contains funcs that interact with both where necessary.
 >   - `mapi` -> For interacting with the map API. (Currently Squaremap)
 >   - `oapi` -> For interacting with the Official API.
 >   - `capi` -> Serves a Custom API using info from the `database` package. NOT REQUIRED IF FORKING.
->- `database` -> For all code that relates to or interacts with a DB or store/cache.
->	- `store` -> For interacting with stores themselves after retreiving them from the database.
->- `db` -> Where permanent data such as alliances are intended to be stored. Git ignored.
->- `shared` -> For things that can be shared, e.g. constants or embed related funcs/vars.
 >- `utils` -> Contains packages for reusable funcs like helpers for strings, slices, http, logging etc.
 >- `tests` -> Unit tests for code validation and reliability (only for development, not deployment).
 
@@ -161,12 +162,12 @@ func (cmd ExampleCommand) Execute(s *discordgo.Session, i *discordgo.Interaction
 	return nil
 }
 
-// =============================================================================================
-// The following are optional and can be removed if desired.
-// You can find example usage of these across files within the `./bot/slashcommands/` directory.
-
+// ======================================================================================================
+// The following methods are optional and any unimplemented ones can safely be removed from the file.
+// You can find example usage of these across files within the `slashcommands` package/directory.
+// ======================================================================================================
 func (cmd ExampleCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Interaction) error {
-	return nil
+	return nil // Autocomplete does not provide a Custom ID as it isn't a component :)
 }
 
 func (cmd ExampleCommand) HandleModal(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
@@ -180,5 +181,5 @@ func (cmd ExampleCommand) HandleButton(s *discordgo.Session, i *discordgo.Intera
 func (cmd ExampleCommand) HandleSelectMenu(s *discordgo.Session, i *discordgo.Interaction, customID string) error {
 	return nil
 }
-// =============================================================================================
+// ======================================================================================================
 ```
