@@ -7,7 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var commands = make(map[string]SlashCommand)
+var registry = make(SlashCommandRegistry)
 
 // 0 for Guild, 1 for User
 var integrationTypes = []discordgo.ApplicationIntegrationType{
@@ -32,6 +32,8 @@ type SlashCommand interface {
 	// Contexts() *[]discordgo.InteractionContextType
 	Execute(s *discordgo.Session, i *discordgo.InteractionCreate) error
 }
+
+type SlashCommandRegistry map[string]SlashCommand
 
 type SelectMenuHandler interface {
 	HandleSelectMenu(s *discordgo.Session, i *discordgo.Interaction, customID string) error
@@ -63,7 +65,7 @@ func ToApplicationCommand(cmd SlashCommand) *discordgo.ApplicationCommand {
 // Syncs the local slash command map with the Discord remote by creating
 // them if they do not exist, or overwriting them if they do.
 func SyncRemote(s *discordgo.Session, appID, guildID string) (local []*discordgo.ApplicationCommand, created []*discordgo.ApplicationCommand) {
-	for _, cmd := range commands {
+	for _, cmd := range registry {
 		local = append(local, ToApplicationCommand(cmd))
 	}
 
@@ -78,8 +80,9 @@ func SyncRemote(s *discordgo.Session, appID, guildID string) (local []*discordgo
 	return
 }
 
-func All() map[string]SlashCommand {
-	return commands
+func Get(cmdName string) (cmd SlashCommand, exists bool) {
+	cmd, exists = registry[cmdName]
+	return
 }
 
 // func AllNames() (names []string) {
@@ -98,7 +101,7 @@ func Register(cmd SlashCommand) {
 		fmt.Printf("Error registering command '%s'. Description must be 1-100 chars.", cmd.Name())
 	}
 
-	commands[cmd.Name()] = cmd
+	registry[cmd.Name()] = cmd
 }
 
 // Called before the bot runs (just before main).

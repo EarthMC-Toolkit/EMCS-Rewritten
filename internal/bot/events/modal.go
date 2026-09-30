@@ -24,7 +24,7 @@ func OnModalSubmitInteractionCreate(s *discordgo.Session, i *discordgo.Interacti
 
 	data := i.ModalSubmitData()
 	cmdName, _, _ := strings.Cut(data.CustomID, "_")
-	if cmd, ok := slashcommands.All()[cmdName]; ok {
+	if cmd, exists := slashcommands.Get(cmdName); exists {
 		if modalCmd, ok := cmd.(slashcommands.ModalHandler); ok {
 			_ = modalCmd.HandleModal(s, i.Interaction, data.CustomID)
 		}

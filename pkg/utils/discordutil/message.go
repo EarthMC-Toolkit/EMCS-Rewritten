@@ -2,10 +2,6 @@ package discordutil
 
 import "github.com/bwmarrin/discordgo"
 
-var WIKI_EMOJI = discordgo.ComponentEmoji{Name: "📰"}
-var NAMEMC_EMOJI = discordgo.ComponentEmoji{Name: "namemc", ID: "1532281907310755951"}
-var DISCORD_EMOJI = discordgo.ComponentEmoji{Name: "discordlogo", ID: "1513955352608243923"}
-
 // Data shared between both an interaction and a message. This means no matter the method we choose to
 // use to output data from the builder, these fields will be available on the result.
 type SharedOpts struct {

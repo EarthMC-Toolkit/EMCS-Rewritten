@@ -29,7 +29,7 @@ func OnButtonInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCre
 	}
 
 	cmdName, _, _ := strings.Cut(data.CustomID, "_")
-	if cmd, ok := slashcommands.All()[cmdName]; ok {
+	if cmd, exists := slashcommands.Get(cmdName); exists {
 		if buttonCmd, ok := cmd.(slashcommands.ButtonHandler); ok {
 			if err := buttonCmd.HandleButton(s, i.Interaction, data.CustomID); err != nil {
 				log.Println(err)
@@ -56,7 +56,7 @@ func OnSelectMenuInteractionCreate(s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	cmdName, _, _ := strings.Cut(data.CustomID, "_")
-	if cmd, ok := slashcommands.All()[cmdName]; ok {
+	if cmd, exists := slashcommands.Get(cmdName); exists {
 		if selectMenuCmd, ok := cmd.(slashcommands.SelectMenuHandler); ok {
 			if err := selectMenuCmd.HandleSelectMenu(s, i.Interaction, data.CustomID); err != nil {
 				log.Println(err)

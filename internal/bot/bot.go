@@ -107,7 +107,7 @@ func Start(s *discordgo.Session) *discordgo.Session {
 
 	//#region Handle graceful shutdown upon a termination signal.
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM) // Interrupt = Ctrl+C | SIGHUP = tmux kill | SIGTERM = kill
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP) // Interrupt = Ctrl+C | SIGTERM = kill | SIGHUP = tmux kill
 	//defer signal.Stop(c) // Not needed right now. the process exits after Start returns.
 
 	sig := <-c

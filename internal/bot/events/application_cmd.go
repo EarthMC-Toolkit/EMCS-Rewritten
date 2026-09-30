@@ -41,7 +41,12 @@ func OnApplicationCommandInteractionCreate(s *discordgo.Session, i *discordgo.In
 
 	cmdName := i.ApplicationCommandData().Name
 	cmdType := i.ApplicationCommandData().CommandType
-	cmd := slashcommands.All()[cmdName]
+
+	cmd, exists := slashcommands.Get(cmdName)
+	if !exists {
+		err := fmt.Errorf("Command '%s' is not in the local registry and may no longer exist!\nThe developer should ideally resync the command list with Discord.")
+		discordutil.ReplyWithError(s, i.Interaction, err)
+	}
 
 	start := time.Now()
 	err := cmd.Execute(s, i)
@@ -92,7 +97,7 @@ func OnAutocompleteInteractionCreate(s *discordgo.Session, i *discordgo.Interact
 	}
 
 	cmdName := i.ApplicationCommandData().Name
-	if cmd, ok := slashcommands.All()[cmdName]; ok {
+	if cmd, exists := slashcommands.Get(cmdName); exists {
 		if autocompleteCmd, ok := cmd.(slashcommands.AutocompleteHandler); ok {
 			_ = autocompleteCmd.HandleAutocomplete(s, i.Interaction)
 		}
