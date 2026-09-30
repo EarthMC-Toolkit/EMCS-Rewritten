@@ -2,7 +2,7 @@ package database
 
 import (
 	"cmp"
-	"emcsrw/internal/database/store"
+	"emcsrw/internal/store"
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils/sets"
 	"fmt"

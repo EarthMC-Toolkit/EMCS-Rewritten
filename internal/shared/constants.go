@@ -1,5 +1,7 @@
 package shared
 
+import "github.com/bwmarrin/discordgo"
+
 const NOSTRA_RELEASE_TIMESTAMP = 1776132038538
 const NAMEMC_URL = "https://namemc.com/profile/"
 const SKIN_URL = "https://visage.surgeplay.com"
@@ -51,6 +53,10 @@ var EMOJIS = struct {
 	RESIDENT_BLUE:   "<:resident_blue:1516536751462547707>",
 	STEVE:           "<:steve:1516536778255896756>",
 }
+
+var WIKI_EMOJI = discordgo.ComponentEmoji{Name: "📰"}
+var NAMEMC_EMOJI = discordgo.ComponentEmoji{Name: "namemc", ID: "1532281907310755951"}
+var DISCORD_EMOJI = discordgo.ComponentEmoji{Name: "discordlogo", ID: "1513955352608243923"}
 
 var ACTION_SPEEDS = struct {
 	SNEAK  float32

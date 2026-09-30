@@ -2,7 +2,7 @@ package tests
 
 import (
 	"emcsrw/internal/database"
-	"emcsrw/internal/database/store"
+	"emcsrw/internal/store"
 	"fmt"
 	"os"
 	"path/filepath"

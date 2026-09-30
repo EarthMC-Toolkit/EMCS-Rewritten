@@ -11,6 +11,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// TODO: This is not really generic and doesn't belong in /pkg/.
+// Either move to /internal/ or change params to accept string or slice of IDs.
 func IsDev(i *discordgo.Interaction) bool {
 	idsStr, err := config.GetEnviroVar("DEV_IDS")
 	if err != nil {

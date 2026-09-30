@@ -2,7 +2,7 @@ package capi
 
 import (
 	"emcsrw/internal/database"
-	"emcsrw/internal/database/store"
+	"emcsrw/internal/store"
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils/logutil"
 	"slices"

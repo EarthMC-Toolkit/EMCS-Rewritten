@@ -1,9 +1,9 @@
 package main
 
 import (
+	"emcsrw/internal/api/capi"
 	"emcsrw/internal/bot"
 	"emcsrw/internal/bot/slashcommands"
-	"emcsrw/pkg/api/capi"
 	"emcsrw/pkg/config"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"

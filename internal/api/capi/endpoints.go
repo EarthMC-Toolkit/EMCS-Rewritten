@@ -6,7 +6,7 @@ import (
 	"compress/gzip"
 	"crypto/sha1"
 	"emcsrw/internal/database"
-	"emcsrw/internal/database/store"
+	"emcsrw/internal/store"
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils/collections"
 	"emcsrw/pkg/utils/netutil"

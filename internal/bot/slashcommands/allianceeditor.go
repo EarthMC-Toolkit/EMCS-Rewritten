@@ -2,8 +2,8 @@ package slashcommands
 
 import (
 	"emcsrw/internal/database"
-	"emcsrw/internal/database/store"
 	"emcsrw/internal/shared"
+	"emcsrw/internal/store"
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/config"
 	"emcsrw/pkg/utils"

@@ -1,7 +1,7 @@
 package database
 
 import (
-	"emcsrw/internal/database/store"
+	"emcsrw/internal/store"
 	"emcsrw/pkg/api/oapi"
 	"sort"
 	"time"

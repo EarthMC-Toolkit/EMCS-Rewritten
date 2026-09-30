@@ -1,7 +1,7 @@
 package database
 
 import (
-	"emcsrw/internal/database/store"
+	"emcsrw/internal/store"
 	"maps"
 	"slices"
 	"sort"

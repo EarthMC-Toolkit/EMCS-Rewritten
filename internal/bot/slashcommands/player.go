@@ -78,11 +78,11 @@ func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerNa
 			msg.SetEmbeds(embed)
 
 			nameMC := fmt.Sprintf("https://namemc.com/profile/%s", bp.UUID)
-			msg.AddButton("NameMC", discordgo.LinkButton, nameMC, &discordutil.NAMEMC_EMOJI, nil)
+			msg.AddButton("NameMC", discordgo.LinkButton, nameMC, &shared.NAMEMC_EMOJI, nil)
 
 			wiki := fmt.Sprintf("https://wiki.earthmc.net/wiki/%s", bp.Name)
 			if _, hasWiki := netutil.Ping(wiki); hasWiki {
-				msg.AddButton("Wiki Page", discordgo.LinkButton, wiki, &discordutil.WIKI_EMOJI, nil)
+				msg.AddButton("Wiki Page", discordgo.LinkButton, wiki, &shared.WIKI_EMOJI, nil)
 			}
 		}
 
@@ -107,11 +107,11 @@ func executeQueryPlayer(s *discordgo.Session, i *discordgo.Interaction, playerNa
 	msg.SetEmbeds(playerEmbed)
 
 	nameMC := fmt.Sprintf("https://namemc.com/profile/%s", players[0].UUID)
-	msg.AddButton("NameMC", discordgo.LinkButton, nameMC, &discordutil.NAMEMC_EMOJI, nil)
+	msg.AddButton("NameMC", discordgo.LinkButton, nameMC, &shared.NAMEMC_EMOJI, nil)
 
 	wiki := fmt.Sprintf("https://wiki.earthmc.net/wiki/%s", players[0].Name)
 	if _, hasWiki := netutil.Ping(wiki); hasWiki {
-		msg.AddButton("Wiki Page", discordgo.LinkButton, wiki, &discordutil.WIKI_EMOJI, nil)
+		msg.AddButton("Wiki Page", discordgo.LinkButton, wiki, &shared.WIKI_EMOJI, nil)
 	}
 
 	return discordutil.EditReply(s, i, msg.InteractionData())

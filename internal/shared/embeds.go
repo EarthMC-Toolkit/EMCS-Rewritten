@@ -2,7 +2,7 @@ package shared
 
 import (
 	"emcsrw/internal/database"
-	"emcsrw/internal/database/store"
+	"emcsrw/internal/store"
 	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/utils"
 	"emcsrw/pkg/utils/discordutil"
@@ -192,7 +192,7 @@ func NewAllianceEmbed(
 	b := discordutil.NewMessageBuilder()
 	if a.Optional.DiscordCode != nil {
 		inviteURL := fmt.Sprintf("https://discord.gg/%s", *a.Optional.DiscordCode)
-		b.AddButton("Join discord", discordgo.LinkButton, inviteURL, &discordutil.DISCORD_EMOJI, nil)
+		b.AddButton("Join discord", discordgo.LinkButton, inviteURL, &DISCORD_EMOJI, nil)
 	}
 
 	return embed.Build(), b.BuildComponents()
