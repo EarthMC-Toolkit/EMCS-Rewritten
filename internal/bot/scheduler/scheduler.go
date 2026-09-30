@@ -4,24 +4,35 @@ import (
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type Scheduler struct {
 	wg       sync.WaitGroup
-	tasks    map[string]func() // task name -> task func
-	doneCh   chan string       // channel for logging task completions
-	stopping bool
+	stopping atomic.Bool // Bot shutdown hint. Simple state used to allow or prevent new tasks.
+	//tasks map[string]func() // Task name -> task func.
+	//doneCh chan string      // Channel for logging task completions.
 }
 
 var Instance *Scheduler
 
 func New() *Scheduler {
-	//ctx, cancel := context.WithCancel(context.Background())
+	// Commented for now until we require actual use of a Context.
+	//
+	// Right now, an atomic 'stopping' bool is enough as it prevents new tasks
+	// from running and allows current ones to complete before shutdown.
+	//
+	// A context.Context would only become useful when we need to cancel work
+	// that's already running by propagating the context, for example with
+	// http.NewRequestWithContext() or exec.CommandContext().
+	//
+	// ctx, cancel := context.WithCancel(context.Background())
 	return &Scheduler{
-		wg:     sync.WaitGroup{},
-		tasks:  make(map[string]func()),
-		doneCh: make(chan string, 32),
+		//tasks: make(map[string]func()),
+		//doneCh: make(chan string, 32),
+		//ctx: ctx
+		//cancel: cancel
 	}
 }
 
@@ -30,20 +41,22 @@ func (s *Scheduler) Schedule(taskName string, task func(), runInitial bool, inte
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
-		if runInitial && !s.stopping {
+		if runInitial && !s.stopping.Load() {
 			task()
 		}
 
 		for range ticker.C {
-			if s.stopping {
-				return // prevent new ticks
+			if s.stopping.Load() {
+				return // hint was given to stop. prevent new ticks and therefore new tasks from starting.
 			}
 
 			task()
-			if s.stopping {
-				fmt.Println()
-				logutil.Logf(logutil.BLUE, "[Scheduler]: Task '%s' finished during shutdown.\n", taskName)
+			if !s.stopping.Load() {
+				continue // task finished before shutdown started
 			}
+
+			fmt.Println()
+			logutil.Logf(logutil.BLUE, "[Scheduler]: Task '%s' finished during shutdown.\n", taskName)
 		}
 	})
 }
@@ -51,11 +64,11 @@ func (s *Scheduler) Schedule(taskName string, task func(), runInitial bool, inte
 // Shutdown stops this scheduler from running new tasks and waits up to timeoutDuration for all tasks to finish.
 // Returns a status string indicating success or timeout.
 func (s *Scheduler) Shutdown(timeoutDuration time.Duration) string {
-	s.stopping = true // prevent new ticks
+	s.stopping.Store(true) // hint to scheduler to prevent scheduling future tasks.
 
 	done := make(chan struct{})
 	go func() {
-		s.wg.Wait() // wait for currently running tasks
+		s.wg.Wait() // wait for scheduler goroutines and any tasks they are running
 		close(done)
 	}()
 

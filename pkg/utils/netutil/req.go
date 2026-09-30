@@ -96,6 +96,7 @@ func Post(url string, contentType string, reqBody io.Reader) ([]byte, error) {
 		return nil, fmt.Errorf("error creating POST request to %s:\n\t%s", url, err)
 	}
 	req.Header.Set("User-Agent", AGENT)
+	req.Header.Set("Content-Type", contentType)
 
 	response, err := client.Do(req)
 	if err != nil {
@@ -124,6 +125,7 @@ func JsonPost[T any](url string, body any) (T, error) {
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
 		logutil.Printf(logutil.RED, "\nfailed to marshal query body into byte slice:\n%v\n", err)
+		return data, err
 	}
 
 	res, err := Post(url, "application/json", bytes.NewBuffer(bodyBytes))

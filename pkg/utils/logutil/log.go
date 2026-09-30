@@ -23,7 +23,7 @@ var (
 	REDBG  = colour.New(colour.BgRed, colour.FgHiWhite)   // ERROR (Background)
 )
 
-func InitFile(fpath string) error {
+func InitFileLogger(fpath string) error {
 	file, err := os.OpenFile(fpath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err == nil {
 		FileLog = log.New(file, "", log.Ldate|log.Ltime|log.LUTC)

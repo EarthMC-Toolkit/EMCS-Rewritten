@@ -45,37 +45,47 @@ func lockProcess() (func() error, error) {
 	}, nil
 }
 
-// Runs bot pre-setup required before it can run.
-// Loads env and ultimately initializing a new discordgo/Discord session.
-//
-// Any errors returned from this func should ALWAYS indicate a fatal shutdown (enforced in main).
-func setup() (*discordgo.Session, error) {
-	// Load vars from appropriate env file into current OS environment.
+func setupEnv() error {
 	if err := config.LoadEnv(true); err != nil {
-		return nil, err
+		return err
 	}
+
 	logutil.DebugLogEnabled, _ = config.ParseEnviroVar[bool]("ENABLE_DEBUG_LOG")
 	logutil.Println(logutil.FAINT, "DEBUG | Loaded .env into OS environment.")
 
-	// Make a Discord session using configured bot token from loaded env.
+	return nil
+}
+
+// Initializes a new Discord session using the configured bot token.
+// Any errors returned from this func should ALWAYS indicate a fatal shutdown (enforced in main).
+func setupDiscord() (*discordgo.Session, error) {
 	tkn, err := config.GetEnviroVar("BOT_TOKEN")
 	if err != nil {
 		return nil, err
 	}
+
+	// Make a Discord session using configured bot token from loaded env.
 	s, err := discordgo.New("Bot " + tkn)
 	if err != nil {
 		return nil, err
 	}
-	logutil.Println(logutil.FAINT, "DEBUG | Discord session created.")
 
+	logutil.Println(logutil.FAINT, "DEBUG | Discord session created.")
 	return s, nil
 }
 
-func execCliSubcmd(subCmd string, s *discordgo.Session) error {
+func execCliSubcmd(subCmd string) error {
 	switch subCmd {
+	case "api":
+		capi.Start()
 	case "bot":
-		if err := logutil.InitFile(logPath); err != nil {
+		if err := logutil.InitFileLogger(logPath); err != nil {
 			return fmt.Errorf("Failed to init log file at %s: %s", logPath, err)
+		}
+
+		s, err := setupDiscord()
+		if err != nil {
+			return err
 		}
 
 		s.LogLevel = discordgo.LogError
@@ -84,9 +94,12 @@ func execCliSubcmd(subCmd string, s *discordgo.Session) error {
 		}
 
 		bot.Start(s)
-	case "api":
-		capi.Start()
 	case "register", "sync":
+		s, err := setupDiscord()
+		if err != nil {
+			return err
+		}
+
 		appID, err := config.GetEnviroVar("BOT_APP_ID")
 		if err != nil {
 			return err
@@ -118,13 +131,12 @@ func main() {
 		defer unlock()
 	}
 
-	s, err := setup()
-	if err != nil {
+	if err := setupEnv(); err != nil {
 		unlock()
 		logutil.Fatalf(67, "FATAL | failed before executing subcommand '%s'. error during setup:\n\t%s\n", subCmd, err)
 	}
 
-	if err := execCliSubcmd(subCmd, s); err != nil {
+	if err := execCliSubcmd(subCmd); err != nil {
 		unlock()
 		logutil.Fatalf(67, "FATAL | error executing subcommand '%s':\n\t%s\n", subCmd, err)
 	}

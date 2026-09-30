@@ -50,7 +50,7 @@ var EVENT_HANDLERS = [...]any{
 // Uses session s to open a WebSocket connection to the Discord gateway once all necessary event handlers
 // have been registered via EVENT_HANDLERS - these are called when their respective event is fired by the
 // Discord websocket/gateway API and the function signature matches.
-func ConnectGateway(s *discordgo.Session) *discordgo.Session {
+func connectGateway(s *discordgo.Session) *discordgo.Session {
 	s.Identify.Intents = ALL_INTENTS
 	s.SyncEvents = false // Run handlers in a goroutine to prevent a command waiting on another user's command.
 	s.ShouldReconnectOnError = true
@@ -68,7 +68,7 @@ func ConnectGateway(s *discordgo.Session) *discordgo.Session {
 	return s
 }
 
-func DisconnectGateway(s *discordgo.Session) {
+func disconnectGateway(s *discordgo.Session) {
 	done := make(chan error, 1)
 	go func() {
 		done <- s.Close()
@@ -95,7 +95,7 @@ func Start(s *discordgo.Session) *discordgo.Session {
 	scheduler.Instance = scheduler.New()
 
 	logutil.Logln(logutil.BLUE, "Connecting to Discord gateway...")
-	ConnectGateway(s)
+	connectGateway(s)
 
 	// ctx, stopSSE := context.WithCancel(context.Background())
 	// go func() {
@@ -138,7 +138,7 @@ func Shutdown(s *discordgo.Session, activeMapDB *database.Database) {
 
 	// Close the existing WS connection with Discord.
 	logutil.Println(logutil.FAINT, "DEBUG | Shutdown: Discord")
-	DisconnectGateway(s)
+	disconnectGateway(s)
 
 	// Write every store to disk safely. All store errs during this are combined into single error.
 	logutil.Println(logutil.FAINT, "DEBUG | Shutdown: DB")

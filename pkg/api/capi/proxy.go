@@ -10,9 +10,11 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 )
 
 var noRedirectClient = &http.Client{
+	Timeout: 60 * time.Second,
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if len(via) > 5 {
 			return errors.New("too many redirects. sussy baka")
@@ -25,13 +27,14 @@ var noRedirectClient = &http.Client{
 
 // A simple CORS reverse proxy, where only a whitelist of hosts are allowed.
 type Proxy struct {
-	allowedHosts []string
-	rl           *RateLimit
-	rpm          int
+	allowedHosts  []string
+	rl            *RateLimit
+	rpm           int
+	maxBodySizeMB uint8
 }
 
-func NewProxy(rl *RateLimit, reqPerMin uint8, allowedHosts []string) *Proxy {
-	return &Proxy{rl: rl, rpm: int(reqPerMin), allowedHosts: allowedHosts}
+func NewProxy(rl *RateLimit, reqPerMin uint8, allowedHosts []string, maxBodySizeMB uint8) *Proxy {
+	return &Proxy{rl: rl, rpm: int(reqPerMin), allowedHosts: allowedHosts, maxBodySizeMB: maxBodySizeMB}
 }
 
 // Handles CORS preflight, parses the target URL and forwards the request to the upstream HTTPS endpoint.
@@ -82,7 +85,7 @@ func (p *Proxy) getTargetUrl(r *http.Request) (*url.URL, error) {
 	}
 
 	// In case we are retrieving an archive we need to allow that, but perform some extra
-	// validations to avoid malicious rogue actors that want to molest our sweet proxy >:(
+	// validations to avoid malicious rogue actors that want to molest our proxy >:(
 	host := u.Hostname()
 	if host == "web.archive.org" {
 		idx := strings.Index(strings.ToLower(u.Path), "https://")
@@ -115,8 +118,16 @@ func (p *Proxy) getTargetUrl(r *http.Request) (*url.URL, error) {
 // Proxies the request to the validated HTTPS target, buffering the request body
 // for safe forwarding and streaming the upstream response back to the client.
 func (p *Proxy) forward(w http.ResponseWriter, r *http.Request, targetUrl *url.URL) {
+	r.Body = http.MaxBytesReader(w, r.Body, int64(p.maxBodySizeMB)*1_000_000)
+
 	reqBody, err := cloneBody(r)
 	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+			return
+		}
+
 		http.Error(w, "failed to read req body", http.StatusBadRequest)
 		return
 	}

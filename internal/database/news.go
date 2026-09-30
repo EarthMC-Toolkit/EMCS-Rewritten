@@ -87,10 +87,10 @@ func NewNewsEntry(m *discordgo.Message) NewsEntry {
 		Images:    sets.New[string](),
 	}
 
-	return ParseEntry(e, m)
+	return parseEntry(e, m)
 }
 
-func ParseEntry(entry NewsEntry, m *discordgo.Message) NewsEntry {
+func parseEntry(entry NewsEntry, m *discordgo.Message) NewsEntry {
 	// All attachments that are images should be added to the entry.Images slice,
 	// but any duplicate images found in the message content should be ignored since they are already included.
 	for _, attachment := range m.Attachments {

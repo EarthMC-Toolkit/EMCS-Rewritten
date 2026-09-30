@@ -74,13 +74,17 @@ func Serve(mux *http.ServeMux, port uint) *http.Server {
 func NewMux(mdbs ...*database.Database) (mux *http.ServeMux, err error) {
 	apiRL := NewRateLimit(true, 2)    // per IP, per endpoint
 	proxyRL := NewRateLimit(false, 3) // per IP
-	proxy := NewProxy(proxyRL, PROXY_RPM, []string{"earthmc.net", "map.earthmc.net", "api.earthmc.net"})
+	proxy := NewProxy(
+		proxyRL, PROXY_RPM,
+		[]string{"earthmc.net", "map.earthmc.net", "api.earthmc.net"},
+		50, // max allowed req body size in MB
+	)
 
 	mux = http.NewServeMux()
 	ServeBase(mux)         // Welcome endpoint at domain base (also shown for unknown endpoints).
 	ServeTerms(mux)        // Legal jargon page including TOS and Privacy Policy. See TERMS.md file.
 	ServeBotInvite(mux)    // A redirect to invite the bot through Discord.
-	ServeProxy(mux, proxy) // Custom CORS proxy with auth. Client must specify X-Proxy-Key and SECRET_KEY must match.
+	ServeProxy(mux, proxy) // Custom CORS proxy with 50MB body limit.
 
 	for _, mdb := range mdbs {
 		if mdb == nil {

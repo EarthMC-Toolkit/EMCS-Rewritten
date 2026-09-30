@@ -41,6 +41,7 @@ type Store[T any] struct {
 	filePath string       // Path to the file/dataset for this store.
 	data     StoreData[T] // The actual data within the file.
 	mu       sync.RWMutex // Mutex lock to stop read & write collisions.
+	writeMu  sync.Mutex   // Mutex lock to stop write collisions to ".tmp" file.
 }
 
 // Creates a new store backed by a JSON file at `path` for persistence.
@@ -355,30 +356,26 @@ func (s *Store[T]) LoadFromFile() error {
 // Creates a snapshot of the current cache state and writes it to the
 // database (JSON file) at the path we provided when the store was initialized.
 func (s *Store[T]) WriteSnapshot() error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
 	s.mu.RLock()
-	cpy := s.data.shallowCopy() // TODO: Do we really need a copy if we use mutex on all ops anyway?
+	cpy := s.data.shallowCopy()
 	s.mu.RUnlock()
 
-	// using a copy prevents a panic if map is modified when marshal iterates it
 	data, err := json.Marshal(cpy)
 	if err != nil {
 		return err
 	}
 
-	// yankee wit no brim
 	tmp := s.filePath + ".tmp"
 	if err := os.WriteFile(tmp, data, 0o644); err != nil {
 		return err
 	}
 
-	// replace real file once temp file is fully written
-	err = os.Rename(tmp, s.filePath)
-	if err != nil {
-		// TODO: if this occurs, the temp file could be left behind
-		// we should check this file exists and either recover or delete it
+	if err := os.Rename(tmp, s.filePath); err != nil {
 		return fmt.Errorf("error writing store snapshot to %s: %w", s.filePath, err)
 	}
 
-	//fmt.Printf("Successfully closed store and wrote snapshot at: %s\n", s.filePath)
 	return nil
 }

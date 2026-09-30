@@ -80,15 +80,8 @@ var townSorts = map[string]func([]oapi.TownInfo){
 		})
 	},
 	"overclaimed": func(towns []oapi.TownInfo) {
-		collections.RankSortAscending(towns, func(t oapi.TownInfo) int {
-			switch {
-			case t.Status.Overclaimed:
-				return 0
-			case t.Status.Overclaimed:
-				return 1
-			default:
-				return 2
-			}
+		collections.SortToggledOn(towns, func(t oapi.TownInfo) bool {
+			return t.Status.Overclaimed
 		})
 	},
 	"for-sale": func(towns []oapi.TownInfo) {
