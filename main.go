@@ -4,6 +4,7 @@ import (
 	"emcsrw/internal/api/capi"
 	"emcsrw/internal/bot"
 	"emcsrw/internal/bot/slashcommands"
+	"emcsrw/internal/monitor"
 	"emcsrw/pkg/config"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
@@ -113,12 +114,19 @@ func execCliSubcmd(subCmd string) error {
 
 func main() {
 	if len(os.Args) < 2 {
-		logutil.Exit(1, "ERR | missing subcommand. Usage: go run . [sync|bot|api]")
+		logutil.Exit(1, "ERR | missing subcommand. Usage: go run . [sync|bot|api|monitor]")
 	}
 
 	subCmd := os.Args[1]
-	if !lo.Contains([]string{"bot", "api", "register", "sync"}, subCmd) {
+	if !lo.Contains([]string{"bot", "api", "register", "sync", "monitor"}, subCmd) {
 		logutil.Exit(1, "ERR | unknown subcommand:", subCmd)
+	}
+
+	if subCmd == "monitor" {
+		if err := monitor.Run(); err != nil {
+			logutil.Fatalf(1, "ERR | process monitor failed: %v", err)
+		}
+		return
 	}
 
 	unlock := func() error { return nil }

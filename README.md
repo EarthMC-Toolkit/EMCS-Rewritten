@@ -42,6 +42,8 @@ export PFLOW_CHANNEL_ID=channelIdHere 	# Where notifs for player related events 
 `go run . bot` -> Runs the bot and connects to Discord. The process runs until a panic or `Ctrl+C` (graceful exit).\
 `go run . api` -> Starts an API and listens to the port specified in `.env` (see next section).
 
+`go run . monitor` -> Displays live CPU and memory usage for this application's bot and API processes (Linux only).
+
 To start immediately after syncing commands, simply append it like so: `go run . sync && go run . bot`
 
 ⚠️ You should only ever run `sync` before `bot` - not after the bot already started!\
