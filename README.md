@@ -26,11 +26,13 @@ technical debt to make it worth the time and effort of updating, as well as the 
 You will want to make sure you configure the bot to ensure everything works as intended.\
 Configuring the bot is as simple as editing the `.env` file (may change in future).
 ```sh
-export BOT_TOKEN=botTokenHere   		# This bot's Secret Token (use Discord Portal).
+export BOT_TOKEN=botTokenHere			# This bot's Secret Token (use Discord Portal).
 export BOT_APP_ID=botAppIdHere  		# This bot's App ID (use Discord Portal).
 export DEV_ID=userIdHere 				# The Discord User ID of this bot's developer.
 
-export API_PORT=				 		# Port the Custom API is served on. Defaults to 7777.
+export OAPI_AUTH_KEY=yourKeyHere		# Your EarthMC API key (REQUIRED FOR BOT TO FUNCTION). Run `/api key create` in-game.
+export CAPI_PORT=				 		# Port the Custom API is served on (empty defaults to 7777). Only used after `go run . api` is executed.
+
 export NEWS_CHANNEL_ID=channelIdHere	# Where news will be fetched from to serve the Custom API.
 export VP_CHANNEL_ID=channelIdHere		# Where notifs for the VoteParty status will be sent to. Blank = Disable
 export TFLOW_CHANNEL_ID=channelIdHere	# Where notifs for town related events will be sent to. Blank = Disable
@@ -55,9 +57,9 @@ To start immediately after syncing commands, simply append it like so: `go run .
 > Only serve an API if you need one and know what you are doing.
 
 By default, a custom API is not served. To serve one, simply add the following variables to your `.env` file.\
-If you are not using a reverse proxy (see next section), you can access it at `localhost:<API_PORT>`.
+If you are not using a reverse proxy (see next section), you can access it at `localhost:<CAPI_PORT>`.
 ```sh
-export API_PORT=7777
+export CAPI_PORT=7777
 ```
 
 #### Reverse Proxy

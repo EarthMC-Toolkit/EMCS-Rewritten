@@ -1,11 +1,25 @@
 package oapi
 
 import (
+	"emcsrw/pkg/config"
 	"emcsrw/pkg/utils/netutil"
 	"sync"
 
 	"github.com/samber/lo"
 )
+
+var OAPI_AUTH_KEY string
+
+// Set api key once here so that we don't access .env every time we make a new query struct.
+func init() {
+	oapiAuthKey, err := config.ParseEnviroVar[string]("OAPI_AUTH_KEY")
+	if err == nil {
+		OAPI_AUTH_KEY = oapiAuthKey
+	}
+	if OAPI_AUTH_KEY == "" {
+		panic("OAPI_AUTH_KEY is not set in the environment")
+	}
+}
 
 type Endpoint = string
 
@@ -46,7 +60,7 @@ func NewGetQuery[T any](endpoint Endpoint) *GetQuery[T] {
 func (q *GetQuery[T]) Execute() (T, error) {
 	resCh := make(chan RequestResult[T], 1)
 	Dispatcher.Enqueue(func() error {
-		res, err := netutil.JsonGet[T](q.endpoint)
+		res, err := netutil.JsonGet[T](q.endpoint, OAPI_AUTH_KEY)
 		resCh <- RequestResult[T]{res, err}
 		return err
 	})
@@ -88,7 +102,7 @@ func (q *PostQuery[T]) WithTemplate(template map[string]bool) *PostQuery[T] {
 func (q *PostQuery[T]) Execute() ([]T, error) {
 	resCh := make(chan RequestResult[[]T], 1)
 	Dispatcher.Enqueue(func() error {
-		results, err := netutil.JsonPost[[]T](q.endpoint, q.body)
+		results, err := netutil.JsonPost[[]T](q.endpoint, q.body, OAPI_AUTH_KEY)
 		resCh <- RequestResult[[]T]{results, err}
 		return err
 	})
@@ -114,7 +128,7 @@ func (q *PostQuery[T]) ExecuteConcurrent() ([]T, []error, int) {
 			defer wg.Done()
 
 			body := NewPostBody(chunkCopy, q.body.Template)
-			results, err := netutil.JsonPost[[]T](q.endpoint, body)
+			results, err := netutil.JsonPost[[]T](q.endpoint, body, OAPI_AUTH_KEY)
 			if err != nil {
 				errCh <- err
 				return err

@@ -38,12 +38,15 @@ func Head(url string) (*http.Response, error) {
 // Sends a request with the "GET" method without a body and reads the response body.
 // It is up to the caller to know how to read the byte[].
 // If using this func just to unmarshal to JSON, prefer JsonGet().
-func Get(url string) ([]byte, error) {
+func Get(url string, token ...string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GET request to %s:\n\t%s", url, err)
 	}
+
+	// Set headers
 	req.Header.Set("User-Agent", AGENT)
+	setAuth(req, token)
 
 	response, err := client.Do(req)
 	if err != nil {
@@ -66,10 +69,10 @@ func Get(url string) ([]byte, error) {
 // Sends a request without a body using the "GET" method.
 //
 // Since JSON is expected to be returned, the response is unmarshalled into T.
-func JsonGet[T any](url string) (T, error) {
+func JsonGet[T any](url string, token ...string) (T, error) {
 	var data T
 
-	res, err := Get(url)
+	res, err := Get(url, token...)
 	if err != nil {
 		return data, err
 	}
@@ -90,13 +93,16 @@ func JsonGet[T any](url string) (T, error) {
 // It is up to the caller to know how to read the byte[].
 //
 // If using this func only to unmarshal to JSON, prefer JsonPost().
-func Post(url string, contentType string, reqBody io.Reader) ([]byte, error) {
+func Post(url string, contentType string, reqBody io.Reader, token ...string) ([]byte, error) {
 	req, err := http.NewRequest("POST", url, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating POST request to %s:\n\t%s", url, err)
 	}
+
+	// Set headers
 	req.Header.Set("User-Agent", AGENT)
 	req.Header.Set("Content-Type", contentType)
+	setAuth(req, token)
 
 	response, err := client.Do(req)
 	if err != nil {
@@ -119,7 +125,7 @@ func Post(url string, contentType string, reqBody io.Reader) ([]byte, error) {
 // Sends a request with a JSON body using the "POST" method.
 //
 // Since JSON is expected to be returned, the response is unmarshalled into T.
-func JsonPost[T any](url string, body any) (T, error) {
+func JsonPost[T any](url string, body any, token ...string) (T, error) {
 	var data T
 
 	bodyBytes, err := json.Marshal(body)
@@ -128,7 +134,7 @@ func JsonPost[T any](url string, body any) (T, error) {
 		return data, err
 	}
 
-	res, err := Post(url, "application/json", bytes.NewBuffer(bodyBytes))
+	res, err := Post(url, "application/json", bytes.NewBuffer(bodyBytes), token...)
 	if err != nil {
 		return data, err
 	}
@@ -139,6 +145,15 @@ func JsonPost[T any](url string, body any) (T, error) {
 	}
 
 	return data, err
+}
+
+func setAuth(req *http.Request, token []string) {
+	if len(token) > 0 && token[0] != "" {
+		//fmt.Printf("Setting Authorization header with token: %s\n", token[0])
+		req.Header.Set("Authorization", "Bearer "+token[0])
+	} else {
+		fmt.Printf("No Authorization token provided: %s\n", req.URL)
+	}
 }
 
 //#endregion

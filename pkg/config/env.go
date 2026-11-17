@@ -32,8 +32,13 @@ func GetEnviroVar(name string) (string, error) {
 }
 
 // Parses an environment variable as the desired type, failing with an error if not possible.
-func ParseEnviroVar[T any](v string) (T, error) {
+func ParseEnviroVar[T any](name string) (T, error) {
 	var zero T
+
+	v, err := GetEnviroVar(name)
+	if err != nil {
+		return zero, err
+	}
 
 	switch any(zero).(type) {
 	case string:
