@@ -23,7 +23,7 @@ func Start() {
 	activeMapDB := database.TryInit(shared.ACTIVE_MAP)
 	auroraDB := database.TryInit(shared.SUPPORTED_MAPS.AURORA)
 
-	port := getApiPort()
+	port := capiPort()
 	if IsRunning(port) {
 		log.Fatalf("Custom API server already listening on :%d", port)
 		return
@@ -198,8 +198,8 @@ func getClientIP(r *http.Request) string {
 }
 
 // Retrives the configured port for the Custom API server, defaulting to 7777 if invalid or unspecified.
-func getApiPort() uint {
-	v, err := config.GetEnviroVar("API_PORT")
+func capiPort() uint {
+	v, err := config.GetEnviroVar("CAPI_PORT")
 	if err != nil {
 		return portFail(err.Error())
 	}
@@ -214,7 +214,7 @@ func getApiPort() uint {
 		return port // Allow HTTP and HTTPS default ports
 	default:
 		if port < 1024 || port > 49150 {
-			return portFail("environment variable API_PORT must be 80, 443 or in range 1024-49150")
+			return portFail("environment variable CAPI_PORT must be 80, 443 or in range 1024-49150")
 		}
 	}
 
