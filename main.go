@@ -5,6 +5,7 @@ import (
 	"emcsrw/internal/bot"
 	"emcsrw/internal/bot/slashcommands"
 	"emcsrw/internal/monitor"
+	"emcsrw/pkg/api/oapi"
 	"emcsrw/pkg/config"
 	"emcsrw/pkg/utils/logutil"
 	"fmt"
@@ -53,6 +54,11 @@ func setupEnv() error {
 
 	logutil.DebugLogEnabled, _ = config.ParseEnviroVar[bool]("ENABLE_DEBUG_LOG")
 	logutil.Println(logutil.FAINT, "DEBUG | Loaded .env into OS environment.")
+
+	if err := oapi.InitAuthKey(); err != nil {
+		logutil.Println(logutil.FAINT, "DEBUG | Failed to initialize OAPI auth key:", err)
+		return err
+	}
 
 	return nil
 }

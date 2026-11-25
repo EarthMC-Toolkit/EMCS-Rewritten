@@ -11,14 +11,13 @@ import (
 var OAPI_AUTH_KEY string
 
 // Set api key once here so that we don't access .env every time we make a new query struct.
-func init() {
-	oapiAuthKey, err := config.ParseEnviroVar[string]("OAPI_AUTH_KEY")
-	if err == nil {
-		OAPI_AUTH_KEY = oapiAuthKey
+func InitAuthKey() error {
+	key, err := config.ParseEnviroVar[string]("OAPI_AUTH_KEY")
+	if err != nil {
+		return err
 	}
-	if OAPI_AUTH_KEY == "" {
-		panic("OAPI_AUTH_KEY is not set in the environment")
-	}
+	OAPI_AUTH_KEY = key
+	return nil
 }
 
 type Endpoint = string
